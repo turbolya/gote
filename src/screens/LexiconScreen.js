@@ -1,0 +1,199 @@
+// Lexicon: a browsable, searchable table of every species the user has observed.
+// Column 1 = square thumbnail, column 2 = name. Filter by how well you know each
+// species in games: well known, missed, or not yet seen in a game.
+// Tapping a row opens the species detail page.
+
+import React, { useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  Pressable,
+  TextInput,
+  FlatList,
+  StyleSheet,
+} from 'react-native';
+import Icon from '../components/Icon';
+import ScreenHeader from '../components/ScreenHeader';
+import { colors } from '../theme';
+import {
+  filterCards,
+  statusCounts,
+  uniqueByTaxon,
+  displayName,
+  genusOf,
+} from '../lexicon';
+
+// The three knowledge-status filters. `icon`/`tint` give each a monotone glyph.
+const STATUSES = [
+  { key: 'good', label: 'Known', icon: 'check-circle', tint: colors.correct },
+  { key: 'missed', label: 'Missed', icon: 'alert-circle', tint: colors.wrong },
+  { key: 'new', label: 'Not seen', icon: 'circle', tint: colors.muted },
+];
+
+export default function LexiconScreen({ cards, speciesStats, onBack, onSelect }) {
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState(null); // null = all
+
+  const species = useMemo(() => uniqueByTaxon(cards), [cards]);
+  const counts = useMemo(
+    () => statusCounts(cards, speciesStats),
+    [cards, speciesStats]
+  );
+
+  const rows = useMemo(
+    () => filterCards(cards, { query, status, speciesStats }),
+    [cards, query, status, speciesStats]
+  );
+
+  return (
+    <View style={styles.flex}>
+      <ScreenHeader title="Lexicon" onBack={onBack} />
+
+      {/* Search */}
+      <View style={styles.searchWrap}>
+        <Icon name="search" size={18} color={colors.muted} />
+        <TextInput
+          style={styles.search}
+          value={query}
+          onChangeText={setQuery}
+          placeholder={`Search ${species.length} species…`}
+          placeholderTextColor={colors.muted}
+          autoCorrect={false}
+          autoCapitalize="none"
+        />
+        {query.length > 0 && (
+          <Pressable onPress={() => setQuery('')} hitSlop={10}>
+            <Icon name="x" size={18} color={colors.muted} />
+          </Pressable>
+        )}
+      </View>
+
+      {/* Status filter chips */}
+      <View style={styles.filterRow}>
+        {STATUSES.map((s) => {
+          const on = status === s.key;
+          return (
+            <Pressable
+              key={s.key}
+              onPress={() => setStatus(on ? null : s.key)}
+              style={[styles.filterChip, on && styles.filterChipOn]}
+            >
+              <Icon
+                name={s.icon}
+                size={15}
+                color={on ? s.tint : colors.muted}
+              />
+              <Text style={[styles.filterText, on && styles.filterTextOn]}>
+                {s.label}
+              </Text>
+              <Text style={[styles.filterCount, on && styles.filterTextOn]}>
+                {counts[s.key]}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* Results table */}
+      <FlatList
+        data={rows}
+        keyExtractor={(c) => String(c.taxonId ?? c.scientific)}
+        contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps="handled"
+        renderItem={({ item }) => (
+          <Pressable style={styles.row} onPress={() => onSelect(item)}>
+            <Image
+              source={{ uri: item.image }}
+              style={styles.thumb}
+              resizeMode="cover"
+            />
+            <View style={styles.rowText}>
+              <Text style={styles.name} numberOfLines={1}>
+                {displayName(item)}
+              </Text>
+              <Text style={styles.sci} numberOfLines={1}>
+                {item.common ? item.scientific : genusOf(item)}
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={20} color={colors.muted} />
+          </Pressable>
+        )}
+        ListEmptyComponent={
+          <Text style={styles.empty}>
+            {status
+              ? 'No species in this category yet.'
+              : 'No species match your search.'}
+          </Text>
+        }
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 20,
+    marginTop: 8,
+    paddingHorizontal: 14,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  search: { flex: 1, fontSize: 16, color: colors.text },
+
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 20,
+    marginTop: 12,
+  },
+  filterChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  filterChipOn: { backgroundColor: colors.faint, borderColor: colors.primary },
+  filterText: { fontSize: 13, fontWeight: '700', color: colors.muted },
+  filterTextOn: { color: colors.text },
+  filterCount: { fontSize: 13, fontWeight: '700', color: colors.muted },
+
+  listContent: { paddingTop: 14, paddingBottom: 32 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+  },
+  thumb: {
+    width: 56,
+    height: 56,
+    borderRadius: 10,
+    backgroundColor: colors.faint,
+  },
+  rowText: { flex: 1 },
+  name: { fontSize: 16, fontWeight: '700', color: colors.text },
+  sci: { fontSize: 13, fontStyle: 'italic', color: colors.muted, marginTop: 1 },
+  empty: {
+    textAlign: 'center',
+    color: colors.muted,
+    fontSize: 15,
+    marginTop: 40,
+    paddingHorizontal: 20,
+  },
+});
