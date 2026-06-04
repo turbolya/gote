@@ -16,14 +16,13 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import appConfig from '../../app.json';
+import { APP_VERSION } from '../changelog';
 import { colors } from '../theme';
 import { DEFAULT_LOCALE } from '../constants';
 import { getCacheSize, clearCache, formatBytes } from '../cache';
 import Icon from '../components/Icon';
 import LanguageDropdown from '../components/LanguageDropdown';
 
-const APP_VERSION = appConfig.expo.version;
 const ISSUES_URL = 'https://github.com/turbolya/gote/issues/new';
 const FEEDBACK_EMAIL = 'milder.spilled.9d@icloud.com';
 
@@ -96,6 +95,7 @@ export default function SettingsScreen({
   error,
   sync,
   onUpdateNow,
+  onChangelog,
   onSave,
   onBack,
 }) {
@@ -305,6 +305,13 @@ export default function SettingsScreen({
         </View>
 
         <Text style={[styles.label, styles.langLabel]}>About</Text>
+        {onChangelog && (
+          <Pressable style={styles.reportRow} onPress={onChangelog}>
+            <Icon name="file-text" size={18} color={colors.text} />
+            <Text style={styles.reportText}>What's new</Text>
+            <Icon name="chevron-right" size={18} color={colors.muted} />
+          </Pressable>
+        )}
         <Pressable style={styles.reportRow} onPress={sendFeedbackEmail}>
           <Icon name="mail" size={18} color={colors.text} />
           <Text style={styles.reportText}>Send feedback</Text>

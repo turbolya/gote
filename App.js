@@ -61,6 +61,7 @@ import ResultsScreen from './src/screens/ResultsScreen';
 import StatsScreen from './src/screens/StatsScreen';
 import LexiconScreen from './src/screens/LexiconScreen';
 import DetailScreen from './src/screens/DetailScreen';
+import ChangelogScreen from './src/screens/ChangelogScreen';
 import SplashScreen from './src/components/SplashScreen';
 import { colors } from './src/theme';
 
@@ -541,6 +542,7 @@ export default function App() {
             onUpdateNow={
               username ? () => syncNow(username, locale) : null
             }
+            onChangelog={() => setScreen('changelog')}
             onBack={fullDeck.length > 0 ? () => setScreen('menu') : null}
             onSave={(name, prefs) => {
               setPerSpecies(prefs.perSpecies);
@@ -598,6 +600,10 @@ export default function App() {
               setLifetime({ answered: 0, correct: 0 });
             }}
           />
+        )}
+
+        {screen === 'changelog' && (
+          <ChangelogScreen onBack={() => setScreen('settings')} />
         )}
 
         {screen === 'lexicon' && (
