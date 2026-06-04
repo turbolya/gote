@@ -79,6 +79,13 @@ assets/                      # app icon + splash (placeholder green)
 - **Publishing** to the stores uses
   [EAS Build](https://docs.expo.dev/build/introduction/): `npx eas build`.
 
+## Crash reporting
+
+Errors are reported via [Sentry](https://sentry.io) — but only when a DSN is
+configured. Set it in `app.json` → `expo.extra.sentryDsn` (or the `SENTRY_DSN`
+env var). With no DSN, Sentry is a no-op, so it stays silent in Expo Go and
+local dev. Reporting is crash/error-only (no performance tracing, no PII).
+
 ## License
 
 Copyright (C) 2026 turbolya.
