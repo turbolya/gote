@@ -89,6 +89,28 @@ const FIELDS_SPECIES_COUNT = {
 
 const HEADERS = { Accept: 'application/json', 'User-Agent': USER_AGENT };
 
+// iNaturalist caps clients at ~60 requests/minute and returns HTTP 429 when
+// exceeded. Centralized fetch that retries 429s with backoff, honoring the
+// server's Retry-After header when present. All API requests go through this.
+const MAX_RETRIES = 3;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function apiFetch(url, options) {
+  let attempt = 0;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const res = await fetch(url, options);
+    if (res.status !== 429 || attempt >= MAX_RETRIES) return res;
+    // Wait: Retry-After (seconds) if given, else exponential backoff (1s, 2s, 4s).
+    const header = parseInt(res.headers.get('Retry-After') || '', 10);
+    const waitMs = Number.isFinite(header)
+      ? header * 1000
+      : 1000 * 2 ** attempt;
+    await sleep(waitMs);
+    attempt += 1;
+  }
+}
+
 // --- in-memory taxon lookup cache -------------------------------------------
 // Per-taxon API results (curated photos, similar species, full detail) are
 // stable, so we cache them for the session to avoid re-hitting the API when the
@@ -120,7 +142,7 @@ function fieldsValue(fields) {
 // the non-critical taxa/similar lookups, which should degrade quietly.
 async function getResults(url) {
   try {
-    const res = await fetch(url, { headers: HEADERS });
+    const res = await apiFetch(url, { headers: HEADERS });
     if (!res.ok) return [];
     const data = await res.json();
     return data.results || [];
@@ -326,7 +348,7 @@ async function fetchObservationCards(username, { locale, updatedSince, max, onPr
 
     let res;
     try {
-      res = await fetch(url, { headers: HEADERS });
+      res = await apiFetch(url, { headers: HEADERS });
     } catch (e) {
       throw new Error('Network error — check your internet connection.');
     }
@@ -463,7 +485,7 @@ export async function searchPlaces(query) {
   const q = String(query || '').trim();
   if (q.length < 2) return [];
   try {
-    const res = await fetch(
+    const res = await apiFetch(
       `${PLACES_API}?q=${encodeURIComponent(q)}&per_page=8`,
       { headers: HEADERS }
     );
@@ -528,7 +550,7 @@ export async function fetchNearbyCards(opts = {}) {
 
     let res;
     try {
-      res = await fetch(url, { headers: HEADERS });
+      res = await apiFetch(url, { headers: HEADERS });
     } catch (e) {
       throw new Error('Network error — check your internet connection.');
     }

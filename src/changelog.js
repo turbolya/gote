@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.4.3';
+export const APP_VERSION = '1.4.4';
 
 export const CHANGELOG = [
+  {
+    version: '1.4.4',
+    date: '2026-06-04',
+    changes: [
+      'More resilient networking: if iNaturalist rate-limits a request, the app '
+        + 'now waits and retries automatically instead of failing.',
+    ],
+  },
   {
     version: '1.4.3',
     date: '2026-06-04',
