@@ -10,15 +10,47 @@ import {
   Switch,
   ScrollView,
   ActivityIndicator,
+  Linking,
+  Alert,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import appConfig from '../../app.json';
 import { colors } from '../theme';
 import { DEFAULT_LOCALE } from '../constants';
 import { getCacheSize, clearCache, formatBytes } from '../cache';
 import Icon from '../components/Icon';
 import LanguageDropdown from '../components/LanguageDropdown';
+
+const APP_VERSION = appConfig.expo.version;
+const ISSUES_URL = 'https://github.com/turbolya/gote/issues/new';
+
+// Open a GitHub "new issue" page pre-filled with a bug-report template. The user
+// submits it in their own browser session — the app never needs a GitHub token.
+async function reportBug() {
+  const title = '[Bug] ';
+  const body =
+    'Describe the bug:\n\n\n' +
+    'Steps to reproduce:\n1. \n2. \n\n' +
+    'What did you expect to happen?\n\n\n' +
+    '---\n' +
+    `App version: ${APP_VERSION}\n` +
+    `Platform: ${Platform.OS} ${Platform.Version}\n`;
+  const url =
+    `${ISSUES_URL}?title=${encodeURIComponent(title)}` +
+    `&body=${encodeURIComponent(body)}`;
+  try {
+    const ok = await Linking.canOpenURL(url);
+    if (ok) await Linking.openURL(url);
+    else throw new Error('cannot open');
+  } catch {
+    Alert.alert(
+      'Couldn’t open the browser',
+      `Please report the bug at:\n${ISSUES_URL}`
+    );
+  }
+}
 
 // Friendly "x minutes ago" for the last-synced timestamp.
 function timeAgo(ts) {
@@ -250,8 +282,16 @@ export default function SettingsScreen({
           </Pressable>
         </View>
 
+        <Text style={[styles.label, styles.langLabel]}>About</Text>
+        <Pressable style={styles.reportRow} onPress={reportBug}>
+          <Icon name="github" size={18} color={colors.text} />
+          <Text style={styles.reportText}>Report a bug</Text>
+          <Icon name="external-link" size={16} color={colors.muted} />
+        </Pressable>
+
         <Text style={styles.footer}>
-          Uses your public observations from the iNaturalist API.
+          Uses your public observations from the iNaturalist API.{'\n'}
+          Gote v{APP_VERSION}
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -339,6 +379,13 @@ const styles = StyleSheet.create({
   updateButton: { borderColor: colors.primary },
   updateButtonText: { color: colors.primaryDark, fontSize: 15, fontWeight: '700' },
   cacheButtonText: { color: colors.wrong, fontSize: 15, fontWeight: '700' },
+  reportRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+  },
+  reportText: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.text },
   error: {
     color: colors.wrong,
     marginTop: 18,
