@@ -14,5 +14,8 @@ A running list of things to do for Gote. Check items off as they're done.
 - [ ] Game Center integration (iOS): leaderboards (e.g. speedrun streak,
       lifetime accuracy) and achievements. Needs a native module + EAS/dev
       build — not available in Expo Go.
+- [ ] Integrate Aptabase for privacy-first usage analytics (open-source, no PII,
+      self-hostable). Wrap in a src/analytics.js, keep opt-out friendly. Needs an
+      account/app key + native dev build — not available in Expo Go.
 
 ## Done
