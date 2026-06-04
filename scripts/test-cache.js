@@ -95,6 +95,24 @@ t('applyFilters: speciesOnly keeps any-grade species, drops coarser ranks', () =
   const out = applyFilters(cards, { speciesOnly: true });
   assert.deepEqual(out.map((c) => c.id).sort(), ['a', 'c']);
 });
+t('applyFilters: speciesOnly uses rankLevel (subspecies kept, genus dropped)', () => {
+  const cards = [
+    card({ id: 'sp', taxonId: 1, rank: 'species', rankLevel: 10 }),
+    card({ id: 'ssp', taxonId: 2, rank: 'subspecies', rankLevel: 5 }),
+    card({ id: 'gen', taxonId: 3, rank: 'genus', rankLevel: 20 }),
+    card({ id: 'fam', taxonId: 4, rank: 'family', rankLevel: 30 }),
+  ];
+  const out = applyFilters(cards, { perSpecies: false, speciesOnly: true });
+  assert.deepEqual(out.map((c) => c.id).sort(), ['sp', 'ssp']); // <=10 kept
+});
+t('applyFilters: speciesOnly falls back to rank string when rankLevel missing', () => {
+  const cards = [
+    card({ id: 'a', taxonId: 1, rank: 'species' }), // no rankLevel
+    card({ id: 'b', taxonId: 2, rank: 'genus' }),
+  ];
+  const out = applyFilters(cards, { perSpecies: false, speciesOnly: true });
+  assert.deepEqual(out.map((c) => c.id), ['a']);
+});
 t('applyFilters: researchGrade takes precedence over speciesOnly', () => {
   const cards = [
     card({ id: 'a', rank: 'species', qualityGrade: 'research' }),

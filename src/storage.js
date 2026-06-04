@@ -11,9 +11,10 @@ const K_CACHE = '@gote/obscache';
 
 // Bump if the cached card shape changes incompatibly — a mismatch forces a
 // fresh full download instead of using stale-shaped data.
-// v2: cards now carry `ancestry` (taxon ancestor ids) for similar-distractor
-// picking; bumping discards v1 caches so they re-download with that field.
-const CACHE_VERSION = 2;
+// v2: cards carry `ancestry` for similar-distractor picking.
+// v3: cards carry `rankLevel` for the "identified to species" filter (fixes
+//     stale caches whose cards lacked reliable rank data).
+const CACHE_VERSION = 3;
 
 export async function loadUsername() {
   try {

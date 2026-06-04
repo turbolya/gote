@@ -32,6 +32,7 @@ const FIELDS_OBSERVATION = {
   taxon: {
     name: true,
     rank: true,
+    rank_level: true,
     iconic_taxon_name: true,
     preferred_common_name: true,
     ancestor_ids: true,
@@ -143,6 +144,9 @@ function observationToCard(obs) {
     common: commonName(taxon),
     scientific: taxon.name,
     rank: taxon.rank || '',
+    // Numeric rank depth (species=10, subspecies=5, genus=20, …). Used by the
+    // "identified to species" filter: species-or-finer means rankLevel <= 10.
+    rankLevel: typeof taxon.rank_level === 'number' ? taxon.rank_level : null,
     iconic: taxon.iconic_taxon_name || null,
     // Ordered kingdom→…→species ancestor taxon ids; used to pick taxonomically
     // similar multiple-choice distractors (shared deeper ancestor = closer kin).
@@ -166,10 +170,24 @@ export function shuffle(arr) {
 
 // --- pure helpers (exported for unit tests) ----------------------------------
 
+// Is a card identified to an exact species (or finer — subspecies/variety/
+// form)? Uses numeric rank_level: species=10, subspecies/variety/form < 10,
+// genus/family/etc. > 10. Falls back to the rank string if rank_level is
+// missing (e.g. very old cached cards).
+function isSpeciesOrFiner(card) {
+  if (typeof card.rankLevel === 'number') return card.rankLevel <= 10;
+  return (
+    card.rank === 'species' ||
+    card.rank === 'subspecies' ||
+    card.rank === 'variety' ||
+    card.rank === 'form'
+  );
+}
+
 // Apply the local display filters to cached cards. These used to be query
 // params; making them local means toggling them never re-downloads.
-//   - researchGrade:  keep only research-grade, species-rank cards
-//   - speciesOnly:    keep only cards identified to an exact species (any grade)
+//   - researchGrade:  keep only research-grade cards identified to species
+//   - speciesOnly:    keep only cards identified to species (any grade)
 //   - perSpecies:     keep one card per taxon (first wins)
 export function applyFilters(
   cards,
@@ -177,12 +195,10 @@ export function applyFilters(
 ) {
   let out = cards;
   if (researchGrade) {
-    out = out.filter(
-      (c) => c.qualityGrade === 'research' && c.rank === 'species'
-    );
+    out = out.filter((c) => c.qualityGrade === 'research' && isSpeciesOrFiner(c));
   } else if (speciesOnly) {
     // Looser than research-grade: exact species identification, any quality.
-    out = out.filter((c) => c.rank === 'species');
+    out = out.filter(isSpeciesOrFiner);
   }
   if (perSpecies) {
     const seen = new Set();
