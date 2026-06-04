@@ -96,6 +96,7 @@ export default function SettingsScreen({
   sync,
   onUpdateNow,
   onChangelog,
+  onLegal,
   onSave,
   onBack,
 }) {
@@ -322,9 +323,18 @@ export default function SettingsScreen({
           <Text style={styles.reportText}>Report a bug on GitHub</Text>
           <Icon name="external-link" size={16} color={colors.muted} />
         </Pressable>
+        {onLegal && (
+          <Pressable style={styles.reportRow} onPress={onLegal}>
+            <Icon name="info" size={18} color={colors.text} />
+            <Text style={styles.reportText}>Data &amp; licensing</Text>
+            <Icon name="chevron-right" size={18} color={colors.muted} />
+          </Pressable>
+        )}
 
         <Text style={styles.footer}>
-          Uses your public observations from the iNaturalist API.{'\n'}
+          Photos &amp; data from iNaturalist and its observers, used under each
+          observer’s license. Gote is an unofficial app, not affiliated with
+          iNaturalist.{'\n'}
           Gote v{APP_VERSION}
         </Text>
       </ScrollView>

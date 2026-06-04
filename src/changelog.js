@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.1.0';
+export const APP_VERSION = '1.2.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.2.0',
+    date: '2026-06-04',
+    changes: [
+      'New: "Data & licensing" screen in Settings explaining that photos and '
+        + 'data come from iNaturalist and its observers, under each observer’s '
+        + 'copyright/license.',
+    ],
+  },
   {
     version: '1.1.0',
     date: '2026-06-04',
