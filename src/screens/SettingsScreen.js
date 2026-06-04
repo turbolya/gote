@@ -25,18 +25,22 @@ import LanguageDropdown from '../components/LanguageDropdown';
 
 const APP_VERSION = appConfig.expo.version;
 const ISSUES_URL = 'https://github.com/turbolya/gote/issues/new';
+const FEEDBACK_EMAIL = 'milder.spilled.9d@icloud.com';
+
+// A short app/device footer appended to bug reports so we know the context.
+const reportContext = () =>
+  `---\nApp version: ${APP_VERSION}\nPlatform: ${Platform.OS} ${Platform.Version}\n`;
 
 // Open a GitHub "new issue" page pre-filled with a bug-report template. The user
 // submits it in their own browser session — the app never needs a GitHub token.
-async function reportBug() {
+// (Requires a GitHub account; the email option below works for everyone.)
+async function reportBugGitHub() {
   const title = '[Bug] ';
   const body =
     'Describe the bug:\n\n\n' +
     'Steps to reproduce:\n1. \n2. \n\n' +
     'What did you expect to happen?\n\n\n' +
-    '---\n' +
-    `App version: ${APP_VERSION}\n` +
-    `Platform: ${Platform.OS} ${Platform.Version}\n`;
+    reportContext();
   const url =
     `${ISSUES_URL}?title=${encodeURIComponent(title)}` +
     `&body=${encodeURIComponent(body)}`;
@@ -49,6 +53,24 @@ async function reportBug() {
       'Couldn’t open the browser',
       `Please report the bug at:\n${ISSUES_URL}`
     );
+  }
+}
+
+// Open the user's mail app with a pre-filled feedback email. Works without any
+// account — the report just lands in our inbox.
+async function sendFeedbackEmail() {
+  const subject = 'Gote feedback';
+  const body =
+    'Your feedback or bug report:\n\n\n' + reportContext();
+  const url =
+    `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}` +
+    `&body=${encodeURIComponent(body)}`;
+  try {
+    const ok = await Linking.canOpenURL(url);
+    if (ok) await Linking.openURL(url);
+    else throw new Error('cannot open');
+  } catch {
+    Alert.alert('No mail app found', `Please email us at:\n${FEEDBACK_EMAIL}`);
   }
 }
 
@@ -283,9 +305,14 @@ export default function SettingsScreen({
         </View>
 
         <Text style={[styles.label, styles.langLabel]}>About</Text>
-        <Pressable style={styles.reportRow} onPress={reportBug}>
+        <Pressable style={styles.reportRow} onPress={sendFeedbackEmail}>
+          <Icon name="mail" size={18} color={colors.text} />
+          <Text style={styles.reportText}>Send feedback</Text>
+          <Icon name="external-link" size={16} color={colors.muted} />
+        </Pressable>
+        <Pressable style={styles.reportRow} onPress={reportBugGitHub}>
           <Icon name="github" size={18} color={colors.text} />
-          <Text style={styles.reportText}>Report a bug</Text>
+          <Text style={styles.reportText}>Report a bug on GitHub</Text>
           <Icon name="external-link" size={16} color={colors.muted} />
         </Pressable>
 
