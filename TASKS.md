@@ -22,5 +22,9 @@ A running list of things to do for Gote. Check items off as they're done.
       to expo.plugins, and set SENTRY_ORG/SENTRY_PROJECT/SENTRY_AUTH_TOKEN so the
       source-map upload build step works (stack traces map to source). The plugin
       was removed for now because that build step fails without an org/token.
+- [ ] Legal review before public release: have someone with legal expertise check
+      the Data & licensing disclaimer (src/screens/LegalScreen.js), iNaturalist
+      attribution/terms compliance, and App Store submission requirements. Current
+      text is plain-language, not lawyer-vetted.
 
 ## Done
