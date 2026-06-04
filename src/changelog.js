@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.2.0';
+export const APP_VERSION = '1.3.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.3.0',
+    date: '2026-06-04',
+    changes: [
+      'Cards now show the photo’s copyright/license (from iNaturalist) as small '
+        + 'print in the corner, replacing the now-redundant fullscreen button '
+        + '(double-tap a photo to zoom).',
+    ],
+  },
   {
     version: '1.2.0',
     date: '2026-06-04',

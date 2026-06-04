@@ -28,7 +28,7 @@ const FIELDS_OBSERVATION = {
   observed_on: true,
   updated_at: true,
   quality_grade: true,
-  photos: { url: true },
+  photos: { url: true, attribution: true, license_code: true },
   taxon: {
     name: true,
     rank: true,
@@ -141,6 +141,11 @@ function observationToCard(obs) {
     id: String(obs.id),
     taxonId: taxon.id,
     image: toMediumPhoto(photo.url),
+    // Human-readable photo attribution/license from iNat, e.g.
+    // "(c) Name, some rights reserved (CC BY-NC)". Shown as small print on the
+    // card to credit the observer and surface the license.
+    attribution: photo.attribution || null,
+    licenseCode: photo.license_code || null,
     common: commonName(taxon),
     scientific: taxon.name,
     rank: taxon.rank || '',

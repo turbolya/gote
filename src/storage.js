@@ -14,7 +14,8 @@ const K_CACHE = '@gote/obscache';
 // v2: cards carry `ancestry` for similar-distractor picking.
 // v3: cards carry `rankLevel` for the "identified to species" filter (fixes
 //     stale caches whose cards lacked reliable rank data).
-const CACHE_VERSION = 3;
+// v4: cards carry `attribution`/`licenseCode` for the on-card photo credit.
+const CACHE_VERSION = 4;
 
 export async function loadUsername() {
   try {

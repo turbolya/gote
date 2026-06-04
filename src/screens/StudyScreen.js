@@ -180,6 +180,12 @@ export default function StudyScreen({
   // double-tap still zooms.
   const onPhotoPress = choiceMode ? onPhotoDoubleTapOnly : onPhotoTap;
 
+  // Photo credit shown bottom-right (small print). Strip the leading "(c) " /
+  // "(C) " since we render a © icon before it.
+  const attribution = card && card.attribution
+    ? card.attribution.replace(/^\(c\)\s*/i, '')
+    : null;
+
   // Shared fullscreen scaffold: photo fills the screen, top gradient holds the
   // exit/progress/score chrome. Bottom content differs per mode.
   const answered = phase === 'answered';
@@ -379,7 +385,7 @@ export default function StudyScreen({
           </>
         )}
 
-        {/* Corner icon buttons: more photos (BL) + zoom (BR) */}
+        {/* Bottom corners: more-photos (BL) + photo attribution/license (BR) */}
         <View style={styles.cornerRow} pointerEvents="box-none">
           <Pressable
             onPress={showMorePhotos}
@@ -393,9 +399,13 @@ export default function StudyScreen({
               <Icon name="grid" size={20} color={on} />
             )}
           </Pressable>
-          <Pressable onPress={openZoom} hitSlop={8} style={styles.cornerBtn}>
-            <Icon name="maximize-2" size={20} color={on} />
-          </Pressable>
+          {!!attribution && (
+            <View style={styles.attribution}>
+              <Text style={[styles.attributionText, { color: onDim }]} numberOfLines={1}>
+                © {attribution}
+              </Text>
+            </View>
+          )}
         </View>
       </LinearGradient>
 
@@ -460,6 +470,7 @@ const styles = StyleSheet.create({
   cornerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 12,
   },
   cornerBtn: {
@@ -468,6 +479,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  attribution: {
+    flexShrink: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginLeft: 12,
+  },
+  attributionText: { flexShrink: 1, fontSize: 11 },
 
   // reveal / show-choices outline button
   revealBtn: {
