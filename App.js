@@ -33,6 +33,7 @@ import {
   applyFilters,
   mergeCards,
   newestUpdatedAt,
+  clearTaxonCache,
   shuffle,
 } from './src/api';
 import {
@@ -589,6 +590,9 @@ export default function App() {
               const accountChanged =
                 name !== username || prefs.locale !== locale;
               if (accountChanged) {
+                // Localized taxon names are cached per locale; drop them so the
+                // new language is reflected.
+                if (prefs.locale !== locale) clearTaxonCache();
                 loadAccount(name, prefs);
               } else {
                 applyCurrentFilters(prefs);

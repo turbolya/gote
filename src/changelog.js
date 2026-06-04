@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.4.2';
+export const APP_VERSION = '1.4.3';
 
 export const CHANGELOG = [
+  {
+    version: '1.4.3',
+    date: '2026-06-04',
+    changes: [
+      'Performance: species photo/detail lookups are now cached for the '
+        + 'session, cutting repeat network requests (helps stay under '
+        + 'iNaturalist’s rate limit, especially in "Pick the right one").',
+    ],
+  },
   {
     version: '1.4.2',
     date: '2026-06-04',

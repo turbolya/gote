@@ -89,6 +89,28 @@ const FIELDS_SPECIES_COUNT = {
 
 const HEADERS = { Accept: 'application/json', 'User-Agent': USER_AGENT };
 
+// --- in-memory taxon lookup cache -------------------------------------------
+// Per-taxon API results (curated photos, similar species, full detail) are
+// stable, so we cache them for the session to avoid re-hitting the API when the
+// same species comes up again — important because iNaturalist caps clients at
+// 60 requests/minute and the "Pick the right one" mode makes several calls per
+// round. Keyed by a string; values are whatever the caller stores.
+const taxonCache = new Map();
+
+// Run `producer()` only on a cache miss; otherwise return the cached value.
+async function cached(key, producer) {
+  if (taxonCache.has(key)) return taxonCache.get(key);
+  const value = await producer();
+  taxonCache.set(key, value);
+  return value;
+}
+
+// Clear the session cache (e.g. when switching language so localized names
+// refresh). Best-effort; safe to call anytime.
+export function clearTaxonCache() {
+  taxonCache.clear();
+}
+
 // Serialize a field selection for the v2 `fields` query param value.
 function fieldsValue(fields) {
   return encodeURIComponent(JSON.stringify(fields));
@@ -398,8 +420,10 @@ function commonName(taxon) {
  */
 export async function fetchTaxonPhotos(taxonId, max = 8) {
   if (taxonId == null) return [];
-  const [taxon] = await fetchTaxaResults(taxonId, { fields: FIELDS_TAXON_PHOTOS });
-  return taxon ? photoUrlsFrom(taxon, max) : [];
+  return cached(`photos:${taxonId}:${max}`, async () => {
+    const [taxon] = await fetchTaxaResults(taxonId, { fields: FIELDS_TAXON_PHOTOS });
+    return taxon ? photoUrlsFrom(taxon, max) : [];
+  });
 }
 
 /**
@@ -415,15 +439,17 @@ export async function fetchTaxonPhotos(taxonId, max = 8) {
  */
 export async function fetchSimilarSpecies(taxonId, locale) {
   if (taxonId == null) return [];
-  const url =
-    `${SIMILAR_API}?taxon_id=${encodeURIComponent(taxonId)}` +
-    (locale ? `&locale=${encodeURIComponent(locale)}` : '') +
-    `&fields=${fieldsValue(FIELDS_SIMILAR)}`;
-  const results = await getResults(url);
-  return results
-    .map((r) => r.taxon)
-    .filter((t) => t && t.id)
-    .map((t) => ({ taxonId: t.id, name: t.name, common: commonName(t) }));
+  return cached(`similar:${taxonId}:${locale || ''}`, async () => {
+    const url =
+      `${SIMILAR_API}?taxon_id=${encodeURIComponent(taxonId)}` +
+      (locale ? `&locale=${encodeURIComponent(locale)}` : '') +
+      `&fields=${fieldsValue(FIELDS_SIMILAR)}`;
+    const results = await getResults(url);
+    return results
+      .map((r) => r.taxon)
+      .filter((t) => t && t.id)
+      .map((t) => ({ taxonId: t.id, name: t.name, common: commonName(t) }));
+  });
 }
 
 /**
@@ -566,13 +592,26 @@ export async function fetchNearbyCards(opts = {}) {
 export async function fetchTaxonPhotosByIds(ids, maxPer = 6) {
   const list = [...new Set((ids || []).filter((x) => x != null))];
   const out = {};
-  for (let i = 0; i < list.length; i += 30) {
-    const chunk = list.slice(i, i + 30);
+
+  // Serve known taxa from cache; only fetch the ones we haven't seen.
+  const misses = [];
+  for (const id of list) {
+    const key = `photos:${id}:${maxPer}`;
+    if (taxonCache.has(key)) out[id] = taxonCache.get(key);
+    else misses.push(id);
+  }
+
+  for (let i = 0; i < misses.length; i += 30) {
+    const chunk = misses.slice(i, i + 30);
     const results = await fetchTaxaResults(chunk, {
       fields: FIELDS_TAXON_PHOTOS,
       perPage: 30,
     });
-    for (const t of results) out[t.id] = photoUrlsFrom(t, maxPer);
+    for (const t of results) {
+      const urls = photoUrlsFrom(t, maxPer);
+      out[t.id] = urls;
+      taxonCache.set(`photos:${t.id}:${maxPer}`, urls);
+    }
   }
   return out;
 }
@@ -587,30 +626,32 @@ export async function fetchTaxonPhotosByIds(ids, maxPer = 6) {
  */
 export async function fetchTaxonDetail(taxonId, locale) {
   if (taxonId == null) return null;
-  const [t] = await fetchTaxaResults(taxonId, {
-    locale,
-    fields: FIELDS_TAXON_DETAIL,
+  return cached(`detail:${taxonId}:${locale || ''}`, async () => {
+    const [t] = await fetchTaxaResults(taxonId, {
+      locale,
+      fields: FIELDS_TAXON_DETAIL,
+    });
+    if (!t) return null;
+
+    const ancestors = (t.ancestors || [])
+      .filter((a) => a && a.name)
+      .map((a) => ({ rank: a.rank, name: a.name, common: commonName(a) }));
+
+    // Strip the HTML tags iNat includes in the summary.
+    const summary = t.wikipedia_summary
+      ? String(t.wikipedia_summary).replace(/<[^>]+>/g, '').trim()
+      : null;
+
+    return {
+      id: t.id,
+      scientific: t.name,
+      common: commonName(t),
+      rank: t.rank || '',
+      photos: photoUrlsFrom(t),
+      ancestors,
+      summary,
+      wikipediaUrl: t.wikipedia_url || null,
+      observationsCount: t.observations_count || null,
+    };
   });
-  if (!t) return null;
-
-  const ancestors = (t.ancestors || [])
-    .filter((a) => a && a.name)
-    .map((a) => ({ rank: a.rank, name: a.name, common: commonName(a) }));
-
-  // Strip the HTML tags iNat includes in the summary.
-  const summary = t.wikipedia_summary
-    ? String(t.wikipedia_summary).replace(/<[^>]+>/g, '').trim()
-    : null;
-
-  return {
-    id: t.id,
-    scientific: t.name,
-    common: commonName(t),
-    rank: t.rank || '',
-    photos: photoUrlsFrom(t),
-    ancestors,
-    summary,
-    wikipediaUrl: t.wikipedia_url || null,
-    observationsCount: t.observations_count || null,
-  };
 }
