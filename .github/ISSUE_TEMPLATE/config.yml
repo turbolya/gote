@@ -1,0 +1,3 @@
+# Keep blank issues enabled so the in-app "Report a bug" button — which opens a
+# pre-filled /issues/new URL (bypassing the template chooser) — still works.
+blank_issues_enabled: true
