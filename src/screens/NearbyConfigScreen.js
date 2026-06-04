@@ -15,6 +15,7 @@ import {
 import * as Location from 'expo-location';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
+import GroupIcon from '../components/GroupIcon';
 import { colors, groupLabel, groupIcon } from '../theme';
 import { searchPlaces } from '../api';
 
@@ -204,9 +205,9 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
                 onPress={() => toggleGroup(key)}
                 style={[styles.groupChip, on && styles.groupChipOn]}
               >
-                <Icon
+                <GroupIcon
                   name={groupIcon(key)}
-                  size={15}
+                  size={16}
                   color={on ? colors.primaryDark : colors.muted}
                 />
                 <Text style={[styles.groupText, on && styles.groupTextOn]}>

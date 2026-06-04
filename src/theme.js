@@ -48,24 +48,25 @@ export function groupLabel(key) {
   return GROUP_LABELS[key] || 'Other';
 }
 
-// Monotone Feather icon name for an iNaturalist "iconic taxon". Feather has no
-// per-species glyphs, so these are tasteful stand-ins from the same line set —
-// keeping everything visually consistent and uncolored.
+// Icon name for an iNaturalist "iconic taxon". These are MaterialCommunityIcons
+// glyph names (real nature icons), rendered via <GroupIcon> — NOT Feather. A few
+// groups lack a dedicated glyph (amphibians, algae), so they reuse the nearest
+// sensible one.
 export function groupIcon(iconic) {
   switch (iconic) {
-    case 'Plantae': return 'feather';
-    case 'Aves': return 'twitter';        // bird silhouette
-    case 'Insecta': return 'git-commit';  // segmented body
-    case 'Arachnida': return 'git-merge';
-    case 'Fungi': return 'umbrella';      // cap shape
-    case 'Mollusca': return 'disc';
-    case 'Actinopterygii': return 'navigation'; // fish-ish dart
-    case 'Mammalia':
-    case 'Reptilia':
-    case 'Amphibia':
-    case 'Animalia': return 'crosshair';
-    case 'Chromista':
-    case 'Protozoa': return 'aperture';
+    case 'Plantae': return 'leaf';
+    case 'Aves': return 'bird';
+    case 'Insecta': return 'bee';
+    case 'Arachnida': return 'spider';
+    case 'Fungi': return 'mushroom';
+    case 'Mollusca': return 'snail';
+    case 'Actinopterygii': return 'fish';
+    case 'Mammalia': return 'paw';
+    case 'Reptilia': return 'turtle';
+    case 'Amphibia': return 'turtle';     // no frog glyph; turtle is closest
+    case 'Animalia': return 'paw';
+    case 'Chromista': return 'waves';     // algae & kin — no dedicated glyph
+    case 'Protozoa': return 'bacteria';
     default: return 'help-circle';
   }
 }

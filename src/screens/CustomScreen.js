@@ -4,6 +4,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import Icon from '../components/Icon';
+import GroupIcon from '../components/GroupIcon';
 import ScreenHeader from '../components/ScreenHeader';
 import { colors, groupKey, groupLabel, groupIcon } from '../theme';
 
@@ -74,9 +75,9 @@ export default function CustomScreen({ deck, onStart, onBack }) {
                 onPress={() => toggleGroup(g.key)}
                 style={[styles.chip, on && styles.chipOn]}
               >
-                <Icon
+                <GroupIcon
                   name={g.icon}
-                  size={15}
+                  size={16}
                   color={on ? colors.primaryDark : colors.muted}
                 />
                 <Text style={[styles.chipText, on && styles.chipTextOn]}>

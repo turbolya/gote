@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.4.4';
+export const APP_VERSION = '1.4.5';
 
 export const CHANGELOG = [
+  {
+    version: '1.4.5',
+    date: '2026-06-04',
+    changes: [
+      'Proper nature icons for taxon groups (leaf, mushroom, bird, fish, paw, '
+        + 'turtle, bee, spider, …) instead of the old abstract placeholders.',
+    ],
+  },
   {
     version: '1.4.4',
     date: '2026-06-04',
