@@ -61,6 +61,7 @@ import ResultsScreen from './src/screens/ResultsScreen';
 import StatsScreen from './src/screens/StatsScreen';
 import LexiconScreen from './src/screens/LexiconScreen';
 import DetailScreen from './src/screens/DetailScreen';
+import SplashScreen from './src/components/SplashScreen';
 import { colors } from './src/theme';
 
 const pickRandom = (cards, n) => shuffle(cards).slice(0, n);
@@ -68,6 +69,8 @@ const pickRandom = (cards, n) => shuffle(cards).slice(0, n);
 export default function App() {
   // loading | settings | menu | custom | study | results
   const [screen, setScreen] = useState('loading');
+  // Branded launch splash overlay; dismissed (faded out) after a moment.
+  const [showSplash, setShowSplash] = useState(true);
   const [username, setUsername] = useState('');
   const [perSpecies, setPerSpecies] = useState(true);
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
@@ -477,6 +480,7 @@ export default function App() {
             }
           />
         </View>
+        {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
       </SafeAreaProvider>
     );
   }
@@ -501,6 +505,7 @@ export default function App() {
             }
           />
         </View>
+        {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
       </SafeAreaProvider>
     );
   }
@@ -630,6 +635,7 @@ export default function App() {
           />
         )}
       </SafeAreaView>
+      {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
     </SafeAreaProvider>
   );
 }
