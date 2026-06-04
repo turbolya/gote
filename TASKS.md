@@ -11,5 +11,8 @@ A running list of things to do for Gote. Check items off as they're done.
       favicon.png are solid-green placeholders — make a real 1024×1024 icon)
 - [ ] Do a general design review across the whole app (consistency of spacing,
       colors, typography, and components on every screen)
+- [ ] Game Center integration (iOS): leaderboards (e.g. speedrun streak,
+      lifetime accuracy) and achievements. Needs a native module + EAS/dev
+      build — not available in Expo Go.
 
 ## Done
