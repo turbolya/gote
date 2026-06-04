@@ -17,5 +17,8 @@ A running list of things to do for Gote. Check items off as they're done.
 - [ ] Integrate Aptabase for privacy-first usage analytics (open-source, no PII,
       self-hostable). Wrap in a src/analytics.js, keep opt-out friendly. Needs an
       account/app key + native dev build — not available in Expo Go.
+- [ ] Finish Sentry setup: create a Sentry project, put its DSN in app.json
+      (expo.extra.sentryDsn) or the SENTRY_DSN env var, and configure source-map
+      upload in the build pipeline (EAS auth token) so stack traces are readable.
 
 ## Done
