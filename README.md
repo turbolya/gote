@@ -78,3 +78,13 @@ assets/                      # app icon + splash (placeholder green)
   real 1024×1024 icon and splash before publishing.
 - **Publishing** to the stores uses
   [EAS Build](https://docs.expo.dev/build/introduction/): `npx eas build`.
+
+## License
+
+Copyright (C) 2026 turbolya.
+
+Licensed under the **GNU Affero General Public License v3.0** — see
+[LICENSE](LICENSE). You may use, modify, and share this code, **but** any
+derivative work or networked service built from it must also be released in full
+under the AGPL-3.0. It may not be incorporated into closed-source or proprietary
+software.
