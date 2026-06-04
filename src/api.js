@@ -14,6 +14,10 @@ const API = 'https://api.inaturalist.org/v2/observations';
 const TAXA_API = 'https://api.inaturalist.org/v2/taxa';
 const SIMILAR_API =
   'https://api.inaturalist.org/v2/identifications/similar_species';
+const SPECIES_COUNTS_API =
+  'https://api.inaturalist.org/v2/observations/species_counts';
+// Place search/autocomplete still lives on v1 (returns named places + coords).
+const PLACES_API = 'https://api.inaturalist.org/v1/places/autocomplete';
 // iNaturalist asks API clients to identify themselves.
 const USER_AGENT = 'Gote/1.0 (personal flashcard study app)';
 
@@ -60,6 +64,26 @@ const FIELDS_SIMILAR = {
     name: true,
     preferred_common_name: true,
     default_photo: { medium_url: true, square_url: true, url: true },
+  },
+};
+
+const FIELDS_SPECIES_COUNT = {
+  count: true,
+  taxon: {
+    id: true,
+    name: true,
+    rank: true,
+    rank_level: true,
+    iconic_taxon_name: true,
+    preferred_common_name: true,
+    ancestor_ids: true,
+    default_photo: {
+      medium_url: true,
+      square_url: true,
+      url: true,
+      attribution: true,
+      license_code: true,
+    },
   },
 };
 
@@ -400,6 +424,134 @@ export async function fetchSimilarSpecies(taxonId, locale) {
     .map((r) => r.taxon)
     .filter((t) => t && t.id)
     .map((t) => ({ taxonId: t.id, name: t.name, common: commonName(t) }));
+}
+
+/**
+ * Search iNaturalist places by name (for the "Nearby species" location picker).
+ * Returns named places with coordinates. Best-effort: [] on error.
+ *
+ * @param {string} query
+ * @returns {Promise<Array<{id:number, name:string, lat:number, lng:number}>>}
+ */
+export async function searchPlaces(query) {
+  const q = String(query || '').trim();
+  if (q.length < 2) return [];
+  try {
+    const res = await fetch(
+      `${PLACES_API}?q=${encodeURIComponent(q)}&per_page=8`,
+      { headers: HEADERS }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.results || [])
+      .filter((p) => p && p.location)
+      .map((p) => {
+        const [lat, lng] = String(p.location).split(',').map(Number);
+        return { id: p.id, name: p.display_name || p.name, lat, lng };
+      })
+      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetch the species most commonly observed near a location, as flashcards.
+ * Uses the species_counts endpoint (ordered by observation count desc, so the
+ * most TYPICAL species come first — not the rarities). Keeps species-rank taxa
+ * with a curated photo, and uses that photo as the card image (no per-observer
+ * data; these are place-typical species).
+ *
+ * @param {object} opts
+ *   - lat, lng:   center point (required)
+ *   - radius:     km radius (default 50)
+ *   - iconicTaxa: array of iconic taxon names, e.g. ['Aves','Mammalia']
+ *   - locale:     common-name language
+ *   - max:        max cards to keep (default 200)
+ *   - onProgress: (loaded, total) => void
+ * @returns {Promise<Array>} card objects (same shape as observation cards)
+ */
+export async function fetchNearbyCards(opts = {}) {
+  const {
+    lat,
+    lng,
+    radius = 50,
+    iconicTaxa = [],
+    locale,
+    max = 200,
+    onProgress,
+  } = opts;
+  if (lat == null || lng == null) {
+    throw new Error('Pick a location to play nearby species.');
+  }
+
+  const cards = [];
+  const seen = new Set();
+  let total = Infinity;
+  let page = 1;
+
+  while (cards.length < max && page <= PAGE_LIMIT) {
+    const url =
+      `${SPECIES_COUNTS_API}?lat=${lat}&lng=${lng}&radius=${radius}` +
+      `&quality_grade=research&hrank=species&per_page=${PER_PAGE}&page=${page}` +
+      (iconicTaxa.length
+        ? `&iconic_taxa=${encodeURIComponent(iconicTaxa.join(','))}`
+        : '') +
+      (locale ? `&locale=${encodeURIComponent(locale)}` : '') +
+      `&fields=${fieldsValue(FIELDS_SPECIES_COUNT)}`;
+
+    let res;
+    try {
+      res = await fetch(url, { headers: HEADERS });
+    } catch (e) {
+      throw new Error('Network error — check your internet connection.');
+    }
+    if (!res.ok) {
+      throw new Error(`iNaturalist API error (status ${res.status}).`);
+    }
+    const data = await res.json();
+    total = data.total_results || 0;
+    const results = data.results || [];
+    if (results.length === 0) break;
+
+    for (const row of results) {
+      const t = row.taxon;
+      if (!t || !t.id || t.rank !== 'species') continue;
+      if (seen.has(t.id)) continue;
+      const p = t.default_photo;
+      const image = p && (p.medium_url || (p.url && toMediumPhoto(p.url)));
+      if (!image) continue; // need a photo to make a card
+      seen.add(t.id);
+      cards.push({
+        id: `taxon-${t.id}`,
+        taxonId: t.id,
+        image,
+        attribution: (p && p.attribution) || null,
+        licenseCode: (p && p.license_code) || null,
+        common: commonName(t),
+        scientific: t.name,
+        rank: t.rank || '',
+        rankLevel: typeof t.rank_level === 'number' ? t.rank_level : null,
+        iconic: t.iconic_taxon_name || null,
+        ancestry: Array.isArray(t.ancestor_ids) ? t.ancestor_ids : [],
+        observedOn: null,
+        updatedAt: null,
+        qualityGrade: null,
+      });
+      if (cards.length >= max) break;
+    }
+
+    if (onProgress) onProgress(Math.min(page * PER_PAGE, total), total);
+    if (page * PER_PAGE >= total) break;
+    page++;
+  }
+
+  if (cards.length === 0) {
+    throw new Error(
+      'No common species found here for those groups. Try a wider radius or different groups.'
+    );
+  }
+  return cards;
 }
 
 /**

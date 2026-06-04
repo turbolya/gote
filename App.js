@@ -29,6 +29,7 @@ import {
   fetchTaxonPhotos,
   fetchTaxonPhotosByIds,
   fetchSimilarSpecies,
+  fetchNearbyCards,
   applyFilters,
   mergeCards,
   newestUpdatedAt,
@@ -63,6 +64,7 @@ import LexiconScreen from './src/screens/LexiconScreen';
 import DetailScreen from './src/screens/DetailScreen';
 import ChangelogScreen from './src/screens/ChangelogScreen';
 import LegalScreen from './src/screens/LegalScreen';
+import NearbyConfigScreen from './src/screens/NearbyConfigScreen';
 import SplashScreen from './src/components/SplashScreen';
 import { colors } from './src/theme';
 
@@ -307,6 +309,34 @@ export default function App() {
     [fullDeck, startRound]
   );
 
+  // --- "Nearby species" mode -------------------------------------------------
+  // Independent of the loaded account: fetches the most typical species near a
+  // chosen location/groups and plays them as a self-grade round.
+  const startNearby = useCallback(
+    async (config) => {
+      setError(null);
+      setProgress({ loaded: 0, total: 0 });
+      setScreen('loading');
+      try {
+        const cards = await fetchNearbyCards({
+          lat: config.lat,
+          lng: config.lng,
+          radius: config.radius,
+          iconicTaxa: config.iconicTaxa,
+          locale,
+          onProgress: (loaded, total) => setProgress({ loaded, total }),
+        });
+        const run = () => startRound(cards, 'nearby', 'Nearby species');
+        replayRef.current = run;
+        run();
+      } catch (e) {
+        setError(e.message || 'Could not load nearby species.');
+        setScreen('nearby');
+      }
+    },
+    [locale, startRound]
+  );
+
   // --- "Pick the right one" mode ---------------------------------------------
   // Each round fetches the target's curated photos + similar species, then
   // builds 4 tiles. Skips cards that can't form a fair round (too few
@@ -372,6 +402,7 @@ export default function App() {
       else if (m === 'speedrun') startSpeedrun();
       else if (m === 'pick') startPick();
       else if (m === 'custom') setScreen('custom');
+      else if (m === 'nearby') setScreen('nearby');
     },
     [startAll, startSpeedrun, startPick]
   );
@@ -586,6 +617,13 @@ export default function App() {
           <CustomScreen
             deck={fullDeck}
             onStart={startCustom}
+            onBack={() => setScreen('menu')}
+          />
+        )}
+
+        {screen === 'nearby' && (
+          <NearbyConfigScreen
+            onStart={startNearby}
             onBack={() => setScreen('menu')}
           />
         )}

@@ -46,6 +46,12 @@ export default function MenuScreen({
       title: 'Speedrun',
       sub: `Endless cards — survive ${SPEEDRUN_LIVES} misses`,
     },
+    {
+      key: 'nearby',
+      icon: 'map-pin',
+      title: 'Nearby species',
+      sub: 'Learn species typical to a place',
+    },
   ];
 
   return (

@@ -11,6 +11,9 @@ observations and quizzes you on the species you've seen.
 - **Speedrun** — endless cards; the run ends after 3 misses.
 - **Pick the right one** — a species name, pick the matching photo from 4
   (the distractors are real look-alikes from iNaturalist's "similar species").
+- **Nearby species** — instead of one observer's species, learn the ones
+  typically seen around a location. Pick a spot (GPS or place search) and the
+  groups you want; you get the most commonly observed species there.
 
 Plus a **Lexicon** (browse/search every species you've observed, filter by how
 well you know them, tap through to a detail page) and a **Statistics** page

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Gote",
     "slug": "gote",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -26,6 +26,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Gote uses your location only to find species typically observed near you. It is not stored or shared."
+        }
+      ]
+    ],
     "extra": {
       "sentryDsn": ""
     }

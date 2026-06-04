@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.3.0';
+export const APP_VERSION = '1.4.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.4.0',
+    date: '2026-06-04',
+    changes: [
+      'New game mode: Nearby species — learn the species typically observed '
+        + 'around a location. Pick a spot by GPS or place search, choose which '
+        + 'groups (birds, mammals, plants, …), and study the most common ones.',
+    ],
+  },
   {
     version: '1.3.0',
     date: '2026-06-04',
