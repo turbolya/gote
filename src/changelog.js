@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.4.1';
+export const APP_VERSION = '1.4.2';
 
 export const CHANGELOG = [
+  {
+    version: '1.4.2',
+    date: '2026-06-04',
+    changes: [
+      'Card photos now show in full (no cropping) — wide or tall photos fit the '
+        + 'screen with a blurred fill behind, so identifying features are never '
+        + 'cut off.',
+    ],
+  },
   {
     version: '1.4.1',
     date: '2026-06-04',

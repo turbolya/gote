@@ -183,15 +183,26 @@ export default function StudyScreen({
 
   return (
     <View style={styles.fsRoot}>
-      {/* Fullscreen photo */}
+      {/* Fullscreen photo. A blurred, darkened copy fills the whole screen
+          (covering letterbox bars for wide/tall photos), with the full image
+          shown on top in "contain" mode so no features are cropped off. */}
       <Pressable style={StyleSheet.absoluteFill} onPress={onPhotoPress}>
         {card && !imgError ? (
-          <Image
-            source={{ uri: card.image }}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-            onError={() => setImgError(true)}
-          />
+          <>
+            <Image
+              source={{ uri: card.image }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+              blurRadius={30}
+            />
+            <View style={styles.fsBackdropScrim} />
+            <Image
+              source={{ uri: card.image }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="contain"
+              onError={() => setImgError(true)}
+            />
+          </>
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.fsFallback]}>
             <Icon name="image" size={48} color="rgba(255,255,255,0.5)" />
@@ -416,6 +427,7 @@ export default function StudyScreen({
 
 const styles = StyleSheet.create({
   fsRoot: { flex: 1, backgroundColor: '#000' },
+  fsBackdropScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
   fsFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1A1D1A' },
 
   // top gradient + chrome
