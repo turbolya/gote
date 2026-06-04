@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.4.0';
+export const APP_VERSION = '1.4.1';
 
 export const CHANGELOG = [
+  {
+    version: '1.4.1',
+    date: '2026-06-04',
+    changes: [
+      'Fixed: swiping or tapping a card no longer reveals/hides the species '
+        + 'name. Use the Reveal answer button; double-tap a photo to zoom.',
+    ],
+  },
   {
     version: '1.4.0',
     date: '2026-06-04',

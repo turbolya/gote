@@ -131,20 +131,10 @@ export default function StudyScreen({
     setViewer({ photos: gallery.map(toLargePhoto), startIndex: 0 });
   };
 
-  // Single tap flips; a quick second tap zooms instead.
+  // Tapping the photo never reveals/flips the card — that's only done by the
+  // "Reveal answer" button. (Tapping/flipping here was being triggered by
+  // swipes, toggling the name on and off.) A double-tap still zooms.
   const onPhotoTap = () => {
-    const now = Date.now();
-    if (now - lastTapRef.current < DOUBLE_TAP_MS) {
-      lastTapRef.current = 0;
-      openZoom();
-    } else {
-      lastTapRef.current = now;
-      setFlipped((f) => !f);
-    }
-  };
-
-  // In choice mode the photo never flips; only double-tap-to-zoom applies.
-  const onPhotoDoubleTapOnly = () => {
     const now = Date.now();
     if (now - lastTapRef.current < DOUBLE_TAP_MS) {
       lastTapRef.current = 0;
@@ -176,9 +166,9 @@ export default function StudyScreen({
   const onDim = ON_DARK_DIM;
   const trackBg = 'rgba(255,255,255,0.3)';
 
-  // In choice mode the card never "flips" by tap — single tap is a no-op,
-  // double-tap still zooms.
-  const onPhotoPress = choiceMode ? onPhotoDoubleTapOnly : onPhotoTap;
+  // Photo responds only to double-tap (zoom) in both modes; revealing the
+  // answer is done via the button, never by tapping/swiping the photo.
+  const onPhotoPress = onPhotoTap;
 
   // Photo credit shown bottom-right (small print). Strip the leading "(c) " /
   // "(C) " since we render a © icon before it.
