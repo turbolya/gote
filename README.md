@@ -86,6 +86,13 @@ configured. Set it in `app.json` → `expo.extra.sentryDsn` (or the `SENTRY_DSN`
 env var). With no DSN, Sentry is a no-op, so it stays silent in Expo Go and
 local dev. Reporting is crash/error-only (no performance tracing, no PII).
 
+The `@sentry/react-native` **config plugin is intentionally not enabled yet** —
+it adds a build step that uploads source maps to Sentry, which fails without a
+Sentry org + auth token. Re-add `"@sentry/react-native"` to `expo.plugins` once
+you've set up the account and a `SENTRY_AUTH_TOKEN` (so crash stack traces map
+back to source). Until then, errors are still captured; their traces just point
+at the minified bundle.
+
 ## License
 
 Copyright (C) 2026 turbolya.

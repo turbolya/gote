@@ -18,7 +18,9 @@ A running list of things to do for Gote. Check items off as they're done.
       self-hostable). Wrap in a src/analytics.js, keep opt-out friendly. Needs an
       account/app key + native dev build — not available in Expo Go.
 - [ ] Finish Sentry setup: create a Sentry project, put its DSN in app.json
-      (expo.extra.sentryDsn) or the SENTRY_DSN env var, and configure source-map
-      upload in the build pipeline (EAS auth token) so stack traces are readable.
+      (expo.extra.sentryDsn) or the SENTRY_DSN env var, re-add "@sentry/react-native"
+      to expo.plugins, and set SENTRY_ORG/SENTRY_PROJECT/SENTRY_AUTH_TOKEN so the
+      source-map upload build step works (stack traces map to source). The plugin
+      was removed for now because that build step fails without an org/token.
 
 ## Done
