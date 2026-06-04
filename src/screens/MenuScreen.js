@@ -29,12 +29,6 @@ export default function MenuScreen({
       sub: `Quiz on all ${deckCount} species`,
     },
     {
-      key: '16',
-      icon: 'zap',
-      title: 'Quick 16',
-      sub: 'A fast round of 16 random cards',
-    },
-    {
       key: 'pick',
       icon: 'grid',
       title: 'Pick the right one',

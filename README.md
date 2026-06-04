@@ -7,7 +7,6 @@ observations and quizzes you on the species you've seen.
 ## Game modes
 
 - **All cards** — multiple choice: a photo, pick the right species from 5 names.
-- **Quick 16** — a fast round of 16 random cards.
 - **Custom game** — choose how many cards and which taxon groups.
 - **Speedrun** — endless cards; the run ends after 3 misses.
 - **Pick the right one** — a species name, pick the matching photo from 4

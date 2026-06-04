@@ -283,11 +283,6 @@ export default function App() {
     startRound(fullDeck, 'all', '');
   }, [fullDeck, startRound]);
 
-  const startSixteen = useCallback(() => {
-    replayRef.current = startSixteen;
-    startRound(pickRandom(fullDeck, 16), '16', 'Quick 16');
-  }, [fullDeck, startRound]);
-
   const startSpeedrun = useCallback(() => {
     replayRef.current = startSpeedrun;
     startRound(fullDeck, 'speedrun', '');
@@ -369,12 +364,11 @@ export default function App() {
   const onSelectMode = useCallback(
     (m) => {
       if (m === 'all') startAll();
-      else if (m === '16') startSixteen();
       else if (m === 'speedrun') startSpeedrun();
       else if (m === 'pick') startPick();
       else if (m === 'custom') setScreen('custom');
     },
-    [startAll, startSixteen, startSpeedrun, startPick]
+    [startAll, startSpeedrun, startPick]
   );
 
   const finishRound = useCallback(async (finalCorrect, finalMissed, total) => {
