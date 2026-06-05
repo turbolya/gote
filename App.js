@@ -518,8 +518,8 @@ export default function App() {
             roundLabel={roundLabel}
             speedrun={mode === 'speedrun'}
             lives={lives}
-            choiceMode={mode === 'all'}
-            choicePool={choicePool}
+            choiceMode={mode === 'all' || mode === 'nearby'}
+            choicePool={mode === 'nearby' ? deck : choicePool}
             onGrade={handleGrade}
             onQuit={() =>
               finishRound(correctCount, missed, correctCount + missed.length)

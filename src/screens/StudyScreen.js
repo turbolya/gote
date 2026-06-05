@@ -1,7 +1,8 @@
 // The quiz screen. Two grading styles:
 //   • self-grade (default): flip the card, then tap "I knew it" / "Missed it".
-//   • multiple choice (choiceMode): pick the right name from 5 options; the app
-//     grades it for you. Used by the "All cards" mode.
+//   • multiple choice (choiceMode): pick the right name from 5 options (the
+//     answer + 4 alternatives); the app grades it for you. Used by the "All
+//     cards" and "Nearby species" modes.
 //
 // The screen background is a blurred, darkened version of the current card's
 // photo, so the whole screen subtly takes on the colors of what you're looking

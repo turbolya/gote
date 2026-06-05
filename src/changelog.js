@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.5.2';
+export const APP_VERSION = '1.6.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.6.0',
+    date: '2026-06-05',
+    changes: [
+      'Nearby species is now a multiple-choice quiz: pick the right name from '
+        + 'the answer plus four look-alike alternatives (like All cards), '
+        + 'instead of self-grading.',
+    ],
+  },
   {
     version: '1.5.2',
     date: '2026-06-05',

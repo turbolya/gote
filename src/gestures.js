@@ -14,7 +14,7 @@ export function isUpwardFlick(dx, dy) {
 // Returns 'grid' (back to grid), 'close' (close viewer), or 'cancel'.
 export function flickOutcome({ dy, vy }, viewer) {
   const committed = dy < -FLICK_DY || vy < -FLICK_VY;
-  if (!committed) return 'cancel';
-  if (viewer && viewer.mode === 'zoom' && viewer.fromGrid) return 'grid';
-  return 'close';
+  if (!committed) return "cancel";
+  if (viewer && viewer.mode === "zoom" && viewer.fromGrid) return "grid";
+  return "close";
 }
