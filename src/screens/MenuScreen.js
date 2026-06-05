@@ -51,6 +51,13 @@ export default function MenuScreen({
       sub: 'Choose how many cards and which groups',
     },
     {
+      key: 'flash',
+      icon: 'documents-outline',
+      accent: accents.indigo,
+      title: 'Flash cards',
+      sub: 'Reveal the answer, then grade yourself',
+    },
+    {
       key: 'speedrun',
       icon: 'flash',
       accent: accents.amber,

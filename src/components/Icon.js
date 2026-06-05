@@ -44,6 +44,11 @@ const MAP = {
   star: 'star',
   x: 'close',
   zap: 'flash-outline',
+  // Names used via variables/ternaries elsewhere (results grades, answer marks).
+  'check-circle': 'checkmark-circle',
+  'x-circle': 'close-circle',
+  award: 'trophy',
+  target: 'flag',
 };
 
 export default function Icon({ name, size = 22, color = colors.text, style }) {

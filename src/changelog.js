@@ -8,9 +8,23 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.6.0';
+export const APP_VERSION = '1.7.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.7.0',
+    date: '2026-06-05',
+    changes: [
+      'Custom game and Speedrun are now multiple-choice too (answer + four '
+        + 'alternatives), matching All cards and Nearby species.',
+      'New mode: Flash cards — same picker as Custom game, but reveal the '
+        + 'answer and grade yourself (the classic self-grade style).',
+      'End-of-round screen: the Main menu button is now emphasized, with a '
+        + 'matching ✕ in the top corner.',
+      'Fixed some result/answer icons that were not displaying after the '
+        + 'recent icon refresh.',
+    ],
+  },
   {
     version: '1.6.0',
     date: '2026-06-05',

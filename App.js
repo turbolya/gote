@@ -308,18 +308,31 @@ export default function App() {
     startRound(fullDeck, 'speedrun', '');
   }, [fullDeck, startRound]);
 
-  const startCustom = useCallback(
-    (groups, count) => {
+  // Shared by Custom (multiple-choice) and Flash cards (self-grade): both pick a
+  // count of cards from the chosen groups; only the play `mode` differs.
+  const startPicked = useCallback(
+    (groups, count, mode, label) => {
       const pool =
         groups && groups.length
           ? fullDeck.filter((c) => groups.includes(groupKey(c.iconic)))
           : fullDeck;
-      const run = () =>
-        startRound(pickRandom(pool, count), 'custom', 'Custom game');
+      const run = () => startRound(pickRandom(pool, count), mode, label);
       replayRef.current = run;
       run();
     },
     [fullDeck, startRound]
+  );
+
+  const startCustom = useCallback(
+    (groups, count) => startPicked(groups, count, 'custom', 'Custom game'),
+    [startPicked]
+  );
+
+  // Flash cards: same picker as Custom, but played as a self-grade round
+  // (reveal the answer, then "I knew it" / "Missed it") instead of choices.
+  const startFlash = useCallback(
+    (groups, count) => startPicked(groups, count, 'flash', 'Flash cards'),
+    [startPicked]
   );
 
   // --- "Nearby species" mode -------------------------------------------------
@@ -415,6 +428,7 @@ export default function App() {
       else if (m === 'speedrun') startSpeedrun();
       else if (m === 'pick') startPick();
       else if (m === 'custom') setScreen('custom');
+      else if (m === 'flash') setScreen('flash');
       else if (m === 'nearby') setScreen('nearby');
     },
     [startAll, startSpeedrun, startPick]
@@ -518,7 +532,7 @@ export default function App() {
             roundLabel={roundLabel}
             speedrun={mode === 'speedrun'}
             lives={lives}
-            choiceMode={mode === 'all' || mode === 'nearby'}
+            choiceMode={['all', 'custom', 'speedrun', 'nearby'].includes(mode)}
             choicePool={mode === 'nearby' ? deck : choicePool}
             onGrade={handleGrade}
             onQuit={() =>
@@ -640,6 +654,15 @@ export default function App() {
           <CustomScreen
             deck={fullDeck}
             onStart={startCustom}
+            onBack={() => setScreen('menu')}
+          />
+        )}
+
+        {screen === 'flash' && (
+          <CustomScreen
+            deck={fullDeck}
+            title="Flash cards"
+            onStart={startFlash}
             onBack={() => setScreen('menu')}
           />
         )}

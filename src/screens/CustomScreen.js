@@ -11,7 +11,7 @@ import { colors, groupKey, groupLabel, groupIcon } from '../theme';
 const STEP = 4;
 const PRESETS = [8, 16, 32];
 
-export default function CustomScreen({ deck, onStart, onBack }) {
+export default function CustomScreen({ deck, onStart, onBack, title = 'Custom game' }) {
   // Tally available cards per group, most common first.
   const groups = useMemo(() => {
     const counts = new Map();
@@ -59,7 +59,7 @@ export default function CustomScreen({ deck, onStart, onBack }) {
 
   return (
     <View style={styles.flex}>
-      <ScreenHeader title="Custom game" onBack={onBack} />
+      <ScreenHeader title={title} onBack={onBack} />
 
       <ScrollView
         contentContainerStyle={styles.container}

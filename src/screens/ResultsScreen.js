@@ -1,24 +1,25 @@
 // End-of-round summary with score, and options to revisit missed cards,
-// replay the whole deck, or switch user.
+// replay the deck, or return to the main menu. The main-menu action is the
+// emphasized one: a prominent button plus an X in the top corner.
 
 import React from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import Icon from '../components/Icon';
 import { colors } from '../theme';
 
-// Monotone icon + message keyed off performance.
+// Ionicons name + message keyed off performance.
 function grade(pct) {
-  if (pct >= 90) return { icon: 'award', msg: 'Outstanding!' };
+  if (pct >= 90) return { icon: 'trophy', msg: 'Outstanding!' };
   if (pct >= 70) return { icon: 'thumbs-up', msg: 'Great job!' };
   if (pct >= 50) return { icon: 'trending-up', msg: 'Nice work — keep going!' };
-  return { icon: 'target', msg: 'Keep practicing!' };
+  return { icon: 'school-outline', msg: 'Keep practicing!' };
 }
 
 function streakGrade(streak) {
-  if (streak >= 30) return { icon: 'award', msg: 'On fire!' };
-  if (streak >= 15) return { icon: 'zap', msg: 'Blazing streak!' };
+  if (streak >= 30) return { icon: 'flame', msg: 'On fire!' };
+  if (streak >= 15) return { icon: 'flash', msg: 'Blazing streak!' };
   if (streak >= 5) return { icon: 'thumbs-up', msg: 'Nice run!' };
-  return { icon: 'target', msg: 'Keep practicing!' };
+  return { icon: 'school-outline', msg: 'Keep practicing!' };
 }
 
 export default function ResultsScreen({
@@ -40,79 +41,111 @@ export default function ResultsScreen({
       : null;
 
   return (
-    <ScrollView
-      style={styles.flex}
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.badge}>
-        <Icon name={icon} size={36} color={colors.primary} />
-      </View>
-      <Text style={styles.msg}>{msg}</Text>
-
-      <View style={styles.scoreCard}>
-        {speedrun ? (
-          <>
-            <Text style={styles.pct}>{correct}</Text>
-            <Text style={styles.scoreDetail}>
-              cards before {missed.length} misses
-            </Text>
-          </>
-        ) : (
-          <>
-            <Text style={styles.pct}>{pct}%</Text>
-            <Text style={styles.scoreDetail}>
-              {correct} of {total} correct
-            </Text>
-          </>
-        )}
-      </View>
-
-      {missed.length > 0 && (
-        <Pressable style={styles.primaryButton} onPress={onRevisitMissed}>
-          <Icon name="rotate-ccw" size={18} color={colors.onDark} />
-          <Text style={styles.primaryText}>
-            Revisit missed ({missed.length})
-          </Text>
+    <View style={styles.flex}>
+      {/* Top bar: an X that returns to the main menu. */}
+      <View style={styles.topBar}>
+        <Pressable
+          onPress={onMenu}
+          hitSlop={12}
+          style={({ pressed }) => [styles.closeBtn, pressed && styles.pressed]}
+        >
+          <Icon name="x" size={22} color={colors.text} />
         </Pressable>
-      )}
+      </View>
 
-      <Pressable style={styles.secondaryButton} onPress={onPlayAgain}>
-        <Icon name="refresh-cw" size={18} color={colors.text} />
-        <Text style={styles.secondaryText}>Play again</Text>
-      </Pressable>
-
-      <Pressable style={styles.linkButton} onPress={onMenu}>
-        <Text style={styles.linkText}>Main menu</Text>
-      </Pressable>
-
-      {missed.length > 0 && (
-        <View style={styles.missedList}>
-          <Text style={styles.missedHeading}>Species you missed</Text>
-          {missed.map((c, i) => (
-            <Text key={`${c.id}-${i}`} style={styles.missedItem}>
-              {c.common || c.scientific}
-              {c.common ? (
-                <Text style={styles.missedSci}> · {c.scientific}</Text>
-              ) : null}
-            </Text>
-          ))}
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.badge}>
+          <Icon name={icon} size={36} color={colors.primary} />
         </View>
-      )}
+        <Text style={styles.msg}>{msg}</Text>
 
-      {lifetimePct !== null && (
-        <Text style={styles.lifetime}>
-          Lifetime accuracy {lifetimePct}% · {lifetime.correct}/
-          {lifetime.answered}
-        </Text>
-      )}
-    </ScrollView>
+        <View style={styles.scoreCard}>
+          {speedrun ? (
+            <>
+              <Text style={styles.pct}>{correct}</Text>
+              <Text style={styles.scoreDetail}>
+                cards before {missed.length} misses
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.pct}>{pct}%</Text>
+              <Text style={styles.scoreDetail}>
+                {correct} of {total} correct
+              </Text>
+            </>
+          )}
+        </View>
+
+        {missed.length > 0 && (
+          <Pressable style={styles.outlineButton} onPress={onRevisitMissed}>
+            <Icon name="rotate-ccw" size={18} color={colors.text} />
+            <Text style={styles.outlineText}>
+              Revisit missed ({missed.length})
+            </Text>
+          </Pressable>
+        )}
+
+        <Pressable style={styles.outlineButton} onPress={onPlayAgain}>
+          <Icon name="refresh-cw" size={18} color={colors.text} />
+          <Text style={styles.outlineText}>Play again</Text>
+        </Pressable>
+
+        {/* Emphasized primary action. */}
+        <Pressable
+          style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
+          onPress={onMenu}
+        >
+          <Icon name="home" size={20} color={colors.onDark} />
+          <Text style={styles.menuText}>Main menu</Text>
+        </Pressable>
+
+        {missed.length > 0 && (
+          <View style={styles.missedList}>
+            <Text style={styles.missedHeading}>Species you missed</Text>
+            {missed.map((c, i) => (
+              <Text key={`${c.id}-${i}`} style={styles.missedItem}>
+                {c.common || c.scientific}
+                {c.common ? (
+                  <Text style={styles.missedSci}> · {c.scientific}</Text>
+                ) : null}
+              </Text>
+            ))}
+          </View>
+        )}
+
+        {lifetimePct !== null && (
+          <Text style={styles.lifetime}>
+            Lifetime accuracy {lifetimePct}% · {lifetime.correct}/
+            {lifetime.answered}
+          </Text>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 24, paddingTop: 56, alignItems: 'center' },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  closeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: colors.faint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pressed: { opacity: 0.7 },
+  container: { padding: 24, paddingTop: 8, alignItems: 'center' },
   badge: {
     width: 84,
     height: 84,
@@ -140,19 +173,9 @@ const styles = StyleSheet.create({
   },
   pct: { fontSize: 56, fontWeight: '900', color: colors.text, letterSpacing: -1 },
   scoreDetail: { fontSize: 16, color: colors.muted, marginTop: 4 },
-  primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    paddingVertical: 16,
-    width: '100%',
-    marginBottom: 12,
-  },
-  primaryText: { color: colors.onDark, fontSize: 17, fontWeight: '800' },
-  secondaryButton: {
+
+  // Secondary (outlined) actions: revisit missed, play again.
+  outlineButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -161,13 +184,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 16,
-    paddingVertical: 16,
+    paddingVertical: 15,
     width: '100%',
     marginBottom: 12,
   },
-  secondaryText: { color: colors.text, fontSize: 17, fontWeight: '800' },
-  linkButton: { paddingVertical: 10 },
-  linkText: { color: colors.muted, fontSize: 15, fontWeight: '600' },
+  outlineText: { color: colors.text, fontSize: 17, fontWeight: '800' },
+
+  // Emphasized primary action: main menu.
+  menuButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    paddingVertical: 17,
+    width: '100%',
+    marginTop: 4,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  menuText: { color: colors.onDark, fontSize: 18, fontWeight: '900' },
+
   missedList: {
     alignSelf: 'stretch',
     marginTop: 24,
