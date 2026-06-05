@@ -62,10 +62,11 @@ export function groupLabel(key) {
   return GROUP_LABELS[key] || 'Other';
 }
 
-// Icon name for an iNaturalist "iconic taxon". These are MaterialCommunityIcons
-// glyph names (real nature icons), rendered via <GroupIcon> — NOT Feather. A few
-// groups lack a dedicated glyph (amphibians, algae), so they reuse the nearest
-// sensible one.
+// Icon for an iNaturalist "iconic taxon", rendered via <GroupIcon> — NOT Feather.
+// Most are MaterialCommunityIcons glyph names (returned as plain strings); a few
+// come from another family and are returned as a descriptor object
+// { lib, name, solid? } (e.g. the frog lives in FontAwesome5, not MCI). Groups
+// with no dedicated glyph anywhere reuse the nearest sensible one.
 export function groupIcon(iconic) {
   switch (iconic) {
     case 'Plantae': return 'leaf';
@@ -77,7 +78,7 @@ export function groupIcon(iconic) {
     case 'Actinopterygii': return 'fish';
     case 'Mammalia': return 'paw';
     case 'Reptilia': return 'turtle';
-    case 'Amphibia': return 'turtle';     // no frog glyph; turtle is closest
+    case 'Amphibia': return { lib: 'fa5', name: 'frog', solid: true };
     case 'Animalia': return 'paw';
     case 'Chromista': return 'waves';     // algae & kin — no dedicated glyph
     case 'Protozoa': return 'bacteria';
