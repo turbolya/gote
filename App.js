@@ -91,6 +91,15 @@ export default function App() {
   const rawCardsRef = useRef([]);
   const watermarkRef = useRef(null);
   const [fullDeck, setFullDeck] = useState([]);
+  // The current display-filter prefs, mirrored in a ref so async callbacks (the
+  // background sync) read the user's REAL settings — not a stale closure from
+  // the first render, when these were still at their useState defaults. Without
+  // this, the startup sync re-derived the deck with default filters and clobbered
+  // the correctly-filtered count (e.g. showed 171 instead of 107 research-grade).
+  const prefsRef = useRef({ perSpecies, researchGrade, speciesOnly });
+  useEffect(() => {
+    prefsRef.current = { perSpecies, researchGrade, speciesOnly };
+  }, [perSpecies, researchGrade, speciesOnly]);
   // Sync status for the Settings UI: { state: idle|syncing|done|error, syncedAt, message }
   const [sync, setSync] = useState({ state: 'idle', syncedAt: null, message: null });
   // The card whose detail page is open (from the Lexicon).
@@ -162,7 +171,7 @@ export default function App() {
           rawCardsRef.current = mergeCards(rawCardsRef.current, updated);
           const newWatermark = newestUpdatedAt(rawCardsRef.current);
           if (newWatermark) watermarkRef.current = newWatermark;
-          applyCurrentFilters({ perSpecies, researchGrade, speciesOnly });
+          applyCurrentFilters(prefsRef.current);
         }
         const syncedAt = persistCache(name, loc);
         setSync({
@@ -181,7 +190,7 @@ export default function App() {
         }));
       }
     },
-    [perSpecies, researchGrade, speciesOnly, applyCurrentFilters, persistCache]
+    [applyCurrentFilters, persistCache]
   );
 
   // Full download for a brand-new account (or forced refresh). Shows the loading
@@ -259,6 +268,9 @@ export default function App() {
       setLocale(loc);
       setResearchGrade(rg);
       setSpeciesOnly(so);
+      // Seed the ref now: the startup background sync fires before React re-renders
+      // with these values, and must filter by the saved prefs, not the defaults.
+      prefsRef.current = { perSpecies: ps, researchGrade: rg, speciesOnly: so };
       if (savedUser) {
         setUsername(savedUser);
         loadAccount(
@@ -583,6 +595,13 @@ export default function App() {
               setLocale(prefs.locale);
               setResearchGrade(prefs.researchGrade);
               setSpeciesOnly(prefs.speciesOnly);
+              // Keep the ref current immediately (a re-download triggers a sync
+              // that filters via prefsRef before this render's state commits).
+              prefsRef.current = {
+                perSpecies: prefs.perSpecies,
+                researchGrade: prefs.researchGrade,
+                speciesOnly: prefs.speciesOnly,
+              };
               savePrefs(prefs);
               // Re-download only when the account identity changes (username or
               // language). The toggles are local filters, so just re-derive the

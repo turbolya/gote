@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.5.1';
+export const APP_VERSION = '1.5.2';
 
 export const CHANGELOG = [
+  {
+    version: '1.5.2',
+    date: '2026-06-05',
+    changes: [
+      'Fixed: the card count was wrong right after launch — your study '
+        + 'filters (e.g. “Research grade only”) are now applied correctly on '
+        + 'startup instead of only after a manual sync.',
+    ],
+  },
   {
     version: '1.5.1',
     date: '2026-06-05',
