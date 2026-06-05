@@ -234,6 +234,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
             })
           }
         >
+          {canStart && <Icon name="play" size={18} color={colors.onDark} />}
           <Text style={styles.startText}>
             {!place
               ? 'Pick a location'
@@ -339,10 +340,13 @@ const styles = StyleSheet.create({
 
   footer: { padding: 20 },
   start: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: colors.primary,
     borderRadius: 16,
     paddingVertical: 16,
-    alignItems: 'center',
   },
   startDisabled: { backgroundColor: '#C2CDB0' },
   startText: { color: colors.onDark, fontSize: 18, fontWeight: '800' },

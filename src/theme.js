@@ -20,6 +20,20 @@ export const colors = {
   onDark: '#FFFFFF',       // text/icons over photo backdrops
 };
 
+// Soft tinted accents for icon tiles (a saturated foreground glyph on a pale
+// fill). Gives the menu and settings rows a modern, lively-but-restrained feel
+// without resorting to colorful icons everywhere. `bg` = tile fill, `fg` = glyph.
+export const accents = {
+  green: { fg: '#3F6212', bg: '#E9F1DB' },
+  blue: { fg: '#1D4ED8', bg: '#E2EAFF' },
+  violet: { fg: '#6D28D9', bg: '#EEE7FE' },
+  amber: { fg: '#B45309', bg: '#FBEFD5' },
+  teal: { fg: '#0F766E', bg: '#D8F0ED' },
+  indigo: { fg: '#4338CA', bg: '#E6E7FB' },
+  rose: { fg: '#BE123C', bg: '#FCE3E9' },
+  slate: { fg: '#475569', bg: '#EEF1F5' },
+};
+
 // Friendly group names for iNaturalist "iconic taxa" — used by the custom-game
 // filter. (iNat groups everything into these broad categories; finer splits
 // like "flowers vs trees" aren't available from the basic observation data.)

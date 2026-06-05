@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.4.5';
+export const APP_VERSION = '1.5.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.5.0',
+    date: '2026-06-05',
+    changes: [
+      'Fresh, more modern look for the main menu and Settings: a gradient '
+        + 'header, colour-coded game cards, and grouped settings sections.',
+      'New icon set (Ionicons) throughout the app — rounder, clearer glyphs '
+        + 'that better match each option.',
+    ],
+  },
   {
     version: '1.4.5',
     date: '2026-06-04',

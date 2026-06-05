@@ -1,5 +1,9 @@
 // Settings / first-run screen: set the iNaturalist username and study options,
 // then (re)load that user's observations.
+//
+// Design: grouped, iOS-style sections in rounded cards. Each row leads with a
+// softly-tinted Ionicons tile so options are scannable and the screen feels
+// modern rather than a flat wall of switches.
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -17,7 +21,7 @@ import {
   Platform,
 } from 'react-native';
 import { APP_VERSION } from '../changelog';
-import { colors } from '../theme';
+import { colors, accents } from '../theme';
 import { DEFAULT_LOCALE } from '../constants';
 import { getCacheSize, clearCache, formatBytes } from '../cache';
 import Icon from '../components/Icon';
@@ -86,6 +90,49 @@ function timeAgo(ts) {
   return `${d} day${d === 1 ? '' : 's'} ago`;
 }
 
+// A small tinted icon tile shared by every settings row.
+function Tile({ icon, accent, dim }) {
+  return (
+    <View style={[styles.tile, { backgroundColor: dim ? colors.faint : accent.bg }]}>
+      <Icon name={icon} size={18} color={dim ? colors.muted : accent.fg} />
+    </View>
+  );
+}
+
+// A labelled switch row inside a section card.
+function SwitchRow({ icon, accent, label, hint, value, onValueChange, disabled, dim }) {
+  return (
+    <View style={styles.row}>
+      <Tile icon={icon} accent={accent} dim={dim} />
+      <View style={styles.flex}>
+        <Text style={[styles.rowLabel, dim && styles.rowLabelDim]}>{label}</Text>
+        {!!hint && <Text style={styles.rowHint}>{hint}</Text>}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        disabled={disabled}
+        trackColor={{ true: colors.primary, false: '#D6D8D1' }}
+        thumbColor="#fff"
+      />
+    </View>
+  );
+}
+
+// A tappable navigation row (opens a screen / external link).
+function NavRow({ icon, accent, label, trailing = 'chevron-right', onPress }) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      onPress={onPress}
+    >
+      <Tile icon={icon} accent={accent} />
+      <Text style={[styles.rowLabel, styles.flex]}>{label}</Text>
+      <Icon name={trailing} size={18} color={colors.muted} />
+    </Pressable>
+  );
+}
+
 export default function SettingsScreen({
   initialUsername,
   perSpecies: initialPerSpecies,
@@ -139,7 +186,7 @@ export default function SettingsScreen({
       {onBack && (
         <View style={styles.topBar}>
           <Pressable onPress={onBack} hitSlop={12} style={styles.back}>
-            <Icon name="chevron-left" size={22} color={colors.text} />
+            <Icon name="chevron-left" size={24} color={colors.text} />
             <Text style={styles.backText}>Menu</Text>
           </Pressable>
         </View>
@@ -152,7 +199,7 @@ export default function SettingsScreen({
       >
         <View style={styles.header}>
           <View style={styles.logo}>
-            <Icon name="feather" size={30} color={colors.primary} />
+            <Icon name="feather" size={32} color={colors.primary} />
           </View>
           <Text style={styles.title}>Gote</Text>
           <Text style={styles.subtitle}>
@@ -160,80 +207,25 @@ export default function SettingsScreen({
           </Text>
         </View>
 
-        <Text style={styles.label}>iNaturalist username</Text>
-        <TextInput
-          style={styles.input}
-          value={username}
-          onChangeText={setUsername}
-          placeholder="e.g. kueda"
-          placeholderTextColor={colors.muted}
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete="username"
-          returnKeyType="go"
-          onSubmitEditing={submit}
-        />
-
-        <View style={styles.switchRow}>
-          <View style={styles.flex}>
-            <Text style={styles.switchLabel}>One card per species</Text>
-            <Text style={styles.switchHint}>
-              Avoids repeats so you see more variety.
-            </Text>
+        {/* Account */}
+        <Text style={styles.section}>Account</Text>
+        <View style={styles.card}>
+          <View style={styles.inputRow}>
+            <Tile icon="at-outline" accent={accents.green} />
+            <TextInput
+              style={styles.input}
+              value={username}
+              onChangeText={setUsername}
+              placeholder="iNaturalist username"
+              placeholderTextColor={colors.muted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="username"
+              returnKeyType="go"
+              onSubmitEditing={submit}
+            />
           </View>
-          <Switch
-            value={perSpecies}
-            onValueChange={setPerSpecies}
-            trackColor={{ true: colors.primary, false: '#CCC' }}
-            thumbColor="#fff"
-          />
         </View>
-
-        <View style={styles.switchRow}>
-          <View style={styles.flex}>
-            <Text style={styles.switchLabel}>Research grade only</Text>
-            <Text style={styles.switchHint}>
-              Only community-verified observations identified to an exact species.
-            </Text>
-          </View>
-          <Switch
-            value={researchGrade}
-            onValueChange={setResearchGrade}
-            trackColor={{ true: colors.primary, false: '#CCC' }}
-            thumbColor="#fff"
-          />
-        </View>
-
-        <View style={styles.switchRow}>
-          <View style={styles.flex}>
-            <Text
-              style={[styles.switchLabel, researchGrade && styles.switchLabelDim]}
-            >
-              Identified to species
-            </Text>
-            <Text style={styles.switchHint}>
-              {researchGrade
-                ? 'Already included by “Research grade only”.'
-                : 'Only observations identified to an exact species (any grade).'}
-            </Text>
-          </View>
-          <Switch
-            value={researchGrade || speciesOnly}
-            onValueChange={setSpeciesOnly}
-            disabled={researchGrade}
-            trackColor={{ true: colors.primary, false: '#CCC' }}
-            thumbColor="#fff"
-          />
-        </View>
-
-        <Text style={[styles.label, styles.langLabel]}>
-          Species name language
-        </Text>
-        <Text style={styles.switchHint}>
-          Common names come from iNaturalist in this language (the app itself
-          stays in English).
-        </Text>
-        <LanguageDropdown value={locale} onChange={setLocale} />
 
         {!!error && <Text style={styles.error}>{error}</Text>}
 
@@ -242,94 +234,164 @@ export default function SettingsScreen({
           disabled={!canSave}
           onPress={submit}
         >
+          <Icon name="refresh-cw" size={18} color="#fff" />
           <Text style={styles.buttonText}>Load observations</Text>
         </Pressable>
 
+        {/* Study options */}
+        <Text style={styles.section}>Study options</Text>
+        <View style={styles.card}>
+          <SwitchRow
+            icon="duplicate-outline"
+            accent={accents.blue}
+            label="One card per species"
+            hint="Avoids repeats so you see more variety."
+            value={perSpecies}
+            onValueChange={setPerSpecies}
+          />
+          <View style={styles.sep} />
+          <SwitchRow
+            icon="ribbon-outline"
+            accent={accents.amber}
+            label="Research grade only"
+            hint="Only community-verified observations identified to an exact species."
+            value={researchGrade}
+            onValueChange={setResearchGrade}
+          />
+          <View style={styles.sep} />
+          <SwitchRow
+            icon="pricetag-outline"
+            accent={accents.teal}
+            label="Identified to species"
+            hint={
+              researchGrade
+                ? 'Already included by “Research grade only”.'
+                : 'Only observations identified to an exact species (any grade).'
+            }
+            value={researchGrade || speciesOnly}
+            onValueChange={setSpeciesOnly}
+            disabled={researchGrade}
+            dim={researchGrade}
+          />
+        </View>
+
+        <Text style={styles.section}>Species name language</Text>
+        <Text style={styles.sectionHint}>
+          Common names come from iNaturalist in this language (the app itself
+          stays in English).
+        </Text>
+        <LanguageDropdown value={locale} onChange={setLocale} />
+
+        {/* Observations sync */}
         {onUpdateNow && (
           <>
-            <Text style={[styles.label, styles.langLabel]}>Observations</Text>
-            <View style={styles.cacheRow}>
-              <View style={styles.flex}>
-                <Text style={styles.switchLabel}>Synced data</Text>
-                <Text style={styles.switchHint}>
-                  {sync && sync.state === 'syncing'
-                    ? 'Checking for updates…'
-                    : sync && sync.state === 'error'
-                    ? sync.message || 'Last update failed.'
-                    : `Last updated ${timeAgo(sync && sync.syncedAt)}` +
-                      (sync && sync.message ? ` · ${sync.message}` : '')}
-                </Text>
+            <Text style={styles.section}>Observations</Text>
+            <View style={styles.card}>
+              <View style={styles.row}>
+                <Tile icon="sync-outline" accent={accents.indigo} />
+                <View style={styles.flex}>
+                  <Text style={styles.rowLabel}>Synced data</Text>
+                  <Text style={styles.rowHint}>
+                    {sync && sync.state === 'syncing'
+                      ? 'Checking for updates…'
+                      : sync && sync.state === 'error'
+                      ? sync.message || 'Last update failed.'
+                      : `Last updated ${timeAgo(sync && sync.syncedAt)}` +
+                        (sync && sync.message ? ` · ${sync.message}` : '')}
+                  </Text>
+                </View>
+                <Pressable
+                  style={[
+                    styles.pillButton,
+                    styles.pillPrimary,
+                    sync && sync.state === 'syncing' && styles.pillDisabled,
+                  ]}
+                  disabled={sync && sync.state === 'syncing'}
+                  onPress={onUpdateNow}
+                >
+                  {sync && sync.state === 'syncing' ? (
+                    <ActivityIndicator size="small" color={colors.primaryDark} />
+                  ) : (
+                    <Text style={styles.pillPrimaryText}>Update</Text>
+                  )}
+                </Pressable>
               </View>
-              <Pressable
-                style={[
-                  styles.cacheButton,
-                  styles.updateButton,
-                  sync && sync.state === 'syncing' && styles.cacheButtonDisabled,
-                ]}
-                disabled={sync && sync.state === 'syncing'}
-                onPress={onUpdateNow}
-              >
-                {sync && sync.state === 'syncing' ? (
-                  <ActivityIndicator size="small" color={colors.primaryDark} />
-                ) : (
-                  <Text style={styles.updateButtonText}>Update now</Text>
-                )}
-              </Pressable>
             </View>
           </>
         )}
 
-        <Text style={[styles.label, styles.langLabel]}>Local cache</Text>
-        <View style={styles.cacheRow}>
-          <View style={styles.flex}>
-            <Text style={styles.switchLabel}>Downloaded photos</Text>
-            <Text style={styles.switchHint}>
-              {cacheBytes === null
-                ? 'Measuring…'
-                : `${formatBytes(cacheBytes)} stored on this device`}
-            </Text>
+        {/* Storage */}
+        <Text style={styles.section}>Storage</Text>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <Tile icon="images-outline" accent={accents.slate} />
+            <View style={styles.flex}>
+              <Text style={styles.rowLabel}>Downloaded photos</Text>
+              <Text style={styles.rowHint}>
+                {cacheBytes === null
+                  ? 'Measuring…'
+                  : `${formatBytes(cacheBytes)} stored on this device`}
+              </Text>
+            </View>
+            <Pressable
+              style={[
+                styles.pillButton,
+                styles.pillDanger,
+                (clearing || !cacheBytes) && styles.pillDisabled,
+              ]}
+              disabled={clearing || !cacheBytes}
+              onPress={onClearCache}
+            >
+              {clearing ? (
+                <ActivityIndicator size="small" color={colors.wrong} />
+              ) : (
+                <Text style={styles.pillDangerText}>Empty</Text>
+              )}
+            </Pressable>
           </View>
-          <Pressable
-            style={[
-              styles.cacheButton,
-              (clearing || !cacheBytes) && styles.cacheButtonDisabled,
-            ]}
-            disabled={clearing || !cacheBytes}
-            onPress={onClearCache}
-          >
-            {clearing ? (
-              <ActivityIndicator size="small" color={colors.wrong} />
-            ) : (
-              <Text style={styles.cacheButtonText}>Empty cache</Text>
-            )}
-          </Pressable>
         </View>
 
-        <Text style={[styles.label, styles.langLabel]}>About</Text>
-        {onChangelog && (
-          <Pressable style={styles.reportRow} onPress={onChangelog}>
-            <Icon name="file-text" size={18} color={colors.text} />
-            <Text style={styles.reportText}>What's new</Text>
-            <Icon name="chevron-right" size={18} color={colors.muted} />
-          </Pressable>
-        )}
-        <Pressable style={styles.reportRow} onPress={sendFeedbackEmail}>
-          <Icon name="mail" size={18} color={colors.text} />
-          <Text style={styles.reportText}>Send feedback</Text>
-          <Icon name="external-link" size={16} color={colors.muted} />
-        </Pressable>
-        <Pressable style={styles.reportRow} onPress={reportBugGitHub}>
-          <Icon name="github" size={18} color={colors.text} />
-          <Text style={styles.reportText}>Report a bug on GitHub</Text>
-          <Icon name="external-link" size={16} color={colors.muted} />
-        </Pressable>
-        {onLegal && (
-          <Pressable style={styles.reportRow} onPress={onLegal}>
-            <Icon name="info" size={18} color={colors.text} />
-            <Text style={styles.reportText}>Data &amp; licensing</Text>
-            <Icon name="chevron-right" size={18} color={colors.muted} />
-          </Pressable>
-        )}
+        {/* About */}
+        <Text style={styles.section}>About</Text>
+        <View style={styles.card}>
+          {onChangelog && (
+            <>
+              <NavRow
+                icon="sparkles-outline"
+                accent={accents.violet}
+                label="What's new"
+                onPress={onChangelog}
+              />
+              <View style={styles.sep} />
+            </>
+          )}
+          <NavRow
+            icon="mail"
+            accent={accents.blue}
+            label="Send feedback"
+            trailing="external-link"
+            onPress={sendFeedbackEmail}
+          />
+          <View style={styles.sep} />
+          <NavRow
+            icon="github"
+            accent={accents.slate}
+            label="Report a bug on GitHub"
+            trailing="external-link"
+            onPress={reportBugGitHub}
+          />
+          {onLegal && (
+            <>
+              <View style={styles.sep} />
+              <NavRow
+                icon="info"
+                accent={accents.teal}
+                label="Data & licensing"
+                onPress={onLegal}
+              />
+            </>
+          )}
+        </View>
 
         <Text style={styles.footer}>
           Photos &amp; data from iNaturalist and its observers, used under each
@@ -344,18 +406,15 @@ export default function SettingsScreen({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  topBar: { paddingHorizontal: 20, paddingTop: 8 },
+  topBar: { paddingHorizontal: 16, paddingTop: 8 },
   back: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   backText: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  container: {
-    flexGrow: 1,
-    padding: 24,
-    justifyContent: 'center',
-  },
-  header: { alignItems: 'center', marginBottom: 32 },
+  container: { padding: 20, paddingTop: 12, paddingBottom: 32 },
+
+  header: { alignItems: 'center', marginBottom: 24 },
   logo: {
-    width: 72,
-    height: 72,
+    width: 76,
+    height: 76,
     borderRadius: 999,
     backgroundColor: colors.faint,
     alignItems: 'center',
@@ -374,82 +433,104 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 21,
+    paddingHorizontal: 12,
   },
-  label: {
+
+  section: {
     fontSize: 13,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 8,
+    fontWeight: '800',
+    color: colors.muted,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
+    marginTop: 26,
+    marginBottom: 10,
+    marginLeft: 4,
   },
-  langLabel: { marginTop: 24 },
-  input: {
-    borderWidth: 2,
-    borderColor: colors.border,
+  sectionHint: {
+    fontSize: 13,
+    color: colors.muted,
+    marginTop: -4,
+    marginBottom: 10,
+    marginLeft: 4,
+    lineHeight: 18,
+  },
+
+  // Rounded grouped container holding one or more rows.
+  card: {
     backgroundColor: colors.card,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 18,
-    color: colors.text,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
   },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 20,
-    gap: 12,
+  sep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+    marginLeft: 52, // align under the text, past the icon tile
   },
-  switchLabel: { fontSize: 16, fontWeight: '600', color: colors.text },
-  switchLabelDim: { color: colors.muted },
-  switchHint: { fontSize: 13, color: colors.muted, marginTop: 2 },
-  cacheRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  cacheButton: {
-    borderWidth: 2,
-    borderColor: colors.wrong,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    minWidth: 110,
-    minHeight: 42,
+
+  tile: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cacheButtonDisabled: { opacity: 0.4 },
-  updateButton: { borderColor: colors.primary },
-  updateButtonText: { color: colors.primaryDark, fontSize: 15, fontWeight: '700' },
-  cacheButtonText: { color: colors.wrong, fontSize: 15, fontWeight: '700' },
-  reportRow: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 12,
+    gap: 12,
+    paddingVertical: 14,
   },
-  reportText: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.text },
-  error: {
-    color: colors.wrong,
-    marginTop: 18,
-    fontSize: 14,
-    lineHeight: 20,
+  rowPressed: { opacity: 0.6 },
+  rowLabel: { fontSize: 16, fontWeight: '600', color: colors.text },
+  rowLabelDim: { color: colors.muted },
+  rowHint: { fontSize: 13, color: colors.muted, marginTop: 2, lineHeight: 18 },
+
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  input: {
+    flex: 1,
+    fontSize: 18,
+    color: colors.text,
+    paddingVertical: 4,
   },
-  button: {
-    backgroundColor: colors.primary,
-    borderRadius: 14,
-    paddingVertical: 16,
+
+  pillButton: {
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    minWidth: 78,
+    minHeight: 38,
     alignItems: 'center',
-    marginTop: 28,
+    justifyContent: 'center',
+    borderWidth: 1.5,
+  },
+  pillPrimary: { borderColor: colors.primary, backgroundColor: colors.faint },
+  pillPrimaryText: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
+  pillDanger: { borderColor: colors.wrong },
+  pillDangerText: { color: colors.wrong, fontSize: 14, fontWeight: '800' },
+  pillDisabled: { opacity: 0.4 },
+
+  error: { color: colors.wrong, marginTop: 14, fontSize: 14, lineHeight: 20 },
+
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    paddingVertical: 16,
+    marginTop: 16,
   },
   buttonDisabled: { backgroundColor: '#B8C99A' },
   buttonText: { color: '#fff', fontSize: 18, fontWeight: '800' },
+
   footer: {
     textAlign: 'center',
     color: colors.muted,
     fontSize: 12,
-    marginTop: 24,
-    paddingTop: 8,
+    marginTop: 28,
+    lineHeight: 18,
   },
 });
