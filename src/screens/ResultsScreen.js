@@ -53,10 +53,11 @@ export default function ResultsScreen({
       : null;
 
   return (
-    <View style={styles.flex}>
+    <View style={styles.flex} testID="results-screen">
       {/* Top bar: an X that returns to the main menu. */}
       <View style={styles.topBar}>
         <Pressable
+          testID="results-close"
           onPress={onMenu}
           hitSlop={12}
           style={({ pressed }) => [styles.closeBtn, pressed && styles.pressed]}
@@ -94,6 +95,7 @@ export default function ResultsScreen({
 
         {missed.length > 0 && (
           <Pressable
+            testID="results-revisit"
             style={[styles.actionButton, styles.revisitBtn]}
             onPress={onRevisitMissed}
           >
@@ -105,6 +107,7 @@ export default function ResultsScreen({
         )}
 
         <Pressable
+          testID="results-playagain"
           style={[styles.actionButton, styles.playAgainBtn]}
           onPress={onPlayAgain}
         >
@@ -114,6 +117,7 @@ export default function ResultsScreen({
 
         {/* Emphasized primary action. */}
         <Pressable
+          testID="results-menu"
           style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
           onPress={onMenu}
         >
@@ -132,6 +136,7 @@ export default function ResultsScreen({
               return (
                 <Pressable
                   key={`${c.id}-${i}`}
+                  testID={`results-missed-${c.taxonId}`}
                   onPress={() => onSelectMissed && onSelectMissed(c)}
                   style={({ pressed }) => [
                     styles.missedRow,

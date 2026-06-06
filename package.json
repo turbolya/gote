@@ -8,7 +8,11 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "node scripts/test-gestures.js && node scripts/test-cache.js && node scripts/test-quiz.js && node scripts/test-lexicon.js"
+    "test": "node scripts/test-gestures.js && node scripts/test-cache.js && node scripts/test-quiz.js && node scripts/test-lexicon.js",
+    "e2e:build": "detox build --configuration ios.sim.release",
+    "e2e:test": "detox test --configuration ios.sim.release",
+    "e2e:build:debug": "detox build --configuration ios.sim.debug",
+    "e2e:test:debug": "detox test --configuration ios.sim.debug"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -30,7 +34,10 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "babel-preset-expo": "~54.0.10"
+    "@config-plugins/detox": "^11.0.0",
+    "babel-preset-expo": "~54.0.10",
+    "detox": "^20.51.3",
+    "jest": "^30.4.2"
   },
   "overrides": {
     "expo-font": "~14.0.12"

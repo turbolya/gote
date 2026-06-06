@@ -61,7 +61,7 @@ export default function DetailScreen({ card, locale, onBack }) {
             style={styles.heroImg}
             resizeMode="cover"
           />
-          <Pressable onPress={onBack} hitSlop={12} style={styles.backFab}>
+          <Pressable testID="detail-back" onPress={onBack} hitSlop={12} style={styles.backFab}>
             <Icon name="chevron-left" size={24} color={colors.onDark} />
           </Pressable>
         </View>

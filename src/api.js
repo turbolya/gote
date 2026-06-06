@@ -10,6 +10,9 @@
 // URL-encoded JSON object, with nested objects for nested fields). The
 // FIELDS_* constants below declare what each call needs.
 
+import { IS_E2E } from './e2e/testMode';
+import * as fx from './e2e/fixtures';
+
 const API = 'https://api.inaturalist.org/v2/observations';
 const TAXA_API = 'https://api.inaturalist.org/v2/taxa';
 const SIMILAR_API =
@@ -396,6 +399,7 @@ async function fetchObservationCards(username, { locale, updatedSince, max, onPr
  * @returns {Promise<Array>} card objects
  */
 export async function fetchCards(username, opts = {}) {
+  if (IS_E2E) return fx.E2E_CARDS;
   const { locale, max, onProgress } = opts;
   const cards = await fetchObservationCards(username, { locale, max, onProgress });
   if (cards.length === 0) {
@@ -417,6 +421,7 @@ export async function fetchCards(username, opts = {}) {
  * @returns {Promise<Array>} changed card objects
  */
 export async function fetchUpdatedCards(username, opts = {}) {
+  if (IS_E2E) return [];
   const { locale, updatedSince, onProgress } = opts;
   if (!updatedSince) {
     // No watermark → behave like a full fetch.
@@ -441,6 +446,7 @@ function commonName(taxon) {
  * @returns {Promise<string[]>} medium-size photo URLs
  */
 export async function fetchTaxonPhotos(taxonId, max = 8) {
+  if (IS_E2E) return fx.e2eTaxonPhotos(taxonId, max);
   if (taxonId == null) return [];
   return cached(`photos:${taxonId}:${max}`, async () => {
     const [taxon] = await fetchTaxaResults(taxonId, { fields: FIELDS_TAXON_PHOTOS });
@@ -460,6 +466,7 @@ export async function fetchTaxonPhotos(taxonId, max = 8) {
  * @returns {Promise<Array<{taxonId:number, name:string, common:string|null}>>}
  */
 export async function fetchSimilarSpecies(taxonId, locale) {
+  if (IS_E2E) return fx.e2eSimilar(taxonId, locale);
   if (taxonId == null) return [];
   return cached(`similar:${taxonId}:${locale || ''}`, async () => {
     const url =
@@ -482,6 +489,7 @@ export async function fetchSimilarSpecies(taxonId, locale) {
  * @returns {Promise<Array<{id:number, name:string, lat:number, lng:number}>>}
  */
 export async function searchPlaces(query) {
+  if (IS_E2E) return fx.e2ePlaces(query);
   const q = String(query || '').trim();
   if (q.length < 2) return [];
   try {
@@ -529,6 +537,7 @@ export async function fetchNearbyCards(opts = {}) {
     max = 200,
     onProgress,
   } = opts;
+  if (IS_E2E) return fx.e2eNearbyCards();
   if (lat == null || lng == null) {
     throw new Error('Pick a location to play nearby species.');
   }
@@ -612,6 +621,7 @@ export async function fetchNearbyCards(opts = {}) {
  * @returns {Promise<Object<string, string[]>>}
  */
 export async function fetchTaxonPhotosByIds(ids, maxPer = 6) {
+  if (IS_E2E) return fx.e2eTaxonPhotosByIds(ids, maxPer);
   const list = [...new Set((ids || []).filter((x) => x != null))];
   const out = {};
 
@@ -647,6 +657,7 @@ export async function fetchTaxonPhotosByIds(ids, maxPer = 6) {
  * @param {string} locale  language for common names
  */
 export async function fetchTaxonDetail(taxonId, locale) {
+  if (IS_E2E) return fx.e2eDetail(taxonId, locale);
   if (taxonId == null) return null;
   return cached(`detail:${taxonId}:${locale || ''}`, async () => {
     const [t] = await fetchTaxaResults(taxonId, {

@@ -94,6 +94,7 @@ export default function CustomScreen({
       >
         {flaggedCount > 0 && (
           <Pressable
+            testID="custom-flagged"
             onPress={() => setFlaggedOnly((v) => !v)}
             style={[styles.flagToggle, flaggedOnly && styles.flagToggleOn]}
           >
@@ -117,6 +118,7 @@ export default function CustomScreen({
             return (
               <Pressable
                 key={g.key}
+                testID={`custom-group-${g.key}`}
                 onPress={() => toggleGroup(g.key)}
                 style={[styles.chip, on && styles.chipOn]}
               >
@@ -171,6 +173,7 @@ export default function CustomScreen({
 
       <View style={styles.footer}>
         <Pressable
+          testID="custom-start"
           style={[styles.start, !canStart && styles.startDisabled]}
           disabled={!canStart}
           onPress={() =>

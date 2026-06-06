@@ -81,6 +81,7 @@ export default function LexiconScreen({
       <View style={styles.searchWrap}>
         <Icon name="search" size={18} color={colors.muted} />
         <TextInput
+          testID="lexicon-search"
           style={styles.search}
           value={query}
           onChangeText={setQuery}
@@ -103,6 +104,7 @@ export default function LexiconScreen({
           return (
             <Pressable
               key={s.key}
+              testID={`lexicon-filter-${s.key}`}
               onPress={() => setStatus(on ? null : s.key)}
               style={[styles.filterChip, on && styles.filterChipOn]}
             >
@@ -126,6 +128,7 @@ export default function LexiconScreen({
       {flaggedCount > 0 && (
         <View style={styles.flagFilterRow}>
           <Pressable
+            testID="lexicon-filter-flagged"
             onPress={() => setFlagged((v) => !v)}
             style={[styles.flagFilterChip, flaggedActive && styles.flagFilterChipOn]}
           >
@@ -151,7 +154,11 @@ export default function LexiconScreen({
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
-          <Pressable style={styles.row} onPress={() => onSelect(item)}>
+          <Pressable
+            testID={`lexicon-row-${item.taxonId}`}
+            style={styles.row}
+            onPress={() => onSelect(item)}
+          >
             <Image
               source={{ uri: item.image }}
               style={styles.thumb}
@@ -167,6 +174,7 @@ export default function LexiconScreen({
             </View>
             {onToggleFlag && (
               <Pressable
+                testID={`lexicon-flag-${item.taxonId}`}
                 onPress={() => onToggleFlag(item.taxonId)}
                 hitSlop={10}
                 style={styles.flagBtn}

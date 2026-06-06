@@ -139,7 +139,7 @@ export default function StatsScreen({ species, lifetime, onBack, onReset }) {
               countColor={colors.correct}
             />
 
-            <Pressable style={styles.resetButton} onPress={confirmReset}>
+            <Pressable testID="stats-reset" style={styles.resetButton} onPress={confirmReset}>
               <Text style={styles.resetText}>Reset statistics</Text>
             </Pressable>
           </>

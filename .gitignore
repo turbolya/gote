@@ -22,6 +22,10 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
+# Detox (E2E) artifacts
+artifacts/
+.detox/
+
 # macOS
 .DS_Store
 

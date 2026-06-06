@@ -11,6 +11,7 @@ export default function ScreenHeader({ title, onBack }) {
   return (
     <View style={styles.topBar}>
       <Pressable
+        testID="screen-back"
         onPress={onBack}
         hitSlop={10}
         style={({ pressed }) => [styles.back, pressed && styles.backPressed]}

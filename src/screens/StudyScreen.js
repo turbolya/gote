@@ -26,6 +26,7 @@ import { prefetchUpcoming } from '../prefetch';
 import { pickSimilarDistractors } from '../quiz';
 import { colors } from '../theme';
 import { SPEEDRUN_LIVES } from '../constants';
+import { IS_E2E } from '../e2e/testMode';
 
 const NUM_CHOICES = 5;
 const ON_DARK = '#FFFFFF';
@@ -186,7 +187,17 @@ export default function StudyScreen({
   const gotIt = picked === answer;
 
   return (
-    <View style={styles.fsRoot}>
+    <View style={styles.fsRoot} testID="study-screen">
+      {/* E2E only: exposes the current card's answer (via accessibilityLabel,
+          not visible text) so tests can tap the correct choice deterministically. */}
+      {IS_E2E && !!answer && (
+        <View
+          testID="e2e-answer"
+          accessibilityLabel={answer}
+          style={styles.e2eHidden}
+          pointerEvents="none"
+        />
+      )}
       {/* Fullscreen photo. A blurred, darkened copy fills the whole screen
           (covering letterbox bars for wide/tall photos), with the full image
           shown on top in "contain" mode so no features are cropped off. */}
@@ -222,7 +233,7 @@ export default function StudyScreen({
       >
         <View style={styles.topBar} pointerEvents="box-none">
           <View style={styles.sideLeft}>
-            <Pressable onPress={onQuit} hitSlop={12} style={styles.endBtn}>
+            <Pressable testID="study-end" onPress={onQuit} hitSlop={12} style={styles.endBtn}>
               <Icon name="x" size={18} color={onDim} />
               <Text style={[styles.quit, { color: onDim }]}>End</Text>
             </Pressable>
@@ -242,6 +253,7 @@ export default function StudyScreen({
           <View style={styles.sideRight}>
             {card && onToggleFlag && (
               <Pressable
+                testID="study-flag"
                 onPress={() => onToggleFlag(card.taxonId)}
                 hitSlop={12}
                 style={styles.flagBtn}
@@ -306,7 +318,7 @@ export default function StudyScreen({
                       color={gotIt ? colors.correct : colors.wrong}
                     />
                   )}
-                  <Text style={[styles.prompt, { color: on }]} numberOfLines={1}>
+                  <Text testID="study-prompt" style={[styles.prompt, { color: on }]} numberOfLines={1}>
                     {answered
                       ? gotIt
                         ? 'Correct!'
@@ -323,6 +335,7 @@ export default function StudyScreen({
                   return (
                     <Pressable
                       key={name}
+                      testID={`study-choice-${name}`}
                       disabled={answered}
                       onPress={() => pick(name)}
                       style={[
@@ -346,7 +359,7 @@ export default function StudyScreen({
                 })}
 
                 {answered && (
-                  <Pressable style={styles.nextBtn} onPress={() => onGrade(gotIt)}>
+                  <Pressable testID="study-next" style={styles.nextBtn} onPress={() => onGrade(gotIt)}>
                     <Text style={styles.nextText}>Next card</Text>
                     <Icon name="arrow-right" size={18} color={colors.onDark} />
                   </Pressable>
@@ -372,6 +385,7 @@ export default function StudyScreen({
                 )}
                 <View style={styles.gradeRow}>
                   <Pressable
+                    testID="study-grade-missed"
                     style={[styles.gradeButton, styles.missed]}
                     onPress={() => onGrade(false)}
                   >
@@ -379,6 +393,7 @@ export default function StudyScreen({
                     <Text style={styles.gradeText}>Missed it</Text>
                   </Pressable>
                   <Pressable
+                    testID="study-grade-knew"
                     style={[styles.gradeButton, styles.knew]}
                     onPress={() => onGrade(true)}
                   >
@@ -400,6 +415,7 @@ export default function StudyScreen({
         {choiceMode
           ? phase === 'front' && (
               <Pressable
+                testID="study-reveal"
                 style={[styles.revealBtn, { borderColor: on }]}
                 onPress={() => setPhase('choosing')}
               >
@@ -408,6 +424,7 @@ export default function StudyScreen({
             )
           : !flipped && (
               <Pressable
+                testID="study-reveal"
                 style={[styles.revealBtn, { borderColor: on }]}
                 onPress={() => setFlipped(true)}
               >
@@ -456,6 +473,7 @@ export default function StudyScreen({
 
 const styles = StyleSheet.create({
   fsRoot: { flex: 1, backgroundColor: '#000' },
+  e2eHidden: { position: 'absolute', top: 0, left: 0, width: 1, height: 1, opacity: 0.01 },
   fsBackdropScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
   flagBtn: { alignItems: 'center', justifyContent: 'center' },
   fsFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1A1D1A' },

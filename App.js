@@ -58,6 +58,8 @@ import { SPEEDRUN_LIVES, DEFAULT_LOCALE } from './src/constants';
 import { buildPickRound } from './src/quiz';
 import { prefetchImages } from './src/prefetch';
 import { groupKey } from './src/theme';
+import { IS_E2E } from './src/e2e/testMode';
+import { E2E_CARDS } from './src/e2e/fixtures';
 import MenuScreen from './src/screens/MenuScreen';
 import CustomScreen from './src/screens/CustomScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -79,7 +81,8 @@ export default function App() {
   // loading | settings | menu | custom | study | results
   const [screen, setScreen] = useState('loading');
   // Branded launch splash overlay; dismissed (faded out) after a moment.
-  const [showSplash, setShowSplash] = useState(true);
+  // Skipped entirely in E2E so it never covers the UI under test.
+  const [showSplash, setShowSplash] = useState(!IS_E2E);
   const [username, setUsername] = useState('');
   const [perSpecies, setPerSpecies] = useState(true);
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
@@ -312,6 +315,15 @@ export default function App() {
       // Seed the ref now: the startup background sync fires before React re-renders
       // with these values, and must filter by the saved prefs, not the defaults.
       prefsRef.current = { perSpecies: ps, researchGrade: rg, speciesOnly: so };
+      // E2E: load the fixture deck offline and jump straight to the menu.
+      if (IS_E2E) {
+        setUsername('e2e-tester');
+        rawCardsRef.current = E2E_CARDS;
+        watermarkRef.current = null;
+        applyCurrentFilters({ perSpecies: ps, researchGrade: rg, speciesOnly: so });
+        setScreen('menu');
+        return;
+      }
       if (savedUser) {
         setUsername(savedUser);
         loadAccount(

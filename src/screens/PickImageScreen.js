@@ -23,6 +23,7 @@ import Icon from '../components/Icon';
 import PhotoViewer from '../components/PhotoViewer';
 import { colors } from '../theme';
 import { fetchTaxonPhotos } from '../api';
+import { IS_E2E } from '../e2e/testMode';
 
 const FLAG_ON = '#E0A800'; // amber for an active flag (on the light background)
 
@@ -76,10 +77,22 @@ export default function PickImageScreen({
     answered && round && round.options.find((o) => o.taxonId === picked)?.correct;
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }]}>
+    <View
+      testID="pick-screen"
+      style={[styles.root, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }]}
+    >
+      {/* E2E only: exposes the correct tile's taxonId so tests can tap it. */}
+      {IS_E2E && round && (
+        <View
+          testID="e2e-pick-answer"
+          accessibilityLabel={String(round.options.find((o) => o.correct)?.taxonId)}
+          style={styles.e2eHidden}
+          pointerEvents="none"
+        />
+      )}
       {/* Top bar */}
       <View style={styles.topBar}>
-        <Pressable onPress={onQuit} hitSlop={12} style={styles.endBtn}>
+        <Pressable testID="pick-end" onPress={onQuit} hitSlop={12} style={styles.endBtn}>
           <Icon name="x" size={18} color={colors.muted} />
           <Text style={styles.quit}>End</Text>
         </Pressable>
@@ -89,6 +102,7 @@ export default function PickImageScreen({
         <View style={styles.rightGroup}>
           {onToggleFlag && (
             <Pressable
+              testID="pick-flag"
               onPress={onToggleFlag}
               hitSlop={10}
               disabled={!round}
@@ -119,7 +133,7 @@ export default function PickImageScreen({
             <>
               <Icon name="alert-triangle" size={28} color={colors.muted} />
               <Text style={styles.errorText}>{error}</Text>
-              <Pressable style={styles.skipBtn} onPress={onNext}>
+              <Pressable testID="pick-skip" style={styles.skipBtn} onPress={onNext}>
                 <Text style={styles.skipText}>Skip</Text>
               </Pressable>
             </>
@@ -139,6 +153,7 @@ export default function PickImageScreen({
               return (
                 <View key={opt.taxonId} style={styles.tileWrap}>
                   <Pressable
+                    testID={`pick-tile-${opt.taxonId}`}
                     style={styles.tile}
                     disabled={answered}
                     onPress={() => pick(opt)}
@@ -224,7 +239,7 @@ export default function PickImageScreen({
                     {gotIt ? 'Correct!' : 'Not quite'}
                   </Text>
                 </View>
-                <Pressable style={styles.nextBtn} onPress={onNext}>
+                <Pressable testID="pick-next" style={styles.nextBtn} onPress={onNext}>
                   <Text style={styles.nextText}>Next</Text>
                   <Icon name="arrow-right" size={18} color={colors.onDark} />
                 </Pressable>
@@ -250,6 +265,7 @@ export default function PickImageScreen({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: 20 },
+  e2eHidden: { position: 'absolute', top: 0, left: 0, width: 1, height: 1, opacity: 0.01 },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -32,7 +32,8 @@
         {
           "locationWhenInUsePermission": "Gote uses your location only to find species typically observed near you. It is not stored or shared."
         }
-      ]
+      ],
+      "@config-plugins/detox"
     ],
     "extra": {
       "sentryDsn": ""

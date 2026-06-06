@@ -120,9 +120,10 @@ function SwitchRow({ icon, accent, label, hint, value, onValueChange, disabled, 
 }
 
 // A tappable navigation row (opens a screen / external link).
-function NavRow({ icon, accent, label, trailing = 'chevron-right', onPress }) {
+function NavRow({ icon, accent, label, trailing = 'chevron-right', onPress, testID }) {
   return (
     <Pressable
+      testID={testID}
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
       onPress={onPress}
     >
@@ -185,7 +186,7 @@ export default function SettingsScreen({
     >
       {onBack && (
         <View style={styles.topBar}>
-          <Pressable onPress={onBack} hitSlop={12} style={styles.back}>
+          <Pressable testID="settings-back" onPress={onBack} hitSlop={12} style={styles.back}>
             <Icon name="chevron-left" size={24} color={colors.text} />
             <Text style={styles.backText}>Menu</Text>
           </Pressable>
@@ -213,6 +214,7 @@ export default function SettingsScreen({
           <View style={styles.inputRow}>
             <Tile icon="at-outline" accent={accents.green} />
             <TextInput
+              testID="settings-username"
               style={styles.input}
               value={username}
               onChangeText={setUsername}
@@ -230,6 +232,7 @@ export default function SettingsScreen({
         {!!error && <Text style={styles.error}>{error}</Text>}
 
         <Pressable
+          testID="settings-load"
           style={[styles.button, !canSave && styles.buttonDisabled]}
           disabled={!canSave}
           onPress={submit}
@@ -357,6 +360,7 @@ export default function SettingsScreen({
           {onChangelog && (
             <>
               <NavRow
+                testID="settings-changelog"
                 icon="sparkles-outline"
                 accent={accents.violet}
                 label="What's new"
@@ -384,6 +388,7 @@ export default function SettingsScreen({
             <>
               <View style={styles.sep} />
               <NavRow
+                testID="settings-legal"
                 icon="info"
                 accent={accents.teal}
                 label="Data & licensing"

@@ -110,8 +110,9 @@ export default function MenuScreen({
     },
   ];
 
-  const Row = ({ icon, accent, title, sub, onPress }) => (
+  const Row = ({ icon, accent, title, sub, onPress, testID }) => (
     <Pressable
+      testID={testID}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={onPress}
     >
@@ -172,11 +173,17 @@ export default function MenuScreen({
 
       <Text style={styles.section}>Play</Text>
       {modes.map((m) => (
-        <Row key={m.key} {...m} onPress={() => onSelectMode(m.key)} />
+        <Row
+          key={m.key}
+          {...m}
+          testID={`mode-${m.key}`}
+          onPress={() => onSelectMode(m.key)}
+        />
       ))}
 
       <Text style={styles.section}>Explore</Text>
       <Row
+        testID="open-lexicon"
         icon="library-outline"
         accent={accents.indigo}
         title="Lexicon"
@@ -184,6 +191,7 @@ export default function MenuScreen({
         onPress={onLexicon}
       />
       <Row
+        testID="open-stats"
         icon="stats-chart-outline"
         accent={accents.rose}
         title="Statistics"
@@ -191,6 +199,7 @@ export default function MenuScreen({
         onPress={onStats}
       />
       <Row
+        testID="open-settings"
         icon="settings-outline"
         accent={accents.slate}
         title="Settings"

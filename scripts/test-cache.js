@@ -16,6 +16,9 @@ function load(rel) {
     if (id === '@react-native-async-storage/async-storage') {
       return { default: {} };
     }
+    // E2E-only modules (ESM); api.js only touches them when IS_E2E is true.
+    if (id === './e2e/testMode') return { IS_E2E: false };
+    if (id === './e2e/fixtures') return {};
     return require(id);
   };
   new Function('module', 'exports', 'require', code)(m, m.exports, fakeRequire);

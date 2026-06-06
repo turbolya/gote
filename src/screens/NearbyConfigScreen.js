@@ -150,6 +150,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
             <View style={styles.searchWrap}>
               <Icon name="search" size={18} color={colors.muted} />
               <TextInput
+                testID="nearby-search"
                 style={styles.search}
                 value={query}
                 onChangeText={onChangeQuery}
@@ -163,6 +164,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
             {results.map((p) => (
               <Pressable
                 key={p.id}
+                testID={`nearby-result-${p.id}`}
                 style={styles.resultRow}
                 onPress={() => pickPlace(p)}
               >
@@ -202,6 +204,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
             return (
               <Pressable
                 key={key}
+                testID={`nearby-group-${key}`}
                 onPress={() => toggleGroup(key)}
                 style={[styles.groupChip, on && styles.groupChipOn]}
               >
@@ -223,6 +226,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
 
       <View style={styles.footer}>
         <Pressable
+          testID="nearby-start"
           style={[styles.start, !canStart && styles.startDisabled]}
           disabled={!canStart}
           onPress={() =>
