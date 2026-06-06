@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.7.0';
+export const APP_VERSION = '1.7.1';
 
 export const CHANGELOG = [
+  {
+    version: '1.7.1',
+    date: '2026-06-06',
+    changes: [
+      'On the end-of-round screen, tap any species you missed to open its '
+        + 'full detail page (photos, taxonomy, Wikipedia) — the same one as in '
+        + 'the Lexicon.',
+    ],
+  },
   {
     version: '1.7.0',
     date: '2026-06-05',

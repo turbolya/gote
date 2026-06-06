@@ -102,8 +102,10 @@ export default function App() {
   }, [perSpecies, researchGrade, speciesOnly]);
   // Sync status for the Settings UI: { state: idle|syncing|done|error, syncedAt, message }
   const [sync, setSync] = useState({ state: 'idle', syncedAt: null, message: null });
-  // The card whose detail page is open (from the Lexicon).
+  // The card whose detail page is open (from the Lexicon or the results screen),
+  // and which screen to return to when the detail page is dismissed.
   const [selectedCard, setSelectedCard] = useState(null);
+  const [detailFrom, setDetailFrom] = useState('lexicon');
   const [deck, setDeck] = useState([]);
   const [index, setIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -703,6 +705,7 @@ export default function App() {
             onBack={() => setScreen('menu')}
             onSelect={(card) => {
               setSelectedCard(card);
+              setDetailFrom('lexicon');
               setScreen('detail');
             }}
           />
@@ -712,7 +715,7 @@ export default function App() {
           <DetailScreen
             card={selectedCard}
             locale={locale}
-            onBack={() => setScreen('lexicon')}
+            onBack={() => setScreen(detailFrom)}
           />
         )}
 
@@ -728,6 +731,11 @@ export default function App() {
             }
             onPlayAgain={() => replayRef.current()}
             onMenu={() => setScreen('menu')}
+            onSelectMissed={(card) => {
+              setSelectedCard(card);
+              setDetailFrom('results');
+              setScreen('detail');
+            }}
           />
         )}
       </SafeAreaView>

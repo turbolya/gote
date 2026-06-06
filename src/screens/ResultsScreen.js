@@ -31,6 +31,7 @@ export default function ResultsScreen({
   onRevisitMissed,
   onPlayAgain,
   onMenu,
+  onSelectMissed,
 }) {
   const speedrun = mode === 'speedrun';
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
@@ -106,13 +107,27 @@ export default function ResultsScreen({
         {missed.length > 0 && (
           <View style={styles.missedList}>
             <Text style={styles.missedHeading}>Species you missed</Text>
+            <Text style={styles.missedHint}>Tap a species to learn more</Text>
             {missed.map((c, i) => (
-              <Text key={`${c.id}-${i}`} style={styles.missedItem}>
-                {c.common || c.scientific}
-                {c.common ? (
-                  <Text style={styles.missedSci}> · {c.scientific}</Text>
-                ) : null}
-              </Text>
+              <Pressable
+                key={`${c.id}-${i}`}
+                onPress={() => onSelectMissed && onSelectMissed(c)}
+                style={({ pressed }) => [
+                  styles.missedRow,
+                  i > 0 && styles.missedRowBorder,
+                  pressed && styles.missedRowPressed,
+                ]}
+              >
+                <View style={styles.flex}>
+                  <Text style={styles.missedItem}>
+                    {c.common || c.scientific}
+                  </Text>
+                  {!!c.common && (
+                    <Text style={styles.missedSci}>{c.scientific}</Text>
+                  )}
+                </View>
+                <Icon name="chevron-right" size={18} color={colors.muted} />
+              </Pressable>
             ))}
           </View>
         )}
@@ -214,7 +229,8 @@ const styles = StyleSheet.create({
     marginTop: 24,
     backgroundColor: colors.card,
     borderRadius: 18,
-    padding: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -224,10 +240,22 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 12,
+    marginTop: 10,
   },
-  missedItem: { fontSize: 16, color: colors.text, marginVertical: 4 },
-  missedSci: { fontStyle: 'italic', color: colors.muted, fontSize: 14 },
+  missedHint: { fontSize: 12, color: colors.muted, marginTop: 2, marginBottom: 4 },
+  missedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+  },
+  missedRowBorder: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  missedRowPressed: { opacity: 0.55 },
+  missedItem: { fontSize: 16, color: colors.text, fontWeight: '600' },
+  missedSci: { fontStyle: 'italic', color: colors.muted, fontSize: 14, marginTop: 1 },
   lifetime: {
     color: colors.muted,
     marginTop: 24,
