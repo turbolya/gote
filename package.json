@@ -37,7 +37,7 @@
     "@config-plugins/detox": "^11.0.0",
     "babel-preset-expo": "~54.0.10",
     "detox": "^20.51.3",
-    "jest": "^30.4.2"
+    "jest": "^29.7.0"
   },
   "overrides": {
     "expo-font": "~14.0.12"
