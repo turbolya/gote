@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.8.1';
+export const APP_VERSION = '1.9.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.9.0',
+    date: '2026-06-06',
+    changes: [
+      'The menu header now shows a subtle bar chart of your recent games’ '
+        + 'accuracy behind the title, newest on the right.',
+    ],
+  },
   {
     version: '1.8.1',
     date: '2026-06-06',

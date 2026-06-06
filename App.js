@@ -51,6 +51,8 @@ import {
   cacheMatches,
   loadFlags,
   saveFlags,
+  loadHistory,
+  addGameResult,
 } from './src/storage';
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE } from './src/constants';
 import { buildPickRound } from './src/quiz';
@@ -86,6 +88,8 @@ export default function App() {
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ loaded: 0, total: 0 });
   const [lifetime, setLifetime] = useState({ answered: 0, correct: 0 });
+  // Recent games' accuracy (0–100, oldest→newest) for the menu's mini chart.
+  const [history, setHistory] = useState([]);
 
   // Raw cached cards (unfiltered) for the current account, kept in a ref so sync
   // can read/merge without re-renders. `fullDeck` is the filtered view shown to
@@ -281,15 +285,17 @@ export default function App() {
   // Restore saved state on first launch.
   useEffect(() => {
     (async () => {
-      const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache] =
+      const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedHistory] =
         await Promise.all([
           loadUsername(),
           loadStats(),
           loadPrefs(),
           loadSpeciesStats(),
           loadCache(),
+          loadHistory(),
         ]);
       if (savedStats) setLifetime(savedStats);
+      if (savedHistory && savedHistory.length) setHistory(savedHistory);
       // Flags are loaded per-account inside loadAccount (below).
       speciesRef.current = savedSpecies || {};
       setSpeciesStats(speciesRef.current);
@@ -482,6 +488,10 @@ export default function App() {
     // Persist the per-species tallies accumulated during the round.
     saveSpeciesStats(speciesRef.current);
     setSpeciesStats({ ...speciesRef.current });
+    // Record this game's accuracy for the menu chart (skip empty rounds).
+    if (total > 0) {
+      addGameResult((finalCorrect / total) * 100).then(setHistory);
+    }
     setMissed(finalMissed);
     setCorrectCount(finalCorrect);
     setScreen('results');
@@ -690,6 +700,7 @@ export default function App() {
             username={username}
             deckCount={fullDeck.length}
             lifetime={lifetime}
+            history={history}
             onSelectMode={onSelectMode}
             onLexicon={() => setScreen('lexicon')}
             onStats={() => setScreen('stats')}
@@ -736,6 +747,7 @@ export default function App() {
               speciesRef.current = {};
               setSpeciesStats({});
               setLifetime({ answered: 0, correct: 0 });
+              setHistory([]);
             }}
           />
         )}

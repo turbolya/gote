@@ -5,17 +5,48 @@
 // as cards — each with its own softly-tinted icon tile (Ionicons) for a modern,
 // lively-but-restrained look.
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import { colors, accents } from '../theme';
 import { SPEEDRUN_LIVES } from '../constants';
 
+// Bar geometry for the hero's background accuracy chart.
+const BAR_W = 7;
+const BAR_GAP = 4;
+
+// A minimal background chart of recent games' accuracy: one vertical bar per
+// game (oldest → newest, left → right), each a transparent→white gradient. Only
+// the newest bars that fit are shown, so the latest game is always the rightmost.
+function AccuracyBars({ data = [] }) {
+  const [width, setWidth] = useState(0);
+  if (!data.length) return null;
+  const maxBars =
+    width > 0 ? Math.max(1, Math.floor((width + BAR_GAP) / (BAR_W + BAR_GAP))) : 0;
+  const bars = maxBars > 0 ? data.slice(-maxBars) : [];
+  return (
+    <View
+      style={styles.chart}
+      pointerEvents="none"
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+    >
+      {bars.map((pct, i) => (
+        <LinearGradient
+          key={i}
+          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.4)']}
+          style={[styles.bar, { height: `${Math.max(3, pct)}%` }]}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function MenuScreen({
   username,
   deckCount,
   lifetime,
+  history = [],
   onSelectMode,
   onLexicon,
   onStats,
@@ -102,6 +133,9 @@ export default function MenuScreen({
         end={{ x: 1, y: 1 }}
         style={styles.hero}
       >
+        {/* Background: a faint chart of recent games' accuracy. */}
+        <AccuracyBars data={history} />
+
         <View style={styles.heroTop}>
           <View style={styles.flex}>
             <Text style={styles.heroTitle}>Gote</Text>
@@ -164,6 +198,18 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 22,
     marginBottom: 24,
+    overflow: 'hidden', // clip the background bars to the rounded card
+  },
+  chart: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: BAR_GAP,
+  },
+  bar: {
+    width: BAR_W,
+    borderTopLeftRadius: 2,
+    borderTopRightRadius: 2,
   },
   heroTop: { flexDirection: 'row', alignItems: 'flex-start' },
   heroTitle: {

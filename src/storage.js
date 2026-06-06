@@ -9,6 +9,11 @@ const K_PREFS = '@gote/prefs';
 const K_SPECIES = '@gote/species';
 const K_CACHE = '@gote/obscache';
 const K_FLAGS = '@gote/flags';
+const K_HISTORY = '@gote/history';
+
+// How many recent games to keep for the menu's accuracy chart. Comfortably more
+// than fit on screen; the chart shows only the newest that fit.
+const MAX_HISTORY = 120;
 
 // Bump if the cached card shape changes incompatibly — a mismatch forces a
 // fresh full download instead of using stale-shaped data.
@@ -105,13 +110,45 @@ export async function saveSpeciesStats(map) {
   }
 }
 
-// Wipe all gameplay statistics (lifetime totals + per-species tallies).
+// Wipe all gameplay statistics (lifetime totals + per-species tallies + the
+// per-game accuracy history shown on the menu).
 export async function resetStatistics() {
   try {
-    await AsyncStorage.multiRemove([K_STATS, K_SPECIES]);
+    await AsyncStorage.multiRemove([K_STATS, K_SPECIES, K_HISTORY]);
   } catch {
     /* ignore */
   }
+}
+
+// --- Per-game accuracy history -----------------------------------------------
+// A list of recent games' accuracy percentages (0–100, oldest → newest), for
+// the little background chart on the menu. Global, like the lifetime totals.
+
+export async function loadHistory() {
+  try {
+    const raw = await AsyncStorage.getItem(K_HISTORY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr.filter((n) => typeof n === 'number');
+    }
+  } catch {
+    /* fall through */
+  }
+  return [];
+}
+
+// Append one finished game's accuracy percent and return the trimmed history.
+export async function addGameResult(pct) {
+  const prev = await loadHistory();
+  const next = [...prev, Math.max(0, Math.min(100, Math.round(pct)))].slice(
+    -MAX_HISTORY
+  );
+  try {
+    await AsyncStorage.setItem(K_HISTORY, JSON.stringify(next));
+  } catch {
+    /* ignore — best-effort */
+  }
+  return next;
 }
 
 // --- Flagged species ---------------------------------------------------------
