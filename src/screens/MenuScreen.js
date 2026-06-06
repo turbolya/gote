@@ -17,9 +17,11 @@ const BAR_W = 7;
 const BAR_GAP = 4;
 
 // A minimal background chart of recent games' accuracy: one vertical bar per
-// game (oldest → newest, left → right), each a transparent→white gradient. Only
-// the newest bars that fit are shown, so the latest game is always the rightmost.
-function AccuracyBars({ data = [] }) {
+// game (oldest → newest, left → right), each a white→transparent gradient (solid
+// white on top, fading downward). Only the newest bars that fit are shown, so the
+// latest game is always the rightmost. `topOffset` caps the bars' top edge so a
+// 100% bar reaches just below the username rather than the very top of the card.
+function AccuracyBars({ data = [], topOffset = 0 }) {
   const [width, setWidth] = useState(0);
   if (!data.length) return null;
   const maxBars =
@@ -27,14 +29,14 @@ function AccuracyBars({ data = [] }) {
   const bars = maxBars > 0 ? data.slice(-maxBars) : [];
   return (
     <View
-      style={styles.chart}
+      style={[styles.chart, { top: topOffset }]}
       pointerEvents="none"
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
     >
       {bars.map((pct, i) => (
         <LinearGradient
           key={i}
-          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.4)']}
+          colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0.2)']}
           style={[styles.bar, { height: `${Math.max(3, pct)}%` }]}
         />
       ))}
@@ -56,6 +58,10 @@ export default function MenuScreen({
     lifetime && lifetime.answered > 0
       ? Math.round((lifetime.correct / lifetime.answered) * 100)
       : null;
+
+  // Where a full-height (100%) bar should top out: just below the title/username
+  // block. Measured from that block's layout so it adapts to wrapping/font size.
+  const [barsTop, setBarsTop] = useState(0);
 
   // Each mode carries an Ionicons glyph and its own accent so the list reads as
   // a set of distinct activities rather than one monotone column.
@@ -134,9 +140,14 @@ export default function MenuScreen({
         style={styles.hero}
       >
         {/* Background: a faint chart of recent games' accuracy. */}
-        <AccuracyBars data={history} />
+        <AccuracyBars data={history} topOffset={barsTop} />
 
-        <View style={styles.heroTop}>
+        <View
+          style={styles.heroTop}
+          onLayout={(e) =>
+            setBarsTop(e.nativeEvent.layout.y + e.nativeEvent.layout.height + 4)
+          }
+        >
           <View style={styles.flex}>
             <Text style={styles.heroTitle}>Gote</Text>
             <Text style={styles.heroSub}>
@@ -201,7 +212,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden', // clip the background bars to the rounded card
   },
   chart: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: BAR_GAP,

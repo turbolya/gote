@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.9.2';
+export const APP_VERSION = '1.9.3';
 
 export const CHANGELOG = [
+  {
+    version: '1.9.3',
+    date: '2026-06-06',
+    changes: [
+      'Menu accuracy chart: bars now fade from solid white at the top to '
+        + 'transparent at the bottom, and a 100% bar rises to just below your '
+        + 'username.',
+    ],
+  },
   {
     version: '1.9.2',
     date: '2026-06-06',
