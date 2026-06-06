@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.9.3';
+export const APP_VERSION = '1.9.4';
 
 export const CHANGELOG = [
+  {
+    version: '1.9.4',
+    date: '2026-06-06',
+    changes: [
+      'No more accidental answers: the choices (and the “I knew it / Missed '
+        + 'it” buttons) now appear in the center of the screen, away from the '
+        + '“Show choices / Reveal answer” button you just tapped.',
+    ],
+  },
   {
     version: '1.9.3',
     date: '2026-06-06',

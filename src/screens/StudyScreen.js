@@ -286,126 +286,134 @@ export default function StudyScreen({
         )}
       </LinearGradient>
 
-      {/* Bottom gradient + mode-specific chrome */}
+      {/* Active answer UI is CENTERED — away from the bottom button you just
+          tapped — so a choice/grade button never lands under your finger. */}
+      <View
+        style={[
+          styles.centerArea,
+          { paddingTop: insets.top + 70, paddingBottom: insets.bottom + 84 },
+        ]}
+        pointerEvents="box-none"
+      >
+        {choiceMode
+          ? phase !== 'front' && (
+              <View style={styles.centerPanel}>
+                <View style={styles.promptRow}>
+                  {answered && (
+                    <Icon
+                      name={gotIt ? 'check-circle' : 'x-circle'}
+                      size={16}
+                      color={gotIt ? colors.correct : colors.wrong}
+                    />
+                  )}
+                  <Text style={[styles.prompt, { color: on }]} numberOfLines={1}>
+                    {answered
+                      ? gotIt
+                        ? 'Correct!'
+                        : `It was ${answer}`
+                      : 'Which species is this?'}
+                  </Text>
+                </View>
+
+                {choices.map((name) => {
+                  const isAnswer = name === answer;
+                  const isPicked = name === picked;
+                  const showCorrect = answered && isAnswer;
+                  const showWrong = answered && isPicked && !isAnswer;
+                  return (
+                    <Pressable
+                      key={name}
+                      disabled={answered}
+                      onPress={() => pick(name)}
+                      style={[
+                        styles.choice,
+                        showCorrect && styles.choiceCorrect,
+                        showWrong && styles.choiceWrong,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.choiceText,
+                          { color: on },
+                          (showCorrect || showWrong) && styles.choiceTextOn,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+
+                {answered && (
+                  <Pressable style={styles.nextBtn} onPress={() => onGrade(gotIt)}>
+                    <Text style={styles.nextText}>Next card</Text>
+                    <Icon name="arrow-right" size={18} color={colors.onDark} />
+                  </Pressable>
+                )}
+              </View>
+            )
+          : flipped && (
+              <View style={styles.centerPanel}>
+                <Text
+                  style={[
+                    styles.speciesName,
+                    { color: on },
+                    !card.common && styles.speciesNameOnly,
+                  ]}
+                  numberOfLines={2}
+                >
+                  {card.common || card.scientific}
+                </Text>
+                {!!card.common && (
+                  <Text style={[styles.speciesSci, { color: onDim }]} numberOfLines={1}>
+                    {card.scientific}
+                  </Text>
+                )}
+                <View style={styles.gradeRow}>
+                  <Pressable
+                    style={[styles.gradeButton, styles.missed]}
+                    onPress={() => onGrade(false)}
+                  >
+                    <Icon name="x" size={20} color={ON_DARK} />
+                    <Text style={styles.gradeText}>Missed it</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.gradeButton, styles.knew]}
+                    onPress={() => onGrade(true)}
+                  >
+                    <Icon name="check" size={20} color={ON_DARK} />
+                    <Text style={styles.gradeText}>I knew it</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+      </View>
+
+      {/* Bottom gradient: only the Show/Reveal button (front state) + photo
+          controls. The answer UI itself is centered, above. */}
       <LinearGradient
         colors={BOTTOM_GRADIENT}
         style={[styles.bottomGrad, { paddingBottom: insets.bottom + 10 }]}
         pointerEvents="box-none"
       >
-        {choiceMode ? (
-          // --- multiple choice: name options ---
-          phase === 'front' ? (
-            <Pressable
-              style={[styles.revealBtn, { borderColor: on }]}
-              onPress={() => setPhase('choosing')}
-            >
-              <Text style={[styles.revealText, { color: on }]}>
-                Show choices
-              </Text>
-            </Pressable>
-          ) : (
-            <>
-              <View style={styles.promptRow}>
-                {answered && (
-                  <Icon
-                    name={gotIt ? 'check-circle' : 'x-circle'}
-                    size={16}
-                    color={gotIt ? colors.correct : colors.wrong}
-                  />
-                )}
-                <Text style={[styles.prompt, { color: on }]} numberOfLines={1}>
-                  {answered
-                    ? gotIt
-                      ? 'Correct!'
-                      : `It was ${answer}`
-                    : 'Which species is this?'}
-                </Text>
-              </View>
-
-              {choices.map((name) => {
-                const isAnswer = name === answer;
-                const isPicked = name === picked;
-                const showCorrect = answered && isAnswer;
-                const showWrong = answered && isPicked && !isAnswer;
-                return (
-                  <Pressable
-                    key={name}
-                    disabled={answered}
-                    onPress={() => pick(name)}
-                    style={[
-                      styles.choice,
-                      showCorrect && styles.choiceCorrect,
-                      showWrong && styles.choiceWrong,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.choiceText,
-                        { color: on },
-                        (showCorrect || showWrong) && styles.choiceTextOn,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-
-              {answered && (
-                <Pressable
-                  style={styles.nextBtn}
-                  onPress={() => onGrade(gotIt)}
-                >
-                  <Text style={styles.nextText}>Next card</Text>
-                  <Icon name="arrow-right" size={18} color={colors.onDark} />
-                </Pressable>
-              )}
-            </>
-          )
-        ) : // --- self-grade: reveal then knew/missed ---
-        !flipped ? (
-          <Pressable
-            style={[styles.revealBtn, { borderColor: on }]}
-            onPress={() => setFlipped(true)}
-          >
-            <Text style={[styles.revealText, { color: on }]}>Reveal answer</Text>
-          </Pressable>
-        ) : (
-          <>
-            <Text
-              style={[
-                styles.speciesName,
-                { color: on },
-                !card.common && styles.speciesNameOnly,
-              ]}
-              numberOfLines={2}
-            >
-              {card.common || card.scientific}
-            </Text>
-            {!!card.common && (
-              <Text style={[styles.speciesSci, { color: onDim }]} numberOfLines={1}>
-                {card.scientific}
-              </Text>
+        {choiceMode
+          ? phase === 'front' && (
+              <Pressable
+                style={[styles.revealBtn, { borderColor: on }]}
+                onPress={() => setPhase('choosing')}
+              >
+                <Text style={[styles.revealText, { color: on }]}>Show choices</Text>
+              </Pressable>
+            )
+          : !flipped && (
+              <Pressable
+                style={[styles.revealBtn, { borderColor: on }]}
+                onPress={() => setFlipped(true)}
+              >
+                <Text style={[styles.revealText, { color: on }]}>Reveal answer</Text>
+              </Pressable>
             )}
-            <View style={styles.gradeRow}>
-              <Pressable
-                style={[styles.gradeButton, styles.missed]}
-                onPress={() => onGrade(false)}
-              >
-                <Icon name="x" size={20} color={ON_DARK} />
-                <Text style={styles.gradeText}>Missed it</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.gradeButton, styles.knew]}
-                onPress={() => onGrade(true)}
-              >
-                <Icon name="check" size={20} color={ON_DARK} />
-                <Text style={styles.gradeText}>I knew it</Text>
-              </Pressable>
-            </View>
-          </>
-        )}
 
         {/* Bottom corners: more-photos (BL) + photo attribution/license (BR) */}
         <View style={styles.cornerRow} pointerEvents="box-none">
@@ -489,6 +497,21 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   progressFill: { height: '100%', borderRadius: 999 },
+
+  // Centered answer overlay (choices / grade buttons).
+  centerArea: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  centerPanel: {
+    width: '100%',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 24,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+  },
 
   // bottom gradient + chrome
   bottomGrad: {
