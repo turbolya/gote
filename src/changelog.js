@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.9.8';
+export const APP_VERSION = '1.10.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.10.0',
+    date: '2026-06-06',
+    changes: [
+      'Reorganized the menu into three sections — Play, Learn, and Settings.',
+      'Renamed “All cards” to “Pick the name” and “Pick the right one” to '
+        + '“Pick the pic”.',
+    ],
+  },
   {
     version: '1.9.8',
     date: '2026-06-06',

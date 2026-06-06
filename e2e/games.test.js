@@ -4,10 +4,14 @@ const {
   visible,
   exists,
   tap,
+  tapScroll,
   tapCorrectChoice,
   tapCorrectPhoto,
   TIMEOUT,
 } = require('./helpers');
+
+// Tap a menu mode card, scrolling the menu if it's below the fold.
+const tapMode = (key) => tapScroll(`mode-${key}`, 'menu-scroll');
 
 describe('Game modes', () => {
   beforeAll(async () => {
@@ -21,7 +25,7 @@ describe('Game modes', () => {
   });
 
   it('All cards: answer correctly, then Play again, then finish to results', async () => {
-    await tap('mode-all');
+    await tapMode('all');
     await visible('study-reveal');
 
     // Choices appear centered, not under the (bottom) Show-choices button.
@@ -44,7 +48,7 @@ describe('Game modes', () => {
   });
 
   it('Flash cards: pick set, reveal, self-grade, reach results', async () => {
-    await tap('mode-flash');
+    await tapMode('flash');
     await visible('custom-start');
     await tap('custom-start');
 
@@ -59,7 +63,7 @@ describe('Game modes', () => {
   });
 
   it('Custom game: toggle a group and start a multiple-choice round', async () => {
-    await tap('mode-custom');
+    await tapMode('custom');
     await visible('custom-start');
     await tap('custom-group-Aves'); // off
     await tap('custom-group-Aves'); // on again
@@ -75,7 +79,7 @@ describe('Game modes', () => {
   });
 
   it('Speedrun: answer a round', async () => {
-    await tap('mode-speedrun');
+    await tapMode('speedrun');
     await visible('study-reveal');
     await tap('study-reveal');
     await tapCorrectChoice();
@@ -88,7 +92,7 @@ describe('Game modes', () => {
   });
 
   it('Pick the right one: match the correct photo', async () => {
-    await tap('mode-pick');
+    await tapMode('pick');
     await visible('pick-screen');
     await exists('e2e-pick-answer'); // round loaded
     await tapCorrectPhoto();
@@ -98,7 +102,7 @@ describe('Game modes', () => {
   });
 
   it('Nearby species: search a place, then play', async () => {
-    await tap('mode-nearby');
+    await tapMode('nearby');
     await visible('nearby-search');
     await element(by.id('nearby-search')).typeText('Test');
     await tap('nearby-result-9001'); // fixture place

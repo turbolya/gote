@@ -16,19 +16,19 @@ describe('Menu & navigation', () => {
     await device.disableSynchronization();
   });
 
-  it('lands on the menu with every mode and explore entry', async () => {
+  it('lands on the menu with every entry across the three sections', async () => {
+    // Play, Learn, then Settings (top → bottom); scroll to reach lower ones.
     for (const id of [
-      'mode-all',
-      'mode-pick',
-      'mode-custom',
-      'mode-flash',
+      'mode-all', // Pick the name
+      'mode-pick', // Pick the pic
       'mode-speedrun',
       'mode-nearby',
+      'mode-custom',
+      'mode-flash', // Learn
+      'open-lexicon',
+      'open-stats', // Settings
+      'open-settings',
     ]) {
-      await visible(id);
-    }
-    // The Explore rows are below the fold — scroll to reach them.
-    for (const id of ['open-lexicon', 'open-stats', 'open-settings']) {
       await scrollToId(id, 'menu-scroll');
     }
   });

@@ -63,36 +63,22 @@ export default function MenuScreen({
   // block. Measured from that block's layout so it adapts to wrapping/font size.
   const [barsTop, setBarsTop] = useState(0);
 
-  // Each mode carries an Ionicons glyph and its own accent so the list reads as
-  // a set of distinct activities rather than one monotone column.
-  const modes = [
+  // "Play" game modes. Each carries an Ionicons glyph and its own accent so the
+  // list reads as a set of distinct activities rather than one monotone column.
+  const playModes = [
     {
       key: 'all',
       icon: 'albums-outline',
       accent: accents.green,
-      title: 'All cards',
-      sub: `Quiz on all ${deckCount} species`,
+      title: 'Pick the name',
+      sub: 'See a photo, choose its name',
     },
     {
       key: 'pick',
       icon: 'apps-outline',
       accent: accents.blue,
-      title: 'Pick the right one',
-      sub: 'Match the name to the right photo',
-    },
-    {
-      key: 'custom',
-      icon: 'options-outline',
-      accent: accents.violet,
-      title: 'Custom game',
-      sub: 'Choose how many cards and which groups',
-    },
-    {
-      key: 'flash',
-      icon: 'documents-outline',
-      accent: accents.indigo,
-      title: 'Flash cards',
-      sub: 'Reveal the answer, then grade yourself',
+      title: 'Pick the pic',
+      sub: 'See a name, choose its photo',
     },
     {
       key: 'speedrun',
@@ -107,6 +93,13 @@ export default function MenuScreen({
       accent: accents.teal,
       title: 'Nearby species',
       sub: 'Learn species typical to a place',
+    },
+    {
+      key: 'custom',
+      icon: 'options-outline',
+      accent: accents.violet,
+      title: 'Custom game',
+      sub: 'Choose how many cards and which groups',
     },
   ];
 
@@ -173,7 +166,7 @@ export default function MenuScreen({
       </LinearGradient>
 
       <Text style={styles.section}>Play</Text>
-      {modes.map(({ key, ...rest }) => (
+      {playModes.map(({ key, ...rest }) => (
         <Row
           key={key}
           {...rest}
@@ -182,15 +175,25 @@ export default function MenuScreen({
         />
       ))}
 
-      <Text style={styles.section}>Explore</Text>
+      <Text style={styles.section}>Learn</Text>
+      <Row
+        testID="mode-flash"
+        icon="documents-outline"
+        accent={accents.indigo}
+        title="Flash cards"
+        sub="Reveal the answer, then grade yourself"
+        onPress={() => onSelectMode('flash')}
+      />
       <Row
         testID="open-lexicon"
         icon="library-outline"
-        accent={accents.indigo}
+        accent={accents.teal}
         title="Lexicon"
         sub="Browse all your species"
         onPress={onLexicon}
       />
+
+      <Text style={styles.section}>Settings</Text>
       <Row
         testID="open-stats"
         icon="stats-chart-outline"
