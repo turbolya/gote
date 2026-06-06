@@ -8,9 +8,21 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.7.1';
+export const APP_VERSION = '1.8.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.8.0',
+    date: '2026-06-06',
+    changes: [
+      'Flag species you want to revisit: tap the flag on any card while '
+        + 'playing, or on a missed species at the end of a round.',
+      'In the Lexicon you can flag or unflag any species and filter to just '
+        + 'your flagged ones.',
+      'Custom game and Flash cards now have a “Flagged only” option to study '
+        + 'just the species you flagged.',
+    ],
+  },
   {
     version: '1.7.1',
     date: '2026-06-06',

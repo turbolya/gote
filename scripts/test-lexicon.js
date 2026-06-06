@@ -110,6 +110,37 @@ t('filterCards: query + status combine', () => {
   assert.deepEqual(out.map((c) => c.taxonId), [4]);
 });
 
+t('filterCards: flagged keeps only flagged taxa (Set or array)', () => {
+  const flags = new Set(['1', '4']);
+  assert.deepEqual(
+    filterCards(cards, { flagged: true, flags }).map((c) => c.taxonId).sort(),
+    [1, 4]
+  );
+  // accepts an array of ids too
+  assert.deepEqual(
+    filterCards(cards, { flagged: true, flags: ['2'] }).map((c) => c.taxonId),
+    [2]
+  );
+  // flagged:false ignores flags entirely
+  assert.equal(filterCards(cards, { flagged: false, flags }).length, 4);
+});
+
+t('filterCards: flagged combines with query + status', () => {
+  const flags = new Set(['1', '2']);
+  // status good (taxon 1) ∩ flagged {1,2} = [1]
+  assert.deepEqual(
+    filterCards(cards, { status: 'good', flagged: true, flags, speciesStats })
+      .map((c) => c.taxonId),
+    [1]
+  );
+  // query 'queen' (taxon 2) ∩ flagged {1,2} = [2]
+  assert.deepEqual(
+    filterCards(cards, { query: 'queen', flagged: true, flags })
+      .map((c) => c.taxonId),
+    [2]
+  );
+});
+
 t('filterCards: query matches common and scientific', () => {
   assert.equal(filterCards(cards, { query: 'danaus', speciesStats }).length, 2);
   assert.equal(filterCards(cards, { query: 'honey', speciesStats }).length, 1);

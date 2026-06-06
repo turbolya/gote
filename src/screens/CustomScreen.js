@@ -10,12 +10,39 @@ import { colors, groupKey, groupLabel, groupIcon } from '../theme';
 
 const STEP = 4;
 const PRESETS = [8, 16, 32];
+const FLAG_ON = '#E0A800';
 
-export default function CustomScreen({ deck, onStart, onBack, title = 'Custom game' }) {
+export default function CustomScreen({
+  deck,
+  onStart,
+  onBack,
+  title = 'Custom game',
+  flags,
+}) {
+  const isFlagged = (c) => !!(flags && flags.has(String(c.taxonId)));
+
+  // Optionally restrict the whole picker to flagged species.
+  const [flaggedOnly, setFlaggedOnly] = useState(false);
+
+  // How many distinct flagged species exist in this deck (for the toggle label).
+  const flaggedCount = useMemo(() => {
+    const seen = new Set();
+    for (const c of deck) if (isFlagged(c)) seen.add(String(c.taxonId));
+    return seen.size;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deck, flags]);
+
+  // The deck the picker operates on (all cards, or only flagged ones).
+  const baseDeck = useMemo(
+    () => (flaggedOnly ? deck.filter(isFlagged) : deck),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [deck, flaggedOnly, flags]
+  );
+
   // Tally available cards per group, most common first.
   const groups = useMemo(() => {
     const counts = new Map();
-    for (const c of deck) {
+    for (const c of baseDeck) {
       const k = groupKey(c.iconic);
       counts.set(k, (counts.get(k) || 0) + 1);
     }
@@ -27,7 +54,7 @@ export default function CustomScreen({ deck, onStart, onBack, title = 'Custom ga
         icon: groupIcon(key === 'Other' ? null : key),
       }))
       .sort((a, b) => b.count - a.count);
-  }, [deck]);
+  }, [baseDeck]);
 
   // Selected group keys (default: all groups selected).
   const [selected, setSelected] = useState(() => new Set(groups.map((g) => g.key)));
@@ -65,6 +92,24 @@ export default function CustomScreen({ deck, onStart, onBack, title = 'Custom ga
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
+        {flaggedCount > 0 && (
+          <Pressable
+            onPress={() => setFlaggedOnly((v) => !v)}
+            style={[styles.flagToggle, flaggedOnly && styles.flagToggleOn]}
+          >
+            <Icon
+              name={flaggedOnly ? 'flag' : 'flag-outline'}
+              size={16}
+              color={flaggedOnly ? FLAG_ON : colors.muted}
+            />
+            <Text
+              style={[styles.flagToggleText, flaggedOnly && styles.flagToggleTextOn]}
+            >
+              Flagged only ({flaggedCount})
+            </Text>
+          </Pressable>
+        )}
+
         <Text style={styles.label}>Groups</Text>
         <View style={styles.chips}>
           {groups.map((g) => {
@@ -128,7 +173,9 @@ export default function CustomScreen({ deck, onStart, onBack, title = 'Custom ga
         <Pressable
           style={[styles.start, !canStart && styles.startDisabled]}
           disabled={!canStart}
-          onPress={() => onStart([...selected], Math.min(count, available))}
+          onPress={() =>
+            onStart([...selected], Math.min(count, available), flaggedOnly)
+          }
         >
           {canStart && <Icon name="play" size={18} color={colors.onDark} />}
           <Text style={styles.startText}>
@@ -153,6 +200,22 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  flagToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 22,
+  },
+  flagToggleOn: { borderColor: FLAG_ON, backgroundColor: '#FBF4DE' },
+  flagToggleText: { fontSize: 14, fontWeight: '700', color: colors.muted },
+  flagToggleTextOn: { color: '#7A5B00' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   chip: {
     flexDirection: 'row',

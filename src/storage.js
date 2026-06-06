@@ -8,6 +8,7 @@ const K_STATS = '@gote/stats';
 const K_PREFS = '@gote/prefs';
 const K_SPECIES = '@gote/species';
 const K_CACHE = '@gote/obscache';
+const K_FLAGS = '@gote/flags';
 
 // Bump if the cached card shape changes incompatibly — a mismatch forces a
 // fresh full download instead of using stale-shaped data.
@@ -110,6 +111,35 @@ export async function resetStatistics() {
     await AsyncStorage.multiRemove([K_STATS, K_SPECIES]);
   } catch {
     /* ignore */
+  }
+}
+
+// --- Flagged species ---------------------------------------------------------
+// The user can "flag" species (to revisit, to study, whatever they like). Stored
+// as a flat list of taxon ids (strings) — species are identified by taxon id
+// regardless of which account is loaded, so flags are kept globally.
+
+export async function loadFlags() {
+  try {
+    const raw = await AsyncStorage.getItem(K_FLAGS);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr.map(String);
+    }
+  } catch {
+    /* fall through */
+  }
+  return [];
+}
+
+export async function saveFlags(taxonIds) {
+  try {
+    await AsyncStorage.setItem(
+      K_FLAGS,
+      JSON.stringify([...new Set((taxonIds || []).map(String))])
+    );
+  } catch {
+    /* ignore — best-effort */
   }
 }
 

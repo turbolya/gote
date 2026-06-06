@@ -24,6 +24,8 @@ import PhotoViewer from '../components/PhotoViewer';
 import { colors } from '../theme';
 import { fetchTaxonPhotos } from '../api';
 
+const FLAG_ON = '#E0A800'; // amber for an active flag (on the light background)
+
 export default function PickImageScreen({
   round, // { name, options:[{taxonId, photo, name, correct}] } | null while loading
   index,
@@ -31,6 +33,8 @@ export default function PickImageScreen({
   correctCount,
   loading,
   error,
+  flagged = false,
+  onToggleFlag,
   onPick, // (wasCorrect) => void
   onNext,
   onQuit,
@@ -82,9 +86,25 @@ export default function PickImageScreen({
         <Text style={styles.counter}>
           {index + 1} / {total}
         </Text>
-        <View style={styles.scoreStat}>
-          <Icon name="star" size={15} color={colors.primaryDark} />
-          <Text style={styles.score}>{correctCount}</Text>
+        <View style={styles.rightGroup}>
+          {onToggleFlag && (
+            <Pressable
+              onPress={onToggleFlag}
+              hitSlop={10}
+              disabled={!round}
+              style={styles.flagBtn}
+            >
+              <Icon
+                name={flagged ? 'flag' : 'flag-outline'}
+                size={18}
+                color={flagged ? FLAG_ON : colors.muted}
+              />
+            </Pressable>
+          )}
+          <View style={styles.scoreStat}>
+            <Icon name="star" size={15} color={colors.primaryDark} />
+            <Text style={styles.score}>{correctCount}</Text>
+          </View>
         </View>
       </View>
 
@@ -236,10 +256,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  endBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, width: 70 },
+  endBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, width: 80 },
   quit: { color: colors.muted, fontSize: 16, fontWeight: '600' },
   counter: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  scoreStat: { flexDirection: 'row', alignItems: 'center', gap: 6, width: 70, justifyContent: 'flex-end' },
+  rightGroup: { flexDirection: 'row', alignItems: 'center', gap: 12, width: 80, justifyContent: 'flex-end' },
+  flagBtn: { alignItems: 'center', justifyContent: 'center' },
+  scoreStat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   score: { color: colors.text, fontSize: 16, fontWeight: '800' },
 
   label: { textAlign: 'center', color: colors.muted, fontSize: 15, fontWeight: '600' },

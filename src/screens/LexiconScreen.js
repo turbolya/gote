@@ -24,6 +24,8 @@ import {
   genusOf,
 } from '../lexicon';
 
+const FLAG_ON = '#E0A800';
+
 // The three knowledge-status filters. `icon`/`tint` give each a monotone glyph.
 const STATUSES = [
   { key: 'good', label: 'Known', icon: 'check-circle', tint: colors.correct },
@@ -31,19 +33,44 @@ const STATUSES = [
   { key: 'new', label: 'Not seen', icon: 'circle', tint: colors.muted },
 ];
 
-export default function LexiconScreen({ cards, speciesStats, onBack, onSelect }) {
+export default function LexiconScreen({
+  cards,
+  speciesStats,
+  onBack,
+  onSelect,
+  flags,
+  onToggleFlag,
+}) {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState(null); // null = all
+  const [flagged, setFlagged] = useState(false);
+
+  const isFlagged = (c) => !!(flags && flags.has(String(c.taxonId)));
 
   const species = useMemo(() => uniqueByTaxon(cards), [cards]);
   const counts = useMemo(
     () => statusCounts(cards, speciesStats),
     [cards, speciesStats]
   );
+  const flaggedCount = useMemo(
+    () => species.filter(isFlagged).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [species, flags]
+  );
+
+  // If every flagged species gets unflagged, drop the (now-empty) filter.
+  const flaggedActive = flagged && flaggedCount > 0;
 
   const rows = useMemo(
-    () => filterCards(cards, { query, status, speciesStats }),
-    [cards, query, status, speciesStats]
+    () =>
+      filterCards(cards, {
+        query,
+        status,
+        speciesStats,
+        flagged: flaggedActive,
+        flags,
+      }),
+    [cards, query, status, speciesStats, flaggedActive, flags]
   );
 
   return (
@@ -95,6 +122,28 @@ export default function LexiconScreen({ cards, speciesStats, onBack, onSelect })
         })}
       </View>
 
+      {/* Flagged filter (only once at least one species is flagged) */}
+      {flaggedCount > 0 && (
+        <View style={styles.flagFilterRow}>
+          <Pressable
+            onPress={() => setFlagged((v) => !v)}
+            style={[styles.flagFilterChip, flaggedActive && styles.flagFilterChipOn]}
+          >
+            <Icon
+              name={flaggedActive ? 'flag' : 'flag-outline'}
+              size={15}
+              color={flaggedActive ? FLAG_ON : colors.muted}
+            />
+            <Text style={[styles.filterText, flaggedActive && styles.filterTextOn]}>
+              Flagged
+            </Text>
+            <Text style={[styles.filterCount, flaggedActive && styles.filterTextOn]}>
+              {flaggedCount}
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
       {/* Results table */}
       <FlatList
         data={rows}
@@ -116,6 +165,19 @@ export default function LexiconScreen({ cards, speciesStats, onBack, onSelect })
                 {item.common ? item.scientific : genusOf(item)}
               </Text>
             </View>
+            {onToggleFlag && (
+              <Pressable
+                onPress={() => onToggleFlag(item.taxonId)}
+                hitSlop={10}
+                style={styles.flagBtn}
+              >
+                <Icon
+                  name={isFlagged(item) ? 'flag' : 'flag-outline'}
+                  size={20}
+                  color={isFlagged(item) ? FLAG_ON : colors.muted}
+                />
+              </Pressable>
+            )}
             <Icon name="chevron-right" size={20} color={colors.muted} />
           </Pressable>
         )}
@@ -172,6 +234,20 @@ const styles = StyleSheet.create({
   filterTextOn: { color: colors.text },
   filterCount: { fontSize: 13, fontWeight: '700', color: colors.muted },
 
+  flagFilterRow: { flexDirection: 'row', paddingHorizontal: 20, marginTop: 10 },
+  flagFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  flagFilterChipOn: { backgroundColor: '#FBF4DE', borderColor: FLAG_ON },
+
   listContent: { paddingTop: 14, paddingBottom: 32 },
   row: {
     flexDirection: 'row',
@@ -187,6 +263,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.faint,
   },
   rowText: { flex: 1 },
+  flagBtn: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
   name: { fontSize: 16, fontWeight: '700', color: colors.text },
   sci: { fontSize: 13, fontStyle: 'italic', color: colors.muted, marginTop: 1 },
   empty: {

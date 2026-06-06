@@ -49,6 +49,8 @@ import {
   loadCache,
   saveCache,
   cacheMatches,
+  loadFlags,
+  saveFlags,
 } from './src/storage';
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE } from './src/constants';
 import { buildPickRound } from './src/quiz';
@@ -106,6 +108,27 @@ export default function App() {
   // and which screen to return to when the detail page is dismissed.
   const [selectedCard, setSelectedCard] = useState(null);
   const [detailFrom, setDetailFrom] = useState('lexicon');
+
+  // Species the user has flagged, as a Set of taxon-id strings. Mirrored in a
+  // ref so the game launchers (which filter by flag) always read the latest set.
+  const [flags, setFlags] = useState(() => new Set());
+  const flagsRef = useRef(flags);
+  useEffect(() => {
+    flagsRef.current = flags;
+  }, [flags]);
+
+  // Toggle a species' flag and persist. Functional update avoids stale state.
+  const toggleFlag = useCallback((taxonId) => {
+    if (taxonId == null) return;
+    const key = String(taxonId);
+    setFlags((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      saveFlags([...next]);
+      return next;
+    });
+  }, []);
   const [deck, setDeck] = useState([]);
   const [index, setIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -249,15 +272,17 @@ export default function App() {
   // Restore saved state on first launch.
   useEffect(() => {
     (async () => {
-      const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache] =
+      const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedFlags] =
         await Promise.all([
           loadUsername(),
           loadStats(),
           loadPrefs(),
           loadSpeciesStats(),
           loadCache(),
+          loadFlags(),
         ]);
       if (savedStats) setLifetime(savedStats);
+      if (savedFlags && savedFlags.length) setFlags(new Set(savedFlags));
       speciesRef.current = savedSpecies || {};
       setSpeciesStats(speciesRef.current);
       const ps = savedPrefs && typeof savedPrefs.perSpecies === 'boolean'
@@ -312,12 +337,17 @@ export default function App() {
 
   // Shared by Custom (multiple-choice) and Flash cards (self-grade): both pick a
   // count of cards from the chosen groups; only the play `mode` differs.
+  // `flaggedOnly` further restricts the pool to flagged species.
   const startPicked = useCallback(
-    (groups, count, mode, label) => {
-      const pool =
+    (groups, count, mode, label, flaggedOnly) => {
+      let pool =
         groups && groups.length
           ? fullDeck.filter((c) => groups.includes(groupKey(c.iconic)))
           : fullDeck;
+      if (flaggedOnly) {
+        const set = flagsRef.current;
+        pool = pool.filter((c) => set.has(String(c.taxonId)));
+      }
       const run = () => startRound(pickRandom(pool, count), mode, label);
       replayRef.current = run;
       run();
@@ -326,14 +356,16 @@ export default function App() {
   );
 
   const startCustom = useCallback(
-    (groups, count) => startPicked(groups, count, 'custom', 'Custom game'),
+    (groups, count, flaggedOnly) =>
+      startPicked(groups, count, 'custom', 'Custom game', flaggedOnly),
     [startPicked]
   );
 
   // Flash cards: same picker as Custom, but played as a self-grade round
   // (reveal the answer, then "I knew it" / "Missed it") instead of choices.
   const startFlash = useCallback(
-    (groups, count) => startPicked(groups, count, 'flash', 'Flash cards'),
+    (groups, count, flaggedOnly) =>
+      startPicked(groups, count, 'flash', 'Flash cards', flaggedOnly),
     [startPicked]
   );
 
@@ -536,6 +568,8 @@ export default function App() {
             lives={lives}
             choiceMode={['all', 'custom', 'speedrun', 'nearby'].includes(mode)}
             choicePool={mode === 'nearby' ? deck : choicePool}
+            flags={flags}
+            onToggleFlag={toggleFlag}
             onGrade={handleGrade}
             onQuit={() =>
               finishRound(correctCount, missed, correctCount + missed.length)
@@ -560,6 +594,12 @@ export default function App() {
             correctCount={correctCount}
             loading={pickLoading}
             error={pickError}
+            flagged={
+              !!deck[index] && flags.has(String(deck[index].taxonId))
+            }
+            onToggleFlag={() =>
+              deck[index] && toggleFlag(deck[index].taxonId)
+            }
             onPick={handlePickGrade}
             onNext={handlePickNext}
             onQuit={() =>
@@ -655,6 +695,7 @@ export default function App() {
         {screen === 'custom' && (
           <CustomScreen
             deck={fullDeck}
+            flags={flags}
             onStart={startCustom}
             onBack={() => setScreen('menu')}
           />
@@ -664,6 +705,7 @@ export default function App() {
           <CustomScreen
             deck={fullDeck}
             title="Flash cards"
+            flags={flags}
             onStart={startFlash}
             onBack={() => setScreen('menu')}
           />
@@ -702,6 +744,8 @@ export default function App() {
           <LexiconScreen
             cards={fullDeck}
             speciesStats={speciesStats}
+            flags={flags}
+            onToggleFlag={toggleFlag}
             onBack={() => setScreen('menu')}
             onSelect={(card) => {
               setSelectedCard(card);
@@ -731,6 +775,8 @@ export default function App() {
             }
             onPlayAgain={() => replayRef.current()}
             onMenu={() => setScreen('menu')}
+            flags={flags}
+            onToggleFlag={toggleFlag}
             onSelectMissed={(card) => {
               setSelectedCard(card);
               setDetailFrom('results');

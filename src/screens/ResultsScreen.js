@@ -7,6 +7,8 @@ import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import Icon from '../components/Icon';
 import { colors } from '../theme';
 
+const FLAG_ON = '#E0A800'; // amber for an active flag
+
 // Ionicons name + message keyed off performance.
 function grade(pct) {
   if (pct >= 90) return { icon: 'trophy', msg: 'Outstanding!' };
@@ -32,6 +34,8 @@ export default function ResultsScreen({
   onPlayAgain,
   onMenu,
   onSelectMissed,
+  flags,
+  onToggleFlag,
 }) {
   const speedrun = mode === 'speedrun';
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
@@ -107,28 +111,46 @@ export default function ResultsScreen({
         {missed.length > 0 && (
           <View style={styles.missedList}>
             <Text style={styles.missedHeading}>Species you missed</Text>
-            <Text style={styles.missedHint}>Tap a species to learn more</Text>
-            {missed.map((c, i) => (
-              <Pressable
-                key={`${c.id}-${i}`}
-                onPress={() => onSelectMissed && onSelectMissed(c)}
-                style={({ pressed }) => [
-                  styles.missedRow,
-                  i > 0 && styles.missedRowBorder,
-                  pressed && styles.missedRowPressed,
-                ]}
-              >
-                <View style={styles.flex}>
-                  <Text style={styles.missedItem}>
-                    {c.common || c.scientific}
-                  </Text>
-                  {!!c.common && (
-                    <Text style={styles.missedSci}>{c.scientific}</Text>
+            <Text style={styles.missedHint}>
+              Tap a species to learn more, or flag it to study later
+            </Text>
+            {missed.map((c, i) => {
+              const flagged = !!(flags && flags.has(String(c.taxonId)));
+              return (
+                <Pressable
+                  key={`${c.id}-${i}`}
+                  onPress={() => onSelectMissed && onSelectMissed(c)}
+                  style={({ pressed }) => [
+                    styles.missedRow,
+                    i > 0 && styles.missedRowBorder,
+                    pressed && styles.missedRowPressed,
+                  ]}
+                >
+                  <View style={styles.flex}>
+                    <Text style={styles.missedItem}>
+                      {c.common || c.scientific}
+                    </Text>
+                    {!!c.common && (
+                      <Text style={styles.missedSci}>{c.scientific}</Text>
+                    )}
+                  </View>
+                  {onToggleFlag && (
+                    <Pressable
+                      onPress={() => onToggleFlag(c.taxonId)}
+                      hitSlop={10}
+                      style={styles.flagBtn}
+                    >
+                      <Icon
+                        name={flagged ? 'flag' : 'flag-outline'}
+                        size={20}
+                        color={flagged ? FLAG_ON : colors.muted}
+                      />
+                    </Pressable>
                   )}
-                </View>
-                <Icon name="chevron-right" size={18} color={colors.muted} />
-              </Pressable>
-            ))}
+                  <Icon name="chevron-right" size={18} color={colors.muted} />
+                </Pressable>
+              );
+            })}
           </View>
         )}
 
@@ -254,6 +276,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   missedRowPressed: { opacity: 0.55 },
+  flagBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   missedItem: { fontSize: 16, color: colors.text, fontWeight: '600' },
   missedSci: { fontStyle: 'italic', color: colors.muted, fontSize: 14, marginTop: 1 },
   lifetime: {

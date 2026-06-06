@@ -30,6 +30,7 @@ import { SPEEDRUN_LIVES } from '../constants';
 const NUM_CHOICES = 5;
 const ON_DARK = '#FFFFFF';
 const ON_DARK_DIM = 'rgba(255,255,255,0.78)';
+const FLAG_ON = '#FBBF24'; // amber for an active flag, readable over any photo
 const DOUBLE_TAP_MS = 280;
 
 // Dark gradient behind the chrome — darker than before so white UI stays
@@ -48,6 +49,8 @@ export default function StudyScreen({
   lives = SPEEDRUN_LIVES,
   choiceMode = false,
   choicePool = [],
+  flags,
+  onToggleFlag,
   onGrade,
   onQuit,
 }) {
@@ -58,6 +61,7 @@ export default function StudyScreen({
   const [picked, setPicked] = useState(null);
   const card = deck[index];
   const answer = cardName(card);
+  const flagged = !!(card && flags && flags.has(String(card.taxonId)));
 
   // Reset flip/phase *during render* (not in an effect) whenever the displayed
   // card changes, so a fresh card never shows the previous card's revealed
@@ -266,6 +270,21 @@ export default function StudyScreen({
         )}
       </LinearGradient>
 
+      {/* Flag this species — floats at the top-right of the photo. */}
+      {card && onToggleFlag && (
+        <Pressable
+          onPress={() => onToggleFlag(card.taxonId)}
+          hitSlop={10}
+          style={[styles.flagBtn, { top: insets.top + 54 }]}
+        >
+          <Icon
+            name={flagged ? 'flag' : 'flag-outline'}
+            size={20}
+            color={flagged ? FLAG_ON : on}
+          />
+        </Pressable>
+      )}
+
       {/* Bottom gradient + mode-specific chrome */}
       <LinearGradient
         colors={BOTTOM_GRADIENT}
@@ -429,6 +448,17 @@ export default function StudyScreen({
 const styles = StyleSheet.create({
   fsRoot: { flex: 1, backgroundColor: '#000' },
   fsBackdropScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+  flagBtn: {
+    position: 'absolute',
+    right: 16,
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
   fsFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1A1D1A' },
 
   // top gradient + chrome

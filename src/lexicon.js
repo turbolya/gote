@@ -60,11 +60,14 @@ export function statusOf(card, speciesStats = {}) {
  *   - query:  case-insensitive substring match on common + scientific name
  *   - status: 'good' | 'missed' | 'new' | null  knowledge-status filter
  *   - speciesStats: per-species tallies (needed when `status` is set)
+ *   - flagged: when true, keep only species whose taxon id is in `flags`
+ *   - flags:   a Set (or array) of flagged taxon ids (strings)
  * @returns {Array} filtered cards sorted by display name (A→Z)
  */
 export function filterCards(cards, opts = {}) {
-  const { query = '', status = null, speciesStats = {} } = opts;
+  const { query = '', status = null, speciesStats = {}, flagged = false, flags = null } = opts;
   const q = query.trim().toLowerCase();
+  const flagSet = flags instanceof Set ? flags : new Set(flags || []);
 
   let out = uniqueByTaxon(cards);
 
@@ -78,6 +81,10 @@ export function filterCards(cards, opts = {}) {
 
   if (status) {
     out = out.filter((c) => statusOf(c, speciesStats) === status);
+  }
+
+  if (flagged) {
+    out = out.filter((c) => flagSet.has(String(c.taxonId)));
   }
 
   return out.slice().sort((a, b) =>
