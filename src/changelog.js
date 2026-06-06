@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.9.1';
+export const APP_VERSION = '1.9.2';
 
 export const CHANGELOG = [
+  {
+    version: '1.9.2',
+    date: '2026-06-06',
+    changes: [
+      'The flag on cards now sits in the top bar next to the score: a white '
+        + 'outline when off, a filled flag when on.',
+    ],
+  },
   {
     version: '1.9.1',
     date: '2026-06-06',

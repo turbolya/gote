@@ -30,7 +30,6 @@ import { SPEEDRUN_LIVES } from '../constants';
 const NUM_CHOICES = 5;
 const ON_DARK = '#FFFFFF';
 const ON_DARK_DIM = 'rgba(255,255,255,0.78)';
-const FLAG_ON = '#FBBF24'; // amber for an active flag, readable over any photo
 const DOUBLE_TAP_MS = 280;
 
 // Dark gradient behind the chrome — darker than before so white UI stays
@@ -222,10 +221,12 @@ export default function StudyScreen({
         pointerEvents="box-none"
       >
         <View style={styles.topBar} pointerEvents="box-none">
-          <Pressable onPress={onQuit} hitSlop={12} style={styles.endBtn}>
-            <Icon name="x" size={18} color={onDim} />
-            <Text style={[styles.quit, { color: onDim }]}>End</Text>
-          </Pressable>
+          <View style={styles.sideLeft}>
+            <Pressable onPress={onQuit} hitSlop={12} style={styles.endBtn}>
+              <Icon name="x" size={18} color={onDim} />
+              <Text style={[styles.quit, { color: onDim }]}>End</Text>
+            </Pressable>
+          </View>
 
           {speedrun ? (
             <View style={styles.centerStat}>
@@ -238,24 +239,39 @@ export default function StudyScreen({
             </Text>
           )}
 
-          {speedrun ? (
-            <View style={styles.lives}>
-              {Array.from({ length: SPEEDRUN_LIVES }).map((_, i) => (
+          <View style={styles.sideRight}>
+            {card && onToggleFlag && (
+              <Pressable
+                onPress={() => onToggleFlag(card.taxonId)}
+                hitSlop={12}
+                style={styles.flagBtn}
+              >
                 <Icon
-                  key={i}
-                  name="heart"
-                  size={16}
-                  color={i < lives ? on : onDim}
-                  style={styles.heart}
+                  name={flagged ? 'flag' : 'flag-outline'}
+                  size={20}
+                  color={on}
                 />
-              ))}
-            </View>
-          ) : (
-            <View style={styles.centerStat}>
-              <Icon name="star" size={15} color={on} />
-              <Text style={[styles.score, { color: on }]}>{correctCount}</Text>
-            </View>
-          )}
+              </Pressable>
+            )}
+            {speedrun ? (
+              <View style={styles.lives}>
+                {Array.from({ length: SPEEDRUN_LIVES }).map((_, i) => (
+                  <Icon
+                    key={i}
+                    name="heart"
+                    size={16}
+                    color={i < lives ? on : onDim}
+                    style={styles.heart}
+                  />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.centerStat}>
+                <Icon name="star" size={15} color={on} />
+                <Text style={[styles.score, { color: on }]}>{correctCount}</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {!speedrun && (
@@ -269,21 +285,6 @@ export default function StudyScreen({
           </View>
         )}
       </LinearGradient>
-
-      {/* Flag this species — floats at the top-right of the photo. */}
-      {card && onToggleFlag && (
-        <Pressable
-          onPress={() => onToggleFlag(card.taxonId)}
-          hitSlop={10}
-          style={[styles.flagBtn, { top: insets.top + 54 }]}
-        >
-          <Icon
-            name={flagged ? 'flag' : 'flag-outline'}
-            size={20}
-            color={flagged ? FLAG_ON : on}
-          />
-        </Pressable>
-      )}
 
       {/* Bottom gradient + mode-specific chrome */}
       <LinearGradient
@@ -448,17 +449,7 @@ export default function StudyScreen({
 const styles = StyleSheet.create({
   fsRoot: { flex: 1, backgroundColor: '#000' },
   fsBackdropScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
-  flagBtn: {
-    position: 'absolute',
-    right: 16,
-    width: 42,
-    height: 42,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
+  flagBtn: { alignItems: 'center', justifyContent: 'center' },
   fsFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1A1D1A' },
 
   // top gradient + chrome
@@ -476,12 +467,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 10,
   },
-  endBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, minWidth: 70 },
+  sideLeft: { flex: 1, alignItems: 'flex-start' },
+  sideRight: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 16,
+  },
+  endBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   quit: { fontSize: 16, fontWeight: '600' },
-  centerStat: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 70, justifyContent: 'flex-end' },
+  centerStat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   counter: { fontSize: 16, fontWeight: '700' },
   score: { fontSize: 16, fontWeight: '800' },
-  lives: { flexDirection: 'row', alignItems: 'center', minWidth: 70, justifyContent: 'flex-end' },
+  lives: { flexDirection: 'row', alignItems: 'center' },
   heart: { marginLeft: 3 },
   progressTrack: {
     height: 6,
