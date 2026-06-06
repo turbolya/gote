@@ -19,6 +19,23 @@ async function tap(id, timeout = TIMEOUT) {
   await element(by.id(id)).tap();
 }
 
+// Scroll a container (by testID) until the target element is visible.
+async function scrollToId(id, container, dir = 'down') {
+  // Wait for the container to mount first (avoids a race right after a reload,
+  // where whileElement would throw "no elements found" for the container).
+  await exists(container);
+  await waitFor(element(by.id(id)))
+    .toBeVisible()
+    .whileElement(by.id(container))
+    .scroll(320, dir);
+}
+
+// Scroll the target into view, then tap it.
+async function tapScroll(id, container, dir = 'down') {
+  await scrollToId(id, container, dir);
+  await element(by.id(id)).tap();
+}
+
 // Read an element's accessibility label (used to expose hidden test data).
 async function labelOf(id) {
   await exists(id);
@@ -46,6 +63,8 @@ module.exports = {
   visible,
   exists,
   tap,
+  scrollToId,
+  tapScroll,
   labelOf,
   tapCorrectChoice,
   tapCorrectPhoto,

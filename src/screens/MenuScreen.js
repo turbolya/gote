@@ -129,6 +129,7 @@ export default function MenuScreen({
 
   return (
     <ScrollView
+      testID="menu-scroll"
       style={styles.flex}
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}

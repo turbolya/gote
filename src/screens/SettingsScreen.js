@@ -194,6 +194,7 @@ export default function SettingsScreen({
       )}
 
       <ScrollView
+        testID="settings-scroll"
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

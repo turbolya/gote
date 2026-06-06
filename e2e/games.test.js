@@ -12,15 +12,17 @@ const {
 describe('Game modes', () => {
   beforeAll(async () => {
     await device.launchApp({ newInstance: true });
+    await device.disableSynchronization();
   });
 
   beforeEach(async () => {
     await device.reloadReactNative();
+    await device.disableSynchronization();
   });
 
   it('All cards: answer correctly, then Play again, then finish to results', async () => {
     await tap('mode-all');
-    await visible('study-screen');
+    await visible('study-reveal');
 
     // Choices appear centered, not under the (bottom) Show-choices button.
     await tap('study-reveal');
@@ -32,11 +34,11 @@ describe('Game modes', () => {
 
     // Replay path from the results screen.
     await tap('study-end');
-    await visible('results-screen');
+    await visible('results-menu');
     await tap('results-playagain');
-    await visible('study-screen');
+    await visible('study-reveal');
     await tap('study-end');
-    await visible('results-screen');
+    await visible('results-menu');
     await tap('results-menu');
     await visible('mode-all');
   });
@@ -46,13 +48,13 @@ describe('Game modes', () => {
     await visible('custom-start');
     await tap('custom-start');
 
-    await visible('study-screen');
+    await visible('study-reveal');
     await tap('study-reveal'); // Reveal answer
     await visible('study-grade-knew');
     await tap('study-grade-knew');
 
     await tap('study-end');
-    await visible('results-screen');
+    await visible('results-menu');
     await tap('results-menu');
   });
 
@@ -62,19 +64,19 @@ describe('Game modes', () => {
     await tap('custom-group-Aves'); // off
     await tap('custom-group-Aves'); // on again
     await tap('custom-start');
-    await visible('study-screen');
+    await visible('study-reveal');
     await tap('study-reveal');
     await tapCorrectChoice();
     await waitFor(element(by.id('study-prompt')))
       .toHaveText('Correct!')
       .withTimeout(TIMEOUT);
     await tap('study-end');
-    await visible('results-screen');
+    await visible('results-menu');
   });
 
   it('Speedrun: answer a round', async () => {
     await tap('mode-speedrun');
-    await visible('study-screen');
+    await visible('study-reveal');
     await tap('study-reveal');
     await tapCorrectChoice();
     await waitFor(element(by.id('study-prompt')))
@@ -82,7 +84,7 @@ describe('Game modes', () => {
       .withTimeout(TIMEOUT);
     await tap('study-next');
     await tap('study-end');
-    await visible('results-screen');
+    await visible('results-menu');
   });
 
   it('Pick the right one: match the correct photo', async () => {
@@ -92,7 +94,7 @@ describe('Game modes', () => {
     await tapCorrectPhoto();
     await waitFor(element(by.text('Correct!'))).toBeVisible().withTimeout(TIMEOUT);
     await tap('pick-end');
-    await visible('results-screen');
+    await visible('results-menu');
   });
 
   it('Nearby species: search a place, then play', async () => {
@@ -101,8 +103,8 @@ describe('Game modes', () => {
     await element(by.id('nearby-search')).typeText('Test');
     await tap('nearby-result-9001'); // fixture place
     await tap('nearby-start');
-    await visible('study-screen');
+    await visible('study-reveal');
     await tap('study-end');
-    await visible('results-screen');
+    await visible('results-menu');
   });
 });

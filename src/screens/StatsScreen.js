@@ -95,6 +95,7 @@ export default function StatsScreen({ species, lifetime, onBack, onReset }) {
       <ScreenHeader title="Statistics" onBack={onBack} />
 
       <ScrollView
+        testID="stats-scroll"
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
