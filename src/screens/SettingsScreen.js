@@ -248,8 +248,8 @@ export default function SettingsScreen({
           disabled={!canSave}
           onPress={submit}
         >
-          <Icon name="refresh-cw" size={18} color="#fff" />
-          <Text style={styles.buttonText}>Load observations</Text>
+          <Icon name="save-outline" size={18} color="#fff" />
+          <Text style={styles.buttonText}>Save</Text>
         </Pressable>
 
         {/* Study options */}

@@ -8,9 +8,16 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.9.7';
+export const APP_VERSION = '1.9.8';
 
 export const CHANGELOG = [
+  {
+    version: '1.9.8',
+    date: '2026-06-06',
+    changes: [
+      'Renamed the Settings “Load observations” button to “Save”.',
+    ],
+  },
   {
     version: '1.9.7',
     date: '2026-06-06',
