@@ -9,6 +9,13 @@ import { colors } from '../theme';
 
 const FLAG_ON = '#E0A800'; // amber for an active flag
 
+// Tinted action buttons: light green for "Play again", light orange for
+// "Revisit missed".
+const GREEN_BG = '#E6F2D9';
+const GREEN_FG = '#3F6212';
+const ORANGE_BG = '#FCE6D2';
+const ORANGE_FG = '#C2410C';
+
 // Ionicons name + message keyed off performance.
 function grade(pct) {
   if (pct >= 90) return { icon: 'trophy', msg: 'Outstanding!' };
@@ -86,17 +93,23 @@ export default function ResultsScreen({
         </View>
 
         {missed.length > 0 && (
-          <Pressable style={styles.outlineButton} onPress={onRevisitMissed}>
-            <Icon name="rotate-ccw" size={18} color={colors.text} />
-            <Text style={styles.outlineText}>
+          <Pressable
+            style={[styles.actionButton, styles.revisitBtn]}
+            onPress={onRevisitMissed}
+          >
+            <Icon name="eye-outline" size={20} color={ORANGE_FG} />
+            <Text style={[styles.actionText, { color: ORANGE_FG }]}>
               Revisit missed ({missed.length})
             </Text>
           </Pressable>
         )}
 
-        <Pressable style={styles.outlineButton} onPress={onPlayAgain}>
-          <Icon name="refresh-cw" size={18} color={colors.text} />
-          <Text style={styles.outlineText}>Play again</Text>
+        <Pressable
+          style={[styles.actionButton, styles.playAgainBtn]}
+          onPress={onPlayAgain}
+        >
+          <Icon name="play" size={18} color={GREEN_FG} />
+          <Text style={[styles.actionText, { color: GREEN_FG }]}>Play again</Text>
         </Pressable>
 
         {/* Emphasized primary action. */}
@@ -211,21 +224,21 @@ const styles = StyleSheet.create({
   pct: { fontSize: 56, fontWeight: '900', color: colors.text, letterSpacing: -1 },
   scoreDetail: { fontSize: 16, color: colors.muted, marginTop: 4 },
 
-  // Secondary (outlined) actions: revisit missed, play again.
-  outlineButton: {
+  // Secondary actions: revisit missed (light orange), play again (light green).
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: 16,
     paddingVertical: 15,
     width: '100%',
     marginBottom: 12,
   },
-  outlineText: { color: colors.text, fontSize: 17, fontWeight: '800' },
+  actionText: { fontSize: 17, fontWeight: '800' },
+  revisitBtn: { backgroundColor: ORANGE_BG, borderColor: '#F6D2B3' },
+  playAgainBtn: { backgroundColor: GREEN_BG, borderColor: '#D4E7B8' },
 
   // Emphasized primary action: main menu.
   menuButton: {

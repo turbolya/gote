@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.9.0';
+export const APP_VERSION = '1.9.1';
 
 export const CHANGELOG = [
+  {
+    version: '1.9.1',
+    date: '2026-06-06',
+    changes: [
+      'End-of-round buttons are clearer: “Revisit missed” (light orange, eye '
+        + 'icon) and “Play again” (light green, play icon) are now easy to tell '
+        + 'apart.',
+    ],
+  },
   {
     version: '1.9.0',
     date: '2026-06-06',
