@@ -115,29 +115,45 @@ export async function resetStatistics() {
 }
 
 // --- Flagged species ---------------------------------------------------------
-// The user can "flag" species (to revisit, to study, whatever they like). Stored
-// as a flat list of taxon ids (strings) — species are identified by taxon id
-// regardless of which account is loaded, so flags are kept globally.
+// The user can "flag" species (to revisit, to study, whatever they like). Flags
+// are scoped PER USERNAME — consistent with the per-account observation cache —
+// so switching accounts loads that account's own flagged species and never mixes
+// them. Stored as one map { [username]: [taxonId, …] } (taxon ids as strings)
+// under K_FLAGS.
 
-export async function loadFlags() {
+// Read the raw flags map, tolerating absent/corrupt/legacy data.
+async function loadFlagsMap() {
   try {
     const raw = await AsyncStorage.getItem(K_FLAGS);
     if (raw) {
-      const arr = JSON.parse(raw);
-      if (Array.isArray(arr)) return arr.map(String);
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return { map: parsed, legacy: null };
+      }
+      // Legacy (pre-1.8.1) format: a single flat array shared across accounts.
+      if (Array.isArray(parsed)) return { map: {}, legacy: parsed.map(String) };
     }
   } catch {
     /* fall through */
   }
+  return { map: {}, legacy: null };
+}
+
+export async function loadFlags(username) {
+  if (!username) return [];
+  const { map, legacy } = await loadFlagsMap();
+  if (Array.isArray(map[username])) return map[username].map(String);
+  // Migrate old global flags to the first account that loads them.
+  if (legacy) return legacy;
   return [];
 }
 
-export async function saveFlags(taxonIds) {
+export async function saveFlags(username, taxonIds) {
+  if (!username) return;
   try {
-    await AsyncStorage.setItem(
-      K_FLAGS,
-      JSON.stringify([...new Set((taxonIds || []).map(String))])
-    );
+    const { map } = await loadFlagsMap();
+    map[username] = [...new Set((taxonIds || []).map(String))];
+    await AsyncStorage.setItem(K_FLAGS, JSON.stringify(map));
   } catch {
     /* ignore — best-effort */
   }

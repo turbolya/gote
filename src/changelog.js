@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.8.0';
+export const APP_VERSION = '1.8.1';
 
 export const CHANGELOG = [
+  {
+    version: '1.8.1',
+    date: '2026-06-06',
+    changes: [
+      'Flagged species are now remembered per iNaturalist account (like your '
+        + 'cached observations), so switching accounts no longer mixes flags.',
+    ],
+  },
   {
     version: '1.8.0',
     date: '2026-06-06',

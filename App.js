@@ -109,15 +109,22 @@ export default function App() {
   const [selectedCard, setSelectedCard] = useState(null);
   const [detailFrom, setDetailFrom] = useState('lexicon');
 
-  // Species the user has flagged, as a Set of taxon-id strings. Mirrored in a
-  // ref so the game launchers (which filter by flag) always read the latest set.
+  // Species the user has flagged, as a Set of taxon-id strings, scoped to the
+  // current account. Mirrored in a ref so the game launchers (which filter by
+  // flag) always read the latest set. `flags` always corresponds to the loaded
+  // username; we persist under that name (read from a ref to avoid stale state).
   const [flags, setFlags] = useState(() => new Set());
   const flagsRef = useRef(flags);
   useEffect(() => {
     flagsRef.current = flags;
   }, [flags]);
+  const usernameRef = useRef(username);
+  useEffect(() => {
+    usernameRef.current = username;
+  }, [username]);
 
-  // Toggle a species' flag and persist. Functional update avoids stale state.
+  // Toggle a species' flag and persist (per username). Functional update avoids
+  // stale state.
   const toggleFlag = useCallback((taxonId) => {
     if (taxonId == null) return;
     const key = String(taxonId);
@@ -125,7 +132,7 @@ export default function App() {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
-      saveFlags([...next]);
+      saveFlags(usernameRef.current, [...next]);
       return next;
     });
   }, []);
@@ -252,6 +259,8 @@ export default function App() {
   // background sync), otherwise do a full download.
   const loadAccount = useCallback(
     async (name, prefs, cache) => {
+      // Load this account's flagged species (per-username, like the obs cache).
+      setFlags(new Set(await loadFlags(name)));
       const usable = cache || (await loadCache());
       if (cacheMatches(usable, name, prefs.locale)) {
         rawCardsRef.current = usable.cards;
@@ -272,17 +281,16 @@ export default function App() {
   // Restore saved state on first launch.
   useEffect(() => {
     (async () => {
-      const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedFlags] =
+      const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache] =
         await Promise.all([
           loadUsername(),
           loadStats(),
           loadPrefs(),
           loadSpeciesStats(),
           loadCache(),
-          loadFlags(),
         ]);
       if (savedStats) setLifetime(savedStats);
-      if (savedFlags && savedFlags.length) setFlags(new Set(savedFlags));
+      // Flags are loaded per-account inside loadAccount (below).
       speciesRef.current = savedSpecies || {};
       setSpeciesStats(speciesRef.current);
       const ps = savedPrefs && typeof savedPrefs.perSpecies === 'boolean'
