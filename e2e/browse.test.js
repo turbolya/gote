@@ -28,8 +28,8 @@ describe('Lexicon, flags & detail', () => {
     await element(by.id('lexicon-search')).clearText();
     await tap('lexicon-filter-flagged'); // chip appears once something is flagged
     await visible('lexicon-row-1001');
-    // The flagged-only filter should hide unflagged species.
-    await expect(element(by.id('lexicon-row-1002'))).not.toBeVisible();
+    // The flagged-only filter should hide unflagged species (row not rendered).
+    await expect(element(by.id('lexicon-row-1002'))).not.toExist();
   });
 
   it('flags a missed species from the results screen and opens its detail', async () => {
