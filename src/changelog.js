@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.9.6';
+export const APP_VERSION = '1.9.7';
 
 export const CHANGELOG = [
+  {
+    version: '1.9.7',
+    date: '2026-06-06',
+    changes: [
+      'Settings changes now always take effect: adjusting the language or the '
+        + 'study filters and simply going back applies them, instead of only '
+        + 'when you pressed “Load observations”.',
+    ],
+  },
   {
     version: '1.9.6',
     date: '2026-06-06',

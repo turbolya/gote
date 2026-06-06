@@ -179,6 +179,16 @@ export default function SettingsScreen({
     canSave &&
     onSave(username.trim(), { perSpecies, locale, researchGrade, speciesOnly });
 
+  // Leaving Settings applies the current settings too — otherwise language /
+  // filter changes made without pressing "Load observations" would be silently
+  // discarded. onSave navigates back to the menu (re-deriving the deck, and
+  // re-downloading only if the account or language changed); if there's no
+  // username yet there's nothing to apply, so just go back.
+  const leave = () => {
+    if (canSave) submit();
+    else if (onBack) onBack();
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.flex}
@@ -186,7 +196,7 @@ export default function SettingsScreen({
     >
       {onBack && (
         <View style={styles.topBar}>
-          <Pressable testID="settings-back" onPress={onBack} hitSlop={12} style={styles.back}>
+          <Pressable testID="settings-back" onPress={leave} hitSlop={12} style={styles.back}>
             <Icon name="chevron-left" size={24} color={colors.text} />
             <Text style={styles.backText}>Menu</Text>
           </Pressable>
