@@ -173,12 +173,12 @@ export default function MenuScreen({
       </LinearGradient>
 
       <Text style={styles.section}>Play</Text>
-      {modes.map((m) => (
+      {modes.map(({ key, ...rest }) => (
         <Row
-          key={m.key}
-          {...m}
-          testID={`mode-${m.key}`}
-          onPress={() => onSelectMode(m.key)}
+          key={key}
+          {...rest}
+          testID={`mode-${key}`}
+          onPress={() => onSelectMode(key)}
         />
       ))}
 

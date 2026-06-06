@@ -8,9 +8,16 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.9.5';
+export const APP_VERSION = '1.9.6';
 
 export const CHANGELOG = [
+  {
+    version: '1.9.6',
+    date: '2026-06-06',
+    changes: [
+      'Internal: fixed a harmless React key warning logged from the menu.',
+    ],
+  },
   {
     version: '1.9.5',
     date: '2026-06-06',
