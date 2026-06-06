@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.9.4';
+export const APP_VERSION = '1.9.5';
 
 export const CHANGELOG = [
+  {
+    version: '1.9.5',
+    date: '2026-06-06',
+    changes: [
+      'Toned down the menu accuracy bars so they sit more softly behind the '
+        + 'header.',
+    ],
+  },
   {
     version: '1.9.4',
     date: '2026-06-06',

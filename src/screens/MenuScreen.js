@@ -17,8 +17,8 @@ const BAR_W = 7;
 const BAR_GAP = 4;
 
 // A minimal background chart of recent games' accuracy: one vertical bar per
-// game (oldest → newest, left → right), each a white→transparent gradient (solid
-// white on top, fading downward). Only the newest bars that fit are shown, so the
+// game (oldest → newest, left → right), each a translucent white gradient (more
+// opaque on top, fading downward). Only the newest bars that fit are shown, so the
 // latest game is always the rightmost. `topOffset` caps the bars' top edge so a
 // 100% bar reaches just below the username rather than the very top of the card.
 function AccuracyBars({ data = [], topOffset = 0 }) {
@@ -36,7 +36,7 @@ function AccuracyBars({ data = [], topOffset = 0 }) {
       {bars.map((pct, i) => (
         <LinearGradient
           key={i}
-          colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0.2)']}
+          colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0.2)']}
           style={[styles.bar, { height: `${Math.max(3, pct)}%` }]}
         />
       ))}
