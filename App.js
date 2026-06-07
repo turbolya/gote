@@ -22,6 +22,8 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 
 import {
   fetchCards,
@@ -87,6 +89,15 @@ export default function App() {
   // Support/review popup: shown on a fraction of launches once the menu loads.
   const [showSupport, setShowSupport] = useState(false);
   const supportRolledRef = useRef(false);
+
+  // Preload every icon font up front so glyphs never render as missing-glyph
+  // "?" boxes (which happens if a family's font hasn't loaded when it's first
+  // used). We render a tiny placeholder until they're ready (or error out).
+  const [iconFontsLoaded, iconFontError] = useFonts({
+    ...Ionicons.font,
+    ...MaterialCommunityIcons.font,
+    ...FontAwesome5.font,
+  });
   const [username, setUsername] = useState('');
   const [perSpecies, setPerSpecies] = useState(true);
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
@@ -594,6 +605,21 @@ export default function App() {
   }, [deck, index, correctCount, missed, finishRound, prepPickRound]);
 
   // --- render ---
+  // Hold the UI until the icon fonts are loaded, so icons never render as "?"
+  // boxes. Proceed anyway if loading errored (better a missing icon than a hang).
+  if (!iconFontsLoaded && !iconFontError) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.safe}>
+          <StatusBar style="dark" />
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
+
   // The study screen renders full-bleed (its blurred photo backdrop must reach
   // the very top/bottom edges), so it lives OUTSIDE the SafeAreaView and applies
   // insets internally to just its chrome.
