@@ -525,10 +525,10 @@ const styles = StyleSheet.create({
   },
   centerPanel: {
     width: '100%',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 24,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
+    backgroundColor: 'rgba(0,0,0,0.32)',
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
   },
 
   // bottom gradient + chrome

@@ -315,8 +315,9 @@ flowchart TB
 
 ## 8. Cross-cutting concerns
 
-- **Theming & icons** (`theme.js`): one green palette + a soft `accents` set for
-  tinted tiles. UI glyphs use **Ionicons** (via `components/Icon.js`, which maps
+- **Theming & icons** (`theme.js`): a "Minimal" design — one green palette + an
+  `accents` set used as accent-coloured icon tints over flat, hairline-divided
+  lists. UI glyphs use **Ionicons** (via `components/Icon.js`, which maps
   legacy Feather-style names → Ionicons). Taxon-group glyphs use
   **MaterialCommunityIcons** with a **FontAwesome5** fallback for the frog
   (`components/GroupIcon.js`).

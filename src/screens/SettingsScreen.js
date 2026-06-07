@@ -93,8 +93,8 @@ function timeAgo(ts) {
 // A small tinted icon tile shared by every settings row.
 function Tile({ icon, accent, dim }) {
   return (
-    <View style={[styles.tile, { backgroundColor: dim ? colors.faint : accent.bg }]}>
-      <Icon name={icon} size={18} color={dim ? colors.muted : accent.fg} />
+    <View style={styles.tile}>
+      <Icon name={icon} size={22} color={dim ? colors.muted : accent.fg} />
     </View>
   );
 }
@@ -455,40 +455,32 @@ const styles = StyleSheet.create({
   section: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.muted,
+    color: colors.primaryDark,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: 26,
-    marginBottom: 10,
-    marginLeft: 4,
+    marginBottom: 4,
+    marginLeft: 2,
   },
   sectionHint: {
     fontSize: 13,
     color: colors.muted,
-    marginTop: -4,
-    marginBottom: 10,
-    marginLeft: 4,
+    marginTop: 0,
+    marginBottom: 8,
+    marginLeft: 2,
     lineHeight: 18,
   },
 
-  // Rounded grouped container holding one or more rows.
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 14,
-  },
+  // Minimal: a flat group — no container, rows divided by hairlines.
+  card: {},
   sep: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,
-    marginLeft: 52, // align under the text, past the icon tile
+    marginLeft: 42, // align under the text, past the icon
   },
 
   tile: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
+    width: 30,
     alignItems: 'center',
     justifyContent: 'center',
   },

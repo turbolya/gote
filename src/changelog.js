@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '1.10.1';
+export const APP_VERSION = '2.0.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.0.0',
+    date: '2026-06-07',
+    changes: [
+      'New minimal design across the whole app: flat lists with hairline '
+        + 'dividers, clean accent-coloured icons (no tiles), and a lighter '
+        + 'menu and headers.',
+    ],
+  },
   {
     version: '1.10.1',
     date: '2026-06-07',
