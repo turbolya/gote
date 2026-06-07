@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.0.0';
+export const APP_VERSION = '2.1.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.1.0',
+    date: '2026-06-07',
+    changes: [
+      'Added a “Buy me a coffee” option in Settings → Support to support Gote.',
+      'An occasional, easy-to-dismiss popup now invites an App Store rating or '
+        + 'a coffee. (Both links activate once the App Store listing and Ko-fi '
+        + 'account are live.)',
+    ],
+  },
   {
     version: '2.0.0',
     date: '2026-06-07',

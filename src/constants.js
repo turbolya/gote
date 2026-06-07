@@ -3,6 +3,18 @@
 // Speedrun ends after this many missed cards.
 export const SPEEDRUN_LIVES = 3;
 
+// --- Support / donations ---------------------------------------------------
+// Ko-fi "Buy me a coffee" donation page. PLACEHOLDER until the account exists —
+// see TASKS.md. Update to https://ko-fi.com/<account> once created.
+export const KOFI_URL = 'https://ko-fi.com/';
+
+// App Store "write a review" deep link. Empty until the app has an App Store id;
+// then set to:  https://apps.apple.com/app/id<APP_ID>?action=write-review
+export const APP_STORE_REVIEW_URL = '';
+
+// Chance (0–1) that the support/review popup appears on a given launch.
+export const SUPPORT_PROMPT_CHANCE = 0.1;
+
 // Languages offered for species common names. The `code` is the iNaturalist
 // `locale` query param; iNat returns each taxon's preferred common name in that
 // language (falling back to the scientific name when none exists). This only

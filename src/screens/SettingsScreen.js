@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import { APP_VERSION } from '../changelog';
 import { colors, accents } from '../theme';
-import { DEFAULT_LOCALE } from '../constants';
+import { DEFAULT_LOCALE, KOFI_URL } from '../constants';
 import { getCacheSize, clearCache, formatBytes } from '../cache';
 import Icon from '../components/Icon';
 import LanguageDropdown from '../components/LanguageDropdown';
@@ -74,6 +74,17 @@ async function sendFeedbackEmail() {
     else throw new Error('cannot open');
   } catch {
     Alert.alert('No mail app found', `Please email us at:\n${FEEDBACK_EMAIL}`);
+  }
+}
+
+// Open the Ko-fi donation page. Placeholder URL until the account exists.
+async function buyCoffee() {
+  try {
+    const ok = await Linking.canOpenURL(KOFI_URL);
+    if (ok) await Linking.openURL(KOFI_URL);
+    else throw new Error('cannot open');
+  } catch {
+    Alert.alert('Couldn’t open the link', KOFI_URL);
   }
 }
 
@@ -363,6 +374,19 @@ export default function SettingsScreen({
               )}
             </Pressable>
           </View>
+        </View>
+
+        {/* Support */}
+        <Text style={styles.section}>Support</Text>
+        <View style={styles.card}>
+          <NavRow
+            testID="settings-kofi"
+            icon="cafe-outline"
+            accent={accents.amber}
+            label="Buy me a coffee"
+            trailing="external-link"
+            onPress={buyCoffee}
+          />
         </View>
 
         {/* About */}

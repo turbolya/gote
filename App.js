@@ -54,7 +54,7 @@ import {
   loadHistory,
   addGameResult,
 } from './src/storage';
-import { SPEEDRUN_LIVES, DEFAULT_LOCALE } from './src/constants';
+import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE } from './src/constants';
 import { buildPickRound } from './src/quiz';
 import { prefetchImages } from './src/prefetch';
 import { groupKey } from './src/theme';
@@ -73,6 +73,7 @@ import ChangelogScreen from './src/screens/ChangelogScreen';
 import LegalScreen from './src/screens/LegalScreen';
 import NearbyConfigScreen from './src/screens/NearbyConfigScreen';
 import SplashScreen from './src/components/SplashScreen';
+import SupportModal from './src/components/SupportModal';
 import { colors } from './src/theme';
 
 const pickRandom = (cards, n) => shuffle(cards).slice(0, n);
@@ -83,6 +84,9 @@ export default function App() {
   // Branded launch splash overlay; dismissed (faded out) after a moment.
   // Skipped entirely in E2E so it never covers the UI under test.
   const [showSplash, setShowSplash] = useState(!IS_E2E);
+  // Support/review popup: shown on a fraction of launches once the menu loads.
+  const [showSupport, setShowSupport] = useState(false);
+  const supportRolledRef = useRef(false);
   const [username, setUsername] = useState('');
   const [perSpecies, setPerSpecies] = useState(true);
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
@@ -129,6 +133,15 @@ export default function App() {
   useEffect(() => {
     usernameRef.current = username;
   }, [username]);
+
+  // Once per launch, when the menu first appears, roll the support/review popup
+  // (~1 in 10 launches). Never in E2E, so the test runs stay deterministic.
+  useEffect(() => {
+    if (screen === 'menu' && !supportRolledRef.current && !IS_E2E) {
+      supportRolledRef.current = true;
+      if (Math.random() < SUPPORT_PROMPT_CHANCE) setShowSupport(true);
+    }
+  }, [screen]);
 
   // Toggle a species' flag and persist (per username). Functional update avoids
   // stale state.
@@ -818,6 +831,7 @@ export default function App() {
         )}
       </SafeAreaView>
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+      <SupportModal visible={showSupport} onClose={() => setShowSupport(false)} />
     </SafeAreaProvider>
   );
 }
