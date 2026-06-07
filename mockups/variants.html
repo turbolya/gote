@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gote — per-screen variants (3 design systems)</title>
+<script type="module" src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
+<style>
+  :root{
+    --primary:#5C8A1B;--primary-dark:#3F6212;--bg:#FAFAF8;--card:#FFFFFF;
+    --text:#1A1D1A;--muted:#8A8F86;--faint:#F0F1ED;--border:#E7E8E3;
+    --correct:#3F9D52;--wrong:#D9534F;--flag:#E0A800;
+    --green-fg:#3F6212;--green-bg:#E9F1DB;--blue-fg:#1D4ED8;--blue-bg:#E2EAFF;
+    --violet-fg:#6D28D9;--violet-bg:#EEE7FE;--amber-fg:#B45309;--amber-bg:#FBEFD5;
+    --teal-fg:#0F766E;--teal-bg:#D8F0ED;--indigo-fg:#4338CA;--indigo-bg:#E6E7FB;
+    --rose-fg:#BE123C;--rose-bg:#FCE3E9;--slate-fg:#475569;--slate-bg:#EEF1F5;
+  }
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+  body{margin:0;padding:36px 26px 90px;background:#15171a;color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif}
+  h1{font-size:22px;font-weight:800;margin:0 0 4px}
+  .lead{color:#9aa0a6;margin:0 0 8px;font-size:14px;max-width:900px;line-height:1.5}
+  .legend{display:flex;gap:18px;margin:14px 0 8px;flex-wrap:wrap}
+  .legend div{font-size:13px;color:#cfd3d6}
+  .legend b{color:#fff}
+  .screen-title{font-size:17px;font-weight:800;margin:40px 0 4px;color:#e8eaec;
+    border-top:1px solid #2a2d31;padding-top:22px}
+  .screen-sub{font-size:13px;color:#9aa0a6;margin:0 0 14px}
+  .stage{display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start}
+  .col{width:340px}
+  .col .tag{font-size:13px;font-weight:700;margin:0 0 10px;color:#cfd3d6}
+  .col .tag span{color:#8a9}
+
+  .phone{width:340px;height:736px;border-radius:42px;background:var(--bg);
+    box-shadow:0 0 0 9px #0c0d0f,0 16px 44px rgba(0,0,0,.5);overflow:hidden;position:relative}
+  .sb{height:44px;display:flex;align-items:flex-end;justify-content:space-between;
+    padding:0 26px 6px;font-size:13px;font-weight:600;color:var(--text)}
+  .sb.on-dark{color:#fff}.sb .dots{letter-spacing:2px;color:var(--muted)}
+  .screen{height:calc(100% - 44px);overflow:auto;padding:6px 16px 22px}
+  .screen.flush{padding:0}
+  .screen::-webkit-scrollbar{display:none}
+  ion-icon{display:block}
+
+  /* faux photos */
+  .ph{background-size:cover;background-position:center}
+  .ph-bird{background:linear-gradient(160deg,#8fb9d6,#33513a 78%)}
+  .ph-leaf{background:linear-gradient(160deg,#a8c66c,#3f6212)}
+  .ph-bug{background:linear-gradient(150deg,#e0b15a,#6b4f1d)}
+  .ph-fungi{background:linear-gradient(160deg,#caa28f,#5e3b34)}
+  .ph-flower{background:linear-gradient(160deg,#e7d3e7,#7c5a8c)}
+  .ph-fish{background:linear-gradient(160deg,#79c7c2,#1f5b57)}
+
+  /* ---- shared primitives (system-restyled) ---- */
+  .section{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.7px;margin:16px 4px 9px}
+  .item{display:flex;align-items:center;gap:12px}
+  .item .ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none}
+  .item .ic ion-icon{font-size:20px}
+  .item .t{font-size:15px;font-weight:700;color:var(--text)}
+  .item .s{font-size:12px;color:var(--muted);margin-top:1px}
+  .item .cv{margin-left:auto;color:var(--muted);font-size:17px}
+  .group{margin-bottom:2px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:15px}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700}
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 2px 8px}
+  .hdr .back{width:36px;height:36px;border-radius:999px;background:var(--faint);
+    display:flex;align-items:center;justify-content:center;color:var(--text);font-size:19px}
+  .hdr .ttl{font-size:17px;font-weight:800;color:var(--text)}.hdr .sp{width:36px}
+
+  /* =========================================================
+     SYSTEM A — SOFT: bordered white cards, tinted icon tiles
+     ========================================================= */
+  .sys-a{background:var(--bg)}
+  .sys-a .item{background:#fff;border:1px solid var(--border);border-radius:16px;padding:11px 12px;margin-bottom:9px}
+  .sys-a .item .ic{background:var(--abg);color:var(--afg)}
+  .sys-a .group{background:#fff;border:1px solid var(--border);border-radius:16px;padding:0 13px}
+  .sys-a .group .item{background:transparent;border:0;border-radius:0;margin:0;padding:12px 0;border-top:1px solid var(--border)}
+  .sys-a .group .item:first-child{border-top:0}
+  .sys-a .btn{border-radius:15px;padding:14px}
+  .sys-a .chip{border:1px solid var(--border);background:#fff;border-radius:999px;padding:8px 13px;color:var(--muted)}
+  .sys-a .chip.on{background:var(--faint);border-color:var(--primary);color:var(--primary-dark)}
+
+  /* =========================================================
+     SYSTEM B — BOLD: filled colour blocks, chunky radius
+     ========================================================= */
+  .sys-b{background:#F4F6EF}
+  .sys-b .item{background:var(--abg);border-radius:18px;padding:13px;margin-bottom:10px}
+  .sys-b .item .ic{background:rgba(255,255,255,.6);color:var(--afg)}
+  .sys-b .item .t{font-weight:800}
+  .sys-b .group{display:flex;flex-direction:column;gap:10px}
+  .sys-b .group .item{background:var(--abg);border-radius:16px;margin:0;padding:13px}
+  .sys-b .btn{border-radius:20px;padding:16px}
+  .sys-b .chip{border:0;background:var(--abg,#fff);border-radius:999px;padding:9px 14px;color:var(--afg,var(--muted))}
+  .sys-b .chip.on{box-shadow:inset 0 0 0 2px var(--primary)}
+
+  /* =========================================================
+     SYSTEM C — MINIMAL: flat, hairline dividers, mono icons
+     ========================================================= */
+  .sys-c{background:#fff}
+  .sys-c .item{background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0;padding:14px 2px;margin:0}
+  .sys-c .item .ic{background:transparent;color:var(--afg);width:30px;height:30px}
+  .sys-c .item .ic ion-icon{font-size:22px}
+  .sys-c .item .t{font-weight:700}
+  .sys-c .group .item:last-child{border-bottom:0}
+  .sys-c .section{color:var(--primary-dark);margin-top:22px}
+  .sys-c .btn{border-radius:12px;padding:15px}
+  .sys-c .chip{border:0;background:transparent;color:var(--muted);padding:8px 4px}
+  .sys-c .chip.on{color:var(--primary-dark)}
+
+  /* ---- buttons / accents reused across systems ---- */
+  .btn.primary{background:var(--primary);color:#fff}
+  .btn.green{background:#E6F2D9;color:var(--primary-dark);border:1px solid #D4E7B8}
+  .btn.orange{background:#FCE6D2;color:#C2410C;border:1px solid #F6D2B3}
+
+  /* ---- STUDY (fullscreen, dark) ---- */
+  .study{position:absolute;inset:0}
+  .study .bg{position:absolute;inset:0}.study .scrim{position:absolute;inset:0;background:rgba(0,0,0,.18)}
+  .gtop{position:absolute;top:0;left:0;right:0;padding:12px 16px;background:linear-gradient(to bottom,rgba(0,0,0,.75),transparent)}
+  .stbar{display:flex;align-items:center;justify-content:space-between;color:#fff;margin-top:26px;font-weight:700;font-size:14px}
+  .stbar .l,.stbar .r{display:flex;align-items:center;gap:6px}.stbar .r ion-icon{font-size:17px}
+  .track{height:5px;border-radius:999px;background:rgba(255,255,255,.3);margin-top:9px}
+  .track>i{display:block;height:100%;background:#fff;border-radius:999px}
+  .center{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%)}
+  .panel{border-radius:22px;padding:15px}
+  .prompt{text-align:center;font-weight:700;font-size:14px;margin-bottom:10px;display:flex;gap:6px;justify-content:center;align-items:center;color:#fff}
+  .choice{border-radius:13px;padding:11px;text-align:center;font-weight:700;font-size:15px;margin-bottom:8px}
+  .nextbtn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--primary);color:#fff;border-radius:14px;padding:12px;font-weight:800;margin-top:2px}
+  .sname{color:#fff;text-align:center;font-size:23px;font-weight:900}
+  .ssci{color:rgba(255,255,255,.78);text-align:center;font-style:italic;font-size:14px;margin:2px 0 14px}
+  .graderow{display:flex;gap:10px}
+  .gradebtn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:14px;padding:13px;color:#fff;font-weight:800;font-size:14px}
+  .gbot{position:absolute;bottom:0;left:0;right:0;padding:50px 16px 18px;background:linear-gradient(to top,rgba(0,0,0,.8),transparent);
+    display:flex;align-items:center;justify-content:space-between;color:#fff}
+  .gbot .credit{font-size:11px;color:rgba(255,255,255,.78)}
+  /* per-system study */
+  .sys-a .panel{background:rgba(0,0,0,.5)} .sys-a .choice{background:rgba(0,0,0,.4);border:1.5px solid rgba(255,255,255,.5);color:#fff}
+  .sys-b .panel{background:rgba(255,255,255,.93)} .sys-b .prompt{color:var(--text)} .sys-b .choice{background:#fff;border:1.5px solid var(--border);color:var(--text)}
+  .sys-c .panel{background:transparent;padding:0} .sys-c .choice{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.4);color:#fff}
+  .choice.correct{background:var(--correct)!important;border-color:var(--correct)!important;color:#fff!important}
+
+  /* ---- PICK THE PIC ---- */
+  .pick-name{text-align:center;color:var(--text);font-size:22px;font-weight:900;margin:2px 0 14px}
+  .pick-name small{display:block;font-size:13px;color:var(--muted);font-weight:600}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .ptile{position:relative;aspect-ratio:1;border-radius:16px;overflow:hidden}
+  .ptile .cc{position:absolute;top:7px;width:28px;height:28px;border-radius:999px;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px}
+  .ptile .cc.tl{left:7px}.ptile .cc.tr{right:7px}
+  .sys-c .ptile{border-radius:6px}
+
+  /* ---- RESULTS ---- */
+  .res{padding:6px 4px;text-align:center;position:relative}
+  .res .x{position:absolute;top:0;right:2px;width:34px;height:34px;border-radius:999px;background:var(--faint);display:flex;align-items:center;justify-content:center;color:var(--text);font-size:17px}
+  .res .badge{width:74px;height:74px;border-radius:999px;background:var(--green-bg);margin:12px auto 0;display:flex;align-items:center;justify-content:center}
+  .res .badge ion-icon{font-size:34px;color:var(--primary)}
+  .res .msg{font-size:21px;font-weight:800;color:var(--text);margin-top:12px}
+  .scorecard{padding:18px;margin:16px 0}
+  .scorecard .pct{font-size:46px;font-weight:900;color:var(--text)}
+  .scorecard .d{font-size:14px;color:var(--muted)}
+  .sys-a .scorecard{background:#fff;border:1px solid var(--border);border-radius:20px}
+  .sys-b .scorecard{background:var(--green-bg);border-radius:22px}
+  .sys-c .scorecard{background:transparent;border-top:1px solid var(--border);border-bottom:1px solid var(--border);border-radius:0}
+  .res .btn{width:100%;margin-bottom:9px}
+
+  /* ---- LEXICON ---- */
+  .search{display:flex;align-items:center;gap:8px;height:42px;padding:0 12px;color:var(--muted);font-size:14px;margin:4px 0 11px}
+  .sys-a .search,.sys-b .search{border:1px solid var(--border);background:#fff;border-radius:12px}
+  .sys-b .search{background:#fff}
+  .sys-c .search{border:0;border-bottom:1px solid var(--border);border-radius:0}
+  .filters{display:flex;gap:7px}.filters .chip{flex:1;justify-content:center;padding:8px 0}
+  .lrow{display:flex;align-items:center;gap:12px;padding:8px 2px}
+  .lrow .th{width:50px;height:50px;border-radius:10px;flex:none}
+  .sys-c .lrow{border-bottom:1px solid var(--border)}
+  .lrow .nm{font-size:15px;font-weight:700;color:var(--text)}.lrow .sc{font-size:12px;font-style:italic;color:var(--muted)}
+
+  /* ---- DETAIL ---- */
+  .hero-photo{height:250px;position:relative}
+  .hero-photo .backfab{position:absolute;top:12px;left:12px;width:36px;height:36px;border-radius:999px;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px}
+  .dbody{padding:14px 16px}.dname{font-size:23px;font-weight:900;color:var(--text)}
+  .dsci{font-size:14px;font-style:italic;color:var(--muted);margin-top:2px}
+  .strip{display:flex;gap:8px;margin:13px 0}.strip>div{width:88px;height:88px;border-radius:10px;flex:none}
+  .sys-b .strip>div{border-radius:16px}.sys-c .strip>div{border-radius:4px}
+  .taxo{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .taxo span{font-size:12px;border-radius:999px;padding:5px 11px}
+  .sys-a .taxo span,.sys-c .taxo span{background:var(--faint);color:var(--text)}
+  .sys-b .taxo span{background:var(--green-bg);color:var(--green-fg)}
+  .summary{font-size:13.5px;line-height:1.55;color:var(--text);margin-top:12px}
+  .count{font-size:12.5px;color:var(--muted);margin-top:10px;display:flex;gap:6px;align-items:center}
+
+  /* ---- STATS ---- */
+  .bigstat{padding:18px;text-align:center;margin-bottom:12px}
+  .bigstat .n{font-size:44px;font-weight:900;color:var(--text)}.bigstat .l{font-size:12.5px;color:var(--muted)}
+  .sys-a .bigstat{background:#fff;border:1px solid var(--border);border-radius:18px}
+  .sys-b .bigstat{background:var(--green-bg);border-radius:20px}
+  .sys-c .bigstat{background:transparent;border-bottom:1px solid var(--border)}
+  .barwrap{display:flex;align-items:flex-end;gap:3px;height:54px;margin-top:12px}
+  .barwrap i{flex:1;background:var(--primary);opacity:.45;border-radius:3px 3px 0 0}
+  .statline{display:flex;align-items:center;gap:9px;padding:10px 0}
+  .sys-a .group .statline,.sys-b .group .statline{border-top:1px solid var(--border)}
+  .sys-c .statline{border-bottom:1px solid var(--border)}
+  .statline .nm{font-size:14px;color:var(--text);font-weight:600;flex:1}.statline .v{font-size:13px;font-weight:700}
+
+  /* ---- SETTINGS / CONFIG ---- */
+  .toggle{margin-left:auto;width:44px;height:26px;border-radius:999px;background:#D6D8D1;position:relative;flex:none}
+  .toggle.on{background:var(--primary)}
+  .toggle::after{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:999px;background:#fff}
+  .toggle.on::after{left:20px}
+  .field{flex:1;font-size:16px;color:var(--text)}
+  .selchip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin:0 7px 8px 0}
+  .sys-a .selchip{border:1px solid var(--border);background:#fff;border-radius:999px;padding:8px 12px;color:var(--muted)}
+  .sys-a .selchip.on{border-color:var(--primary);background:var(--faint);color:var(--primary-dark)}
+  .sys-b .selchip{border:0;background:var(--faint);border-radius:999px;padding:9px 13px;color:var(--muted)}
+  .sys-b .selchip.on{background:var(--green-bg);color:var(--green-fg)}
+  .sys-c .selchip{border:0;border-bottom:2px solid transparent;border-radius:0;padding:7px 2px;color:var(--muted)}
+  .sys-c .selchip.on{color:var(--primary-dark);border-bottom-color:var(--primary)}
+  .selchip ion-icon{font-size:15px}
+  .stepper{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}
+  .stepbtn{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;color:var(--primary-dark);font-size:22px;border:1px solid var(--border);background:#fff}
+  .count2{flex:1;text-align:center}.count2 .num{font-size:40px;font-weight:900;color:var(--text)}.count2 .of{font-size:12px;color:var(--muted)}
+  .radius{display:flex;gap:8px}.radius .r{flex:1;text-align:center;padding:9px 0;font-size:12.5px;font-weight:700}
+  .sys-a .radius .r{border:1px solid var(--border);background:#fff;border-radius:999px;color:var(--muted)}
+  .sys-a .radius .r.on{border-color:var(--primary);background:var(--faint);color:var(--primary-dark)}
+  .sys-b .radius .r{border:0;background:var(--faint);border-radius:999px;color:var(--muted)}
+  .sys-b .radius .r.on{background:var(--green-bg);color:var(--green-fg)}
+  .sys-c .radius .r{border-bottom:2px solid transparent;color:var(--muted)}
+  .sys-c .radius .r.on{color:var(--primary-dark);border-bottom-color:var(--primary)}
+  .footerbtn{position:absolute;left:16px;right:16px;bottom:16px}
+  .gpsbtn{display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--border);background:#fff;border-radius:14px;padding:12px;color:var(--primary-dark);font-weight:700;margin-bottom:10px}
+</style>
+</head>
+<body>
+  <h1>Gote — per-screen variants</h1>
+  <p class="lead">Every screen rendered in three consistent design systems. Pick one system and it
+    styles the whole app coherently (or mix per screen). For design review only — nothing is wired into the app.</p>
+  <div class="legend">
+    <div><b>A · Soft</b> — bordered white cards, tinted icon tiles (closest to today)</div>
+    <div><b>B · Bold</b> — filled colour blocks, chunky shapes</div>
+    <div><b>C · Minimal</b> — flat, hairline dividers, mono icons, whitespace</div>
+  </div>
+
+  <div id="root"></div>
+
+<script>
+const SYS = [
+  ['a','Soft','bordered cards · tinted tiles'],
+  ['b','Bold','filled colour blocks'],
+  ['c','Minimal','flat · hairline · mono'],
+];
+
+// helper builders -------------------------------------------------------------
+const A = {green:'--abg:var(--green-bg);--afg:var(--green-fg)',blue:'--abg:var(--blue-bg);--afg:var(--blue-fg)',
+  violet:'--abg:var(--violet-bg);--afg:var(--violet-fg)',amber:'--abg:var(--amber-bg);--afg:var(--amber-fg)',
+  teal:'--abg:var(--teal-bg);--afg:var(--teal-fg)',indigo:'--abg:var(--indigo-bg);--afg:var(--indigo-fg)',
+  rose:'--abg:var(--rose-bg);--afg:var(--rose-fg)',slate:'--abg:var(--slate-bg);--afg:var(--slate-fg)'};
+const item=(acc,icon,t,s)=>`<div class="item" style="${A[acc]}"><div class="ic"><ion-icon name="${icon}"></ion-icon></div>
+  <div><div class="t">${t}</div><div class="s">${s}</div></div><ion-icon class="cv" name="chevron-forward"></ion-icon></div>`;
+const hdr=(t)=>`<div class="hdr"><div class="back"><ion-icon name="chevron-back"></ion-icon></div><div class="ttl">${t}</div><div class="sp"></div></div>`;
+
+// screen templates ------------------------------------------------------------
+const SCREENS = [
+  {name:'By name', sub:'Multiple-choice on a photo (answered state).', dark:true, flush:true, html:`
+    <div class="study"><div class="bg ph ph-bird"></div><div class="scrim"></div>
+      <div class="gtop"><div class="stbar"><span class="l"><ion-icon name="close"></ion-icon> End</span><span>4 / 16</span>
+        <span class="r"><ion-icon name="flag-outline"></ion-icon><ion-icon name="star"></ion-icon> 3</span></div>
+        <div class="track"><i style="width:25%"></i></div></div>
+      <div class="center"><div class="panel">
+        <div class="prompt"><ion-icon name="checkmark-circle" style="color:var(--correct)"></ion-icon> Correct!</div>
+        <div class="choice">Barn Swallow</div><div class="choice correct">European Robin</div>
+        <div class="choice">Great Tit</div><div class="choice">Common Blackbird</div>
+        <div class="nextbtn">Next card <ion-icon name="arrow-forward"></ion-icon></div></div></div>
+      <div class="gbot"><ion-icon name="grid" style="font-size:20px"></ion-icon><span class="credit">© tester, CC BY-NC</span></div>
+    </div>`},
+
+  {name:'Flash cards', sub:'Reveal the name, then self-grade.', dark:true, flush:true, html:`
+    <div class="study"><div class="bg ph ph-bug"></div><div class="scrim"></div>
+      <div class="gtop"><div class="stbar"><span class="l"><ion-icon name="close"></ion-icon> End</span><span>7 / 24</span>
+        <span class="r"><ion-icon name="flag" style="color:var(--flag)"></ion-icon><ion-icon name="star"></ion-icon> 6</span></div>
+        <div class="track"><i style="width:29%"></i></div></div>
+      <div class="center"><div class="panel">
+        <div class="sname">Western Honey Bee</div><div class="ssci">Apis mellifera</div>
+        <div class="graderow"><div class="gradebtn" style="background:var(--wrong)"><ion-icon name="close"></ion-icon> Missed it</div>
+        <div class="gradebtn" style="background:var(--correct)"><ion-icon name="checkmark"></ion-icon> I knew it</div></div></div></div>
+      <div class="gbot"><ion-icon name="grid" style="font-size:20px"></ion-icon><span class="credit">© tester, CC BY-NC</span></div>
+    </div>`},
+
+  {name:'By picture', sub:'A name is shown; tap the matching photo.', html:`
+    <div class="hdr" style="padding-bottom:4px"><span style="display:flex;gap:5px;align-items:center;color:var(--muted);font-weight:600;font-size:14px"><ion-icon name="close"></ion-icon> End</span>
+      <span style="font-weight:700;color:var(--text)">2 / 16</span>
+      <span style="display:flex;gap:9px;align-items:center;color:var(--text);font-weight:800"><ion-icon name="flag-outline" style="color:var(--muted)"></ion-icon><span style="display:flex;gap:4px;align-items:center"><ion-icon name="star" style="color:var(--primary-dark)"></ion-icon>5</span></span></div>
+    <div class="pick-name"><small>Which one is</small>Bombus terrestris</div>
+    <div class="grid2">
+      <div class="ptile ph ph-bug"><span class="cc tl"><ion-icon name="expand"></ion-icon></span><span class="cc tr"><ion-icon name="grid"></ion-icon></span></div>
+      <div class="ptile ph ph-bird"><span class="cc tl"><ion-icon name="expand"></ion-icon></span><span class="cc tr"><ion-icon name="grid"></ion-icon></span></div>
+      <div class="ptile ph ph-flower"><span class="cc tl"><ion-icon name="expand"></ion-icon></span><span class="cc tr"><ion-icon name="grid"></ion-icon></span></div>
+      <div class="ptile ph ph-fungi"><span class="cc tl"><ion-icon name="expand"></ion-icon></span><span class="cc tr"><ion-icon name="grid"></ion-icon></span></div></div>
+    <div style="text-align:center;color:var(--muted);font-weight:600;font-size:14px;margin-top:16px">Tap the matching photo</div>`},
+
+  {name:'Results', sub:'End-of-round summary + missed list.', html:`
+    <div class="res"><div class="x"><ion-icon name="close"></ion-icon></div>
+      <div class="badge"><ion-icon name="trophy"></ion-icon></div><div class="msg">Outstanding!</div>
+      <div class="scorecard"><div class="pct">88%</div><div class="d">14 of 16 correct</div></div>
+      <div class="btn orange"><ion-icon name="eye-outline"></ion-icon> Revisit missed (2)</div>
+      <div class="btn green"><ion-icon name="play"></ion-icon> Play again</div>
+      <div class="btn primary"><ion-icon name="home"></ion-icon> Main menu</div>
+      <div class="section" style="text-align:left;margin-left:2px">Species you missed</div>
+      <div class="group">
+        <div class="item" style="${A.rose}"><div class="ic"><ion-icon name="leaf-outline"></ion-icon></div><div><div class="t" style="text-align:left">Great Tit</div><div class="s">Parus major</div></div><ion-icon class="cv" name="flag-outline"></ion-icon></div>
+        <div class="item" style="${A.rose}"><div class="ic"><ion-icon name="leaf-outline"></ion-icon></div><div><div class="t" style="text-align:left">Common Daisy</div><div class="s">Bellis perennis</div></div><ion-icon class="cv" name="flag" style="color:var(--flag)"></ion-icon></div>
+      </div></div>`},
+
+  {name:'Lexicon', sub:'Searchable species table with filters + flags.', html:`
+    ${hdr('Lexicon')}
+    <div class="search"><ion-icon name="search-outline"></ion-icon> Search 179 species…</div>
+    <div class="filters"><span class="chip on"><ion-icon name="checkmark-circle" style="color:var(--correct)"></ion-icon> Known 96</span>
+      <span class="chip"><ion-icon name="alert-circle" style="color:var(--wrong)"></ion-icon> Missed 31</span>
+      <span class="chip"><ion-icon name="ellipse-outline"></ion-icon> New 52</span></div>
+    <div style="margin-top:10px"></div>
+    <div class="lrow"><div class="th ph ph-bird"></div><div style="flex:1"><div class="nm">European Robin</div><div class="sc">Erithacus rubecula</div></div><ion-icon name="flag" style="color:var(--flag);font-size:19px"></ion-icon><ion-icon name="chevron-forward" style="color:var(--muted)"></ion-icon></div>
+    <div class="lrow"><div class="th ph ph-bug"></div><div style="flex:1"><div class="nm">Monarch</div><div class="sc">Danaus plexippus</div></div><ion-icon name="flag-outline" style="color:var(--muted);font-size:19px"></ion-icon><ion-icon name="chevron-forward" style="color:var(--muted)"></ion-icon></div>
+    <div class="lrow"><div class="th ph ph-flower"></div><div style="flex:1"><div class="nm">Common Daisy</div><div class="sc">Bellis perennis</div></div><ion-icon name="flag-outline" style="color:var(--muted);font-size:19px"></ion-icon><ion-icon name="chevron-forward" style="color:var(--muted)"></ion-icon></div>
+    <div class="lrow"><div class="th ph ph-fish"></div><div style="flex:1"><div class="nm">Brown Trout</div><div class="sc">Salmo trutta</div></div><ion-icon name="flag-outline" style="color:var(--muted);font-size:19px"></ion-icon><ion-icon name="chevron-forward" style="color:var(--muted)"></ion-icon></div>
+    <div class="lrow"><div class="th ph ph-fungi"></div><div style="flex:1"><div class="nm">Fly Agaric</div><div class="sc">Amanita muscaria</div></div><ion-icon name="flag-outline" style="color:var(--muted);font-size:19px"></ion-icon><ion-icon name="chevron-forward" style="color:var(--muted)"></ion-icon></div>`},
+
+  {name:'Species detail', sub:'Hero photo, curated strip, taxonomy, summary.', dark:true, flush:true, html:`
+    <div class="hero-photo ph ph-bird"><div class="backfab"><ion-icon name="chevron-back"></ion-icon></div></div>
+    <div class="dbody"><div class="dname">European Robin</div><div class="dsci">Erithacus rubecula</div>
+      <div class="strip"><div class="ph ph-bird"></div><div class="ph ph-leaf"></div><div class="ph ph-flower"></div></div>
+      <div class="section" style="margin-left:0">Taxonomy</div>
+      <div class="taxo"><span>Animalia</span><span>Chordata</span><span>Aves</span><span>Passeriformes</span><span>Muscicapidae</span><span>Erithacus</span></div>
+      <div class="summary">The European robin is a small insectivorous passerine bird, 12.5–14 cm long, found across Europe east to Western Siberia…</div>
+      <div class="count"><ion-icon name="eye"></ion-icon> 1.2M observations on iNaturalist</div></div>`},
+
+  {name:'Statistics', sub:'Lifetime accuracy, recent chart, missed / known.', html:`
+    ${hdr('Statistics')}
+    <div class="bigstat"><div class="n">87%</div><div class="l">lifetime accuracy · 412 / 473</div>
+      <div class="barwrap"><i style="height:60%"></i><i style="height:80%"></i><i style="height:50%"></i><i style="height:95%"></i><i style="height:70%"></i><i style="height:88%"></i><i style="height:65%"></i><i style="height:100%"></i><i style="height:78%"></i><i style="height:90%"></i><i style="height:84%"></i><i style="height:96%"></i></div></div>
+    <div class="section" style="margin-left:0">Most missed</div>
+    <div class="group">
+      <div class="statline"><ion-icon name="alert-circle" style="color:var(--wrong)"></ion-icon><span class="nm">Great Tit</span><span class="v" style="color:var(--wrong)">5×</span></div>
+      <div class="statline"><ion-icon name="alert-circle" style="color:var(--wrong)"></ion-icon><span class="nm">Willow Warbler</span><span class="v" style="color:var(--wrong)">4×</span></div>
+      <div class="statline"><ion-icon name="alert-circle" style="color:var(--wrong)"></ion-icon><span class="nm">Common Chiffchaff</span><span class="v" style="color:var(--wrong)">3×</span></div></div>
+    <div class="section" style="margin-left:0">Best known</div>
+    <div class="group">
+      <div class="statline"><ion-icon name="checkmark-circle" style="color:var(--correct)"></ion-icon><span class="nm">European Robin</span><span class="v" style="color:var(--correct)">18×</span></div>
+      <div class="statline"><ion-icon name="checkmark-circle" style="color:var(--correct)"></ion-icon><span class="nm">Monarch</span><span class="v" style="color:var(--correct)">15×</span></div></div>`},
+
+  {name:'Settings', sub:'Grouped account / study options / about.', html:`
+    ${hdr('Settings')}
+    <div class="section" style="margin-top:6px">Account</div>
+    <div class="group"><div class="item" style="${A.green}"><div class="ic"><ion-icon name="at-outline"></ion-icon></div><div class="field">mate_koch</div></div></div>
+    <div class="btn primary" style="margin-top:13px"><ion-icon name="save-outline"></ion-icon> Save</div>
+    <div class="section">Study options</div>
+    <div class="group">
+      <div class="item" style="${A.blue}"><div class="ic"><ion-icon name="duplicate-outline"></ion-icon></div><div style="flex:1"><div class="t">One card per species</div><div class="s">Avoids repeats.</div></div><div class="toggle on"></div></div>
+      <div class="item" style="${A.amber}"><div class="ic"><ion-icon name="ribbon-outline"></ion-icon></div><div style="flex:1"><div class="t">Research grade only</div><div class="s">Community-verified.</div></div><div class="toggle"></div></div>
+      <div class="item" style="${A.teal}"><div class="ic"><ion-icon name="pricetag-outline"></ion-icon></div><div style="flex:1"><div class="t">Identified to species</div><div class="s">Exact species.</div></div><div class="toggle on"></div></div></div>
+    <div class="section">About</div>
+    <div class="group">
+      <div class="item" style="${A.violet}"><div class="ic"><ion-icon name="sparkles-outline"></ion-icon></div><div class="t" style="flex:1">What's new</div><ion-icon class="cv" name="chevron-forward"></ion-icon></div>
+      <div class="item" style="${A.slate}"><div class="ic"><ion-icon name="logo-github"></ion-icon></div><div class="t" style="flex:1">Report a bug</div><ion-icon class="cv" name="open-outline"></ion-icon></div></div>`},
+
+  {name:'Custom game', sub:'Flagged-only, groups, count + presets.', html:`
+    ${hdr('Custom game')}
+    <span class="selchip on" style="margin-top:6px"><ion-icon name="flag" style="color:var(--flag)"></ion-icon> Flagged only (8)</span>
+    <div class="section" style="margin-left:0">Groups</div>
+    <div><span class="selchip on"><ion-icon name="leaf"></ion-icon> Plants 64</span><span class="selchip on"><ion-icon name="airplane"></ion-icon> Birds 41</span>
+      <span class="selchip"><ion-icon name="bug"></ion-icon> Insects 33</span><span class="selchip on"><ion-icon name="paw"></ion-icon> Mammals 12</span><span class="selchip"><ion-icon name="fish"></ion-icon> Fish 9</span></div>
+    <div class="section" style="margin-left:0;margin-top:20px">Number of cards</div>
+    <div class="stepper"><div class="stepbtn"><ion-icon name="remove"></ion-icon></div><div class="count2"><div class="num">16</div><div class="of">of 117 available</div></div><div class="stepbtn"><ion-icon name="add"></ion-icon></div></div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:14px"><span class="selchip">8</span><span class="selchip on">16</span><span class="selchip">32</span><span class="selchip">Max</span></div>
+    <div class="btn primary footerbtn"><ion-icon name="play"></ion-icon> Start • 16 cards</div>`},
+
+  {name:'Nearby species', sub:'Location, radius, groups, then play.', html:`
+    ${hdr('Nearby species')}
+    <div class="section" style="margin-left:0;margin-top:6px">Location</div>
+    <div class="gpsbtn"><ion-icon name="navigate-outline"></ion-icon> Use my location</div>
+    <div class="search"><ion-icon name="search-outline"></ion-icon> Search for a place…</div>
+    <div class="section" style="margin-left:0">Search radius</div>
+    <div class="radius"><div class="r">10 km</div><div class="r on">25 km</div><div class="r">50 km</div><div class="r">100 km</div></div>
+    <div class="section" style="margin-left:0">Groups</div>
+    <div><span class="selchip on"><ion-icon name="airplane"></ion-icon> Birds</span><span class="selchip on"><ion-icon name="paw"></ion-icon> Mammals</span>
+      <span class="selchip on"><ion-icon name="leaf"></ion-icon> Plants</span><span class="selchip"><ion-icon name="bug"></ion-icon> Insects</span><span class="selchip"><ion-icon name="flower-outline"></ion-icon> Fungi</span></div>
+    <div class="btn primary footerbtn"><ion-icon name="play"></ion-icon> Start</div>`},
+];
+
+// render ----------------------------------------------------------------------
+const root = document.getElementById('root');
+for (const sc of SCREENS) {
+  const title = document.createElement('div');
+  title.innerHTML = `<div class="screen-title">${sc.name}</div><div class="screen-sub">${sc.sub}</div>`;
+  root.appendChild(title);
+  const stage = document.createElement('div'); stage.className='stage';
+  for (const [id,label,desc] of SYS) {
+    const col = document.createElement('div'); col.className='col';
+    col.innerHTML = `<div class="tag">${label} <span>· ${desc}</span></div>
+      <div class="phone"><div class="sb ${sc.dark?'on-dark':''}"><span>9:41</span><span class="dots">●●●● 🔋</span></div>
+      <div class="screen sys-${id} ${sc.flush?'flush':''}">${sc.html}</div></div>`;
+    stage.appendChild(col);
+  }
+  root.appendChild(stage);
+}
+</script>
+</body>
+</html>
