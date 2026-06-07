@@ -19,8 +19,8 @@ describe('Menu & navigation', () => {
   it('lands on the menu with every entry across the three sections', async () => {
     // Play, Learn, then Settings (top → bottom); scroll to reach lower ones.
     for (const id of [
-      'mode-all', // Pick the name
-      'mode-pick', // Pick the pic
+      'mode-all', // By name
+      'mode-pick', // By picture
       'mode-speedrun',
       'mode-nearby',
       'mode-custom',

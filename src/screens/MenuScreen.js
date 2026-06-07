@@ -70,14 +70,14 @@ export default function MenuScreen({
       key: 'all',
       icon: 'albums-outline',
       accent: accents.green,
-      title: 'Pick the name',
+      title: 'By name',
       sub: 'See a photo, choose its name',
     },
     {
       key: 'pick',
       icon: 'apps-outline',
       accent: accents.blue,
-      title: 'Pick the pic',
+      title: 'By picture',
       sub: 'See a name, choose its photo',
     },
     {

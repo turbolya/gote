@@ -109,9 +109,9 @@ stateDiagram-v2
   settings --> loading: Save (new account / language)
   settings --> menu: Save (filters only)
 
-  menu --> study: Pick the name / Speedrun / Custom
+  menu --> study: By name / Speedrun / Custom
   menu --> study: Flash cards (self-grade)
-  menu --> pick: Pick the pic
+  menu --> pick: By picture
   menu --> nearby: Nearby species (config)
   menu --> custom: Custom game (picker)
   menu --> flash: Flash cards (picker)
@@ -141,8 +141,8 @@ stateDiagram-v2
 
 | Menu item        | `mode`     | Screen            | Interaction                                  |
 |------------------|------------|-------------------|----------------------------------------------|
-| Pick the name    | `all`      | `StudyScreen`     | Multiple choice (name options)               |
-| Pick the pic     | `pick`     | `PickImageScreen` | Multiple choice (photo tiles)                |
+| By name    | `all`      | `StudyScreen`     | Multiple choice (name options)               |
+| By picture     | `pick`     | `PickImageScreen` | Multiple choice (photo tiles)                |
 | Speedrun         | `speedrun` | `StudyScreen`     | Multiple choice, endless, 3 lives            |
 | Nearby species   | `nearby`   | `StudyScreen`     | Multiple choice (place-typical deck)         |
 | Custom game      | `custom`   | `StudyScreen`     | Multiple choice (filtered deck)              |
@@ -274,7 +274,7 @@ iNaturalist caps clients at ~**60 requests/minute**. Mitigations:
   `429` up to 3× honoring `Retry-After`.
 - **In-memory taxon cache** (`taxonCache` Map, keys `photos:`/`similar:`/`detail:`):
   per-taxon results are stable, so they're memoized for the session (cleared on
-  language change). This makes "Pick the pic" (several taxa per round) cheap on
+  language change). This makes "By picture" (several taxa per round) cheap on
   repeats.
 - **Gameplay makes zero network calls** in the photo/self-grade modes — rounds
   run off the cached deck and pre-fetched images.
