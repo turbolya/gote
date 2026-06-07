@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gote — menu design mock-ups</title>
+
+<!-- Ionicons (same icon set the app uses) -->
+<script type="module" src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
+
+<style>
+  /* ---- App palette (from src/theme.js) ---------------------------------- */
+  :root {
+    --primary:#5C8A1B; --primary-dark:#3F6212;
+    --bg:#FAFAF8; --card:#FFFFFF; --text:#1A1D1A; --muted:#8A8F86;
+    --faint:#F0F1ED; --border:#E7E8E3; --on-dark:#FFFFFF;
+
+    --green-fg:#3F6212;  --green-bg:#E9F1DB;
+    --blue-fg:#1D4ED8;   --blue-bg:#E2EAFF;
+    --violet-fg:#6D28D9; --violet-bg:#EEE7FE;
+    --amber-fg:#B45309;  --amber-bg:#FBEFD5;
+    --teal-fg:#0F766E;   --teal-bg:#D8F0ED;
+    --indigo-fg:#4338CA; --indigo-bg:#E6E7FB;
+    --rose-fg:#BE123C;   --rose-bg:#FCE3E9;
+    --slate-fg:#475569;  --slate-bg:#EEF1F5;
+  }
+
+  * { box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+  body {
+    margin:0; padding:40px 28px 80px;
+    background:#15171a;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+    color:#fff;
+  }
+  h1 { font-size:22px; font-weight:800; margin:0 0 4px; }
+  .lead { color:#9aa0a6; margin:0 0 28px; font-size:14px; max-width:760px; line-height:1.5; }
+
+  .stage { display:flex; gap:40px; flex-wrap:wrap; align-items:flex-start; }
+  .col { width:390px; }
+  .col h2 { font-size:15px; font-weight:700; margin:0 0 2px; }
+  .col p  { font-size:13px; color:#9aa0a6; margin:0 0 14px; line-height:1.45; min-height:34px; }
+
+  /* iPhone frame */
+  .phone {
+    width:390px; height:844px; border-radius:46px; background:var(--bg);
+    box-shadow:0 0 0 11px #0c0d0f, 0 24px 60px rgba(0,0,0,.55);
+    overflow:hidden; position:relative;
+  }
+  .statusbar {
+    height:54px; display:flex; align-items:flex-end; justify-content:space-between;
+    padding:0 30px 8px; font-size:15px; font-weight:600; color:var(--text);
+  }
+  .statusbar .dots { letter-spacing:2px; color:var(--muted); }
+  .screen { height:calc(100% - 54px); overflow:auto; padding:8px 20px 28px; }
+  .screen::-webkit-scrollbar { display:none; }
+
+  ion-icon { display:block; }
+
+  /* section label */
+  .section { font-size:13px; font-weight:800; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.8px; margin:22px 4px 10px; }
+
+  /* ====================================================================== */
+  /* OPTION A — calm list                                                   */
+  /* ====================================================================== */
+  .a-hero {
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    border-radius:26px; padding:20px 22px; color:#fff; position:relative; overflow:hidden;
+  }
+  .a-hero .title { font-size:34px; font-weight:900; letter-spacing:-.5px; }
+  .a-hero .sub { font-size:14px; opacity:.85; font-weight:600; margin-top:2px; }
+  .a-pill { display:inline-flex; align-items:center; gap:7px; margin-top:16px;
+    background:rgba(255,255,255,.16); border-radius:999px; padding:7px 13px;
+    font-size:12.5px; font-weight:700; }
+  .a-bars { position:absolute; inset:auto 0 0 0; height:46px; display:flex; align-items:flex-end;
+    gap:4px; opacity:.5; padding:0 6px; }
+  .a-bars i { flex:1; background:linear-gradient(to top,rgba(255,255,255,0),rgba(255,255,255,.7));
+    border-radius:2px 2px 0 0; }
+
+  .a-row { display:flex; align-items:center; gap:14px; background:var(--card);
+    border:1px solid var(--border); border-radius:18px; padding:13px 14px; margin-bottom:10px; }
+  .a-tile { width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center; }
+  .a-tile ion-icon { font-size:23px; }
+  .a-row .t { font-size:16.5px; font-weight:800; color:var(--text); }
+  .a-row .s { font-size:13px; color:var(--muted); margin-top:1px; }
+  .a-row .chev { margin-left:auto; color:var(--muted); font-size:18px; }
+
+  /* ====================================================================== */
+  /* OPTION B — tile grid                                                    */
+  /* ====================================================================== */
+  .b-hero { display:flex; align-items:center; gap:14px; padding:10px 4px 4px; }
+  .b-hero .logo { width:50px;height:50px;border-radius:16px;background:var(--green-bg);
+    display:flex;align-items:center;justify-content:center; }
+  .b-hero .logo ion-icon { font-size:26px; color:var(--green-fg); }
+  .b-hero .title { font-size:28px; font-weight:900; letter-spacing:-.5px; color:var(--text); }
+  .b-hero .sub { font-size:13px; color:var(--muted); margin-top:1px; }
+
+  .b-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .b-card { border-radius:20px; padding:16px; min-height:118px; display:flex; flex-direction:column;
+    justify-content:space-between; border:1px solid transparent; }
+  .b-card .ic { width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.6);
+    display:flex;align-items:center;justify-content:center; }
+  .b-card .ic ion-icon { font-size:22px; }
+  .b-card .t { font-size:16px; font-weight:800; color:var(--text); }
+  .b-card .s { font-size:11.5px; color:var(--muted); margin-top:2px; line-height:1.3; }
+  .b-card.wide { grid-column:1 / -1; min-height:0; flex-direction:row; align-items:center; gap:14px; }
+  .b-card.wide .body{flex:1}
+  .b-card.wide .chev{color:var(--muted);font-size:18px}
+
+  /* ====================================================================== */
+  /* OPTION C — featured + minimal                                          */
+  /* ====================================================================== */
+  .c-top { display:flex; align-items:center; justify-content:space-between; padding:8px 4px 14px; }
+  .c-top .title { font-size:30px; font-weight:900; letter-spacing:-.5px; color:var(--text); }
+  .c-top .sub { font-size:13px; color:var(--muted); margin-top:1px; }
+  .c-top .acc { text-align:right; }
+  .c-top .acc .n { font-size:26px; font-weight:900; color:var(--primary-dark); line-height:1; }
+  .c-top .acc .l { font-size:11px; color:var(--muted); }
+
+  .c-feature { background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    border-radius:24px; padding:22px; color:#fff; display:flex; align-items:center; gap:16px; margin-bottom:8px; }
+  .c-feature .ic { width:58px;height:58px;border-radius:18px;background:rgba(255,255,255,.18);
+    display:flex;align-items:center;justify-content:center; }
+  .c-feature .ic ion-icon { font-size:30px; }
+  .c-feature .t { font-size:21px; font-weight:900; }
+  .c-feature .s { font-size:13px; opacity:.85; margin-top:2px; }
+  .c-feature .go { margin-left:auto; font-size:24px; opacity:.9; }
+
+  .c-row { display:flex; align-items:center; gap:14px; padding:14px 6px; border-bottom:1px solid var(--border); }
+  .c-row:last-child { border-bottom:0; }
+  .c-row .ic { width:34px; display:flex; justify-content:center; color:var(--text); font-size:21px; }
+  .c-row .t { font-size:16px; font-weight:700; color:var(--text); }
+  .c-row .s { font-size:12.5px; color:var(--muted); margin-top:1px; }
+  .c-row .chev { margin-left:auto; color:var(--muted); font-size:18px; }
+  .c-group { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:2px 14px; margin-top:4px; }
+</style>
+</head>
+<body>
+  <h1>Gote — main-menu design mock-ups</h1>
+  <p class="lead">
+    Three directions for the menu, using the app's real colours and icons. Pick one
+    (or mix elements — e.g. "Option B grid but Option C's minimal icons") and I'll
+    build it into the real <code>MenuScreen</code>. Nothing here is wired into the app.
+  </p>
+
+  <div class="stage">
+
+    <!-- ============================ OPTION A ============================ -->
+    <div class="col">
+      <h2>Option A · Calm list</h2>
+      <p>An evolution of today's menu: same structure, but lighter — softer hero, flatter cards, more breathing room.</p>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="dots">●●●● 🔋</span></div>
+        <div class="screen">
+          <div class="a-hero">
+            <div class="a-bars">
+              <i style="height:60%"></i><i style="height:80%"></i><i style="height:55%"></i><i style="height:90%"></i><i style="height:70%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i><i style="height:75%"></i><i style="height:95%"></i><i style="height:60%"></i><i style="height:80%"></i>
+            </div>
+            <div class="title">Gote</div>
+            <div class="sub">mate_koch · 179 cards</div>
+            <div class="a-pill"><ion-icon name="stats-chart"></ion-icon> 87% lifetime · 412/473</div>
+          </div>
+
+          <div class="section">Play</div>
+          <div class="a-row"><div class="a-tile" style="background:var(--green-bg)"><ion-icon name="albums-outline" style="color:var(--green-fg)"></ion-icon></div><div><div class="t">Pick the name</div><div class="s">See a photo, choose its name</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+          <div class="a-row"><div class="a-tile" style="background:var(--blue-bg)"><ion-icon name="apps-outline" style="color:var(--blue-fg)"></ion-icon></div><div><div class="t">Pick the pic</div><div class="s">See a name, choose its photo</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+          <div class="a-row"><div class="a-tile" style="background:var(--amber-bg)"><ion-icon name="flash" style="color:var(--amber-fg)"></ion-icon></div><div><div class="t">Speedrun</div><div class="s">Endless cards — survive 3 misses</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+          <div class="a-row"><div class="a-tile" style="background:var(--teal-bg)"><ion-icon name="compass-outline" style="color:var(--teal-fg)"></ion-icon></div><div><div class="t">Nearby species</div><div class="s">Learn species typical to a place</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+          <div class="a-row"><div class="a-tile" style="background:var(--violet-bg)"><ion-icon name="options-outline" style="color:var(--violet-fg)"></ion-icon></div><div><div class="t">Custom game</div><div class="s">Choose how many cards and which groups</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+
+          <div class="section">Learn</div>
+          <div class="a-row"><div class="a-tile" style="background:var(--indigo-bg)"><ion-icon name="documents-outline" style="color:var(--indigo-fg)"></ion-icon></div><div><div class="t">Flash cards</div><div class="s">Reveal the answer, then grade yourself</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+          <div class="a-row"><div class="a-tile" style="background:var(--rose-bg)"><ion-icon name="library-outline" style="color:var(--rose-fg)"></ion-icon></div><div><div class="t">Lexicon</div><div class="s">Browse all your species</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+
+          <div class="section">Settings</div>
+          <div class="a-row"><div class="a-tile" style="background:var(--slate-bg)"><ion-icon name="stats-chart-outline" style="color:var(--slate-fg)"></ion-icon></div><div><div class="t">Statistics</div><div class="s">Accuracy, best-known and most-missed</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+          <div class="a-row"><div class="a-tile" style="background:var(--slate-bg)"><ion-icon name="settings-outline" style="color:var(--slate-fg)"></ion-icon></div><div><div class="t">Settings</div><div class="s">Account, language and study options</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ OPTION B ============================ -->
+    <div class="col">
+      <h2>Option B · Tile grid</h2>
+      <p>Game-launcher feel: a compact header, then Play as big two-up colour tiles. Learn &amp; Settings as slim full-width rows.</p>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="dots">●●●● 🔋</span></div>
+        <div class="screen">
+          <div class="b-hero">
+            <div class="logo"><ion-icon name="leaf-outline"></ion-icon></div>
+            <div><div class="title">Gote</div><div class="sub">mate_koch · 179 cards · 87%</div></div>
+          </div>
+
+          <div class="section">Play</div>
+          <div class="b-grid">
+            <div class="b-card" style="background:var(--green-bg)"><div class="ic"><ion-icon name="albums-outline" style="color:var(--green-fg)"></ion-icon></div><div><div class="t">Pick the name</div><div class="s">Photo → name</div></div></div>
+            <div class="b-card" style="background:var(--blue-bg)"><div class="ic"><ion-icon name="apps-outline" style="color:var(--blue-fg)"></ion-icon></div><div><div class="t">Pick the pic</div><div class="s">Name → photo</div></div></div>
+            <div class="b-card" style="background:var(--amber-bg)"><div class="ic"><ion-icon name="flash" style="color:var(--amber-fg)"></ion-icon></div><div><div class="t">Speedrun</div><div class="s">Survive 3 misses</div></div></div>
+            <div class="b-card" style="background:var(--teal-bg)"><div class="ic"><ion-icon name="compass-outline" style="color:var(--teal-fg)"></ion-icon></div><div><div class="t">Nearby</div><div class="s">Species near you</div></div></div>
+            <div class="b-card wide" style="background:var(--violet-bg)"><div class="ic"><ion-icon name="options-outline" style="color:var(--violet-fg)"></ion-icon></div><div class="body"><div class="t">Custom game</div><div class="s">Choose count and groups</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+          </div>
+
+          <div class="section">Learn</div>
+          <div class="b-card wide" style="background:var(--indigo-bg);margin-bottom:10px"><div class="ic"><ion-icon name="documents-outline" style="color:var(--indigo-fg)"></ion-icon></div><div class="body"><div class="t">Flash cards</div><div class="s">Reveal, then self-grade</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+          <div class="b-card wide" style="background:var(--rose-bg)"><div class="ic"><ion-icon name="library-outline" style="color:var(--rose-fg)"></ion-icon></div><div class="body"><div class="t">Lexicon</div><div class="s">Browse all your species</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+
+          <div class="section">Settings</div>
+          <div class="b-card wide" style="background:var(--card);border-color:var(--border);margin-bottom:10px"><div class="ic" style="background:var(--slate-bg)"><ion-icon name="stats-chart-outline" style="color:var(--slate-fg)"></ion-icon></div><div class="body"><div class="t">Statistics</div><div class="s">Accuracy &amp; history</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+          <div class="b-card wide" style="background:var(--card);border-color:var(--border)"><div class="ic" style="background:var(--slate-bg)"><ion-icon name="settings-outline" style="color:var(--slate-fg)"></ion-icon></div><div class="body"><div class="t">Settings</div><div class="s">Account &amp; options</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ OPTION C ============================ -->
+    <div class="col">
+      <h2>Option C · Featured + minimal</h2>
+      <p>One inviting featured action up top, the rest as a clean, mono-icon list. Most whitespace, least colour.</p>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="dots">●●●● 🔋</span></div>
+        <div class="screen">
+          <div class="c-top">
+            <div><div class="title">Gote</div><div class="sub">mate_koch · 179 cards</div></div>
+            <div class="acc"><div class="n">87%</div><div class="l">accuracy</div></div>
+          </div>
+
+          <div class="c-feature">
+            <div class="ic"><ion-icon name="albums-outline"></ion-icon></div>
+            <div><div class="t">Pick the name</div><div class="s">Jump back in — photo → name</div></div>
+            <ion-icon class="go" name="play-circle"></ion-icon>
+          </div>
+
+          <div class="section">Play</div>
+          <div class="c-group">
+            <div class="c-row"><span class="ic"><ion-icon name="apps-outline"></ion-icon></span><div><div class="t">Pick the pic</div><div class="s">See a name, choose its photo</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+            <div class="c-row"><span class="ic"><ion-icon name="flash-outline"></ion-icon></span><div><div class="t">Speedrun</div><div class="s">Endless — survive 3 misses</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+            <div class="c-row"><span class="ic"><ion-icon name="compass-outline"></ion-icon></span><div><div class="t">Nearby species</div><div class="s">Typical to a place</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+            <div class="c-row"><span class="ic"><ion-icon name="options-outline"></ion-icon></span><div><div class="t">Custom game</div><div class="s">Count and groups</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+          </div>
+
+          <div class="section">Learn</div>
+          <div class="c-group">
+            <div class="c-row"><span class="ic"><ion-icon name="documents-outline"></ion-icon></span><div><div class="t">Flash cards</div><div class="s">Reveal, then self-grade</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+            <div class="c-row"><span class="ic"><ion-icon name="library-outline"></ion-icon></span><div><div class="t">Lexicon</div><div class="s">Browse all your species</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+          </div>
+
+          <div class="section">Settings</div>
+          <div class="c-group">
+            <div class="c-row"><span class="ic"><ion-icon name="stats-chart-outline"></ion-icon></span><div><div class="t">Statistics</div><div class="s">Accuracy &amp; history</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+            <div class="c-row"><span class="ic"><ion-icon name="settings-outline"></ion-icon></span><div><div class="t">Settings</div><div class="s">Account &amp; options</div></div><ion-icon class="chev" name="chevron-forward"></ion-icon></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
