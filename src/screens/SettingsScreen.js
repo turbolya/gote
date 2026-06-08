@@ -260,6 +260,9 @@ export default function SettingsScreen({
             />
           </View>
         </View>
+        <Text style={styles.accountHint}>
+          Only your ~1,000 most recent observations are loaded.
+        </Text>
 
         {!!error && <Text style={styles.error}>{error}</Text>}
 
@@ -526,6 +529,13 @@ const makeStyles = (colors) => StyleSheet.create({
     marginBottom: 8,
     marginLeft: 2,
     lineHeight: 18,
+  },
+  accountHint: {
+    fontSize: 12.5,
+    color: colors.muted,
+    marginTop: 6,
+    marginLeft: 2,
+    lineHeight: 17,
   },
 
   // Appearance: a 3-way segmented control.
