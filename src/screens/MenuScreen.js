@@ -7,12 +7,12 @@
 // clean minimal sections — flat lists with hairline dividers and accent icons.
 
 import React, { useRef, useState } from 'react';
-import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Animated, Linking, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import { useTheme, useThemedStyles } from '../theme';
-import { SPEEDRUN_LIVES } from '../constants';
+import { SPEEDRUN_LIVES, KOFI_URL } from '../constants';
 
 // The hero gradient is the brand green in both themes (white text reads well on
 // it either way), so it's intentionally not theme-dependent. Three stops give it
@@ -142,6 +142,16 @@ export default function MenuScreen({
           <Row first testID="open-stats" icon="stats-chart-outline" accent={accents.rose} title="Statistics" sub="Accuracy, best-known and most-missed" onPress={onStats} />
           <Row testID="open-settings" icon="settings-outline" accent={accents.slate} title="Settings" sub="Account, language and study options" onPress={onSettings} />
         </View>
+
+        {/* Quiet support link at the very bottom — deliberately low-key. */}
+        <Pressable
+          testID="menu-kofi"
+          onPress={() => Linking.openURL(KOFI_URL).catch(() => {})}
+          style={({ pressed }) => [styles.kofi, pressed && styles.kofiPressed]}
+        >
+          <Icon name="cafe-outline" size={16} color={colors.muted} />
+          <Text style={styles.kofiText}>Buy me a coffee</Text>
+        </Pressable>
       </Animated.ScrollView>
 
       {/* Full-bleed collapsing hero banner (pinned on top). */}
@@ -251,4 +261,15 @@ const makeStyles = (colors) => StyleSheet.create({
   rowIcon: { width: 28, textAlign: 'center' },
   rowTitle: { fontSize: 16.5, fontWeight: '700', color: colors.text },
   rowSub: { fontSize: 13, color: colors.muted, marginTop: 1 },
+
+  kofi: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: 30,
+    paddingVertical: 10,
+  },
+  kofiPressed: { opacity: 0.55 },
+  kofiText: { fontSize: 13.5, fontWeight: '600', color: colors.muted },
 });

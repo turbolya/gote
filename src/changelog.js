@@ -8,9 +8,16 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.3.1';
+export const APP_VERSION = '2.3.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.3.2',
+    date: '2026-06-08',
+    changes: [
+      'Moved “Buy me a coffee” to a quiet link at the bottom of the main menu.',
+    ],
+  },
   {
     version: '2.3.1',
     date: '2026-06-08',
