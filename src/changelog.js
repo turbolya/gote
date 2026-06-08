@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.3.0';
+export const APP_VERSION = '2.3.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.3.1',
+    date: '2026-06-08',
+    changes: [
+      'Polished the menu banner: roomier collapsed state and a richer green '
+        + 'gradient.',
+    ],
+  },
   {
     version: '2.3.0',
     date: '2026-06-08',

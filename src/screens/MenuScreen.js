@@ -15,12 +15,13 @@ import { useTheme, useThemedStyles } from '../theme';
 import { SPEEDRUN_LIVES } from '../constants';
 
 // The hero gradient is the brand green in both themes (white text reads well on
-// it either way), so it's intentionally not theme-dependent.
-const HERO_GRADIENT = ['#5C8A1B', '#3F6212'];
+// it either way), so it's intentionally not theme-dependent. Three stops give it
+// a clearly non-uniform, diagonal shade.
+const HERO_GRADIENT = ['#74A82C', '#4C7818', '#345610'];
 
 // Hero heights (excluding the top safe-area inset).
-const EXPANDED = 152;
-const COLLAPSED = 56;
+const EXPANDED = 162;
+const COLLAPSED = 74;
 const RANGE = EXPANDED - COLLAPSED;
 
 // Background accuracy-chart geometry.
