@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.2.2';
+export const APP_VERSION = '2.3.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.3.0',
+    date: '2026-06-08',
+    changes: [
+      'The menu header is now a full-width banner that reaches the top edge '
+        + 'and collapses into a compact bar as you scroll.',
+    ],
+  },
   {
     version: '2.2.2',
     date: '2026-06-08',

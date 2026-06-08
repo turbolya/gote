@@ -710,6 +710,36 @@ export default function App() {
     );
   }
 
+  // Menu renders full-bleed (its hero banner reaches the very top edge), so it
+  // lives OUTSIDE the SafeAreaView and insets its own content. Status bar is
+  // light because the green hero is always behind it.
+  if (screen === 'menu') {
+    return (
+      <ThemeProvider value={theme}>
+        <SafeAreaProvider>
+          <View style={styles.menuRoot}>
+            <StatusBar style="light" />
+            <MenuScreen
+              username={username}
+              deckCount={fullDeck.length}
+              lifetime={lifetime}
+              history={history}
+              onSelectMode={onSelectMode}
+              onLexicon={() => setScreen('lexicon')}
+              onStats={() => setScreen('stats')}
+              onSettings={() => {
+                setError(null);
+                setScreen('settings');
+              }}
+            />
+          </View>
+          {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+          <SupportModal visible={showSupport} onClose={() => setShowSupport(false)} />
+        </SafeAreaProvider>
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider value={theme}>
     <SafeAreaProvider>
@@ -774,22 +804,6 @@ export default function App() {
                 applyCurrentFilters(prefs);
                 setScreen('menu');
               }
-            }}
-          />
-        )}
-
-        {screen === 'menu' && (
-          <MenuScreen
-            username={username}
-            deckCount={fullDeck.length}
-            lifetime={lifetime}
-            history={history}
-            onSelectMode={onSelectMode}
-            onLexicon={() => setScreen('lexicon')}
-            onStats={() => setScreen('stats')}
-            onSettings={() => {
-              setError(null);
-              setScreen('settings');
             }}
           />
         )}
@@ -904,6 +918,8 @@ const makeStyles = (colors) => StyleSheet.create({
   // The study screen is full-bleed: its photo backdrop must reach every edge,
   // so no safe-area padding here (StudyScreen insets its own chrome).
   studyRoot: { flex: 1, backgroundColor: '#1A1D1A' },
+  // Menu is full-bleed (hero reaches the top edge); MenuScreen insets its content.
+  menuRoot: { flex: 1, backgroundColor: colors.bg },
   // Pick-the-right-one owns its own insets too.
   pickRoot: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
