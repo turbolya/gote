@@ -84,6 +84,19 @@ export default function MenuScreen({
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
+  // Soft drop shadow that fades in as the banner collapses (lifts it off the
+  // list). iOS uses shadow*, Android uses elevation — both animate on the JS
+  // driver alongside the height/opacity above.
+  const shadowOpacity = scrollY.interpolate({
+    inputRange: [0, RANGE],
+    outputRange: [0, 0.18],
+    extrapolate: 'clamp',
+  });
+  const elevation = scrollY.interpolate({
+    inputRange: [0, RANGE],
+    outputRange: [0, 8],
+    extrapolate: 'clamp',
+  });
 
   const playModes = [
     { key: 'all', icon: 'albums-outline', accent: accents.green, title: 'By name', sub: 'See a photo, choose its name' },
@@ -155,7 +168,10 @@ export default function MenuScreen({
 
       {/* Full-bleed collapsing hero banner (pinned on top). The whole banner —
           lifetime accuracy + recent-games chart — is tappable, opening Stats. */}
-      <Animated.View style={[styles.hero, { height: headerHeight }]}>
+      <Animated.View
+        style={[styles.hero, { height: headerHeight, shadowOpacity, elevation }]}
+      >
+        <View style={styles.heroClip}>
         <Pressable testID="menu-stats" onPress={onStats} style={styles.flex}>
         <LinearGradient
           colors={HERO_GRADIENT}
@@ -195,6 +211,7 @@ export default function MenuScreen({
           )}
         </View>
         </Pressable>
+        </View>
       </Animated.View>
     </View>
   );
@@ -204,14 +221,18 @@ const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
   container: { paddingHorizontal: 20, paddingBottom: 44 },
 
-  // Full-bleed collapsing hero
+  // Full-bleed collapsing hero. The shadow lives here (no overflow clipping so
+  // it can spill below); the inner heroClip clips the gradient/chart to height.
   hero: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
   },
+  heroClip: { flex: 1, overflow: 'hidden' },
   barsLayer: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   chart: {
     ...StyleSheet.absoluteFillObject,
