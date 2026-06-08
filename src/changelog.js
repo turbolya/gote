@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.2.1';
+export const APP_VERSION = '2.2.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.2.2',
+    date: '2026-06-08',
+    changes: [
+      'Brought back the menu’s header card with the recent-accuracy chart, '
+        + 'now alongside the minimal sections.',
+    ],
+  },
   {
     version: '2.2.1',
     date: '2026-06-08',
