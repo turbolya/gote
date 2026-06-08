@@ -1,29 +1,48 @@
-// Shared colors and small helpers used across the app.
+// Shared colors, theming (light / dark / follow-system) and small helpers.
 //
-// Design language: clean, modern, near-monotone. A single restrained green
-// accent over neutral grays; no colorful icons or emoji (we use Feather line
-// icons via src/components/Icon.js instead).
+// Components read the ACTIVE palette via `useTheme()` (or `useColors()`), and
+// build their StyleSheets from it with a `makeStyles(colors[, accents])` factory
+// so they re-style when the theme changes. The static `colors` / `accents`
+// exports remain (light) as a fallback for any non-themed use.
 
-export const colors = {
-  primary: '#5C8A1B',      // muted iNaturalist green (accent)
+import { createContext, useContext, useMemo } from 'react';
+
+export const lightColors = {
+  primary: '#5C8A1B', // muted iNaturalist green (accent)
   primaryDark: '#3F6212',
   accent: '#3B82F6',
-  bg: '#FAFAF8',           // soft off-white
+  bg: '#FAFAF8', // soft off-white
   card: '#FFFFFF',
-  text: '#1A1D1A',         // near-black
-  muted: '#8A8F86',        // neutral gray for secondary text
-  faint: '#F0F1ED',        // subtle fills / pressed states
+  text: '#1A1D1A', // near-black
+  muted: '#8A8F86', // neutral gray for secondary text
+  faint: '#F0F1ED', // subtle fills / pressed states
   correct: '#3F9D52',
   wrong: '#D9534F',
   border: '#E7E8E3',
   shadow: '#000000',
-  onDark: '#FFFFFF',       // text/icons over photo backdrops
+  onDark: '#FFFFFF', // text/icons over photo backdrops
 };
 
-// Soft tinted accents for icon tiles (a saturated foreground glyph on a pale
-// fill). Gives the menu and settings rows a modern, lively-but-restrained feel
-// without resorting to colorful icons everywhere. `bg` = tile fill, `fg` = glyph.
-export const accents = {
+export const darkColors = {
+  primary: '#8CC63F', // brighter green so it reads on dark
+  primaryDark: '#A8D672', // used as an accent/heading colour on dark
+  accent: '#7CA2F0',
+  bg: '#121412',
+  card: '#1C1F1B',
+  text: '#ECEEEA',
+  muted: '#9AA096',
+  faint: '#262A23', // subtle fills / pressed states
+  correct: '#5BBE6A',
+  wrong: '#E5736F',
+  border: '#30342C',
+  shadow: '#000000',
+  onDark: '#FFFFFF', // photos are dark backdrops in both themes
+};
+
+// Tinted accents. With the Minimal design these are mainly used as `fg` (the
+// icon colour); `bg` is kept for any tinted-tile use. Dark variants brighten the
+// foregrounds so icons stay legible on dark surfaces.
+export const accentsLight = {
   green: { fg: '#3F6212', bg: '#E9F1DB' },
   blue: { fg: '#1D4ED8', bg: '#E2EAFF' },
   violet: { fg: '#6D28D9', bg: '#EEE7FE' },
@@ -33,6 +52,58 @@ export const accents = {
   rose: { fg: '#BE123C', bg: '#FCE3E9' },
   slate: { fg: '#475569', bg: '#EEF1F5' },
 };
+
+export const accentsDark = {
+  green: { fg: '#9CCC5A', bg: '#26321A' },
+  blue: { fg: '#8FB0F4', bg: '#1B2440' },
+  violet: { fg: '#B79BF2', bg: '#271F40' },
+  amber: { fg: '#E0A23C', bg: '#332514' },
+  teal: { fg: '#56C3BB', bg: '#16302D' },
+  indigo: { fg: '#9AA0F0', bg: '#222448' },
+  rose: { fg: '#E78AA0', bg: '#3A1C26' },
+  slate: { fg: '#9FB0C2', bg: '#22272E' },
+};
+
+// Light is the default/fallback for any static import.
+export const colors = lightColors;
+export const accents = accentsLight;
+
+// The three user-selectable theme modes.
+export const THEME_MODES = ['light', 'dark', 'system'];
+
+// Resolve a mode + the OS scheme into a concrete 'light' | 'dark' scheme.
+export function resolveScheme(mode, systemScheme) {
+  if (mode === 'light' || mode === 'dark') return mode;
+  return systemScheme === 'dark' ? 'dark' : 'light';
+}
+
+// Full theme object for a given scheme.
+export function themeFor(scheme) {
+  return scheme === 'dark'
+    ? { scheme: 'dark', colors: darkColors, accents: accentsDark }
+    : { scheme: 'light', colors: lightColors, accents: accentsLight };
+}
+
+const ThemeContext = createContext(themeFor('light'));
+export const ThemeProvider = ThemeContext.Provider;
+
+export function useTheme() {
+  return useContext(ThemeContext);
+}
+export function useColors() {
+  return useContext(ThemeContext).colors;
+}
+export function useAccents() {
+  return useContext(ThemeContext).accents;
+}
+
+// Build a StyleSheet from the active palette, memoized per theme. Usage:
+//   const makeStyles = (colors, accents) => StyleSheet.create({ ... });
+//   const styles = useThemedStyles(makeStyles);
+export function useThemedStyles(factory) {
+  const { colors: c, accents: a } = useContext(ThemeContext);
+  return useMemo(() => factory(c, a), [factory, c, a]);
+}
 
 // Friendly group names for iNaturalist "iconic taxa" — used by the custom-game
 // filter. (iNat groups everything into these broad categories; finer splits

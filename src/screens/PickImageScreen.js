@@ -21,7 +21,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
 import PhotoViewer from '../components/PhotoViewer';
-import { colors } from '../theme';
+import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonPhotos } from '../api';
 import { IS_E2E } from '../e2e/testMode';
 
@@ -40,6 +40,8 @@ export default function PickImageScreen({
   onNext,
   onQuit,
 }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const [picked, setPicked] = useState(null); // taxonId of the tapped tile
   const answered = picked != null;
@@ -263,7 +265,7 @@ export default function PickImageScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: 20 },
   e2eHidden: { position: 'absolute', top: 0, left: 0, width: 1, height: 1, opacity: 0.01 },
   topBar: {

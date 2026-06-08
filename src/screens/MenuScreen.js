@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import Icon from '../components/Icon';
-import { colors, accents } from '../theme';
+import { useTheme, useThemedStyles } from '../theme';
 import { SPEEDRUN_LIVES } from '../constants';
 
 // Recent-accuracy sparkline geometry.
@@ -19,6 +19,7 @@ const BAR_GAP = 3;
 // newest, left → right). Only the newest bars that fit are shown.
 function AccuracyBars({ data = [] }) {
   const [width, setWidth] = useState(0);
+  const styles = useThemedStyles(makeStyles);
   if (!data.length) return null;
   const maxBars =
     width > 0 ? Math.max(1, Math.floor((width + BAR_GAP) / (BAR_W + BAR_GAP))) : 0;
@@ -46,6 +47,8 @@ export default function MenuScreen({
   onStats,
   onSettings,
 }) {
+  const { colors, accents } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const lifetimePct =
     lifetime && lifetime.answered > 0
       ? Math.round((lifetime.correct / lifetime.answered) * 100)
@@ -119,7 +122,7 @@ export default function MenuScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 22, paddingTop: 28, paddingBottom: 44 },
 

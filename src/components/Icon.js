@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme';
+import { useColors } from '../theme';
 
 // Feather name (used throughout the app) → Ionicons name.
 const MAP = {
@@ -51,8 +51,9 @@ const MAP = {
   target: 'flag',
 };
 
-export default function Icon({ name, size = 22, color = colors.text, style }) {
+export default function Icon({ name, size = 22, color, style }) {
+  const colors = useColors();
   // Allow passing an Ionicons name straight through (anything not in the map).
   const ion = MAP[name] || name;
-  return <Ionicons name={ion} size={size} color={color} style={style} />;
+  return <Ionicons name={ion} size={size} color={color ?? colors.text} style={style} />;
 }

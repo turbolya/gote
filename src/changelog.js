@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.1.1';
+export const APP_VERSION = '2.2.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.2.0',
+    date: '2026-06-08',
+    changes: [
+      'Dark mode! Choose Light, Dark, or Follow system in Settings → '
+        + 'Appearance.',
+    ],
+  },
   {
     version: '2.1.1',
     date: '2026-06-07',

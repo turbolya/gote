@@ -19,6 +19,7 @@ import {
   StatusBar as RNStatusBar,
   Platform,
   StyleSheet,
+  useColorScheme,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -59,7 +60,7 @@ import {
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE } from './src/constants';
 import { buildPickRound } from './src/quiz';
 import { prefetchImages } from './src/prefetch';
-import { groupKey } from './src/theme';
+import { groupKey, ThemeProvider, themeFor, resolveScheme } from './src/theme';
 import { IS_E2E } from './src/e2e/testMode';
 import { E2E_CARDS } from './src/e2e/fixtures';
 import MenuScreen from './src/screens/MenuScreen';
@@ -76,7 +77,6 @@ import LegalScreen from './src/screens/LegalScreen';
 import NearbyConfigScreen from './src/screens/NearbyConfigScreen';
 import SplashScreen from './src/components/SplashScreen';
 import SupportModal from './src/components/SupportModal';
-import { colors } from './src/theme';
 
 const pickRandom = (cards, n) => shuffle(cards).slice(0, n);
 
@@ -103,6 +103,27 @@ export default function App() {
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
   const [researchGrade, setResearchGrade] = useState(false);
   const [speciesOnly, setSpeciesOnly] = useState(false);
+
+  // Theme: 'light' | 'dark' | 'system'. The active palette is provided to the
+  // whole tree via ThemeProvider; styles read it through useThemedStyles.
+  const [themeMode, setThemeMode] = useState('system');
+  const systemScheme = useColorScheme();
+  const theme = useMemo(
+    () => themeFor(resolveScheme(themeMode, systemScheme)),
+    [themeMode, systemScheme]
+  );
+  const colors = theme.colors;
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const statusBarStyle = theme.scheme === 'dark' ? 'light' : 'dark';
+
+  // Change + persist the theme mode (applies immediately, app-wide).
+  const onThemeModeChange = useCallback(
+    (mode) => {
+      setThemeMode(mode);
+      savePrefs({ perSpecies, locale, researchGrade, speciesOnly, themeMode: mode });
+    },
+    [perSpecies, locale, researchGrade, speciesOnly]
+  );
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ loaded: 0, total: 0 });
   const [lifetime, setLifetime] = useState({ answered: 0, correct: 0 });
@@ -332,10 +353,12 @@ export default function App() {
       const loc = (savedPrefs && savedPrefs.locale) || DEFAULT_LOCALE;
       const rg = !!(savedPrefs && savedPrefs.researchGrade);
       const so = !!(savedPrefs && savedPrefs.speciesOnly);
+      const tm = (savedPrefs && savedPrefs.themeMode) || 'system';
       setPerSpecies(ps);
       setLocale(loc);
       setResearchGrade(rg);
       setSpeciesOnly(so);
+      setThemeMode(tm);
       // Seed the ref now: the startup background sync fires before React re-renders
       // with these values, and must filter by the saved prefs, not the defaults.
       prefsRef.current = { perSpecies: ps, researchGrade: rg, speciesOnly: so };
@@ -609,14 +632,16 @@ export default function App() {
   // boxes. Proceed anyway if loading errored (better a missing icon than a hang).
   if (!iconFontsLoaded && !iconFontError) {
     return (
-      <SafeAreaProvider>
-        <SafeAreaView style={styles.safe}>
-          <StatusBar style="dark" />
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        </SafeAreaView>
-      </SafeAreaProvider>
+      <ThemeProvider value={theme}>
+        <SafeAreaProvider>
+          <SafeAreaView style={styles.safe}>
+            <StatusBar style={statusBarStyle} />
+            <View style={styles.center}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          </SafeAreaView>
+        </SafeAreaProvider>
+      </ThemeProvider>
     );
   }
 
@@ -625,6 +650,7 @@ export default function App() {
   // insets internally to just its chrome.
   if (screen === 'study' && deck.length > 0) {
     return (
+      <ThemeProvider value={theme}>
       <SafeAreaProvider>
         <View style={styles.studyRoot}>
           <StatusBar style="light" />
@@ -647,15 +673,17 @@ export default function App() {
         </View>
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
       </SafeAreaProvider>
+      </ThemeProvider>
     );
   }
 
   // "Pick the right one" renders full-bleed (it owns its insets), like study.
   if (screen === 'pick') {
     return (
+      <ThemeProvider value={theme}>
       <SafeAreaProvider>
         <View style={styles.pickRoot}>
-          <StatusBar style="dark" />
+          <StatusBar style={statusBarStyle} />
           <PickImageScreen
             round={pickRound}
             index={index}
@@ -678,13 +706,15 @@ export default function App() {
         </View>
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
       </SafeAreaProvider>
+      </ThemeProvider>
     );
   }
 
   return (
+    <ThemeProvider value={theme}>
     <SafeAreaProvider>
       <SafeAreaView style={styles.safe}>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
 
         {screen === 'loading' && (
           <View style={styles.center}>
@@ -707,6 +737,8 @@ export default function App() {
             locale={locale}
             researchGrade={researchGrade}
             speciesOnly={speciesOnly}
+            themeMode={themeMode}
+            onThemeModeChange={onThemeModeChange}
             error={error}
             sync={sync}
             onUpdateNow={
@@ -727,7 +759,7 @@ export default function App() {
                 researchGrade: prefs.researchGrade,
                 speciesOnly: prefs.speciesOnly,
               };
-              savePrefs(prefs);
+              savePrefs({ ...prefs, themeMode });
               // Re-download only when the account identity changes (username or
               // language). The toggles are local filters, so just re-derive the
               // deck and stay put — no network needed.
@@ -859,10 +891,11 @@ export default function App() {
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
       <SupportModal visible={showSupport} onClose={() => setShowSupport(false)} />
     </SafeAreaProvider>
+    </ThemeProvider>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: colors.bg,

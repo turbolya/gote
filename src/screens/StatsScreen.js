@@ -12,11 +12,12 @@ import {
 } from 'react-native';
 import Icon from '../components/Icon';
 import ScreenHeader from '../components/ScreenHeader';
-import { colors } from '../theme';
+import { useColors, useThemedStyles } from '../theme';
 
 const TOP_N = 8;
 
 function Leaderboard({ title, icon, iconColor, rows, countKey, countColor }) {
+  const styles = useThemedStyles(makeStyles);
   if (rows.length === 0) return null;
   return (
     <View style={styles.board}>
@@ -48,6 +49,8 @@ function Leaderboard({ title, icon, iconColor, rows, countKey, countColor }) {
 }
 
 export default function StatsScreen({ species, lifetime, onBack, onReset }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const list = useMemo(
     () =>
       Object.entries(species || {}).map(([key, s]) => ({ key, ...s })),
@@ -150,7 +153,7 @@ export default function StatsScreen({ species, lifetime, onBack, onReset }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 20, paddingBottom: 40 },
   summary: {

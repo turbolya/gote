@@ -16,7 +16,7 @@ import * as Location from 'expo-location';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import GroupIcon from '../components/GroupIcon';
-import { colors, groupLabel, groupIcon } from '../theme';
+import { useColors, useThemedStyles, groupLabel, groupIcon } from '../theme';
 import { searchPlaces } from '../api';
 
 // The groups offered for nearby play (iconic taxon → label). Ordered for a
@@ -37,6 +37,8 @@ const GROUPS = [
 const RADII = [10, 25, 50, 100];
 
 export default function NearbyConfigScreen({ onBack, onStart }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   // Selected location: { lat, lng, name } | null.
   const [place, setPlace] = useState(null);
   const [query, setQuery] = useState('');
@@ -252,7 +254,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 24, paddingTop: 12 },
   label: {

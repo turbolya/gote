@@ -15,13 +15,15 @@ import {
   StyleSheet,
 } from 'react-native';
 import Icon from '../components/Icon';
-import { colors } from '../theme';
+import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonDetail, toLargePhoto } from '../api';
 
 // Ranks worth surfacing in the taxonomy block (skip the very fine sub-ranks).
 const SHOWN_RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 
 export default function DetailScreen({ card, locale, onBack }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -147,7 +149,7 @@ export default function DetailScreen({ card, locale, onBack }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
   scroll: { paddingBottom: 40 },
   hero: { width: '100%', aspectRatio: 1.1, backgroundColor: colors.faint },

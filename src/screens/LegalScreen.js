@@ -5,13 +5,15 @@
 import React from 'react';
 import { View, Text, Pressable, ScrollView, Linking, StyleSheet } from 'react-native';
 import ScreenHeader from '../components/ScreenHeader';
-import { colors } from '../theme';
+import { useThemedStyles } from '../theme';
 
 function Para({ children }) {
+  const styles = useThemedStyles(makeStyles);
   return <Text style={styles.para}>{children}</Text>;
 }
 
 function Link({ url, children }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Text style={styles.link} onPress={() => Linking.openURL(url)}>
       {children}
@@ -20,6 +22,7 @@ function Link({ url, children }) {
 }
 
 export default function LegalScreen({ onBack }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.flex}>
       <ScreenHeader title="Data & licensing" onBack={onBack} backLabel="Settings" />
@@ -82,7 +85,7 @@ export default function LegalScreen({ onBack }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 20, paddingBottom: 40 },
   heading: {

@@ -12,11 +12,13 @@ import {
   FlatList,
   StyleSheet,
 } from 'react-native';
-import { colors } from '../theme';
+import { useColors, useThemedStyles } from '../theme';
 import Icon from './Icon';
 import { LANGUAGES, languageByCode } from '../constants';
 
 export default function LanguageDropdown({ value, onChange }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -120,7 +122,7 @@ export default function LanguageDropdown({ value, onChange }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
   field: {
     flexDirection: 'row',

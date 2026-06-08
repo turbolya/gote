@@ -5,7 +5,7 @@
 import React from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import Icon from '../components/Icon';
-import { colors } from '../theme';
+import { useColors, useThemedStyles } from '../theme';
 
 const FLAG_ON = '#E0A800'; // amber for an active flag
 
@@ -44,6 +44,8 @@ export default function ResultsScreen({
   flags,
   onToggleFlag,
 }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const speedrun = mode === 'speedrun';
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
   const { icon, msg } = speedrun ? streakGrade(correct) : grade(pct);
@@ -183,7 +185,7 @@ export default function ResultsScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
   topBar: {
     flexDirection: 'row',

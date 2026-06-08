@@ -5,9 +5,11 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Icon from './Icon';
-import { colors } from '../theme';
+import { useColors, useThemedStyles } from '../theme';
 
 export default function ScreenHeader({ title, onBack }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.topBar}>
       <Pressable
@@ -24,7 +26,7 @@ export default function ScreenHeader({ title, onBack }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',

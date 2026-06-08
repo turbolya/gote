@@ -21,7 +21,7 @@ import {
   Platform,
 } from 'react-native';
 import { APP_VERSION } from '../changelog';
-import { colors, accents } from '../theme';
+import { useTheme, useColors, useThemedStyles } from '../theme';
 import { DEFAULT_LOCALE, KOFI_URL } from '../constants';
 import { getCacheSize, clearCache, formatBytes } from '../cache';
 import Icon from '../components/Icon';
@@ -103,6 +103,8 @@ function timeAgo(ts) {
 
 // A small tinted icon tile shared by every settings row.
 function Tile({ icon, accent, dim }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.tile}>
       <Icon name={icon} size={22} color={dim ? colors.muted : accent.fg} />
@@ -112,6 +114,8 @@ function Tile({ icon, accent, dim }) {
 
 // A labelled switch row inside a section card.
 function SwitchRow({ icon, accent, label, hint, value, onValueChange, disabled, dim }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.row}>
       <Tile icon={icon} accent={accent} dim={dim} />
@@ -132,6 +136,8 @@ function SwitchRow({ icon, accent, label, hint, value, onValueChange, disabled, 
 
 // A tappable navigation row (opens a screen / external link).
 function NavRow({ icon, accent, label, trailing = 'chevron-right', onPress, testID }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable
       testID={testID}
@@ -151,6 +157,8 @@ export default function SettingsScreen({
   locale: initialLocale,
   researchGrade: initialResearchGrade,
   speciesOnly: initialSpeciesOnly,
+  themeMode,
+  onThemeModeChange,
   error,
   sync,
   onUpdateNow,
@@ -159,6 +167,8 @@ export default function SettingsScreen({
   onSave,
   onBack,
 }) {
+  const { colors, accents } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [username, setUsername] = useState(initialUsername || '');
   const [perSpecies, setPerSpecies] = useState(initialPerSpecies !== false);
   const [locale, setLocale] = useState(initialLocale || DEFAULT_LOCALE);
@@ -262,6 +272,29 @@ export default function SettingsScreen({
           <Icon name="save-outline" size={18} color="#fff" />
           <Text style={styles.buttonText}>Save</Text>
         </Pressable>
+
+        {/* Appearance */}
+        <Text style={styles.section}>Appearance</Text>
+        <View style={styles.themeRow}>
+          {[
+            ['light', 'Light', 'sunny-outline'],
+            ['dark', 'Dark', 'moon-outline'],
+            ['system', 'System', 'phone-portrait-outline'],
+          ].map(([mode, label, icon]) => {
+            const on = themeMode === mode;
+            return (
+              <Pressable
+                key={mode}
+                testID={`theme-${mode}`}
+                onPress={() => onThemeModeChange && onThemeModeChange(mode)}
+                style={[styles.themeOption, on && styles.themeOptionOn]}
+              >
+                <Icon name={icon} size={22} color={on ? colors.primaryDark : colors.muted} />
+                <Text style={[styles.themeLabel, on && styles.themeLabelOn]}>{label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
         {/* Study options */}
         <Text style={styles.section}>Study options</Text>
@@ -444,7 +477,7 @@ export default function SettingsScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
   topBar: { paddingHorizontal: 16, paddingTop: 8 },
   back: { flexDirection: 'row', alignItems: 'center', gap: 2 },
@@ -494,6 +527,21 @@ const styles = StyleSheet.create({
     marginLeft: 2,
     lineHeight: 18,
   },
+
+  // Appearance: a 3-way segmented control.
+  themeRow: { flexDirection: 'row', gap: 10, marginTop: 2 },
+  themeOption: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  themeOptionOn: { borderColor: colors.primary, backgroundColor: colors.faint },
+  themeLabel: { fontSize: 13, fontWeight: '700', color: colors.muted },
+  themeLabelOn: { color: colors.primaryDark },
 
   // Minimal: a flat group — no container, rows divided by hairlines.
   card: {},

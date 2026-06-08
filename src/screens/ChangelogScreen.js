@@ -5,10 +5,12 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
-import { colors } from '../theme';
+import { useColors, useThemedStyles } from '../theme';
 import { CHANGELOG, APP_VERSION } from '../changelog';
 
 export default function ChangelogScreen({ onBack }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.flex}>
       <ScreenHeader title="What's new" onBack={onBack} backLabel="Settings" />
@@ -45,7 +47,7 @@ export default function ChangelogScreen({ onBack }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 20, paddingBottom: 40 },
   release: { marginBottom: 28 },

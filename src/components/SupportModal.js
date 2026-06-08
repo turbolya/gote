@@ -8,7 +8,7 @@
 import React from 'react';
 import { Modal, View, Text, Pressable, Linking, Alert, StyleSheet } from 'react-native';
 import Icon from './Icon';
-import { colors } from '../theme';
+import { useColors, useThemedStyles } from '../theme';
 import { KOFI_URL, APP_STORE_REVIEW_URL } from '../constants';
 
 async function openUrl(url, comingSoonMsg) {
@@ -26,6 +26,8 @@ async function openUrl(url, comingSoonMsg) {
 }
 
 export default function SupportModal({ visible, onClose }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const rate = () => {
     onClose();
     openUrl(
@@ -73,7 +75,7 @@ export default function SupportModal({ visible, onClose }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

@@ -6,7 +6,7 @@ import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import Icon from '../components/Icon';
 import GroupIcon from '../components/GroupIcon';
 import ScreenHeader from '../components/ScreenHeader';
-import { colors, groupKey, groupLabel, groupIcon } from '../theme';
+import { useColors, useThemedStyles, groupKey, groupLabel, groupIcon } from '../theme';
 
 const STEP = 4;
 const PRESETS = [8, 16, 32];
@@ -19,6 +19,8 @@ export default function CustomScreen({
   title = 'Custom game',
   flags,
 }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const isFlagged = (c) => !!(flags && flags.has(String(c.taxonId)));
 
   // Optionally restrict the whole picker to flagged species.
@@ -192,7 +194,7 @@ export default function CustomScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 24, paddingTop: 16 },
   label: {

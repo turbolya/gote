@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import Icon from '../components/Icon';
 import ScreenHeader from '../components/ScreenHeader';
-import { colors } from '../theme';
+import { useColors, useThemedStyles } from '../theme';
 import {
   filterCards,
   statusCounts,
@@ -26,13 +26,6 @@ import {
 
 const FLAG_ON = '#E0A800';
 
-// The three knowledge-status filters. `icon`/`tint` give each a monotone glyph.
-const STATUSES = [
-  { key: 'good', label: 'Known', icon: 'check-circle', tint: colors.correct },
-  { key: 'missed', label: 'Missed', icon: 'alert-circle', tint: colors.wrong },
-  { key: 'new', label: 'Not seen', icon: 'circle', tint: colors.muted },
-];
-
 export default function LexiconScreen({
   cards,
   speciesStats,
@@ -41,6 +34,14 @@ export default function LexiconScreen({
   flags,
   onToggleFlag,
 }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
+  // The three knowledge-status filters. `icon`/`tint` give each a monotone glyph.
+  const STATUSES = [
+    { key: 'good', label: 'Known', icon: 'check-circle', tint: colors.correct },
+    { key: 'missed', label: 'Missed', icon: 'alert-circle', tint: colors.wrong },
+    { key: 'new', label: 'Not seen', icon: 'circle', tint: colors.muted },
+  ];
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState(null); // null = all
   const [flagged, setFlagged] = useState(false);
@@ -201,7 +202,7 @@ export default function LexiconScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
 
   searchWrap: {
