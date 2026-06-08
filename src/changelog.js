@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.3.2';
+export const APP_VERSION = '2.3.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.3.3',
+    date: '2026-06-08',
+    changes: [
+      'Tap the accuracy banner (lifetime % and the recent-games chart) to open '
+        + 'Statistics; removed the separate Statistics menu row.',
+    ],
+  },
   {
     version: '2.3.2',
     date: '2026-06-08',

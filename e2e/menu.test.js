@@ -26,11 +26,12 @@ describe('Menu & navigation', () => {
       'mode-custom',
       'mode-flash', // Learn
       'open-lexicon',
-      'open-stats', // Settings
-      'open-settings',
+      'open-settings', // Settings
     ]) {
       await scrollToId(id, 'menu-scroll');
     }
+    // Statistics is opened from the accuracy banner, not a list row.
+    await visible('menu-stats');
   });
 
   it('opens the Lexicon and returns', async () => {
@@ -40,8 +41,8 @@ describe('Menu & navigation', () => {
     await visible('mode-all');
   });
 
-  it('opens Statistics and returns', async () => {
-    await tapScroll('open-stats', 'menu-scroll');
+  it('opens Statistics from the accuracy banner and returns', async () => {
+    await tap('menu-stats');
     await waitFor(element(by.text('Statistics'))).toBeVisible().withTimeout(TIMEOUT);
     await tap('screen-back');
     await visible('mode-all');

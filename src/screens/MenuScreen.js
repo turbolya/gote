@@ -139,8 +139,7 @@ export default function MenuScreen({
 
         <Text style={styles.section}>Settings</Text>
         <View style={styles.group}>
-          <Row first testID="open-stats" icon="stats-chart-outline" accent={accents.rose} title="Statistics" sub="Accuracy, best-known and most-missed" onPress={onStats} />
-          <Row testID="open-settings" icon="settings-outline" accent={accents.slate} title="Settings" sub="Account, language and study options" onPress={onSettings} />
+          <Row first testID="open-settings" icon="settings-outline" accent={accents.slate} title="Settings" sub="Account, language and study options" onPress={onSettings} />
         </View>
 
         {/* Quiet support link at the very bottom — deliberately low-key. */}
@@ -154,8 +153,10 @@ export default function MenuScreen({
         </Pressable>
       </Animated.ScrollView>
 
-      {/* Full-bleed collapsing hero banner (pinned on top). */}
-      <Animated.View style={[styles.hero, { height: headerHeight }]} pointerEvents="box-none">
+      {/* Full-bleed collapsing hero banner (pinned on top). The whole banner —
+          lifetime accuracy + recent-games chart — is tappable, opening Stats. */}
+      <Animated.View style={[styles.hero, { height: headerHeight }]}>
+        <Pressable testID="menu-stats" onPress={onStats} style={styles.flex}>
         <LinearGradient
           colors={HERO_GRADIENT}
           start={{ x: 0, y: 0 }}
@@ -193,6 +194,7 @@ export default function MenuScreen({
             </Animated.View>
           )}
         </View>
+        </Pressable>
       </Animated.View>
     </View>
   );

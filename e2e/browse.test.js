@@ -85,7 +85,7 @@ describe('Settings & statistics', () => {
     // Note: tapping Reset opens a native iOS alert, which Detox can't drive
     // reliably with synchronization disabled, so we stop at the button rather
     // than exercise the destructive system dialog.
-    await tapScroll('open-stats', 'menu-scroll');
+    await tap('menu-stats'); // Statistics opens from the accuracy banner
     await scrollToId('stats-reset', 'stats-scroll');
     await expect(element(by.id('stats-reset'))).toBeVisible();
     await tap('screen-back');
