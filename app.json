@@ -2,13 +2,13 @@
   "expo": {
     "name": "Gote",
     "slug": "gote",
-    "version": "2.3.7",
+    "version": "2.3.8",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/gote-splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#5C8A1B"
     },

@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.3.7';
+export const APP_VERSION = '2.3.8';
 
 export const CHANGELOG = [
+  {
+    version: '2.3.8',
+    date: '2026-06-12',
+    changes: [
+      'The native launch screen now shows the Gote logo too (it was a plain '
+        + 'green square), so the logo is visible from the very first frame.',
+    ],
+  },
   {
     version: '2.3.7',
     date: '2026-06-12',
