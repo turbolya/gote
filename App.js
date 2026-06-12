@@ -211,10 +211,13 @@ export default function App() {
   // How to restart the current mode (used by the "Play again" button).
   const replayRef = useRef(() => {});
 
-  // The pool of candidate cards for multiple-choice distractors ("All cards"
-  // mode). Passed as full cards so StudyScreen can pick taxonomically similar
+  // The pool of candidate cards for the current round's multiple-choice
+  // distractors. Set per round: the account deck for account-based modes, the
+  // nearby deck for "Nearby species", and carried over when revisiting missed
+  // cards (so e.g. a nearby revisit never draws distractors from the unrelated
+  // account deck). Full cards, so StudyScreen can pick taxonomically similar
   // distractors using each card's ancestry.
-  const choicePool = fullDeck;
+  const [roundPool, setRoundPool] = useState([]);
 
   // Re-derive the filtered deck from the raw cache + the given display prefs.
   const applyCurrentFilters = useCallback((prefs) => {
@@ -284,7 +287,8 @@ export default function App() {
       setError(null);
       setProgress({ loaded: 0, total: 0 });
       // Set the username up front so the loading screen shows the NEW user, not
-      // the previous one.
+      // the previous one (restored below if the download fails).
+      const prevUser = usernameRef.current;
       setUsername(name);
       setScreen('loading');
       try {
@@ -292,6 +296,8 @@ export default function App() {
           locale: prefs.locale,
           onProgress: (loaded, total) => setProgress({ loaded, total }),
         });
+        // Only adopt the new account's flags once its deck actually loaded.
+        setFlags(new Set(await loadFlags(name)));
         rawCardsRef.current = cards;
         watermarkRef.current = newestUpdatedAt(cards);
         applyCurrentFilters(prefs);
@@ -300,6 +306,9 @@ export default function App() {
         setSync({ state: 'done', syncedAt, message: null });
         setScreen('menu');
       } catch (e) {
+        // If another account's deck is still loaded, restore that identity so
+        // the username (and the flags saved under it) keep matching the deck.
+        if (rawCardsRef.current.length > 0) setUsername(prevUser);
         setError(e.message || 'Something went wrong. Please try again.');
         setScreen('settings');
       }
@@ -311,10 +320,13 @@ export default function App() {
   // background sync), otherwise do a full download.
   const loadAccount = useCallback(
     async (name, prefs, cache) => {
-      // Load this account's flagged species (per-username, like the obs cache).
-      setFlags(new Set(await loadFlags(name)));
       const usable = cache || (await loadCache());
       if (cacheMatches(usable, name, prefs.locale)) {
+        // Load this account's flagged species (per-username, like the obs
+        // cache). The full-download path loads them itself on success — never
+        // up front, so a failed account switch can't leave the old deck paired
+        // with the new account's flags.
+        setFlags(new Set(await loadFlags(name)));
         rawCardsRef.current = usable.cards;
         watermarkRef.current = usable.watermark || newestUpdatedAt(usable.cards);
         applyCurrentFilters(prefs);
@@ -385,11 +397,17 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Start a fresh round from a set of cards.
-  const startRound = useCallback((cards, m, label = '') => {
+  // Start a fresh round from a set of cards. `pool` is the distractor pool for
+  // multiple-choice (defaults to the round's own cards). An empty set is a
+  // no-op: the study screen requires a non-empty deck, and starting without one
+  // (e.g. "Research grade only" filtering everything out) would dead-end on a
+  // blank screen.
+  const startRound = useCallback((cards, m, label = '', pool = null) => {
+    if (!cards || cards.length === 0) return;
     setMode(m);
     setRoundLabel(label);
     setDeck(shuffle(cards));
+    setRoundPool(pool && pool.length ? pool : cards);
     setIndex(0);
     setCorrectCount(0);
     setMissed([]);
@@ -421,7 +439,8 @@ export default function App() {
         const set = flagsRef.current;
         pool = pool.filter((c) => set.has(String(c.taxonId)));
       }
-      const run = () => startRound(pickRandom(pool, count), mode, label);
+      // Distractors come from the whole deck, not just the picked subset.
+      const run = () => startRound(pickRandom(pool, count), mode, label, fullDeck);
       replayRef.current = run;
       run();
     },
@@ -520,6 +539,7 @@ export default function App() {
     setMode('pick');
     setRoundLabel('Pick the right one');
     setDeck(roundDeck);
+    setRoundPool(roundDeck); // for a multiple-choice revisit of missed cards
     setIndex(0);
     setCorrectCount(0);
     setMissed([]);
@@ -662,7 +682,7 @@ export default function App() {
             speedrun={mode === 'speedrun'}
             lives={lives}
             choiceMode={['all', 'custom', 'speedrun', 'nearby'].includes(mode)}
-            choicePool={mode === 'nearby' ? deck : choicePool}
+            choicePool={roundPool}
             flags={flags}
             onToggleFlag={toggleFlag}
             onGrade={handleGrade}
@@ -888,7 +908,7 @@ export default function App() {
             missed={missed}
             lifetime={lifetime}
             onRevisitMissed={() =>
-              startRound(missed, 'all', 'Revisiting missed cards')
+              startRound(missed, 'all', 'Revisiting missed cards', roundPool)
             }
             onPlayAgain={() => replayRef.current()}
             onMenu={() => setScreen('menu')}

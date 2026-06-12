@@ -9,7 +9,7 @@
 // similar-species photos), so the parent prepares the round async and passes
 // `round` in; this screen just renders and handles the tap.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -67,12 +67,18 @@ export default function PickImageScreen({
   };
 
   // Corner button: browse iNat's other curated photos of this species.
+  // `browseSeq` ids each request so a slow fetch for one tile can't fill a
+  // viewer that has since been closed or reopened for a different tile.
+  const browseSeq = useRef(0);
   const browseOther = async (opt) => {
+    const seq = ++browseSeq.current;
     setViewer({ photos: [], title: answered ? opt.name : null, loading: true, startIndex: 0 });
     const photos = await fetchTaxonPhotos(opt.taxonId);
-    // The viewer may have been closed/replaced while fetching; only update if
-    // it's still the same request (best-effort: check it's still loading).
-    setViewer((v) => (v && v.loading ? { ...v, photos, loading: false } : v));
+    setViewer((v) =>
+      browseSeq.current === seq && v && v.loading
+        ? { ...v, photos, loading: false }
+        : v
+    );
   };
 
   const gotIt =

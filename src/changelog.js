@@ -8,9 +8,26 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.3.5';
+export const APP_VERSION = '2.3.6';
 
 export const CHANGELOG = [
+  {
+    version: '2.3.6',
+    date: '2026-06-12',
+    changes: [
+      'Code-review fixes: the Lexicon “Not seen” filter icon no longer shows a '
+        + '“?” box; the nearby-place search spinner can no longer get stuck (and '
+        + 'slow lookups can no longer overwrite newer results).',
+      '“Revisit missed” after a Nearby round now draws its multiple-choice '
+        + 'alternatives from the nearby species, not your own observations.',
+      'Starting a game with an empty deck (e.g. filters excluding everything) '
+        + 'no longer dead-ends on a blank screen.',
+      'A failed account switch keeps the old account’s flags and username '
+        + 'consistent with the still-loaded deck.',
+      'Dark mode: fixed the language picker’s selected row and the settings '
+        + 'switches using light-theme colours.',
+    ],
+  },
   {
     version: '2.3.5',
     date: '2026-06-08',

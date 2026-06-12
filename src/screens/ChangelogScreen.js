@@ -13,7 +13,7 @@ export default function ChangelogScreen({ onBack }) {
   const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.flex}>
-      <ScreenHeader title="What's new" onBack={onBack} backLabel="Settings" />
+      <ScreenHeader title="What's new" onBack={onBack} />
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}

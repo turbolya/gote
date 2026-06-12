@@ -49,6 +49,9 @@ const MAP = {
   'x-circle': 'close-circle',
   award: 'trophy',
   target: 'flag',
+  // Ionicons has no plain "circle" — map Feather's to the outline ellipse
+  // (otherwise it renders as a missing-glyph "?" box).
+  circle: 'ellipse-outline',
 };
 
 export default function Icon({ name, size = 22, color, style }) {

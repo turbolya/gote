@@ -116,7 +116,7 @@ function SwitchRow({ icon, accent, label, hint, value, onValueChange, disabled, 
         value={value}
         onValueChange={onValueChange}
         disabled={disabled}
-        trackColor={{ true: colors.primary, false: '#D6D8D1' }}
+        trackColor={{ true: colors.primary, false: colors.border }}
         thumbColor="#fff"
       />
     </View>

@@ -25,7 +25,7 @@ export default function LegalScreen({ onBack }) {
   const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.flex}>
-      <ScreenHeader title="Data & licensing" onBack={onBack} backLabel="Settings" />
+      <ScreenHeader title="Data & licensing" onBack={onBack} />
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}

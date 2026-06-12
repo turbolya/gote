@@ -184,7 +184,7 @@ const makeStyles = (colors) => StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
   },
-  rowOn: { backgroundColor: '#EAF3D6' },
+  rowOn: { backgroundColor: colors.faint },
   rowName: { fontSize: 17, color: colors.text, fontWeight: '600' },
   rowNameOn: { color: colors.primaryDark, fontWeight: '800' },
   rowNative: { fontSize: 14, color: colors.muted, marginTop: 1 },

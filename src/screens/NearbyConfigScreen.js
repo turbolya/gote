@@ -2,7 +2,7 @@
 // location (GPS or place search) and which taxon groups to include, then starts
 // a round of the species most typically observed there.
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -52,19 +52,30 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
   );
   const [error, setError] = useState(null);
   const searchTimer = useRef(null);
+  // Monotonic id per keystroke, so an older in-flight lookup that resolves
+  // late can't overwrite a newer one's results (or its spinner state).
+  const searchSeq = useRef(0);
+
+  useEffect(
+    () => () => searchTimer.current && clearTimeout(searchTimer.current),
+    []
+  );
 
   const onChangeQuery = (text) => {
     setQuery(text);
     setError(null);
     if (searchTimer.current) clearTimeout(searchTimer.current);
+    const seq = ++searchSeq.current;
     if (text.trim().length < 2) {
       setResults([]);
+      setSearching(false);
       return;
     }
     setSearching(true);
     // Debounce the place lookup so we don't fire on every keystroke.
     searchTimer.current = setTimeout(async () => {
       const places = await searchPlaces(text);
+      if (searchSeq.current !== seq) return; // superseded by a newer keystroke
       setResults(places);
       setSearching(false);
     }, 350);
