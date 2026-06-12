@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.3.4';
+export const APP_VERSION = '2.3.5';
 
 export const CHANGELOG = [
+  {
+    version: '2.3.5',
+    date: '2026-06-08',
+    changes: [
+      'The menu banner now shows the Gote logo in place of the generic feather '
+        + 'icon.',
+    ],
+  },
   {
     version: '2.3.4',
     date: '2026-06-08',

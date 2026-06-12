@@ -7,7 +7,7 @@
 // clean minimal sections — flat lists with hairline dividers and accent icons.
 
 import React, { useRef, useState } from 'react';
-import { View, Text, Pressable, Animated, Linking, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Animated, Image, Linking, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
@@ -196,7 +196,11 @@ export default function MenuScreen({
               </Animated.Text>
             </View>
             <View style={styles.heroBadge}>
-              <Icon name="feather" size={22} color="#FFFFFF" />
+              <Image
+                source={require('../../assets/gote.png')}
+                style={styles.heroBadgeImg}
+                resizeMode="contain"
+              />
             </View>
           </View>
 
@@ -253,6 +257,7 @@ const makeStyles = (colors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  heroBadgeImg: { width: 26, height: 26 },
   statPill: {
     flexDirection: 'row',
     alignItems: 'center',

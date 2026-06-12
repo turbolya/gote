@@ -10,19 +10,19 @@
 // URL-encoded JSON object, with nested objects for nested fields). The
 // FIELDS_* constants below declare what each call needs.
 
-import { IS_E2E } from './e2e/testMode';
-import * as fx from './e2e/fixtures';
+import { IS_E2E } from "./e2e/testMode";
+import * as fx from "./e2e/fixtures";
 
-const API = 'https://api.inaturalist.org/v2/observations';
-const TAXA_API = 'https://api.inaturalist.org/v2/taxa';
+const API = "https://api.inaturalist.org/v2/observations";
+const TAXA_API = "https://api.inaturalist.org/v2/taxa";
 const SIMILAR_API =
-  'https://api.inaturalist.org/v2/identifications/similar_species';
+  "https://api.inaturalist.org/v2/identifications/similar_species";
 const SPECIES_COUNTS_API =
-  'https://api.inaturalist.org/v2/observations/species_counts';
+  "https://api.inaturalist.org/v2/observations/species_counts";
 // Place search/autocomplete still lives on v1 (returns named places + coords).
-const PLACES_API = 'https://api.inaturalist.org/v1/places/autocomplete';
+const PLACES_API = "https://api.inaturalist.org/v1/places/autocomplete";
 // iNaturalist asks API clients to identify themselves.
-const USER_AGENT = 'Gote/1.0 (personal flashcard study app)';
+const USER_AGENT = "Gote";
 
 const PER_PAGE = 200; // API maximum
 const PAGE_LIMIT = 25; // hard safety cap => max 5000 observations scanned
@@ -90,7 +90,7 @@ const FIELDS_SPECIES_COUNT = {
   },
 };
 
-const HEADERS = { Accept: 'application/json', 'User-Agent': USER_AGENT };
+const HEADERS = { Accept: "application/json", "User-Agent": USER_AGENT };
 
 // iNaturalist caps clients at ~60 requests/minute and returns HTTP 429 when
 // exceeded. Centralized fetch that retries 429s with backoff, honoring the
@@ -105,7 +105,7 @@ async function apiFetch(url, options) {
     const res = await fetch(url, options);
     if (res.status !== 429 || attempt >= MAX_RETRIES) return res;
     // Wait: Retry-After (seconds) if given, else exponential backoff (1s, 2s, 4s).
-    const header = parseInt(res.headers.get('Retry-After') || '', 10);
+    const header = parseInt(res.headers.get("Retry-After") || "", 10);
     const waitMs = Number.isFinite(header)
       ? header * 1000
       : 1000 * 2 ** attempt;
@@ -163,7 +163,7 @@ function fetchTaxaResults(idOrIds, { locale, fields, perPage } = {}) {
   if (locale) params.push(`locale=${encodeURIComponent(locale)}`);
   params.push(`fields=${fieldsValue(fields)}`);
   return getResults(
-    `${TAXA_API}/${ids.map(encodeURIComponent).join(',')}?${params.join('&')}`
+    `${TAXA_API}/${ids.map(encodeURIComponent).join(",")}?${params.join("&")}`,
   );
 }
 
@@ -185,22 +185,24 @@ function setPhotoSize(url, size) {
 }
 
 function toMediumPhoto(url) {
-  return setPhotoSize(url, 'medium');
+  return setPhotoSize(url, "medium");
 }
 
 // Upscale a photo URL to a high-resolution version for the fullscreen viewer.
 export function toLargePhoto(url) {
-  return setPhotoSize(url, 'large');
+  return setPhotoSize(url, "large");
 }
 
 // Sentence-case a name: first letter uppercase, the rest lowercase. Unicode-
 // aware (handles accented characters like Hungarian "ő", unlike a \w regex,
 // which would wrongly uppercase the letter after each accented character).
 function sentenceCase(str) {
-  const s = String(str || '').trim();
+  const s = String(str || "").trim();
   if (!s) return s;
   const chars = [...s]; // split by code point, not UTF-16 unit
-  return chars[0].toLocaleUpperCase() + chars.slice(1).join('').toLocaleLowerCase();
+  return (
+    chars[0].toLocaleUpperCase() + chars.slice(1).join("").toLocaleLowerCase()
+  );
 }
 
 function observationToCard(obs) {
@@ -219,10 +221,10 @@ function observationToCard(obs) {
     licenseCode: photo.license_code || null,
     common: commonName(taxon),
     scientific: taxon.name,
-    rank: taxon.rank || '',
+    rank: taxon.rank || "",
     // Numeric rank depth (species=10, subspecies=5, genus=20, …). Used by the
     // "identified to species" filter: species-or-finer means rankLevel <= 10.
-    rankLevel: typeof taxon.rank_level === 'number' ? taxon.rank_level : null,
+    rankLevel: typeof taxon.rank_level === "number" ? taxon.rank_level : null,
     iconic: taxon.iconic_taxon_name || null,
     // Ordered kingdom→…→species ancestor taxon ids; used to pick taxonomically
     // similar multiple-choice distractors (shared deeper ancestor = closer kin).
@@ -251,12 +253,12 @@ export function shuffle(arr) {
 // genus/family/etc. > 10. Falls back to the rank string if rank_level is
 // missing (e.g. very old cached cards).
 function isSpeciesOrFiner(card) {
-  if (typeof card.rankLevel === 'number') return card.rankLevel <= 10;
+  if (typeof card.rankLevel === "number") return card.rankLevel <= 10;
   return (
-    card.rank === 'species' ||
-    card.rank === 'subspecies' ||
-    card.rank === 'variety' ||
-    card.rank === 'form'
+    card.rank === "species" ||
+    card.rank === "subspecies" ||
+    card.rank === "variety" ||
+    card.rank === "form"
   );
 }
 
@@ -267,11 +269,13 @@ function isSpeciesOrFiner(card) {
 //   - perSpecies:     keep one card per taxon (first wins)
 export function applyFilters(
   cards,
-  { perSpecies = true, researchGrade = false, speciesOnly = false } = {}
+  { perSpecies = true, researchGrade = false, speciesOnly = false } = {},
 ) {
   let out = cards;
   if (researchGrade) {
-    out = out.filter((c) => c.qualityGrade === 'research' && isSpeciesOrFiner(c));
+    out = out.filter(
+      (c) => c.qualityGrade === "research" && isSpeciesOrFiner(c),
+    );
   } else if (speciesOnly) {
     // Looser than research-grade: exact species identification, any quality.
     out = out.filter(isSpeciesOrFiner);
@@ -296,8 +300,8 @@ export function mergeCards(existing, incoming, max = MAX_CACHE) {
   for (const c of incoming) byId.set(c.id, c); // overwrite/insert
   const merged = [...byId.values()];
   merged.sort((a, b) => {
-    const ao = a.observedOn || '';
-    const bo = b.observedOn || '';
+    const ao = a.observedOn || "";
+    const bo = b.observedOn || "";
     if (ao === bo) return Number(b.id) - Number(a.id);
     return ao < bo ? 1 : -1;
   });
@@ -328,9 +332,12 @@ export function newestUpdatedAt(cards) {
 // Internal: page through the observations endpoint, converting to cards. When
 // `updatedSince` is set we ask only for observations changed since then (the
 // incremental path); otherwise it's a full scan.
-async function fetchObservationCards(username, { locale, updatedSince, max, onProgress } = {}) {
-  const clean = String(username || '').trim();
-  if (!clean) throw new Error('Please enter an iNaturalist username.');
+async function fetchObservationCards(
+  username,
+  { locale, updatedSince, max, onProgress } = {},
+) {
+  const clean = String(username || "").trim();
+  if (!clean) throw new Error("Please enter an iNaturalist username.");
 
   let page = 1;
   let total = Infinity;
@@ -340,20 +347,22 @@ async function fetchObservationCards(username, { locale, updatedSince, max, onPr
   while (cards.length < cap && page <= PAGE_LIMIT) {
     // For incremental sync, order by updated_at so we can stop early once we've
     // seen everything changed since the watermark.
-    const order = updatedSince ? 'updated_at' : 'observed_on';
+    const order = updatedSince ? "updated_at" : "observed_on";
     const url =
       `${API}?user_id=${encodeURIComponent(clean)}` +
       `&photos=true&per_page=${PER_PAGE}&page=${page}` +
       `&order_by=${order}&order=desc` +
-      (locale ? `&locale=${encodeURIComponent(locale)}` : '') +
-      (updatedSince ? `&updated_since=${encodeURIComponent(updatedSince)}` : '') +
+      (locale ? `&locale=${encodeURIComponent(locale)}` : "") +
+      (updatedSince
+        ? `&updated_since=${encodeURIComponent(updatedSince)}`
+        : "") +
       `&fields=${fieldsValue(FIELDS_OBSERVATION)}`;
 
     let res;
     try {
       res = await apiFetch(url, { headers: HEADERS });
     } catch (e) {
-      throw new Error('Network error — check your internet connection.');
+      throw new Error("Network error — check your internet connection.");
     }
 
     if (res.status === 404 || res.status === 422) {
@@ -368,7 +377,7 @@ async function fetchObservationCards(username, { locale, updatedSince, max, onPr
 
     if (total === 0 && page === 1 && !updatedSince) {
       throw new Error(
-        `No observations found for "${clean}". Double-check the username.`
+        `No observations found for "${clean}". Double-check the username.`,
       );
     }
 
@@ -401,11 +410,15 @@ async function fetchObservationCards(username, { locale, updatedSince, max, onPr
 export async function fetchCards(username, opts = {}) {
   if (IS_E2E) return fx.E2E_CARDS;
   const { locale, max, onProgress } = opts;
-  const cards = await fetchObservationCards(username, { locale, max, onProgress });
+  const cards = await fetchObservationCards(username, {
+    locale,
+    max,
+    onProgress,
+  });
   if (cards.length === 0) {
     throw new Error(
       `Found observations for "${String(username).trim()}", but none had both ` +
-        `a photo and an identified species to quiz on.`
+        `a photo and an identified species to quiz on.`,
     );
   }
   return cards;
@@ -449,7 +462,9 @@ export async function fetchTaxonPhotos(taxonId, max = 8) {
   if (IS_E2E) return fx.e2eTaxonPhotos(taxonId, max);
   if (taxonId == null) return [];
   return cached(`photos:${taxonId}:${max}`, async () => {
-    const [taxon] = await fetchTaxaResults(taxonId, { fields: FIELDS_TAXON_PHOTOS });
+    const [taxon] = await fetchTaxaResults(taxonId, {
+      fields: FIELDS_TAXON_PHOTOS,
+    });
     return taxon ? photoUrlsFrom(taxon, max) : [];
   });
 }
@@ -468,10 +483,10 @@ export async function fetchTaxonPhotos(taxonId, max = 8) {
 export async function fetchSimilarSpecies(taxonId, locale) {
   if (IS_E2E) return fx.e2eSimilar(taxonId, locale);
   if (taxonId == null) return [];
-  return cached(`similar:${taxonId}:${locale || ''}`, async () => {
+  return cached(`similar:${taxonId}:${locale || ""}`, async () => {
     const url =
       `${SIMILAR_API}?taxon_id=${encodeURIComponent(taxonId)}` +
-      (locale ? `&locale=${encodeURIComponent(locale)}` : '') +
+      (locale ? `&locale=${encodeURIComponent(locale)}` : "") +
       `&fields=${fieldsValue(FIELDS_SIMILAR)}`;
     const results = await getResults(url);
     return results
@@ -490,19 +505,19 @@ export async function fetchSimilarSpecies(taxonId, locale) {
  */
 export async function searchPlaces(query) {
   if (IS_E2E) return fx.e2ePlaces(query);
-  const q = String(query || '').trim();
+  const q = String(query || "").trim();
   if (q.length < 2) return [];
   try {
     const res = await apiFetch(
       `${PLACES_API}?q=${encodeURIComponent(q)}&per_page=8`,
-      { headers: HEADERS }
+      { headers: HEADERS },
     );
     if (!res.ok) return [];
     const data = await res.json();
     return (data.results || [])
       .filter((p) => p && p.location)
       .map((p) => {
-        const [lat, lng] = String(p.location).split(',').map(Number);
+        const [lat, lng] = String(p.location).split(",").map(Number);
         return { id: p.id, name: p.display_name || p.name, lat, lng };
       })
       .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
@@ -539,7 +554,7 @@ export async function fetchNearbyCards(opts = {}) {
   } = opts;
   if (IS_E2E) return fx.e2eNearbyCards();
   if (lat == null || lng == null) {
-    throw new Error('Pick a location to play nearby species.');
+    throw new Error("Pick a location to play nearby species.");
   }
 
   const cards = [];
@@ -552,16 +567,16 @@ export async function fetchNearbyCards(opts = {}) {
       `${SPECIES_COUNTS_API}?lat=${lat}&lng=${lng}&radius=${radius}` +
       `&quality_grade=research&hrank=species&per_page=${PER_PAGE}&page=${page}` +
       (iconicTaxa.length
-        ? `&iconic_taxa=${encodeURIComponent(iconicTaxa.join(','))}`
-        : '') +
-      (locale ? `&locale=${encodeURIComponent(locale)}` : '') +
+        ? `&iconic_taxa=${encodeURIComponent(iconicTaxa.join(","))}`
+        : "") +
+      (locale ? `&locale=${encodeURIComponent(locale)}` : "") +
       `&fields=${fieldsValue(FIELDS_SPECIES_COUNT)}`;
 
     let res;
     try {
       res = await apiFetch(url, { headers: HEADERS });
     } catch (e) {
-      throw new Error('Network error — check your internet connection.');
+      throw new Error("Network error — check your internet connection.");
     }
     if (!res.ok) {
       throw new Error(`iNaturalist API error (status ${res.status}).`);
@@ -573,7 +588,7 @@ export async function fetchNearbyCards(opts = {}) {
 
     for (const row of results) {
       const t = row.taxon;
-      if (!t || !t.id || t.rank !== 'species') continue;
+      if (!t || !t.id || t.rank !== "species") continue;
       if (seen.has(t.id)) continue;
       const p = t.default_photo;
       const image = p && (p.medium_url || (p.url && toMediumPhoto(p.url)));
@@ -587,8 +602,8 @@ export async function fetchNearbyCards(opts = {}) {
         licenseCode: (p && p.license_code) || null,
         common: commonName(t),
         scientific: t.name,
-        rank: t.rank || '',
-        rankLevel: typeof t.rank_level === 'number' ? t.rank_level : null,
+        rank: t.rank || "",
+        rankLevel: typeof t.rank_level === "number" ? t.rank_level : null,
         iconic: t.iconic_taxon_name || null,
         ancestry: Array.isArray(t.ancestor_ids) ? t.ancestor_ids : [],
         observedOn: null,
@@ -605,7 +620,7 @@ export async function fetchNearbyCards(opts = {}) {
 
   if (cards.length === 0) {
     throw new Error(
-      'No common species found here for those groups. Try a wider radius or different groups.'
+      "No common species found here for those groups. Try a wider radius or different groups.",
     );
   }
   return cards;
@@ -659,7 +674,7 @@ export async function fetchTaxonPhotosByIds(ids, maxPer = 6) {
 export async function fetchTaxonDetail(taxonId, locale) {
   if (IS_E2E) return fx.e2eDetail(taxonId, locale);
   if (taxonId == null) return null;
-  return cached(`detail:${taxonId}:${locale || ''}`, async () => {
+  return cached(`detail:${taxonId}:${locale || ""}`, async () => {
     const [t] = await fetchTaxaResults(taxonId, {
       locale,
       fields: FIELDS_TAXON_DETAIL,
@@ -672,14 +687,16 @@ export async function fetchTaxonDetail(taxonId, locale) {
 
     // Strip the HTML tags iNat includes in the summary.
     const summary = t.wikipedia_summary
-      ? String(t.wikipedia_summary).replace(/<[^>]+>/g, '').trim()
+      ? String(t.wikipedia_summary)
+          .replace(/<[^>]+>/g, "")
+          .trim()
       : null;
 
     return {
       id: t.id,
       scientific: t.name,
       common: commonName(t),
-      rank: t.rank || '',
+      rank: t.rank || "",
       photos: photoUrlsFrom(t),
       ancestors,
       summary,
