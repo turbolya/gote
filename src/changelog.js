@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.3.6';
+export const APP_VERSION = '2.3.7';
 
 export const CHANGELOG = [
+  {
+    version: '2.3.7',
+    date: '2026-06-12',
+    changes: [
+      'The Gote logo now appears bare on the launch splash and the menu '
+        + 'banner — white on green, no backdrop tile (replacing the drawn newt '
+        + 'and the badge).',
+    ],
+  },
   {
     version: '2.3.6',
     date: '2026-06-12',

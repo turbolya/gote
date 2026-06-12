@@ -195,13 +195,11 @@ export default function MenuScreen({
                 {username} · {deckCount} cards
               </Animated.Text>
             </View>
-            <View style={styles.heroBadge}>
-              <Image
-                source={require('../../assets/gote.png')}
-                style={styles.heroBadgeImg}
-                resizeMode="contain"
-              />
-            </View>
+            <Image
+              source={require('../../assets/gote.png')}
+              style={styles.heroLogo}
+              resizeMode="contain"
+            />
           </View>
 
           {lifetimePct !== null && (
@@ -249,15 +247,9 @@ const makeStyles = (colors) => StyleSheet.create({
   heroTop: { flexDirection: 'row', alignItems: 'flex-start' },
   heroTitle: { fontSize: 34, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.5 },
   heroSub: { fontSize: 15, color: 'rgba(255,255,255,0.85)', marginTop: 2, fontWeight: '600' },
-  heroBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroBadgeImg: { width: 26, height: 26 },
+  // The logo is white on transparent, so it sits directly on the green hero
+  // (no backdrop tile needed).
+  heroLogo: { width: 44, height: 44 },
   statPill: {
     flexDirection: 'row',
     alignItems: 'center',
