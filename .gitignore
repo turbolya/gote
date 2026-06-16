@@ -31,3 +31,4 @@ artifacts/
 
 # Env
 .env*.local
+*.tmp
