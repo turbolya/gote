@@ -190,7 +190,7 @@ export default function MenuScreen({
         <View style={[styles.heroContent, { paddingTop: insets.top + 10 }]}>
           <View style={styles.heroTop}>
             <View style={styles.flex}>
-              <Text style={styles.heroTitle}>gote</Text>
+              <Text testID="menu-wordmark" style={styles.heroTitle}>gote</Text>
               <Animated.Text style={[styles.heroSub, { opacity: bigOpacity }]} numberOfLines={1}>
                 {username} · {deckCount} cards
               </Animated.Text>

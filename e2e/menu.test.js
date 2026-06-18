@@ -34,6 +34,13 @@ describe('Menu & navigation', () => {
     await visible('menu-stats');
   });
 
+  it('shows the lowercase "gote" brand wordmark on the hero', async () => {
+    // The hero logotype is the rounded Fredoka wordmark, set lowercase.
+    await waitFor(element(by.id('menu-wordmark')))
+      .toHaveText('gote')
+      .withTimeout(TIMEOUT);
+  });
+
   it('opens the Lexicon and returns', async () => {
     await tapScroll('open-lexicon', 'menu-scroll');
     await visible('lexicon-search');
