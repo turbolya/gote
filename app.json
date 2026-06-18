@@ -2,7 +2,7 @@
   "expo": {
     "name": "Gote",
     "slug": "gote",
-    "version": "2.3.8",
+    "version": "2.4.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/gote-splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#5C8A1B"
+      "backgroundColor": "#008AAC"
     },
     "ios": {
       "supportsTablet": true,
@@ -20,7 +20,7 @@
       "package": "com.gote.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#74AC00"
+        "backgroundColor": "#008AAC"
       }
     },
     "web": {

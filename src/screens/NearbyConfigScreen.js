@@ -356,6 +356,6 @@ const makeStyles = (colors) => StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 16,
   },
-  startDisabled: { backgroundColor: '#C2CDB0' },
+  startDisabled: { backgroundColor: '#A7CFDA' },
   startText: { color: colors.onDark, fontSize: 18, fontWeight: '800' },
 });

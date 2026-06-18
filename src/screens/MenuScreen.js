@@ -14,10 +14,10 @@ import Icon from '../components/Icon';
 import { useTheme, useThemedStyles } from '../theme';
 import { SPEEDRUN_LIVES, KOFI_URL } from '../constants';
 
-// The hero gradient is the brand green in both themes (white text reads well on
+// The hero gradient is the brand teal in both themes (white text reads well on
 // it either way), so it's intentionally not theme-dependent. Three stops give it
 // a clearly non-uniform, diagonal shade.
-const HERO_GRADIENT = ['#74A82C', '#4C7818', '#345610'];
+const HERO_GRADIENT = ['#17A7C6', '#008AAC', '#02485A'];
 
 // Hero heights (excluding the top safe-area inset).
 const EXPANDED = 162;

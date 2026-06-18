@@ -589,7 +589,7 @@ const makeStyles = (colors) => StyleSheet.create({
     paddingVertical: 16,
     marginTop: 16,
   },
-  buttonDisabled: { backgroundColor: '#B8C99A' },
+  buttonDisabled: { backgroundColor: '#A7CFDA' },
   buttonText: { color: '#fff', fontSize: 18, fontWeight: '800' },
 
   footer: {

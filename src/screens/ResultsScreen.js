@@ -9,10 +9,11 @@ import { useColors, useThemedStyles } from '../theme';
 
 const FLAG_ON = '#E0A800'; // amber for an active flag
 
-// Tinted action buttons: light green for "Play again", light orange for
-// "Revisit missed".
-const GREEN_BG = '#E6F2D9';
-const GREEN_FG = '#3F6212';
+// Tinted action buttons: light teal for "Play again" (the primary-action tint),
+// light orange for "Revisit missed".
+const TEAL_BG = '#D8EEF4';
+const TEAL_FG = '#036178';
+const TEAL_BORDER = '#B8DEEA';
 const ORANGE_BG = '#FCE6D2';
 const ORANGE_FG = '#C2410C';
 
@@ -113,8 +114,8 @@ export default function ResultsScreen({
           style={[styles.actionButton, styles.playAgainBtn]}
           onPress={onPlayAgain}
         >
-          <Icon name="play" size={18} color={GREEN_FG} />
-          <Text style={[styles.actionText, { color: GREEN_FG }]}>Play again</Text>
+          <Icon name="play" size={18} color={TEAL_FG} />
+          <Text style={[styles.actionText, { color: TEAL_FG }]}>Play again</Text>
         </Pressable>
 
         {/* Emphasized primary action. */}
@@ -244,7 +245,7 @@ const makeStyles = (colors) => StyleSheet.create({
   },
   actionText: { fontSize: 17, fontWeight: '800' },
   revisitBtn: { backgroundColor: ORANGE_BG, borderColor: '#F6D2B3' },
-  playAgainBtn: { backgroundColor: GREEN_BG, borderColor: '#D4E7B8' },
+  playAgainBtn: { backgroundColor: TEAL_BG, borderColor: TEAL_BORDER },
 
   // Emphasized primary action: main menu.
   menuButton: {

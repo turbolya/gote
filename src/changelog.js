@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.3.8';
+export const APP_VERSION = '2.4.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.4.0',
+    date: '2026-06-18',
+    changes: [
+      'New look: Gote’s brand colour is now teal instead of green — the menu '
+        + 'banner, headings, buttons, splash and app icon background all follow '
+        + 'the new palette, in both light and dark mode.',
+    ],
+  },
   {
     version: '2.3.8',
     date: '2026-06-12',

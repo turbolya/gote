@@ -8,8 +8,8 @@
 import { createContext, useContext, useMemo } from 'react';
 
 export const lightColors = {
-  primary: '#5C8A1B', // muted iNaturalist green (accent)
-  primaryDark: '#3F6212',
+  primary: '#008AAC', // brand teal
+  primaryDark: '#036178',
   accent: '#3B82F6',
   bg: '#FAFAF8', // soft off-white
   card: '#FFFFFF',
@@ -24,8 +24,8 @@ export const lightColors = {
 };
 
 export const darkColors = {
-  primary: '#8CC63F', // brighter green so it reads on dark
-  primaryDark: '#A8D672', // used as an accent/heading colour on dark
+  primary: '#34C2E0', // brighter teal so it reads on dark
+  primaryDark: '#82D9EA', // used as an accent/heading colour on dark
   accent: '#7CA2F0',
   bg: '#121412',
   card: '#1C1F1B',
