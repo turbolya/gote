@@ -8,6 +8,9 @@ node_modules/
 # Expo
 .expo/
 dist/
+
+# Detox test artifacts (screenshots / logs from e2e runs)
+artifacts/
 web-build/
 expo-env.d.ts
 

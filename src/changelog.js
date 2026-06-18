@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.5.3';
+export const APP_VERSION = '2.5.4';
 
 export const CHANGELOG = [
+  {
+    version: '2.5.4',
+    date: '2026-06-18',
+    changes: [
+      'Internal: added a temporary debug button to the menu for testing the '
+        + 'support popup (removed before release), and gave the menu bottom '
+        + 'extra padding so the last items clear the home indicator.',
+    ],
+  },
   {
     version: '2.5.3',
     date: '2026-06-18',
