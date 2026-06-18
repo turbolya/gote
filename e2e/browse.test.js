@@ -86,6 +86,11 @@ describe('Settings & statistics', () => {
     // reliably with synchronization disabled, so we stop at the button rather
     // than exercise the destructive system dialog.
     await tap('menu-stats'); // Statistics opens from the accuracy banner
+    // Per-species list + sort options (a flash round was played earlier, so
+    // there's at least one species with tallies).
+    await visible('stats-sort-pct');
+    await tap('stats-sort-incorrect');
+    await tap('stats-sort-correct');
     await scrollToId('stats-reset', 'stats-scroll');
     await expect(element(by.id('stats-reset'))).toBeVisible();
     await tap('screen-back');

@@ -586,6 +586,9 @@ export default function App() {
     speciesRef.current[key] = {
       name: card.common || card.scientific,
       sci: card.scientific,
+      // Thumbnail for the per-species stats list (kept so it shows even when the
+      // species isn't in the current deck, e.g. Nearby rounds).
+      image: card.image || prev.image || null,
       known: prev.known + (correct ? 1 : 0),
       missed: prev.missed + (correct ? 0 : 1),
     };
@@ -862,6 +865,7 @@ export default function App() {
         {screen === 'stats' && (
           <StatsScreen
             species={speciesStats}
+            cards={fullDeck}
             lifetime={lifetime}
             onBack={() => setScreen('menu')}
             onReset={async () => {

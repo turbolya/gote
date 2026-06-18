@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.5.7';
+export const APP_VERSION = '2.6.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.6.0',
+    date: '2026-06-18',
+    changes: [
+      'Statistics now has a per-species breakdown: every species you’ve been '
+        + 'quizzed on, with its thumbnail and two bars showing how many times '
+        + 'you got it right and wrong.',
+      'Sort the breakdown by success rate, or by number of correct or incorrect '
+        + 'identifications.',
+    ],
+  },
   {
     version: '2.5.7',
     date: '2026-06-18',

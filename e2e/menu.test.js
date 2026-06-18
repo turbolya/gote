@@ -61,4 +61,5 @@ describe('Menu & navigation', () => {
     await tap('settings-back');
     await visible('mode-all');
   });
+
 });
