@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.5.4';
+export const APP_VERSION = '2.5.5';
 
 export const CHANGELOG = [
+  {
+    version: '2.5.5',
+    date: '2026-06-18',
+    changes: [
+      'Fixed the support popup title: the “gote” wordmark now reads level with '
+        + '“Enjoying” and is coloured the brand teal.',
+    ],
+  },
   {
     version: '2.5.4',
     date: '2026-06-18',

@@ -102,7 +102,9 @@ const makeStyles = (colors) => StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   titleNewt: { width: 34, height: 34, tintColor: colors.primary },
   title: { fontSize: 21, fontWeight: '900', color: colors.text },
-  titleBrand: { fontFamily: 'Fredoka', color: colors.text },
+  // Fredoka renders smaller than the system face at the same point size, so the
+  // wordmark is bumped up to read level with "Enjoying"; teal to match the brand.
+  titleBrand: { fontFamily: 'Fredoka', fontSize: 25, color: colors.primary },
   body: {
     fontSize: 14.5,
     color: colors.muted,
