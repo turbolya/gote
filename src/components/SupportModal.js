@@ -110,7 +110,7 @@ const makeStyles = (colors) => StyleSheet.create({
     color: colors.muted,
     textAlign: 'center',
     lineHeight: 21,
-    marginTop: 8,
+    marginTop: 18,
   },
   stars: { flexDirection: 'row', gap: 6, marginTop: 18, marginBottom: 4 },
   star: {},

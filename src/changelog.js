@@ -8,9 +8,16 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.5.5';
+export const APP_VERSION = '2.5.6';
 
 export const CHANGELOG = [
+  {
+    version: '2.5.6',
+    date: '2026-06-18',
+    changes: [
+      'More breathing room below the title in the support popup.',
+    ],
+  },
   {
     version: '2.5.5',
     date: '2026-06-18',
