@@ -6,7 +6,7 @@
 // rather than open a dead URL.
 
 import React from 'react';
-import { Modal, View, Text, Pressable, Linking, Alert, StyleSheet } from 'react-native';
+import { Modal, View, Text, Pressable, Image, Linking, Alert, StyleSheet } from 'react-native';
 import Icon from './Icon';
 import { useColors, useThemedStyles } from '../theme';
 import { KOFI_URL, APP_STORE_REVIEW_URL } from '../constants';
@@ -44,13 +44,19 @@ export default function SupportModal({ visible, onClose }) {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <View style={styles.logo}>
-            <Icon name="feather" size={26} color={colors.primary} />
+          <View style={styles.titleRow}>
+            <Image
+              source={require('../../assets/gote.png')}
+              style={styles.titleNewt}
+              resizeMode="contain"
+            />
+            <Text style={styles.title}>
+              Enjoying <Text style={styles.titleBrand}>gote</Text>?
+            </Text>
           </View>
-          <Text style={styles.title}>Enjoying Gote?</Text>
           <Text style={styles.body}>
             If it’s helping you learn species, a quick rating means a lot — and
-            keeps Gote free for everyone.
+            keeps gote free for everyone.
           </Text>
 
           <View style={styles.stars}>
@@ -91,15 +97,12 @@ const makeStyles = (colors) => StyleSheet.create({
     padding: 24,
     alignItems: 'center',
   },
-  logo: {
-    width: 60,
-    height: 60,
-    borderRadius: 999,
-    backgroundColor: colors.faint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontSize: 21, fontWeight: '900', color: colors.text, marginTop: 14 },
+  // Header: the teal-tinted newt mark in front of the title (gote.png is a
+  // white silhouette, recoloured to the brand teal via tintColor).
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  titleNewt: { width: 34, height: 34, tintColor: colors.primary },
+  title: { fontSize: 21, fontWeight: '900', color: colors.text },
+  titleBrand: { fontFamily: 'Fredoka', color: colors.text },
   body: {
     fontSize: 14.5,
     color: colors.muted,

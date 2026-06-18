@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.5.2';
+export const APP_VERSION = '2.5.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.5.3',
+    date: '2026-06-18',
+    changes: [
+      'The “Enjoying gote?” support popup now matches the brand: the newt mark '
+        + 'sits in front of the title and the wordmark uses the Fredoka '
+        + 'logotype (replacing the old leaf icon).',
+    ],
+  },
   {
     version: '2.5.2',
     date: '2026-06-18',
