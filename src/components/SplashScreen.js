@@ -31,7 +31,7 @@ export default function SplashScreen({ onDone }) {
         style={styles.logo}
         resizeMode="contain"
       />
-      <Text style={styles.word}>göte</Text>
+      <Text style={styles.word}>gote</Text>
     </Animated.View>
   );
 }
@@ -47,8 +47,8 @@ const styles = StyleSheet.create({
   logo: { width: ART, height: ART },
   word: {
     marginTop: 20,
-    fontSize: 52,
-    fontWeight: '900',
+    fontSize: 56,
+    fontFamily: 'Fredoka',
     color: colors.onDark,
     letterSpacing: 1,
   },

@@ -97,6 +97,8 @@ export default function App() {
     ...Ionicons.font,
     ...MaterialCommunityIcons.font,
     ...FontAwesome5.font,
+    // Brand wordmark face (the rounded "gote" logotype on the hero + splash).
+    Fredoka: require('./assets/fonts/Fredoka-SemiBold.ttf'),
   });
   const [username, setUsername] = useState('');
   const [perSpecies, setPerSpecies] = useState(true);

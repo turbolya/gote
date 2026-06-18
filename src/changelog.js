@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.4.0';
+export const APP_VERSION = '2.5.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.5.0',
+    date: '2026-06-18',
+    changes: [
+      'New brand wordmark: the “gote” logo on the menu banner and the launch '
+        + 'splash now uses the rounded Fredoka logotype.',
+    ],
+  },
   {
     version: '2.4.0',
     date: '2026-06-18',

@@ -190,7 +190,7 @@ export default function MenuScreen({
         <View style={[styles.heroContent, { paddingTop: insets.top + 10 }]}>
           <View style={styles.heroTop}>
             <View style={styles.flex}>
-              <Text style={styles.heroTitle}>Gote</Text>
+              <Text style={styles.heroTitle}>gote</Text>
               <Animated.Text style={[styles.heroSub, { opacity: bigOpacity }]} numberOfLines={1}>
                 {username} · {deckCount} cards
               </Animated.Text>
@@ -245,7 +245,9 @@ const makeStyles = (colors) => StyleSheet.create({
   bar: { width: BAR_W, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
   heroContent: { paddingHorizontal: 22 },
   heroTop: { flexDirection: 'row', alignItems: 'flex-start' },
-  heroTitle: { fontSize: 34, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.5 },
+  // Brand wordmark: the rounded Fredoka logotype, lowercase, per the design
+  // system. The face is SemiBold (600) baked into the file, so no fontWeight.
+  heroTitle: { fontSize: 38, fontFamily: 'Fredoka', color: '#FFFFFF', letterSpacing: 0.5 },
   heroSub: { fontSize: 15, color: 'rgba(255,255,255,0.85)', marginTop: 2, fontWeight: '600' },
   // The logo is white on transparent, so it sits directly on the green hero
   // (no backdrop tile needed).
