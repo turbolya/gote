@@ -1,0 +1,48 @@
+/* gote — typography tokens
+ * gote ships no custom webfont: it uses the iOS system face (SF Pro) via the
+ * standard Apple system stack. -apple-system / BlinkMacSystemFont resolve to
+ * SF Pro on Apple platforms (no font file to host); other platforms fall back
+ * to their own system UI face. The voice of the type is WEIGHT-driven — heavy
+ * 800/900 display, plain 600/700 body — not a special typeface. Sizes mirror
+ * the React Native StyleSheets 1:1.
+ */
+
+:root {
+  /* Font families — Apple system stack (renders SF Pro on iOS/macOS) */
+  --font-system: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    system-ui, sans-serif;
+  --font-sans: var(--font-system);
+
+  /* Weights — gote leans on weight for hierarchy */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;   /* sub-labels, quiet links                       */
+  --weight-bold: 700;       /* row titles, counters                          */
+  --weight-heavy: 800;      /* headings, button labels, section labels       */
+  --weight-black: 900;      /* hero title, big scores, species names         */
+
+  /* Type scale (px → rem at 16px base) */
+  --text-hero: 2.125rem;    /* 34 — hero "Gote"                              */
+  --text-display: 3.5rem;   /* 56 — results percentage                       */
+  --text-title: 1.5rem;     /* 24 — results message                          */
+  --text-heading: 1.125rem; /* 18 — sub-screen headings                      */
+  --text-species: 1.625rem; /* 26 — revealed species name                    */
+  --text-row: 1.03rem;      /* ~16.5 — list row title                        */
+  --text-body: 1rem;        /* 16 — body, buttons, choices                   */
+  --text-sub: 0.8125rem;    /* 13 — row subtitles, pills                     */
+  --text-label: 0.8125rem;  /* 13 — uppercase section labels                 */
+  --text-caption: 0.75rem;  /* 12 — hints, attribution                       */
+  --text-micro: 0.6875rem;  /* 11 — photo credit                             */
+
+  /* Letter-spacing — display tightens, labels open up */
+  --tracking-display: -0.03em; /* big numbers / species                      */
+  --tracking-tight: -0.015em;  /* hero / headings                            */
+  --tracking-normal: 0;
+  --tracking-label: 0.06em;    /* uppercase section labels                   */
+  --tracking-wide: 0.08em;     /* uppercase mini-headings                    */
+
+  /* Line heights */
+  --leading-tight: 1.1;
+  --leading-snug: 1.3;
+  --leading-normal: 1.5;
+}

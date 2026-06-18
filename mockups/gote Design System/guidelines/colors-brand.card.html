@@ -1,0 +1,24 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Brand" subtitle="The app-icon teal, now the in-app primary, plus the hero gradient" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-system); background: var(--card); padding: 22px; }
+  .row { display: flex; gap: 14px; }
+  .sw { flex: 1; border-radius: var(--radius-lg); height: 92px; display: flex; flex-direction: column; justify-content: flex-end; padding: 12px; box-sizing: border-box; }
+  .name { font-size: 13px; font-weight: 800; }
+  .hex { font-size: 12px; font-weight: 600; opacity: 0.85; font-variant-numeric: tabular-nums; }
+  .on-dark { color: #fff; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw on-dark" style="background: var(--brand-teal);"><span class="name">teal · primary</span><span class="hex">#008AAC</span></div>
+    <div class="sw on-dark" style="background: var(--brand-teal-dark);"><span class="name">teal-dark</span><span class="hex">#036178</span></div>
+    <div class="sw on-dark" style="background: var(--brand-teal-deep);"><span class="name">teal-deep</span><span class="hex">#02485A</span></div>
+    <div class="sw on-dark" style="background: linear-gradient(135deg, var(--hero-grad-1), var(--hero-grad-2) 55%, var(--hero-grad-3));"><span class="name">hero gradient</span><span class="hex">17A7C6 → 02485A</span></div>
+  </div>
+</body>
+</html>

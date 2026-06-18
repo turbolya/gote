@@ -1,0 +1,28 @@
+<!-- @dsCard group="Colors" viewport="700x190" name="Accent tints" subtitle="Eight monotone icon accents — foreground glyph on a soft tile" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-system); background: var(--card); padding: 22px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .cell { display: flex; align-items: center; gap: 10px; }
+  .tile { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex: none; }
+  .dot { width: 16px; height: 16px; border-radius: 5px; }
+  .name { font-size: 12px; font-weight: 700; color: var(--text); text-transform: capitalize; }
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div class="cell"><div class="tile" style="background: var(--accent-green-bg);"><div class="dot" style="background: var(--accent-green-fg);"></div></div><span class="name">green</span></div>
+    <div class="cell"><div class="tile" style="background: var(--accent-blue-bg);"><div class="dot" style="background: var(--accent-blue-fg);"></div></div><span class="name">blue</span></div>
+    <div class="cell"><div class="tile" style="background: var(--accent-violet-bg);"><div class="dot" style="background: var(--accent-violet-fg);"></div></div><span class="name">violet</span></div>
+    <div class="cell"><div class="tile" style="background: var(--accent-amber-bg);"><div class="dot" style="background: var(--accent-amber-fg);"></div></div><span class="name">amber</span></div>
+    <div class="cell"><div class="tile" style="background: var(--accent-teal-bg);"><div class="dot" style="background: var(--accent-teal-fg);"></div></div><span class="name">teal</span></div>
+    <div class="cell"><div class="tile" style="background: var(--accent-indigo-bg);"><div class="dot" style="background: var(--accent-indigo-fg);"></div></div><span class="name">indigo</span></div>
+    <div class="cell"><div class="tile" style="background: var(--accent-rose-bg);"><div class="dot" style="background: var(--accent-rose-fg);"></div></div><span class="name">rose</span></div>
+    <div class="cell"><div class="tile" style="background: var(--accent-slate-bg);"><div class="dot" style="background: var(--accent-slate-fg);"></div></div><span class="name">slate</span></div>
+  </div>
+</body>
+</html>

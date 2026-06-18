@@ -1,0 +1,27 @@
+<!-- @dsCard group="Brand" viewport="700x240" name="The newt mark" subtitle="A single white salamander silhouette — tintable, sits on green or teal" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-system); background: var(--card); padding: 24px; color: var(--text); display: flex; gap: 18px; align-items: stretch; }
+  .tile { flex: 1; border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; }
+  .tile img { width: 96px; height: 96px; }
+  .caption { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 10px; text-align: center; }
+  .col { flex: 1; display: flex; flex-direction: column; }
+  /* recolor the newt via CSS mask so each field can tint it */
+  .mark { width: 96px; height: 116px; }
+  .teal { background: var(--brand-teal); }
+  .green { background: linear-gradient(135deg, var(--hero-grad-1), var(--hero-grad-3)); }
+  .light { background: var(--bg); border: 1px solid var(--border); }
+  .white-mark { background: #fff; -webkit-mask: url(../assets/newt.svg) center / contain no-repeat; mask: url(../assets/newt.svg) center / contain no-repeat; }
+  .green-mark { background: var(--brand-teal); -webkit-mask: url(../assets/newt.svg) center / contain no-repeat; mask: url(../assets/newt.svg) center / contain no-repeat; }
+</style>
+</head>
+<body>
+  <div class="col"><div class="tile teal"><div class="mark white-mark"></div></div><div class="caption">white on teal · app icon</div></div>
+  <div class="col"><div class="tile green"><div class="mark white-mark"></div></div><div class="caption">white on hero gradient</div></div>
+  <div class="col"><div class="tile light"><div class="mark green-mark"></div></div><div class="caption">teal on light</div></div>
+</body>
+</html>

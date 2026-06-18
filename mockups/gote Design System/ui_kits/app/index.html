@@ -1,0 +1,86 @@
+<!-- @dsCard group="gote App" viewport="430x900" name="gote — iOS app" subtitle="Interactive recreation: menu, quiz, results and lexicon" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>gote — iOS app</title>
+<link rel="stylesheet" href="../../styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css" />
+<script type="module" src="https://cdn.jsdelivr.net/npm/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://cdn.jsdelivr.net/npm/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { font-family: var(--font-system); background: #d9dcd6;
+    display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; }
+  /* iPhone frame */
+  .phone { width: 390px; height: 844px; border-radius: 54px; background: #000;
+    padding: 11px; box-shadow: 0 30px 70px rgba(0,0,0,0.35), 0 0 0 2px rgba(0,0,0,0.2); flex: none; }
+  .screen { width: 100%; height: 100%; border-radius: 44px; overflow: hidden; position: relative; background: var(--bg); }
+  * { -webkit-font-smoothing: antialiased; }
+</style>
+</head>
+<body>
+  <div class="phone"><div class="screen" id="root"></div></div>
+
+  <script src="data.js"></script>
+  <script type="text/babel" src="ui.jsx"></script>
+  <script type="text/babel" src="MenuScreen.jsx"></script>
+  <script type="text/babel" src="StudyScreen.jsx"></script>
+  <script type="text/babel" src="ResultsScreen.jsx"></script>
+  <script type="text/babel" src="LexiconScreen.jsx"></script>
+  <script type="text/babel">
+    const { MenuScreen, StudyScreen, ResultsScreen, LexiconScreen, HomeIndicator, QUIZ_CARDS, SPECIES } = window.GOTE;
+
+    function App() {
+      const [screen, setScreen] = React.useState('menu');
+      const [idx, setIdx] = React.useState(0);
+      const [score, setScore] = React.useState(0);
+      const [missed, setMissed] = React.useState([]);
+
+      const startGame = () => { setIdx(0); setScore(0); setMissed([]); setScreen('study'); };
+
+      // Advance the quiz; the StudyScreen reports nothing back here, so we
+      // simulate a graded result based on whether this card was "known".
+      const nextCard = (gotIt) => {
+        const card = QUIZ_CARDS[idx];
+        if (gotIt) setScore((s) => s + 1);
+        else {
+          const sp = SPECIES.find((s) => s.common === card.answer);
+          if (sp) setMissed((m) => [...m, sp]);
+        }
+        if (idx + 1 >= QUIZ_CARDS.length) setScreen('results');
+        else setIdx(idx + 1);
+      };
+
+      let view;
+      if (screen === 'menu')
+        view = <MenuScreen onSelectMode={startGame} onLexicon={() => setScreen('lexicon')} onStats={() => {}} />;
+      else if (screen === 'study')
+        view = <StudyScreen card={QUIZ_CARDS[idx]} index={idx} total={QUIZ_CARDS.length} score={score}
+          onNext={nextCard} onQuit={() => setScreen('menu')} />;
+      else if (screen === 'results')
+        view = <ResultsScreen total={QUIZ_CARDS.length} correct={score} missed={missed}
+          onPlayAgain={startGame} onMenu={() => setScreen('menu')} onRevisit={startGame} />;
+      else if (screen === 'lexicon')
+        view = <LexiconScreen onBack={() => setScreen('menu')} />;
+
+      const needsIndicator = screen === 'menu';
+      return (
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>{view}</div>
+          {needsIndicator && <HomeIndicator dark />}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

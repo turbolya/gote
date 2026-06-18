@@ -1,0 +1,23 @@
+<!-- @dsCard group="Spacing" viewport="700x180" name="Shadows" subtitle="Soft neutral elevation; the primary CTA casts a green-tinted shadow" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-system); background: var(--bg); padding: 30px 24px; color: var(--text); }
+  .row { display: flex; gap: 26px; }
+  .item { flex: 1; text-align: center; }
+  .box { height: 70px; background: var(--card); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--muted); }
+  .green { background: var(--primary); color: #fff; }
+  .name { font-size: 12px; font-weight: 800; margin-top: 12px; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="item"><div class="box" style="box-shadow: var(--shadow-card);">card</div><div class="name">card</div></div>
+    <div class="item"><div class="box" style="box-shadow: var(--shadow-banner);">banner</div><div class="name">banner</div></div>
+    <div class="item"><div class="box green" style="box-shadow: var(--shadow-primary);">primary CTA</div><div class="name">primary</div></div>
+  </div>
+</body>
+</html>

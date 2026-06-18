@@ -1,0 +1,29 @@
+<!-- @dsCard group="Type" viewport="700x230" name="Display & hero" subtitle="Heavy, tight system type for hero title, big scores and species names" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-system); background: var(--card); padding: 24px; color: var(--text); }
+  .item { display: flex; align-items: baseline; gap: 16px; padding: 10px 0; border-top: 1px solid var(--border); }
+  .item:first-child { border-top: 0; }
+  .meta { width: 150px; flex: none; color: var(--muted); font-size: 12px; font-weight: 600; }
+  .meta b { display: block; color: var(--text); font-size: 12px; font-weight: 800; }
+</style>
+</head>
+<body>
+  <div class="item">
+    <div class="meta"><b>Hero · 34 / 900</b>tracking -0.5</div>
+    <div style="font-size: var(--text-hero); font-weight: 900; letter-spacing: var(--tracking-tight);">Gote</div>
+  </div>
+  <div class="item">
+    <div class="meta"><b>Display · 56 / 900</b>results score</div>
+    <div style="font-size: var(--text-display); font-weight: 900; letter-spacing: var(--tracking-display);">87%</div>
+  </div>
+  <div class="item">
+    <div class="meta"><b>Species · 26 / 900</b>revealed name</div>
+    <div style="font-size: var(--text-species); font-weight: 900; letter-spacing: var(--tracking-display);">Eastern Newt</div>
+  </div>
+</body>
+</html>

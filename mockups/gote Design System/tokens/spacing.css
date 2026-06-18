@@ -1,0 +1,41 @@
+/* gote — spacing, radius, shadow tokens
+ * Derived from the React Native StyleSheets: a roughly 4px-based rhythm,
+ * generous pill radii, and soft low-contrast shadows.
+ */
+
+:root {
+  /* Spacing scale (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;   /* default screen horizontal padding                    */
+  --space-6: 24px;   /* roomier screen padding (results)                     */
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Radius — gote rounds heavily; full pills for chips/avatars/back buttons */
+  --radius-sm: 8px;
+  --radius-md: 14px;   /* choice chips                                       */
+  --radius-lg: 16px;   /* buttons, mockup cards                              */
+  --radius-xl: 20px;   /* centered panels, sheets                            */
+  --radius-pill: 999px;/* stat pills, icon buttons, progress tracks          */
+
+  /* Hairline divider width */
+  --hairline: 1px;
+
+  /* Control sizing */
+  --control-height: 50px;     /* full-width primary/secondary buttons        */
+  --icon-button: 40px;        /* round back/close buttons                    */
+  --tap-min: 44px;            /* minimum touch target                        */
+
+  /* Shadows — soft, neutral, low opacity */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-banner: 0 4px 12px rgba(0, 0, 0, 0.18);  /* collapsed hero        */
+  --shadow-primary: 0 6px 12px rgba(0, 138, 172, 0.35); /* colored, on CTA    */
+
+  /* Photo protection gradients (white chrome over photos) */
+  --scrim-top: linear-gradient(to bottom, rgba(0,0,0,0.75), rgba(0,0,0,0)); /* @kind other */
+  --scrim-bottom: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0)); /* @kind other */
+  --scrim-photo: rgba(0, 0, 0, 0.4); /* flat darkening over blurred backdrop */
+}

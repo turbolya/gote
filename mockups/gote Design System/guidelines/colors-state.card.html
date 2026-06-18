@@ -1,0 +1,23 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Semantic state" subtitle="Correct, wrong, and the saved-for-later flag amber" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-system); background: var(--card); padding: 22px; }
+  .row { display: flex; gap: 14px; }
+  .sw { flex: 1; border-radius: var(--radius-lg); height: 88px; display: flex; flex-direction: column; justify-content: flex-end; padding: 12px; box-sizing: border-box; color: #fff; }
+  .name { font-size: 13px; font-weight: 800; }
+  .hex { font-size: 12px; font-weight: 600; opacity: 0.9; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw" style="background: var(--correct);"><span class="name">correct</span><span class="hex">#3F9D52</span></div>
+    <div class="sw" style="background: var(--wrong);"><span class="name">wrong</span><span class="hex">#D9534F</span></div>
+    <div class="sw" style="background: var(--flag);"><span class="name">flag</span><span class="hex">#E0A800</span></div>
+    <div class="sw" style="background: var(--accent);"><span class="name">accent</span><span class="hex">#3B82F6</span></div>
+  </div>
+</body>
+</html>

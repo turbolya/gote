@@ -1,0 +1,323 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "components/buttons/**",
+              "components/data-display/**",
+              "components/quiz/**",
+              "ui_kits/app/**"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute > JSXIdentifier[name!=/^(?:variant|tone|icon|iconRight|fullWidth|disabled|children|key|ref|className|style|children)$/]",
+        "message": "<Button> doesn't accept that prop. Declared props: variant, tone, icon, iconRight, fullWidth, disabled, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:primary|success|danger|tinted|outline)$/]",
+        "message": "<Button> variant must be one of 'primary' | 'success' | 'danger' | 'tinted' | 'outline'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:primary|orange)$/]",
+        "message": "<Button> tone must be one of 'primary' | 'orange'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ChoiceButton'] > JSXAttribute > JSXIdentifier[name!=/^(?:state|disabled|children|onClick|key|ref|className|style|children)$/]",
+        "message": "<ChoiceButton> doesn't accept that prop. Declared props: state, disabled, children, onClick."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ChoiceButton'] > JSXAttribute[name.name='state'] > Literal[value!=/^(?:default|correct|wrong)$/]",
+        "message": "<ChoiceButton> state must be one of 'default' | 'correct' | 'wrong'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='IconButton'] > JSXAttribute > JSXIdentifier[name!=/^(?:icon|variant|size|iconSize|color|disabled|key|ref|className|style|children)$/]",
+        "message": "<IconButton> doesn't accept that prop. Declared props: icon, variant, size, iconSize, color, disabled."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='IconButton'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:faint|photo|brand)$/]",
+        "message": "<IconButton> variant must be one of 'faint' | 'photo' | 'brand'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ListRow'] > JSXAttribute > JSXIdentifier[name!=/^(?:icon|accent|title|sub|trailing|divider|onClick|key|ref|className|style|children)$/]",
+        "message": "<ListRow> doesn't accept that prop. Declared props: icon, accent, title, sub, trailing, divider, onClick."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ListRow'] > JSXAttribute[name.name='accent'] > Literal[value!=/^(?:green|blue|violet|amber|teal|indigo|rose|slate)$/]",
+        "message": "<ListRow> accent must be one of 'green' | 'blue' | 'violet' | 'amber' | 'teal' | 'indigo' | 'rose' | 'slate'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ProgressBar'] > JSXAttribute > JSXIdentifier[name!=/^(?:value|onPhoto|key|ref|className|style|children)$/]",
+        "message": "<ProgressBar> doesn't accept that prop. Declared props: value, onPhoto."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='SectionLabel'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|key|ref|className|style|children)$/]",
+        "message": "<SectionLabel> doesn't accept that prop. Declared props: children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='StatPill'] > JSXAttribute > JSXIdentifier[name!=/^(?:icon|children|onBrand|key|ref|className|style|children)$/]",
+        "message": "<StatPill> doesn't accept that prop. Declared props: icon, children, onBrand."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {
+      "Button": {
+        "replaces": []
+      },
+      "ChoiceButton": {
+        "replaces": []
+      },
+      "IconButton": {
+        "replaces": []
+      },
+      "ListRow": {
+        "replaces": []
+      },
+      "ProgressBar": {
+        "replaces": []
+      },
+      "SectionLabel": {
+        "replaces": []
+      },
+      "StatPill": {
+        "replaces": []
+      }
+    },
+    "tokens": [
+      "--accent",
+      "--accent-amber-bg",
+      "--accent-amber-fg",
+      "--accent-blue-bg",
+      "--accent-blue-fg",
+      "--accent-green-bg",
+      "--accent-green-fg",
+      "--accent-indigo-bg",
+      "--accent-indigo-fg",
+      "--accent-rose-bg",
+      "--accent-rose-fg",
+      "--accent-slate-bg",
+      "--accent-slate-fg",
+      "--accent-teal-bg",
+      "--accent-teal-fg",
+      "--accent-violet-bg",
+      "--accent-violet-fg",
+      "--action-orange-bg",
+      "--action-orange-fg",
+      "--action-primary-bg",
+      "--action-primary-fg",
+      "--bg",
+      "--border",
+      "--brand-teal",
+      "--brand-teal-dark",
+      "--brand-teal-deep",
+      "--card",
+      "--control-height",
+      "--correct",
+      "--divider",
+      "--faint",
+      "--flag",
+      "--focus-ring",
+      "--font-sans",
+      "--font-system",
+      "--hairline",
+      "--hero-grad-1",
+      "--hero-grad-2",
+      "--hero-grad-3",
+      "--icon-button",
+      "--leading-normal",
+      "--leading-snug",
+      "--leading-tight",
+      "--muted",
+      "--on-dark",
+      "--primary",
+      "--primary-dark",
+      "--radius-lg",
+      "--radius-md",
+      "--radius-pill",
+      "--radius-sm",
+      "--radius-xl",
+      "--scrim-bottom",
+      "--scrim-photo",
+      "--scrim-top",
+      "--section-label",
+      "--shadow-banner",
+      "--shadow-card",
+      "--shadow-primary",
+      "--space-1",
+      "--space-10",
+      "--space-2",
+      "--space-3",
+      "--space-4",
+      "--space-5",
+      "--space-6",
+      "--space-8",
+      "--surface-app",
+      "--surface-card",
+      "--surface-sunken",
+      "--tap-min",
+      "--text",
+      "--text-body",
+      "--text-caption",
+      "--text-display",
+      "--text-heading",
+      "--text-hero",
+      "--text-label",
+      "--text-micro",
+      "--text-on-brand",
+      "--text-row",
+      "--text-secondary",
+      "--text-species",
+      "--text-sub",
+      "--text-title",
+      "--tracking-display",
+      "--tracking-label",
+      "--tracking-normal",
+      "--tracking-tight",
+      "--tracking-wide",
+      "--weight-black",
+      "--weight-bold",
+      "--weight-heavy",
+      "--weight-medium",
+      "--weight-regular",
+      "--weight-semibold",
+      "--wrong"
+    ],
+    "tokenKinds": {
+      "--brand-teal": "color",
+      "--brand-teal-dark": "color",
+      "--brand-teal-deep": "color",
+      "--hero-grad-1": "color",
+      "--hero-grad-2": "color",
+      "--hero-grad-3": "color",
+      "--primary": "color",
+      "--primary-dark": "color",
+      "--accent": "color",
+      "--bg": "color",
+      "--card": "color",
+      "--text": "font",
+      "--muted": "color",
+      "--faint": "color",
+      "--border": "color",
+      "--on-dark": "color",
+      "--correct": "color",
+      "--wrong": "color",
+      "--flag": "color",
+      "--action-primary-bg": "color",
+      "--action-primary-fg": "color",
+      "--action-orange-bg": "color",
+      "--action-orange-fg": "color",
+      "--surface-app": "color",
+      "--surface-card": "color",
+      "--surface-sunken": "color",
+      "--text-body": "font",
+      "--text-secondary": "font",
+      "--text-on-brand": "font",
+      "--section-label": "color",
+      "--divider": "color",
+      "--focus-ring": "color",
+      "--accent-green-fg": "color",
+      "--accent-green-bg": "color",
+      "--accent-blue-fg": "color",
+      "--accent-blue-bg": "color",
+      "--accent-violet-fg": "color",
+      "--accent-violet-bg": "color",
+      "--accent-amber-fg": "color",
+      "--accent-amber-bg": "color",
+      "--accent-teal-fg": "color",
+      "--accent-teal-bg": "color",
+      "--accent-indigo-fg": "color",
+      "--accent-indigo-bg": "color",
+      "--accent-rose-fg": "color",
+      "--accent-rose-bg": "color",
+      "--accent-slate-fg": "color",
+      "--accent-slate-bg": "color",
+      "--font-system": "font",
+      "--font-sans": "font",
+      "--weight-regular": "font",
+      "--weight-medium": "font",
+      "--weight-semibold": "font",
+      "--weight-bold": "font",
+      "--weight-heavy": "font",
+      "--weight-black": "font",
+      "--text-hero": "font",
+      "--text-display": "font",
+      "--text-title": "font",
+      "--text-heading": "font",
+      "--text-species": "font",
+      "--text-row": "font",
+      "--text-sub": "font",
+      "--text-label": "font",
+      "--text-caption": "font",
+      "--text-micro": "font",
+      "--tracking-display": "font",
+      "--tracking-tight": "font",
+      "--tracking-normal": "font",
+      "--tracking-label": "font",
+      "--tracking-wide": "font",
+      "--leading-tight": "font",
+      "--leading-snug": "font",
+      "--leading-normal": "font",
+      "--space-1": "spacing",
+      "--space-2": "spacing",
+      "--space-3": "spacing",
+      "--space-4": "spacing",
+      "--space-5": "spacing",
+      "--space-6": "spacing",
+      "--space-8": "spacing",
+      "--space-10": "spacing",
+      "--radius-sm": "radius",
+      "--radius-md": "radius",
+      "--radius-lg": "radius",
+      "--radius-xl": "radius",
+      "--radius-pill": "radius",
+      "--hairline": "spacing",
+      "--control-height": "spacing",
+      "--icon-button": "spacing",
+      "--tap-min": "spacing",
+      "--shadow-card": "shadow",
+      "--shadow-banner": "shadow",
+      "--shadow-primary": "shadow",
+      "--scrim-top": "other",
+      "--scrim-bottom": "other",
+      "--scrim-photo": "color"
+    },
+    "fontFamilies": []
+  }
+}

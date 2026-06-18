@@ -1,0 +1,28 @@
+/* gote — accent tints
+ * Eight tinted accents used as monotone icon colors on menu rows and tiles.
+ * Each has a foreground (fg, the icon color) and a soft tile background (bg).
+ * Light values shown; dark variants brighten the fg for legibility.
+ * Source: src/theme.js (accentsLight / accentsDark).
+ */
+
+:root {
+  --accent-green-fg: #3f6212;   --accent-green-bg: #e9f1db;
+  --accent-blue-fg: #1d4ed8;    --accent-blue-bg: #e2eaff;
+  --accent-violet-fg: #6d28d9;  --accent-violet-bg: #eee7fe;
+  --accent-amber-fg: #b45309;   --accent-amber-bg: #fbefd5;
+  --accent-teal-fg: #0f766e;    --accent-teal-bg: #d8f0ed;
+  --accent-indigo-fg: #4338ca;  --accent-indigo-bg: #e6e7fb;
+  --accent-rose-fg: #be123c;    --accent-rose-bg: #fce3e9;
+  --accent-slate-fg: #475569;   --accent-slate-bg: #eef1f5;
+}
+
+:root[data-theme="dark"] {
+  --accent-green-fg: #9ccc5a;   --accent-green-bg: #26321a;
+  --accent-blue-fg: #8fb0f4;    --accent-blue-bg: #1b2440;
+  --accent-violet-fg: #b79bf2;  --accent-violet-bg: #271f40;
+  --accent-amber-fg: #e0a23c;   --accent-amber-bg: #332514;
+  --accent-teal-fg: #56c3bb;    --accent-teal-bg: #16302d;
+  --accent-indigo-fg: #9aa0f0;  --accent-indigo-bg: #222448;
+  --accent-rose-fg: #e78aa0;    --accent-rose-bg: #3a1c26;
+  --accent-slate-fg: #9fb0c2;   --accent-slate-bg: #22272e;
+}

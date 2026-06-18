@@ -1,0 +1,33 @@
+<!-- @dsCard group="Type" viewport="700x240" name="Headings & body" subtitle="Sub-screen headings, list rows, and secondary body copy" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-system); background: var(--card); padding: 24px; color: var(--text); }
+  .item { display: flex; align-items: baseline; gap: 16px; padding: 9px 0; border-top: 1px solid var(--border); }
+  .item:first-child { border-top: 0; }
+  .meta { width: 150px; flex: none; color: var(--muted); font-size: 12px; font-weight: 600; }
+  .meta b { display: block; color: var(--text); font-size: 12px; font-weight: 800; }
+</style>
+</head>
+<body>
+  <div class="item">
+    <div class="meta"><b>Title · 24 / 800</b>results message</div>
+    <div style="font-size: var(--text-title); font-weight: 800; letter-spacing: var(--tracking-tight);">Great job!</div>
+  </div>
+  <div class="item">
+    <div class="meta"><b>Heading · 18 / 800</b>screen header</div>
+    <div style="font-size: var(--text-heading); font-weight: 800;">Lexicon</div>
+  </div>
+  <div class="item">
+    <div class="meta"><b>Row · 16.5 / 700</b>list row title</div>
+    <div style="font-size: var(--text-row); font-weight: 700;">Speedrun</div>
+  </div>
+  <div class="item">
+    <div class="meta"><b>Body · 16 / 600</b>buttons, choices</div>
+    <div style="font-size: var(--text-body); font-weight: 600;">See a photo, choose its name</div>
+  </div>
+</body>
+</html>

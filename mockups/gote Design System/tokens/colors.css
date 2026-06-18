@@ -1,0 +1,68 @@
+/* gote — color tokens
+ * Source of truth: src/theme.js, retuned to a TEAL brand. The product palette
+ * is now the app-icon cyan-teal (#008AAC), so the in-app UI and the app icon
+ * share one signature color.
+ */
+
+:root {
+  /* ---- Brand ------------------------------------------------------------ */
+  --brand-teal: #008aac;         /* primary brand — the app-icon teal field   */
+  --brand-teal-dark: #036178;    /* deeper teal — section labels, pressed     */
+  --brand-teal-deep: #02485a;    /* deepest teal — hero gradient base         */
+
+  /* Hero banner gradient (brand teal, fixed across light/dark) */
+  --hero-grad-1: #17a7c6;
+  --hero-grad-2: #008aac;
+  --hero-grad-3: #02485a;
+
+  /* ---- Core palette (light) --------------------------------------------- */
+  --primary: #008aac;
+  --primary-dark: #036178;
+  --accent: #3b82f6;
+  --bg: #fafaf8;                 /* soft off-white app background             */
+  --card: #ffffff;
+  --text: #1a1d1a;              /* near-black                                */
+  --muted: #8a8f86;            /* secondary text / neutral gray             */
+  --faint: #f0f1ed;            /* subtle fills, pressed states, icon tiles   */
+  --border: #e7e8e3;           /* hairline dividers + outlines               */
+  --on-dark: #ffffff;          /* text/icons over photos & green surfaces    */
+
+  /* ---- Semantic state --------------------------------------------------- */
+  --correct: #3f9d52;
+  --wrong: #d9534f;
+  --flag: #e0a800;             /* active flag / saved-for-later amber        */
+
+  /* "Play again" / "Revisit missed" tinted result actions.
+   * action-primary echoes the brand (light teal); action-warn stays orange. */
+  --action-primary-bg: #d8eef4;
+  --action-primary-fg: #036178;
+  --action-orange-bg: #fce6d2;
+  --action-orange-fg: #c2410c;
+
+  /* ---- Semantic aliases ------------------------------------------------- */
+  --surface-app: var(--bg);
+  --surface-card: var(--card);
+  --surface-sunken: var(--faint);
+  --text-body: var(--text);
+  --text-secondary: var(--muted);
+  --text-on-brand: var(--on-dark);
+  --section-label: var(--primary-dark);
+  --divider: var(--border);
+  --focus-ring: var(--accent);
+}
+
+/* ---- Dark theme --------------------------------------------------------- */
+:root[data-theme="dark"] {
+  --primary: #34c2e0;          /* brighter teal so it reads on dark          */
+  --primary-dark: #82d9ea;     /* used as heading/accent color on dark       */
+  --accent: #7ca2f0;
+  --bg: #121412;
+  --card: #1c1f1b;
+  --text: #eceeea;
+  --muted: #9aa096;
+  --faint: #262a23;
+  --border: #30342c;
+  --on-dark: #ffffff;
+  --correct: #5bbe6a;
+  --wrong: #e5736f;
+}
