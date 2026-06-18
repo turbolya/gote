@@ -189,17 +189,17 @@ export default function MenuScreen({
 
         <View style={[styles.heroContent, { paddingTop: insets.top + 10 }]}>
           <View style={styles.heroTop}>
+            <Image
+              source={require('../../assets/gote.png')}
+              style={styles.heroLogo}
+              resizeMode="contain"
+            />
             <View style={styles.flex}>
               <Text testID="menu-wordmark" style={styles.heroTitle}>gote</Text>
               <Animated.Text style={[styles.heroSub, { opacity: bigOpacity }]} numberOfLines={1}>
                 {username} · {deckCount} cards
               </Animated.Text>
             </View>
-            <Image
-              source={require('../../assets/gote.png')}
-              style={styles.heroLogo}
-              resizeMode="contain"
-            />
           </View>
 
           {lifetimePct !== null && (
@@ -244,7 +244,7 @@ const makeStyles = (colors) => StyleSheet.create({
   },
   bar: { width: BAR_W, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
   heroContent: { paddingHorizontal: 22 },
-  heroTop: { flexDirection: 'row', alignItems: 'flex-start' },
+  heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   // Brand wordmark: the rounded Fredoka logotype, lowercase, per the design
   // system. The face is SemiBold (600) baked into the file, so no fontWeight.
   heroTitle: { fontSize: 38, fontFamily: 'Fredoka', color: '#FFFFFF', letterSpacing: 0.5 },

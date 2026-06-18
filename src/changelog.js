@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.5.1';
+export const APP_VERSION = '2.5.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.5.2',
+    date: '2026-06-18',
+    changes: [
+      'The newt mark on the menu banner now sits to the left of the “gote” '
+        + 'wordmark, matching the design guidance.',
+    ],
+  },
   {
     version: '2.5.1',
     date: '2026-06-18',
