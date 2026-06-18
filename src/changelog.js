@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.5.6';
+export const APP_VERSION = '2.5.7';
 
 export const CHANGELOG = [
+  {
+    version: '2.5.7',
+    date: '2026-06-18',
+    changes: [
+      'New app icon: the white newt on the brand teal (replacing the solid-green '
+        + 'placeholder).',
+    ],
+  },
   {
     version: '2.5.6',
     date: '2026-06-18',

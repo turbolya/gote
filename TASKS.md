@@ -10,8 +10,10 @@ A running list of things to do for Gote. Check items off as they're done.
 - [ ] Make the GitHub repo public
 - [ ] Refine the splash-screen newt illustration (review the hand-coded SVG on
       device; consider a polished designed asset, and matching native splash art)
-- [ ] Replace the placeholder app icon (assets/icon.png, adaptive-icon.png,
-      favicon.png are solid-green placeholders — make a real 1024×1024 icon)
+- [ ] Replace the remaining placeholder icons: the Android adaptive-icon
+      foreground (assets/adaptive-icon.png) and the web favicon
+      (assets/favicon.png) are still solid-green placeholders. The iOS/main app
+      icon now uses the teal newt (assets/app-icon.png, white newt on #008AAC).
 - [ ] Do a general design review across the whole app (consistency of spacing,
       colors, typography, and components on every screen)
 - [ ] Game Center integration (iOS): leaderboards (e.g. speedrun streak,
