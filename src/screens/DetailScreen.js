@@ -21,9 +21,12 @@ import { fetchTaxonDetail, toLargePhoto } from '../api';
 // Ranks worth surfacing in the taxonomy block (skip the very fine sub-ranks).
 const SHOWN_RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 
-export default function DetailScreen({ card, locale, onBack }) {
+const FLAG_ON = '#E0A800'; // amber for an active flag
+
+export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
+  const flagged = !!(flags && card.taxonId != null && flags.has(String(card.taxonId)));
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -66,6 +69,20 @@ export default function DetailScreen({ card, locale, onBack }) {
           <Pressable testID="detail-back" onPress={onBack} hitSlop={12} style={styles.backFab}>
             <Icon name="chevron-left" size={24} color={colors.onDark} />
           </Pressable>
+          {onToggleFlag && card.taxonId != null && (
+            <Pressable
+              testID="detail-flag"
+              onPress={() => onToggleFlag(card.taxonId)}
+              hitSlop={12}
+              style={styles.flagFab}
+            >
+              <Icon
+                name={flagged ? 'flag' : 'flag-outline'}
+                size={22}
+                color={flagged ? FLAG_ON : colors.onDark}
+              />
+            </Pressable>
+          )}
         </View>
 
         <View style={styles.body}>
@@ -158,6 +175,17 @@ const makeStyles = (colors) => StyleSheet.create({
     position: 'absolute',
     top: 12,
     left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  flagFab: {
+    position: 'absolute',
+    top: 12,
+    right: 16,
     width: 40,
     height: 40,
     borderRadius: 999,

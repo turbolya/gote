@@ -867,6 +867,8 @@ export default function App() {
             species={speciesStats}
             cards={fullDeck}
             lifetime={lifetime}
+            flags={flags}
+            onToggleFlag={toggleFlag}
             onBack={() => setScreen('menu')}
             onSelect={(card) => {
               setSelectedCard(card);
@@ -910,6 +912,8 @@ export default function App() {
           <DetailScreen
             card={selectedCard}
             locale={locale}
+            flags={flags}
+            onToggleFlag={toggleFlag}
             onBack={() => setScreen(detailFrom)}
           />
         )}

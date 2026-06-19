@@ -66,9 +66,12 @@ describe('Lexicon, flags & detail', () => {
     await visible('results-menu');
     await tap('results-menu');
     await tap('menu-stats');
-    // Tapping a species row opens the same detail page as the Lexicon.
+    // Flag toggle on the stats row (between the name and the bars).
+    await tap('stats-flag-1001');
+    // Tapping the row opens the same detail page as the Lexicon.
     await tap('stats-card-1001'); // European Robin (fixture)
     await visible('detail-back');
+    await tap('detail-flag'); // flag toggle on the detail page
     await tap('detail-back');
     await visible('stats-sort-pct');
   });

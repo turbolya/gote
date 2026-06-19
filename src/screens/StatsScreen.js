@@ -22,6 +22,8 @@ import { fetchTaxonThumbs } from '../api';
 // fading out toward its tip; fixed across light/dark like the hero gradient).
 const PCT_GRADIENT = ['rgba(0,138,172,0.22)', 'rgba(0,138,172,0.03)'];
 
+const FLAG_ON = '#E0A800'; // amber for an active flag
+
 // Sort modes for the per-species list.
 const SORTS = [
   { key: 'pct', label: 'Success %' },
@@ -39,7 +41,7 @@ const successOf = (s) => (totalOf(s) > 0 ? knownOf(s) / totalOf(s) : 0);
 // incorrect) sit on the right. Count bars are scaled to `maxCount` (the largest
 // single count across the list) so their lengths are comparable row to row;
 // nonzero bars keep a minimum width so they stay visible.
-function CardStatRow({ item, image, maxCount, onPress, onImageError }) {
+function CardStatRow({ item, image, maxCount, onPress, onImageError, flagged, onFlag }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const known = knownOf(item);
@@ -83,6 +85,21 @@ function CardStatRow({ item, image, maxCount, onPress, onImageError }) {
         )}
       </View>
 
+      {onFlag && (
+        <Pressable
+          testID={`stats-flag-${item.key}`}
+          onPress={onFlag}
+          hitSlop={10}
+          style={styles.flagBtn}
+        >
+          <Icon
+            name={flagged ? 'flag' : 'flag-outline'}
+            size={18}
+            color={flagged ? FLAG_ON : colors.muted}
+          />
+        </Pressable>
+      )}
+
       <View style={styles.barsCol}>
         <View style={styles.barLine}>
           <View style={styles.barTrack}>
@@ -101,7 +118,7 @@ function CardStatRow({ item, image, maxCount, onPress, onImageError }) {
   );
 }
 
-export default function StatsScreen({ species, cards = [], lifetime, onBack, onSelect, onReset }) {
+export default function StatsScreen({ species, cards = [], lifetime, flags, onToggleFlag, onBack, onSelect, onReset }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const [sort, setSort] = useState('pct');
@@ -325,6 +342,8 @@ export default function StatsScreen({ species, cards = [], lifetime, onBack, onS
                   maxCount={maxCount}
                   onPress={() => openDetail(item)}
                   onImageError={markErrored}
+                  flagged={!!(flags && flags.has(item.key))}
+                  onFlag={onToggleFlag ? () => onToggleFlag(item.key) : null}
                 />
               ))
             )}
@@ -438,6 +457,7 @@ const makeStyles = (colors) => StyleSheet.create({
   nameCol: { flex: 1, minWidth: 0 },
   cardName: { fontSize: 15, fontWeight: '700', color: colors.text },
   cardSci: { fontSize: 12, fontStyle: 'italic', color: colors.muted, marginTop: 1 },
+  flagBtn: { width: 30, height: 40, alignItems: 'center', justifyContent: 'center' },
 
   barsCol: { width: 100, gap: 5 },
   barLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },

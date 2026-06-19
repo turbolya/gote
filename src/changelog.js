@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.7.1';
+export const APP_VERSION = '2.8.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.8.0',
+    date: '2026-06-19',
+    changes: [
+      'Flag species straight from Statistics (between the name and the bars) '
+        + 'and from the species detail page.',
+    ],
+  },
   {
     version: '2.7.1',
     date: '2026-06-19',
