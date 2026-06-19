@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import ScreenHeader from '../components/ScreenHeader';
 import { useColors, useThemedStyles } from '../theme';
-import { fetchTaxonPhotosByIds } from '../api';
+import { fetchTaxonThumbs } from '../api';
 
 // Subtle teal fill for the per-row "recognition %" background bar (brand teal,
 // fading out toward its tip; fixed across light/dark like the hero gradient).
@@ -39,7 +39,7 @@ const successOf = (s) => (totalOf(s) > 0 ? knownOf(s) / totalOf(s) : 0);
 // incorrect) sit on the right. Count bars are scaled to `maxCount` (the largest
 // single count across the list) so their lengths are comparable row to row;
 // nonzero bars keep a minimum width so they stay visible.
-function CardStatRow({ item, image, maxCount, onPress }) {
+function CardStatRow({ item, image, maxCount, onPress, onImageError }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const known = knownOf(item);
@@ -64,7 +64,12 @@ function CardStatRow({ item, image, maxCount, onPress }) {
       />
 
       {image ? (
-        <Image source={{ uri: image }} style={styles.thumb} resizeMode="cover" />
+        <Image
+          source={{ uri: image }}
+          style={styles.thumb}
+          resizeMode="cover"
+          onError={() => onImageError && onImageError(image)}
+        />
       ) : (
         <View style={[styles.thumb, styles.thumbPlaceholder]}>
           <Icon name="image" size={18} color={colors.muted} />
@@ -106,6 +111,16 @@ export default function StatsScreen({ species, cards = [], lifetime, onBack, onS
   // taxonId → fetched thumbnail URL, for species not in the current deck whose
   // stats predate per-species thumbnails (null = looked up, none found).
   const [fetchedImages, setFetchedImages] = useState({});
+  // Image URLs that failed to load, so we can fall back to a fetched thumbnail.
+  const [errored, setErrored] = useState(() => new Set());
+  const markErrored = (url) =>
+    url &&
+    setErrored((prev) => {
+      if (prev.has(url)) return prev;
+      const next = new Set(prev);
+      next.add(url);
+      return next;
+    });
 
   // key (taxonId/scientific) → the full deck card, for thumbnails, the
   // "my observations" filter, and opening the detail page with full data.
@@ -151,33 +166,42 @@ export default function StatsScreen({ species, cards = [], lifetime, onBack, onS
     [filtered]
   );
 
-  // Resolved thumbnail for a row: stored/deck image, else a fetched curated one.
-  const imageFor = (item) => item.image || fetchedImages[item.key] || null;
+  // Resolved thumbnail for a row: the stored/deck image (unless it failed to
+  // load), else a fetched default thumbnail (unless that failed too).
+  const imageFor = (item) => {
+    if (item.image && !errored.has(item.image)) return item.image;
+    const f = fetchedImages[item.key];
+    if (f && !errored.has(f)) return f;
+    return null;
+  };
 
-  // Fetch curated photos for visible species that have no thumbnail yet (e.g.
-  // older stats for species no longer in the deck). Batched + cached in the API.
+  // Fetch a default thumbnail for any visible species that has no usable image
+  // yet — older stats for species no longer in the deck, or a broken stored
+  // URL. Batched + cached in the API.
   useEffect(() => {
     const need = sorted
-      .filter((s) => !s.image && !(s.key in fetchedImages) && /^\d+$/.test(s.key))
+      .filter(
+        (s) =>
+          /^\d+$/.test(s.key) &&
+          !(s.key in fetchedImages) &&
+          !(s.image && !errored.has(s.image))
+      )
       .map((s) => s.key);
     if (need.length === 0) return;
     let cancelled = false;
     (async () => {
-      const map = await fetchTaxonPhotosByIds(need.map(Number), 1);
+      const map = await fetchTaxonThumbs(need.map(Number));
       if (cancelled) return;
       setFetchedImages((prev) => {
         const next = { ...prev };
-        for (const k of need) {
-          const urls = map[k];
-          next[k] = (urls && urls[0]) || null;
-        }
+        for (const k of need) next[k] = map[k] || null;
         return next;
       });
     })();
     return () => {
       cancelled = true;
     };
-  }, [sorted, fetchedImages]);
+  }, [sorted, fetchedImages, errored]);
 
   // Open the detail page: prefer the full deck card; otherwise build a minimal
   // card from the stats entry (the detail page fetches the rest by taxonId).
@@ -300,6 +324,7 @@ export default function StatsScreen({ species, cards = [], lifetime, onBack, onS
                   image={imageFor(item)}
                   maxCount={maxCount}
                   onPress={() => openDetail(item)}
+                  onImageError={markErrored}
                 />
               ))
             )}

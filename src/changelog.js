@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.7.0';
+export const APP_VERSION = '2.7.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.7.1',
+    date: '2026-06-19',
+    changes: [
+      'Fixed missing thumbnails in “All species” statistics: they now fall back '
+        + 'to each species’ default iNaturalist photo (and recover if a stored '
+        + 'image fails to load).',
+    ],
+  },
   {
     version: '2.7.0',
     date: '2026-06-19',

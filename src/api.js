@@ -663,6 +663,53 @@ export async function fetchTaxonPhotosByIds(ids, maxPer = 6) {
   return out;
 }
 
+const FIELDS_TAXON_THUMB = {
+  default_photo: {
+    square_url: true,
+    medium_url: true,
+    url: true,
+  },
+};
+
+/**
+ * Batch-fetch each taxon's single default thumbnail (the small square photo
+ * iNaturalist shows everywhere). Lighter and more reliable than curated
+ * `taxon_photos` for a list of thumbnails — every species with any photo has a
+ * default_photo. Returns a map { [taxonId]: url|null }. Best-effort.
+ *
+ * @param {Array<number|string>} ids
+ * @returns {Promise<Object<string, string|null>>}
+ */
+export async function fetchTaxonThumbs(ids) {
+  if (IS_E2E) return fx.e2eTaxonThumbs(ids);
+  const list = [...new Set((ids || []).filter((x) => x != null))];
+  const out = {};
+
+  const misses = [];
+  for (const id of list) {
+    const key = `thumb:${id}`;
+    if (taxonCache.has(key)) out[id] = taxonCache.get(key);
+    else misses.push(id);
+  }
+
+  for (let i = 0; i < misses.length; i += 30) {
+    const chunk = misses.slice(i, i + 30);
+    const results = await fetchTaxaResults(chunk, {
+      fields: FIELDS_TAXON_THUMB,
+      perPage: 30,
+    });
+    for (const t of results) {
+      const p = t.default_photo;
+      const url =
+        (p && (p.square_url || p.medium_url || (p.url && toMediumPhoto(p.url)))) ||
+        null;
+      out[t.id] = url;
+      taxonCache.set(`thumb:${t.id}`, url);
+    }
+  }
+  return out;
+}
+
 /**
  * Full detail for one taxon, for the Lexicon detail page: curated photos,
  * named ancestors, wikipedia summary, common/scientific names, observation

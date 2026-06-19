@@ -56,6 +56,13 @@ export function e2eTaxonPhotosByIds(ids = [], maxPer = 6) {
   return out;
 }
 
+// Default thumbnail per taxon → { [taxonId]: url }.
+export function e2eTaxonThumbs(ids = []) {
+  const out = {};
+  for (const id of ids) out[id] = img(id, 'thumb');
+  return out;
+}
+
 // "Similar species" distractor pool for "Pick the right one": four other taxa.
 export function e2eSimilar(taxonId) {
   return E2E_CARDS.filter((c) => c.taxonId !== taxonId)
