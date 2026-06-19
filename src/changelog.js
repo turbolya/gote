@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.8.0';
+export const APP_VERSION = '2.8.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.8.1',
+    date: '2026-06-19',
+    changes: [
+      'Statistics and Lexicon now keep your scroll position when you open a '
+        + 'species and come back — they only jump to the top when you change a '
+        + 'filter or return to the menu.',
+    ],
+  },
   {
     version: '2.8.0',
     date: '2026-06-19',

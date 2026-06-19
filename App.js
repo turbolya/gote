@@ -149,10 +149,11 @@ export default function App() {
   }, [perSpecies, researchGrade, speciesOnly]);
   // Sync status for the Settings UI: { state: idle|syncing|done|error, syncedAt, message }
   const [sync, setSync] = useState({ state: 'idle', syncedAt: null, message: null });
-  // The card whose detail page is open (from the Lexicon or the results screen),
-  // and which screen to return to when the detail page is dismissed.
-  const [selectedCard, setSelectedCard] = useState(null);
-  const [detailFrom, setDetailFrom] = useState('lexicon');
+  // The card whose detail page is open, rendered as an overlay ON TOP of the
+  // current screen (Lexicon / Statistics / Results) rather than replacing it —
+  // so that screen stays mounted and its scroll position and filters are
+  // preserved when the detail page is dismissed. null = no detail open.
+  const [detailCard, setDetailCard] = useState(null);
 
   // Species the user has flagged, as a Set of taxon-id strings, scoped to the
   // current account. Mirrored in a ref so the game launchers (which filter by
@@ -870,11 +871,7 @@ export default function App() {
             flags={flags}
             onToggleFlag={toggleFlag}
             onBack={() => setScreen('menu')}
-            onSelect={(card) => {
-              setSelectedCard(card);
-              setDetailFrom('stats');
-              setScreen('detail');
-            }}
+            onSelect={(card) => setDetailCard(card)}
             onReset={async () => {
               await resetStatistics();
               speciesRef.current = {};
@@ -900,21 +897,7 @@ export default function App() {
             flags={flags}
             onToggleFlag={toggleFlag}
             onBack={() => setScreen('menu')}
-            onSelect={(card) => {
-              setSelectedCard(card);
-              setDetailFrom('lexicon');
-              setScreen('detail');
-            }}
-          />
-        )}
-
-        {screen === 'detail' && selectedCard && (
-          <DetailScreen
-            card={selectedCard}
-            locale={locale}
-            flags={flags}
-            onToggleFlag={toggleFlag}
-            onBack={() => setScreen(detailFrom)}
+            onSelect={(card) => setDetailCard(card)}
           />
         )}
 
@@ -932,12 +915,23 @@ export default function App() {
             onMenu={() => setScreen('menu')}
             flags={flags}
             onToggleFlag={toggleFlag}
-            onSelectMissed={(card) => {
-              setSelectedCard(card);
-              setDetailFrom('results');
-              setScreen('detail');
-            }}
+            onSelectMissed={(card) => setDetailCard(card)}
           />
+        )}
+
+        {/* Species detail page — an overlay over the current screen (Lexicon /
+            Statistics / Results), which stays mounted underneath so its scroll
+            position and filters survive when this is dismissed. */}
+        {detailCard && (
+          <SafeAreaView style={styles.detailOverlay} edges={['top', 'bottom']}>
+            <DetailScreen
+              card={detailCard}
+              locale={locale}
+              flags={flags}
+              onToggleFlag={toggleFlag}
+              onBack={() => setDetailCard(null)}
+            />
+          </SafeAreaView>
         )}
       </SafeAreaView>
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
@@ -960,6 +954,8 @@ const makeStyles = (colors) => StyleSheet.create({
   menuRoot: { flex: 1, backgroundColor: colors.bg },
   // Pick-the-right-one owns its own insets too.
   pickRoot: { flex: 1, backgroundColor: colors.bg },
+  // Detail page overlay: fills the safe area, covering the screen beneath it.
+  detailOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   loadingText: {
     marginTop: 16,

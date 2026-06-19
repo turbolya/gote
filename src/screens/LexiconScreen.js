@@ -3,7 +3,7 @@
 // species in games: well known, missed, or not yet seen in a game.
 // Tapping a row opens the species detail page.
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Pressable,
   TextInput,
   FlatList,
+  Keyboard,
   StyleSheet,
 } from 'react-native';
 import Icon from '../components/Icon';
@@ -73,6 +74,13 @@ export default function LexiconScreen({
       }),
     [cards, query, status, speciesStats, flaggedActive, flags]
   );
+
+  // Jump back to the top when the search/filters change (but NOT on unrelated
+  // re-renders like returning from the detail page, which keeps the position).
+  const listRef = useRef(null);
+  useEffect(() => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [query, status, flaggedActive]);
 
   return (
     <View style={styles.flex}>
@@ -150,6 +158,7 @@ export default function LexiconScreen({
 
       {/* Results table */}
       <FlatList
+        ref={listRef}
         data={rows}
         keyExtractor={(c) => String(c.taxonId ?? c.scientific)}
         contentContainerStyle={styles.listContent}
@@ -158,7 +167,10 @@ export default function LexiconScreen({
           <Pressable
             testID={`lexicon-row-${item.taxonId}`}
             style={styles.row}
-            onPress={() => onSelect(item)}
+            onPress={() => {
+              Keyboard.dismiss(); // so the detail overlay's first tap isn't eaten
+              onSelect(item);
+            }}
           >
             <Image
               source={{ uri: item.image }}

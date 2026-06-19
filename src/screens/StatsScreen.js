@@ -2,7 +2,7 @@
 // species you've been quizzed on, with a thumbnail and two bars (correct /
 // incorrect), sortable by success rate or by correct/incorrect counts.
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -246,6 +246,13 @@ export default function StatsScreen({ species, cards = [], lifetime, flags, onTo
 
   const empty = list.length === 0;
 
+  // Jump back to the top when the sort or filter changes (but NOT on unrelated
+  // re-renders like returning from the detail page, which keeps the position).
+  const scrollRef = useRef(null);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [sort, obsOnly]);
+
   const confirmReset = () => {
     Alert.alert(
       'Reset statistics?',
@@ -262,6 +269,7 @@ export default function StatsScreen({ species, cards = [], lifetime, flags, onTo
       <ScreenHeader title="Statistics" onBack={onBack} />
 
       <ScrollView
+        ref={scrollRef}
         testID="stats-scroll"
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
