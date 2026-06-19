@@ -8,9 +8,16 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.6.1';
+export const APP_VERSION = '2.6.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.6.2',
+    date: '2026-06-19',
+    changes: [
+      'Cleaner launch splash: just the newt logo, without the “gote” wordmark.',
+    ],
+  },
   {
     version: '2.6.1',
     date: '2026-06-19',

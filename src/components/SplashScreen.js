@@ -1,9 +1,9 @@
-// Branded launch splash: the Gote logo (white on transparent, from
-// assets/gote.png) over the iNaturalist-green background with the "göte"
-// wordmark. Shown on top of the app at startup, then fades out via `onDone`.
+// Branded launch splash: the Gote newt logo (white on transparent, from
+// assets/gote.png) centered over the brand-teal background. Shown on top of the
+// app at startup, then fades out via `onDone`.
 
 import React, { useEffect, useRef } from 'react';
-import { Animated, Image, Text, StyleSheet, Dimensions } from 'react-native';
+import { Animated, Image, StyleSheet, Dimensions } from 'react-native';
 import { colors } from '../theme';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -31,7 +31,6 @@ export default function SplashScreen({ onDone }) {
         style={styles.logo}
         resizeMode="contain"
       />
-      <Text style={styles.word}>gote</Text>
     </Animated.View>
   );
 }
@@ -45,11 +44,4 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   logo: { width: ART, height: ART },
-  word: {
-    marginTop: 20,
-    fontSize: 56,
-    fontFamily: 'Fredoka',
-    color: colors.onDark,
-    letterSpacing: 1,
-  },
 });
