@@ -97,6 +97,9 @@ export default function StatsScreen({ species, cards = [], lifetime, onBack, onR
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const [sort, setSort] = useState('pct');
+  // Default: only species in the current user's loaded observations. Toggling
+  // off shows every species ever quizzed (incl. Nearby rounds / past decks).
+  const [obsOnly, setObsOnly] = useState(true);
 
   // taxonId / scientific → thumbnail, from the current deck. Used as a fallback
   // for older stats entries saved before thumbnails were recorded.
@@ -109,6 +112,16 @@ export default function StatsScreen({ species, cards = [], lifetime, onBack, onR
     return m;
   }, [cards]);
 
+  // Keys (taxonId/scientific) present in the current observations deck.
+  const deckKeys = useMemo(() => {
+    const s = new Set();
+    for (const c of cards) {
+      const k = c.taxonId != null ? String(c.taxonId) : c.scientific;
+      if (k) s.add(k);
+    }
+    return s;
+  }, [cards]);
+
   const list = useMemo(
     () =>
       Object.entries(species || {}).map(([key, s]) => ({
@@ -119,8 +132,14 @@ export default function StatsScreen({ species, cards = [], lifetime, onBack, onR
     [species, imageByKey]
   );
 
+  // Apply the "my observations" filter (default on).
+  const filtered = useMemo(
+    () => (obsOnly ? list.filter((s) => deckKeys.has(s.key)) : list),
+    [list, obsOnly, deckKeys]
+  );
+
   const sorted = useMemo(() => {
-    const arr = [...list];
+    const arr = [...filtered];
     if (sort === 'correct') {
       arr.sort((a, b) => knownOf(b) - knownOf(a) || totalOf(b) - totalOf(a));
     } else if (sort === 'incorrect') {
@@ -129,11 +148,11 @@ export default function StatsScreen({ species, cards = [], lifetime, onBack, onR
       arr.sort((a, b) => successOf(b) - successOf(a) || totalOf(b) - totalOf(a));
     }
     return arr;
-  }, [list, sort]);
+  }, [filtered, sort]);
 
   const maxCount = useMemo(
-    () => Math.max(1, ...list.map((s) => Math.max(knownOf(s), missedOf(s)))),
-    [list]
+    () => Math.max(1, ...filtered.map((s) => Math.max(knownOf(s), missedOf(s)))),
+    [filtered]
   );
 
   const lifetimePct =
@@ -187,7 +206,24 @@ export default function StatsScreen({ species, cards = [], lifetime, onBack, onR
           </Text>
         ) : (
           <>
-            <Text style={styles.boardTitle}>By species</Text>
+            <View style={styles.boardHeader}>
+              <Text style={styles.boardTitle}>By species</Text>
+              {/* Filter: my observations (default) ↔ all species ever seen. */}
+              <Pressable
+                testID="stats-filter"
+                onPress={() => setObsOnly((v) => !v)}
+                style={[styles.filterToggle, obsOnly && styles.filterToggleOn]}
+              >
+                <Icon
+                  name={obsOnly ? 'funnel' : 'funnel-outline'}
+                  size={13}
+                  color={obsOnly ? colors.onDark : colors.muted}
+                />
+                <Text style={[styles.filterText, obsOnly && styles.filterTextOn]}>
+                  {obsOnly ? 'My observations' : 'All species'}
+                </Text>
+              </Pressable>
+            </View>
 
             {/* Sort options */}
             <View style={styles.sortRow}>
@@ -208,9 +244,16 @@ export default function StatsScreen({ species, cards = [], lifetime, onBack, onR
               })}
             </View>
 
-            {sorted.map((item) => (
-              <CardStatRow key={item.key} item={item} maxCount={maxCount} />
-            ))}
+            {sorted.length === 0 ? (
+              <Text style={styles.noneText}>
+                None of your current observations have been quizzed yet. Tap “My
+                observations” above to see every species you’ve seen.
+              </Text>
+            ) : (
+              sorted.map((item) => (
+                <CardStatRow key={item.key} item={item} maxCount={maxCount} />
+              ))
+            )}
 
             <Pressable testID="stats-reset" style={styles.resetButton} onPress={confirmReset}>
               <Text style={styles.resetText}>Reset statistics</Text>
@@ -245,13 +288,42 @@ const makeStyles = (colors) => StyleSheet.create({
     paddingHorizontal: 20,
   },
 
+  boardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
   boardTitle: {
     fontSize: 13,
     fontWeight: '800',
     color: colors.primaryDark,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    marginBottom: 10,
+  },
+
+  // "My observations" / "All species" filter toggle
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 11,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterToggleOn: { borderColor: colors.primary, backgroundColor: colors.primary },
+  filterText: { fontSize: 12.5, fontWeight: '700', color: colors.muted },
+  filterTextOn: { color: colors.onDark },
+
+  noneText: {
+    color: colors.muted,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    marginTop: 20,
+    paddingHorizontal: 16,
   },
 
   // Sort segmented chips

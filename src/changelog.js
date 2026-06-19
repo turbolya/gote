@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.6.2';
+export const APP_VERSION = '2.6.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.6.3',
+    date: '2026-06-19',
+    changes: [
+      'Statistics now filters to your current observations by default; toggle '
+        + '“My observations / All species” to include every species you’ve ever '
+        + 'been quizzed on (e.g. from Nearby rounds).',
+    ],
+  },
   {
     version: '2.6.2',
     date: '2026-06-19',

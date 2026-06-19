@@ -91,6 +91,9 @@ describe('Settings & statistics', () => {
     await visible('stats-sort-pct');
     await tap('stats-sort-incorrect');
     await tap('stats-sort-correct');
+    // Filter toggle: my observations (default) ↔ all species ever seen.
+    await tap('stats-filter');
+    await tap('stats-filter');
     await scrollToId('stats-reset', 'stats-scroll');
     await expect(element(by.id('stats-reset'))).toBeVisible();
     await tap('screen-back');
