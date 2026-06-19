@@ -75,14 +75,12 @@ function CardStatRow({ item, maxCount }) {
 
       <View style={styles.barsCol}>
         <View style={styles.barLine}>
-          <Icon name="check" size={11} color={colors.correct} style={styles.barIcon} />
           <View style={styles.barTrack}>
             <View style={[styles.barFill, { backgroundColor: colors.correct, width: width(known) }]} />
           </View>
           <Text style={[styles.barCount, { color: colors.correct }]}>{known}</Text>
         </View>
         <View style={styles.barLine}>
-          <Icon name="x" size={11} color={colors.wrong} style={styles.barIcon} />
           <View style={styles.barTrack}>
             <View style={[styles.barFill, { backgroundColor: colors.wrong, width: width(missed) }]} />
           </View>
@@ -364,9 +362,8 @@ const makeStyles = (colors) => StyleSheet.create({
   cardName: { fontSize: 15, fontWeight: '700', color: colors.text },
   cardSci: { fontSize: 12, fontStyle: 'italic', color: colors.muted, marginTop: 1 },
 
-  barsCol: { width: 104, gap: 5 },
-  barLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  barIcon: { width: 12, textAlign: 'center' },
+  barsCol: { width: 100, gap: 5 },
+  barLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   barTrack: {
     flex: 1,
     height: 7,

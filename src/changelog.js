@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.6.3';
+export const APP_VERSION = '2.6.4';
 
 export const CHANGELOG = [
+  {
+    version: '2.6.4',
+    date: '2026-06-19',
+    changes: [
+      'Cleaner per-species stat bars: dropped the check/✗ icons — the green/red '
+        + 'colours already say it.',
+    ],
+  },
   {
     version: '2.6.3',
     date: '2026-06-19',
