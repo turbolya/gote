@@ -467,8 +467,8 @@ const makeStyles = (colors) => StyleSheet.create({
   cardSci: { fontSize: 12, fontStyle: 'italic', color: colors.muted, marginTop: 1 },
   flagBtn: { width: 30, height: 40, alignItems: 'center', justifyContent: 'center' },
 
-  barsCol: { width: 100, gap: 5 },
-  barLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  barsCol: { width: 80, gap: 5 },
+  barLine: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   barTrack: {
     flex: 1,
     height: 7,

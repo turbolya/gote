@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.8.1';
+export const APP_VERSION = '2.8.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.8.2',
+    date: '2026-06-19',
+    changes: [
+      'Tightened the Statistics rows: shorter correct/incorrect bars with the '
+        + 'count closer, leaving more room for the species name.',
+    ],
+  },
   {
     version: '2.8.1',
     date: '2026-06-19',
