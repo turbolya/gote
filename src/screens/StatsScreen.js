@@ -2,7 +2,7 @@
 // species you've been quizzed on, with a thumbnail and two bars (correct /
 // incorrect), sortable by success rate or by correct/incorrect counts.
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import ScreenHeader from '../components/ScreenHeader';
 import { useColors, useThemedStyles } from '../theme';
+import { fetchTaxonPhotosByIds } from '../api';
 
 // Subtle teal fill for the per-row "recognition %" background bar (brand teal,
 // fading out toward its tip; fixed across light/dark like the hero gradient).
@@ -38,7 +39,7 @@ const successOf = (s) => (totalOf(s) > 0 ? knownOf(s) / totalOf(s) : 0);
 // incorrect) sit on the right. Count bars are scaled to `maxCount` (the largest
 // single count across the list) so their lengths are comparable row to row;
 // nonzero bars keep a minimum width so they stay visible.
-function CardStatRow({ item, maxCount }) {
+function CardStatRow({ item, image, maxCount, onPress }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const known = knownOf(item);
@@ -48,7 +49,11 @@ function CardStatRow({ item, maxCount }) {
   const width = (n) => (n > 0 ? `${Math.max(8, (n / maxCount) * 100)}%` : 0);
 
   return (
-    <View style={styles.cardRow} testID={`stats-card-${item.key}`}>
+    <Pressable
+      testID={`stats-card-${item.key}`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.cardRow, pressed && styles.cardRowPressed]}
+    >
       {/* Overall recognition % as a gradient bar behind the whole row. */}
       <LinearGradient
         colors={PCT_GRADIENT}
@@ -58,8 +63,8 @@ function CardStatRow({ item, maxCount }) {
         pointerEvents="none"
       />
 
-      {item.image ? (
-        <Image source={{ uri: item.image }} style={styles.thumb} resizeMode="cover" />
+      {image ? (
+        <Image source={{ uri: image }} style={styles.thumb} resizeMode="cover" />
       ) : (
         <View style={[styles.thumb, styles.thumbPlaceholder]}>
           <Icon name="image" size={18} color={colors.muted} />
@@ -87,37 +92,30 @@ function CardStatRow({ item, maxCount }) {
           <Text style={[styles.barCount, { color: colors.wrong }]}>{missed}</Text>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
-export default function StatsScreen({ species, cards = [], lifetime, onBack, onReset }) {
+export default function StatsScreen({ species, cards = [], lifetime, onBack, onSelect, onReset }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const [sort, setSort] = useState('pct');
   // Default: only species in the current user's loaded observations. Toggling
   // off shows every species ever quizzed (incl. Nearby rounds / past decks).
   const [obsOnly, setObsOnly] = useState(true);
+  // taxonId → fetched thumbnail URL, for species not in the current deck whose
+  // stats predate per-species thumbnails (null = looked up, none found).
+  const [fetchedImages, setFetchedImages] = useState({});
 
-  // taxonId / scientific → thumbnail, from the current deck. Used as a fallback
-  // for older stats entries saved before thumbnails were recorded.
-  const imageByKey = useMemo(() => {
+  // key (taxonId/scientific) → the full deck card, for thumbnails, the
+  // "my observations" filter, and opening the detail page with full data.
+  const cardByKey = useMemo(() => {
     const m = {};
     for (const c of cards) {
       const k = c.taxonId != null ? String(c.taxonId) : c.scientific;
-      if (k && c.image && !m[k]) m[k] = c.image;
+      if (k && !m[k]) m[k] = c;
     }
     return m;
-  }, [cards]);
-
-  // Keys (taxonId/scientific) present in the current observations deck.
-  const deckKeys = useMemo(() => {
-    const s = new Set();
-    for (const c of cards) {
-      const k = c.taxonId != null ? String(c.taxonId) : c.scientific;
-      if (k) s.add(k);
-    }
-    return s;
   }, [cards]);
 
   const list = useMemo(
@@ -125,15 +123,15 @@ export default function StatsScreen({ species, cards = [], lifetime, onBack, onR
       Object.entries(species || {}).map(([key, s]) => ({
         key,
         ...s,
-        image: s.image || imageByKey[key] || null,
+        image: s.image || (cardByKey[key] && cardByKey[key].image) || null,
       })),
-    [species, imageByKey]
+    [species, cardByKey]
   );
 
   // Apply the "my observations" filter (default on).
   const filtered = useMemo(
-    () => (obsOnly ? list.filter((s) => deckKeys.has(s.key)) : list),
-    [list, obsOnly, deckKeys]
+    () => (obsOnly ? list.filter((s) => cardByKey[s.key]) : list),
+    [list, obsOnly, cardByKey]
   );
 
   const sorted = useMemo(() => {
@@ -152,6 +150,53 @@ export default function StatsScreen({ species, cards = [], lifetime, onBack, onR
     () => Math.max(1, ...filtered.map((s) => Math.max(knownOf(s), missedOf(s)))),
     [filtered]
   );
+
+  // Resolved thumbnail for a row: stored/deck image, else a fetched curated one.
+  const imageFor = (item) => item.image || fetchedImages[item.key] || null;
+
+  // Fetch curated photos for visible species that have no thumbnail yet (e.g.
+  // older stats for species no longer in the deck). Batched + cached in the API.
+  useEffect(() => {
+    const need = sorted
+      .filter((s) => !s.image && !(s.key in fetchedImages) && /^\d+$/.test(s.key))
+      .map((s) => s.key);
+    if (need.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const map = await fetchTaxonPhotosByIds(need.map(Number), 1);
+      if (cancelled) return;
+      setFetchedImages((prev) => {
+        const next = { ...prev };
+        for (const k of need) {
+          const urls = map[k];
+          next[k] = (urls && urls[0]) || null;
+        }
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sorted, fetchedImages]);
+
+  // Open the detail page: prefer the full deck card; otherwise build a minimal
+  // card from the stats entry (the detail page fetches the rest by taxonId).
+  const openDetail = (item) => {
+    if (!onSelect) return;
+    const deckCard = cardByKey[item.key];
+    if (deckCard) {
+      onSelect(deckCard);
+      return;
+    }
+    const numeric = /^\d+$/.test(item.key);
+    onSelect({
+      taxonId: numeric ? Number(item.key) : null,
+      image: imageFor(item),
+      common: item.name && item.name !== item.sci ? item.name : null,
+      scientific: item.sci || item.name,
+      rank: '',
+    });
+  };
 
   const lifetimePct =
     lifetime && lifetime.answered > 0
@@ -249,7 +294,13 @@ export default function StatsScreen({ species, cards = [], lifetime, onBack, onR
               </Text>
             ) : (
               sorted.map((item) => (
-                <CardStatRow key={item.key} item={item} maxCount={maxCount} />
+                <CardStatRow
+                  key={item.key}
+                  item={item}
+                  image={imageFor(item)}
+                  maxCount={maxCount}
+                  onPress={() => openDetail(item)}
+                />
               ))
             )}
 
@@ -350,6 +401,7 @@ const makeStyles = (colors) => StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.faint,
   },
+  cardRowPressed: { opacity: 0.6 },
   pctBg: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   thumb: {
     width: 40,

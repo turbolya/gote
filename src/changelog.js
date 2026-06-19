@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.6.4';
+export const APP_VERSION = '2.7.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.7.0',
+    date: '2026-06-19',
+    changes: [
+      'Tap any species in Statistics to open its full detail page (photos, '
+        + 'taxonomy, Wikipedia) — the same one as in the Lexicon.',
+      'Statistics thumbnails now load for species outside your current '
+        + 'observations too (fetched from iNaturalist when needed).',
+    ],
+  },
   {
     version: '2.6.4',
     date: '2026-06-19',

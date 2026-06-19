@@ -868,6 +868,11 @@ export default function App() {
             cards={fullDeck}
             lifetime={lifetime}
             onBack={() => setScreen('menu')}
+            onSelect={(card) => {
+              setSelectedCard(card);
+              setDetailFrom('stats');
+              setScreen('detail');
+            }}
             onReset={async () => {
               await resetStatistics();
               speciesRef.current = {};

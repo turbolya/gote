@@ -49,6 +49,29 @@ describe('Lexicon, flags & detail', () => {
     await tap('detail-back');
     await visible('results-menu');
   });
+
+  it('opens a species detail page from the statistics list', async () => {
+    // Play a full flash round so every fixture species gets a tally.
+    await tap('mode-flash');
+    await tap('custom-start');
+    for (let i = 0; i < 8; i++) {
+      try {
+        await visible('study-reveal', 4000);
+      } catch (e) {
+        break; // round finished
+      }
+      await tap('study-reveal');
+      await tap('study-grade-knew');
+    }
+    await visible('results-menu');
+    await tap('results-menu');
+    await tap('menu-stats');
+    // Tapping a species row opens the same detail page as the Lexicon.
+    await tap('stats-card-1001'); // European Robin (fixture)
+    await visible('detail-back');
+    await tap('detail-back');
+    await visible('stats-sort-pct');
+  });
 });
 
 describe('Settings & statistics', () => {
