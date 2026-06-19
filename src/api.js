@@ -22,7 +22,7 @@ const SPECIES_COUNTS_API =
 // Place search/autocomplete still lives on v1 (returns named places + coords).
 const PLACES_API = "https://api.inaturalist.org/v1/places/autocomplete";
 // iNaturalist asks API clients to identify themselves.
-const USER_AGENT = "Gote";
+const USER_AGENT = "gote";
 
 const PER_PAGE = 200; // API maximum
 const PAGE_LIMIT = 25; // hard safety cap => max 5000 observations scanned

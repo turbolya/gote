@@ -32,10 +32,10 @@ export default function LegalScreen({ onBack }) {
       >
         <Text style={styles.heading}>Where the data comes from</Text>
         <Para>
-          Gote shows photos and species information from{' '}
+          gote shows photos and species information from{' '}
           <Link url="https://www.inaturalist.org">iNaturalist</Link>, retrieved
           through the public iNaturalist API. The observations, photographs, and
-          identifications are created by the iNaturalist community, not by Gote.
+          identifications are created by the iNaturalist community, not by gote.
         </Para>
 
         <Text style={styles.heading}>Copyright &amp; licensing</Text>
@@ -47,7 +47,7 @@ export default function LegalScreen({ onBack }) {
           credit the author — apply to every image shown in this app.
         </Para>
         <Para>
-          Gote displays this content for personal, educational study only. It
+          gote displays this content for personal, educational study only. It
           does not grant you any rights to the photos or data beyond what the
           original license from each observer allows. To reuse a photo, check its
           license and attribution on its iNaturalist page and follow the
@@ -56,7 +56,7 @@ export default function LegalScreen({ onBack }) {
 
         <Text style={styles.heading}>Not affiliated with iNaturalist</Text>
         <Para>
-          Gote is an independent, unofficial app. It is not created, endorsed, or
+          gote is an independent, unofficial app. It is not created, endorsed, or
           supported by iNaturalist, the California Academy of Sciences, or the
           National Geographic Society. “iNaturalist” is a trademark of its
           owners.

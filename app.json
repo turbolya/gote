@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Gote",
+    "name": "gote",
     "slug": "gote",
-    "version": "2.8.2",
+    "version": "2.8.3",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "automatic",
@@ -30,7 +30,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Gote uses your location only to find species typically observed near you. It is not stored or shared."
+          "locationWhenInUsePermission": "gote uses your location only to find species typically observed near you. It is not stored or shared."
         }
       ],
       "@config-plugins/detox"

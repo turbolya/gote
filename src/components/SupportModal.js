@@ -32,7 +32,7 @@ export default function SupportModal({ visible, onClose }) {
     onClose();
     openUrl(
       APP_STORE_REVIEW_URL,
-      'You’ll be able to rate Gote once it’s live on the App Store. Thanks for the support!'
+      'You’ll be able to rate gote once it’s live on the App Store. Thanks for the support!'
     );
   };
   const donate = () => {

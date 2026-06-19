@@ -1,4 +1,4 @@
-// Branded launch splash: the Gote newt logo (white on transparent, from
+// Branded launch splash: the gote newt logo (white on transparent, from
 // assets/gote.png) centered over the brand-teal background. Shown on top of the
 // app at startup, then fades out via `onDone`.
 

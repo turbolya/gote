@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.8.2';
+export const APP_VERSION = '2.8.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.8.3',
+    date: '2026-06-19',
+    changes: [
+      'The brand name is now consistently lowercase “gote” everywhere — the '
+        + 'Settings header, the home-screen app name, and all in-app text.',
+    ],
+  },
   {
     version: '2.8.2',
     date: '2026-06-19',
@@ -167,7 +175,7 @@ export const CHANGELOG = [
     version: '2.4.0',
     date: '2026-06-18',
     changes: [
-      'New look: Gote’s brand colour is now teal instead of green — the menu '
+      'New look: gote’s brand colour is now teal instead of green — the menu '
         + 'banner, headings, buttons, splash and app icon background all follow '
         + 'the new palette, in both light and dark mode.',
     ],
@@ -176,7 +184,7 @@ export const CHANGELOG = [
     version: '2.3.8',
     date: '2026-06-12',
     changes: [
-      'The native launch screen now shows the Gote logo too (it was a plain '
+      'The native launch screen now shows the gote logo too (it was a plain '
         + 'green square), so the logo is visible from the very first frame.',
     ],
   },
@@ -184,7 +192,7 @@ export const CHANGELOG = [
     version: '2.3.7',
     date: '2026-06-12',
     changes: [
-      'The Gote logo now appears bare on the launch splash and the menu '
+      'The gote logo now appears bare on the launch splash and the menu '
         + 'banner — white on green, no backdrop tile (replacing the drawn newt '
         + 'and the badge).',
     ],
@@ -210,7 +218,7 @@ export const CHANGELOG = [
     version: '2.3.5',
     date: '2026-06-08',
     changes: [
-      'The menu banner now shows the Gote logo in place of the generic feather '
+      'The menu banner now shows the gote logo in place of the generic feather '
         + 'icon.',
     ],
   },
@@ -289,7 +297,7 @@ export const CHANGELOG = [
     version: '2.1.0',
     date: '2026-06-07',
     changes: [
-      'Added a “Buy me a coffee” option in Settings → Support to support Gote.',
+      'Added a “Buy me a coffee” option in Settings → Support to support gote.',
       'An occasional, easy-to-dismiss popup now invites an App Store rating or '
         + 'a coffee. (Both links activate once the App Store listing and Ko-fi '
         + 'account are live.)',
@@ -557,7 +565,7 @@ export const CHANGELOG = [
     version: '1.0.0',
     date: '2026-05-31',
     changes: [
-      'First version of Gote.',
+      'First version of gote.',
       'Game modes: All cards, Custom game, Speedrun, and Pick the right one.',
       'Lexicon to browse and search every species you have observed.',
       'Statistics: lifetime accuracy, most-missed and best-known species.',

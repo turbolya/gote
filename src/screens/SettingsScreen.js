@@ -62,7 +62,7 @@ async function reportBugGitHub() {
 // Open the user's mail app with a pre-filled feedback email. Works without any
 // account — the report just lands in our inbox.
 async function sendFeedbackEmail() {
-  const subject = 'Gote feedback';
+  const subject = 'gote feedback';
   const body =
     'Your feedback or bug report:\n\n\n' + reportContext();
   const url =
@@ -223,7 +223,7 @@ export default function SettingsScreen({
           <View style={styles.logo}>
             <Icon name="feather" size={32} color={colors.primary} />
           </View>
-          <Text style={styles.title}>Gote</Text>
+          <Text style={styles.title}>gote</Text>
           <Text style={styles.subtitle}>
             Learn to recognize the species you've observed on iNaturalist.
           </Text>
@@ -447,9 +447,9 @@ export default function SettingsScreen({
 
         <Text style={styles.footer}>
           Photos &amp; data from iNaturalist and its observers, used under each
-          observer’s license. Gote is an unofficial app, not affiliated with
+          observer’s license. gote is an unofficial app, not affiliated with
           iNaturalist.{'\n'}
-          Gote v{APP_VERSION}
+          gote v{APP_VERSION}
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -472,12 +472,13 @@ const makeStyles = (colors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Brand wordmark — the rounded Fredoka logotype, matching the menu hero.
   title: {
-    fontSize: 32,
-    fontWeight: '900',
+    fontSize: 34,
+    fontFamily: 'Fredoka',
     color: colors.text,
     marginTop: 12,
-    letterSpacing: -0.5,
+    letterSpacing: 0.5,
   },
   subtitle: {
     fontSize: 15,

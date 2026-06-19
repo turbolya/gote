@@ -1,4 +1,4 @@
-// Gote — a card-based learning game built on the iNaturalist API.
+// gote — a card-based learning game built on the iNaturalist API.
 //
 // Flow (a small state machine, no navigation library needed):
 //
