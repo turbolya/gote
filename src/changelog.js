@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.6.0';
+export const APP_VERSION = '2.6.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.6.1',
+    date: '2026-06-19',
+    changes: [
+      'Compact per-species stats rows: the correct/incorrect bars now sit to '
+        + 'the right of the thumbnail and name, and each row’s recognition rate '
+        + 'shows as a teal gradient filling the row background.',
+    ],
+  },
   {
     version: '2.6.0',
     date: '2026-06-18',

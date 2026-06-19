@@ -12,9 +12,14 @@ import {
   Alert,
   StyleSheet,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import ScreenHeader from '../components/ScreenHeader';
 import { useColors, useThemedStyles } from '../theme';
+
+// Subtle teal fill for the per-row "recognition %" background bar (brand teal,
+// fading out toward its tip; fixed across light/dark like the hero gradient).
+const PCT_GRADIENT = ['rgba(0,138,172,0.22)', 'rgba(0,138,172,0.03)'];
 
 // Sort modes for the per-species list.
 const SORTS = [
@@ -28,10 +33,11 @@ const missedOf = (s) => s.missed || 0;
 const totalOf = (s) => knownOf(s) + missedOf(s);
 const successOf = (s) => (totalOf(s) > 0 ? knownOf(s) / totalOf(s) : 0);
 
-// One species row: thumbnail, name, and two scaled bars (correct / incorrect).
-// Bars are scaled to `maxCount` (the largest single count across the list) so
-// their lengths are comparable from row to row; nonzero bars keep a minimum
-// width so they stay visible.
+// One compact species row: a recognition-% gradient fills the row background,
+// the thumbnail + name sit on the left, and the two count bars (correct /
+// incorrect) sit on the right. Count bars are scaled to `maxCount` (the largest
+// single count across the list) so their lengths are comparable row to row;
+// nonzero bars keep a minimum width so they stay visible.
 function CardStatRow({ item, maxCount }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -39,35 +45,44 @@ function CardStatRow({ item, maxCount }) {
   const missed = missedOf(item);
   const total = known + missed;
   const pct = total > 0 ? Math.round((known / total) * 100) : 0;
-  const width = (n) => (n > 0 ? `${Math.max(4, (n / maxCount) * 100)}%` : 0);
+  const width = (n) => (n > 0 ? `${Math.max(8, (n / maxCount) * 100)}%` : 0);
 
   return (
     <View style={styles.cardRow} testID={`stats-card-${item.key}`}>
+      {/* Overall recognition % as a gradient bar behind the whole row. */}
+      <LinearGradient
+        colors={PCT_GRADIENT}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={[styles.pctBg, { width: `${pct}%` }]}
+        pointerEvents="none"
+      />
+
       {item.image ? (
         <Image source={{ uri: item.image }} style={styles.thumb} resizeMode="cover" />
       ) : (
         <View style={[styles.thumb, styles.thumbPlaceholder]}>
-          <Icon name="image" size={20} color={colors.muted} />
+          <Icon name="image" size={18} color={colors.muted} />
         </View>
       )}
-      <View style={styles.flex}>
-        <View style={styles.cardTop}>
-          <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
-          <Text style={styles.cardPct}>{pct}%</Text>
-        </View>
+
+      <View style={styles.nameCol}>
+        <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
         {!!item.sci && (
           <Text style={styles.cardSci} numberOfLines={1}>{item.sci}</Text>
         )}
+      </View>
 
+      <View style={styles.barsCol}>
         <View style={styles.barLine}>
-          <Icon name="check" size={12} color={colors.correct} style={styles.barIcon} />
+          <Icon name="check" size={11} color={colors.correct} style={styles.barIcon} />
           <View style={styles.barTrack}>
             <View style={[styles.barFill, { backgroundColor: colors.correct, width: width(known) }]} />
           </View>
           <Text style={[styles.barCount, { color: colors.correct }]}>{known}</Text>
         </View>
         <View style={styles.barLine}>
-          <Icon name="x" size={12} color={colors.wrong} style={styles.barIcon} />
+          <Icon name="x" size={11} color={colors.wrong} style={styles.barIcon} />
           <View style={styles.barTrack}>
             <View style={[styles.barFill, { backgroundColor: colors.wrong, width: width(missed) }]} />
           </View>
@@ -252,37 +267,43 @@ const makeStyles = (colors) => StyleSheet.create({
   sortText: { fontSize: 13, fontWeight: '700', color: colors.muted },
   sortTextOn: { color: colors.onDark },
 
-  // Per-species row
+  // Per-species row — compact: thumb + name left, count bars right, with the
+  // recognition-% gradient filling the row background.
   cardRow: {
     flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-  },
-  thumb: {
-    width: 46,
-    height: 46,
-    borderRadius: 10,
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    marginBottom: 6,
+    borderRadius: 12,
+    overflow: 'hidden',
     backgroundColor: colors.faint,
+  },
+  pctBg: { position: 'absolute', left: 0, top: 0, bottom: 0 },
+  thumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 9,
+    backgroundColor: colors.border,
   },
   thumbPlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardName: { flex: 1, fontSize: 15.5, fontWeight: '700', color: colors.text },
-  cardPct: { fontSize: 14, fontWeight: '800', color: colors.muted },
-  cardSci: { fontSize: 12.5, fontStyle: 'italic', color: colors.muted, marginTop: 1, marginBottom: 6 },
+  nameCol: { flex: 1, minWidth: 0 },
+  cardName: { fontSize: 15, fontWeight: '700', color: colors.text },
+  cardSci: { fontSize: 12, fontStyle: 'italic', color: colors.muted, marginTop: 1 },
 
-  barLine: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 4 },
-  barIcon: { width: 13, textAlign: 'center' },
+  barsCol: { width: 104, gap: 5 },
+  barLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  barIcon: { width: 12, textAlign: 'center' },
   barTrack: {
     flex: 1,
-    height: 8,
+    height: 7,
     borderRadius: 999,
-    backgroundColor: colors.faint,
+    backgroundColor: colors.card,
     overflow: 'hidden',
   },
   barFill: { height: '100%', borderRadius: 999 },
-  barCount: { width: 26, textAlign: 'right', fontSize: 12.5, fontWeight: '800' },
+  barCount: { width: 20, textAlign: 'right', fontSize: 12, fontWeight: '800' },
 
   resetButton: { alignItems: 'center', paddingVertical: 14, marginTop: 18 },
   resetText: { color: colors.wrong, fontSize: 15, fontWeight: '700' },
