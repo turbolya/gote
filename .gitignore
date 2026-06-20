@@ -5,6 +5,13 @@ node_modules/
 /ios/
 /android/
 
+# Device build output (xcodebuild -derivedDataPath). Kept OUTSIDE /ios/ on
+# purpose: RN's New Architecture pod post-install hook does `find ios -name
+# Info.plist` and only skips lowercase "build/" — a capital "Build/" subdir
+# under ios/ (e.g. the old ios/build-device) slips through and makes pod install
+# choke on a compiled binary plist ("invalid byte sequence in UTF-8").
+/build-device/
+
 # Expo
 .expo/
 dist/
