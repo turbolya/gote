@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.8.3';
+export const APP_VERSION = '2.8.4';
 
 export const CHANGELOG = [
+  {
+    version: '2.8.4',
+    date: '2026-06-20',
+    changes: [
+      'Fixed a brief black flash between the launch screen and the in-app '
+        + 'splash — the two now hand off seamlessly.',
+    ],
+  },
   {
     version: '2.8.3',
     date: '2026-06-19',

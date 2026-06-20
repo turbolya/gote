@@ -24,6 +24,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
+import * as ExpoSplashScreen from 'expo-splash-screen';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 
 import {
@@ -80,6 +81,13 @@ import SupportModal from './src/components/SupportModal';
 
 const pickRandom = (cards, n) => shuffle(cards).slice(0, n);
 
+// Keep the native launch screen up until our own (identical-looking) JS splash
+// has actually painted — otherwise there's a black flash in the gap between the
+// native splash auto-hiding and React rendering its first frame. We hide it
+// explicitly once the JS splash lays out (or, in E2E where there is no JS
+// splash, once the fonts are ready). Module-level so it runs before first paint.
+ExpoSplashScreen.preventAutoHideAsync().catch(() => {});
+
 export default function App() {
   // loading | settings | menu | custom | study | results
   const [screen, setScreen] = useState('loading');
@@ -89,6 +97,15 @@ export default function App() {
   // Support/review popup: shown on a fraction of launches once the menu loads.
   const [showSupport, setShowSupport] = useState(false);
   const supportRolledRef = useRef(false);
+
+  // Dismiss the native launch screen exactly once, the moment our JS splash (or,
+  // in E2E, the real UI) is on screen — bridging the two with no black gap.
+  const nativeSplashHidden = useRef(false);
+  const hideNativeSplash = useCallback(() => {
+    if (nativeSplashHidden.current) return;
+    nativeSplashHidden.current = true;
+    ExpoSplashScreen.hideAsync().catch(() => {});
+  }, []);
 
   // Preload every icon font up front so glyphs never render as missing-glyph
   // "?" boxes (which happens if a family's font hasn't loaded when it's first
@@ -168,6 +185,12 @@ export default function App() {
   useEffect(() => {
     usernameRef.current = username;
   }, [username]);
+
+  // When there is no JS splash to wait for (E2E), drop the native splash as soon
+  // as the fonts are ready so the UI under test isn't left covered.
+  useEffect(() => {
+    if ((iconFontsLoaded || iconFontError) && !showSplash) hideNativeSplash();
+  }, [iconFontsLoaded, iconFontError, showSplash, hideNativeSplash]);
 
   // Once per launch, when the menu first appears, roll the support/review popup
   // (~1 in 10 launches). Never in E2E, so the test runs stay deterministic.
@@ -697,7 +720,7 @@ export default function App() {
             }
           />
         </View>
-        {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+        {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
       </SafeAreaProvider>
       </ThemeProvider>
     );
@@ -730,7 +753,7 @@ export default function App() {
             }
           />
         </View>
-        {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+        {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
       </SafeAreaProvider>
       </ThemeProvider>
     );
@@ -762,7 +785,7 @@ export default function App() {
               onDebugSupport={() => setShowSupport(true)}
             />
           </View>
-          {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+          {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
           <SupportModal visible={showSupport} onClose={() => setShowSupport(false)} />
         </SafeAreaProvider>
       </ThemeProvider>
@@ -934,7 +957,7 @@ export default function App() {
           </SafeAreaView>
         )}
       </SafeAreaView>
-      {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+      {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
       <SupportModal visible={showSupport} onClose={() => setShowSupport(false)} />
     </SafeAreaProvider>
     </ThemeProvider>

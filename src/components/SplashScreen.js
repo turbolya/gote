@@ -10,7 +10,7 @@ const { width: SCREEN_W } = Dimensions.get('window');
 // Logo footprint; the source is 651×798, so "contain" keeps it inside this box.
 const ART = Math.min(SCREEN_W * 0.5, 220);
 
-export default function SplashScreen({ onDone }) {
+export default function SplashScreen({ onDone, onLayout }) {
   const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -25,7 +25,11 @@ export default function SplashScreen({ onDone }) {
   }, [opacity, onDone]);
 
   return (
-    <Animated.View style={[styles.root, { opacity }]} pointerEvents="none">
+    <Animated.View
+      style={[styles.root, { opacity }]}
+      pointerEvents="none"
+      onLayout={onLayout}
+    >
       <Image
         source={require('../../assets/gote.png')}
         style={styles.logo}
