@@ -1,6 +1,6 @@
-# Gote — Architecture & Technical Overview
+# gote — Architecture & Technical Overview
 
-Gote is an offline-friendly flashcard game that turns a person's **iNaturalist**
+gote is an offline-friendly flashcard game that turns a person's **iNaturalist**
 observations into species-identification quizzes. This document describes the
 high-level architecture, the runtime data flow, the external APIs it consumes,
 and the caching/persistence model.
@@ -20,7 +20,7 @@ flowchart LR
   user([User]) --> app
 
   subgraph device[iPhone / Android device]
-    app[Gote app\nReact Native / Expo]
+    app[gote app\nReact Native / Expo]
     storage[(AsyncStorage\nkey–value)]
     photos[(File cache\nexpo-file-system)]
     app <--> storage
@@ -41,7 +41,7 @@ flowchart LR
   app -. crashes (optional, off by default) .-> sentry[Sentry]
 ```
 
-Gote is a **thin client over the iNaturalist API**. There is no Gote server,
+gote is a **thin client over the iNaturalist API**. There is no gote server,
 no account system, and no telemetry by default. Everything the app needs is
 fetched by public username and cached locally.
 

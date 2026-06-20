@@ -22,7 +22,7 @@
   --weight-black: 900;      /* hero title, big scores, species names         */
 
   /* Type scale (px → rem at 16px base) */
-  --text-hero: 2.125rem;    /* 34 — hero "Gote"                              */
+  --text-hero: 2.125rem;    /* 34 — hero "gote"                              */
   --text-display: 3.5rem;   /* 56 — results percentage                       */
   --text-title: 1.5rem;     /* 24 — results message                          */
   --text-heading: 1.125rem; /* 18 — sub-screen headings                      */

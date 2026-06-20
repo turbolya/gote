@@ -29,7 +29,7 @@ on-brand gote artifacts — production UI or throwaway mocks.
 How gote writes, in its own voice:
 
 - **The brand name is lowercase "gote"** in prose, though the app's hero title
-  renders it as **"Gote"** (capitalized, because it sits alone as a wordmark).
+  renders it as **"gote"** (capitalized, because it sits alone as a wordmark).
 - **Second person, warm and direct.** Copy talks to *you* about *your* species:
   "Browse all your species", "Learn species typical to a place", "See a photo,
   choose its name."

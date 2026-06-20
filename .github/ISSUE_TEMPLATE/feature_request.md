@@ -1,12 +1,12 @@
 ---
 name: Feature request
-about: Suggest an idea or improvement for Gote
+about: Suggest an idea or improvement for gote
 title: "[Feature] "
 labels: enhancement
 assignees: ''
 ---
 
-**What would you like Gote to do?**
+**What would you like gote to do?**
 A clear description of the feature or improvement.
 
 **Why is it useful?**

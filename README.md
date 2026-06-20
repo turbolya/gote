@@ -1,4 +1,4 @@
-# Gote
+# gote
 
 A card-based learning game for **iPhone and Android**, built with
 [Expo](https://expo.dev) (React Native). It pulls your **iNaturalist**
