@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.12.1';
+export const APP_VERSION = '2.12.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.12.2',
+    date: '2026-06-21',
+    changes: [
+      'Card flip now turns over a dimmed backdrop, so the receding side reads as '
+        + 'depth behind the card instead of a gap.',
+    ],
+  },
   {
     version: '2.12.1',
     date: '2026-06-21',

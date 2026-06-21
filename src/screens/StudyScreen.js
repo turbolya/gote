@@ -262,17 +262,22 @@ export default function StudyScreen({
           pointerEvents="none"
         />
       )}
-      {/* Static blurred backdrop behind the flip (self-grade only): as the card
-          rotates it foreshortens and stops covering the full width, so this keeps
-          a blurred copy of the photo behind it instead of bare black. */}
-      {canFlip && card && !imgError && (
-        <Image
-          source={{ uri: card.image }}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-          blurRadius={30}
-          pointerEvents="none"
-        />
+      {/* Static backdrop behind the flip (self-grade only): a blurred, dimmed
+          copy of the photo. As the card foreshortens mid-rotation it stops
+          covering the full width; this fills the gap and — being darkened — reads
+          as depth *behind* the turning card rather than a hole in the photo. */}
+      {canFlip && card && (
+        <View style={styles.flipBackdrop} pointerEvents="none">
+          {!imgError && (
+            <Image
+              source={{ uri: card.image }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+              blurRadius={30}
+            />
+          )}
+          <View style={styles.flipBackdropScrim} />
+        </View>
       )}
 
       {/* Fullscreen photo. A blurred, darkened copy fills the whole screen
@@ -636,6 +641,9 @@ const styles = StyleSheet.create({
   fsFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1A1D1A' },
   // Speedrun: opaque cover over the photo while guessing (the photo only flashed).
   hiddenPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#13160F' },
+  // Static dimmed backdrop the card turns over (see render comment).
+  flipBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: '#0B0D08' },
+  flipBackdropScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
   // Self-grade card back (revealed by the flip): a blurred copy of the photo,
   // darkened, with the species name + grade buttons over it.
   backFace: { backgroundColor: '#13160F', overflow: 'hidden' },
