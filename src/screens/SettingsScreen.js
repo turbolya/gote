@@ -14,6 +14,7 @@ import {
   Switch,
   ScrollView,
   ActivityIndicator,
+  Image,
   Linking,
   Alert,
   StyleSheet,
@@ -221,7 +222,11 @@ export default function SettingsScreen({
       >
         <View style={styles.header}>
           <View style={styles.logo}>
-            <Icon name="feather" size={32} color={colors.primary} />
+            <Image
+              source={require('../../assets/gote.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.title}>gote</Text>
           <Text style={styles.subtitle}>
@@ -472,6 +477,8 @@ const makeStyles = (colors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // The newt is white-on-transparent, so tint it teal to read on the light tile.
+  logoImage: { width: 46, height: 46, tintColor: colors.primary },
   // Brand wordmark — the rounded Fredoka logotype, matching the menu hero.
   title: {
     fontSize: 34,
