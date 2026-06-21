@@ -372,7 +372,7 @@ flowchart LR
 - **Versioning:** kept in sync across three files on every change —
   `app.json` (`expo.version`), `package.json` (`version`), and
   `src/changelog.js` (`APP_VERSION` + the in-app changelog list).
-- **Distribution:** EAS Build/Submit for TestFlight / stores (see `TASKS.md`).
+- **Distribution:** EAS Build/Submit for TestFlight / stores.
 
 ---
 

@@ -1,9 +1,8 @@
 // A gentle support popup shown on a small fraction of launches: invites an
 // App Store rating and offers a "Buy me a coffee" (Ko-fi) donation.
 //
-// Both links are placeholders until the App Store listing / Ko-fi account exist
-// (see src/constants.js + TASKS.md); when a link isn't set yet, we explain that
-// rather than open a dead URL.
+// Links are configured in src/constants.js; when one isn't set yet (e.g. the
+// App Store listing), we explain that rather than open a dead URL.
 
 import React from 'react';
 import { Modal, View, Text, Pressable, Image, Linking, Alert, StyleSheet } from 'react-native';

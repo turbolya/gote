@@ -798,7 +798,7 @@ export default function App() {
                 setError(null);
                 setScreen('settings');
               }}
-              // DEBUG ONLY — remove before release (see TASKS.md): lets us
+              // DEBUG ONLY — remove before release: lets us
               // trigger the support/review popup on demand for testing.
               onDebugSupport={() => setShowSupport(true)}
             />

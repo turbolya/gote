@@ -210,7 +210,7 @@ export default function MenuScreen({
           <Text style={styles.kofiText}>Buy me a coffee</Text>
         </Pressable>
 
-        {/* DEBUG ONLY — remove before release (see TASKS.md): opens the
+        {/* DEBUG ONLY — remove before release: opens the
             support/review popup on demand for testing. */}
         {onDebugSupport && (
           <Pressable
@@ -354,7 +354,7 @@ const makeStyles = (colors) => StyleSheet.create({
   kofiPressed: { opacity: 0.55 },
   kofiText: { fontSize: 13.5, fontWeight: '600', color: colors.muted },
 
-  // DEBUG ONLY — remove before release (see TASKS.md).
+  // DEBUG ONLY — remove before release.
   debugBtn: {
     flexDirection: 'row',
     alignItems: 'center',
