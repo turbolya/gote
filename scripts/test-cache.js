@@ -163,6 +163,19 @@ t('mergeCards: caps to max', () => {
   const out = mergeCards(a, [], 3);
   assert.equal(out.length, 3);
 });
+t('mergeCards: a just-changed OLD card survives the cap (new ID on old obs)', () => {
+  // Cache already at the cap with the newest-observed cards.
+  const a = [
+    card({ id: '1', observedOn: '2024-03-01' }),
+    card({ id: '2', observedOn: '2024-02-01' }),
+    card({ id: '3', observedOn: '2024-01-15' }),
+  ];
+  // An old observation just got an identification (so it comes back in `incoming`).
+  const b = [card({ id: '9', observedOn: '2010-01-01', scientific: 'Newly IDed' })];
+  const out = mergeCards(a, b, 3);
+  assert.equal(out.length, 3);
+  assert.ok(out.some((c) => c.id === '9')); // the change is kept, not dropped
+});
 
 // --- newestUpdatedAt ---
 t('newestUpdatedAt: picks max ISO timestamp', () => {

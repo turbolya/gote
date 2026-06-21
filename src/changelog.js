@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.15.0';
+export const APP_VERSION = '2.15.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.15.1',
+    date: '2026-06-21',
+    changes: [
+      'Fixed sync dropping new identifications that landed on older observations '
+        + '(on large accounts) — updated observations are now always kept when '
+        + 'syncing.',
+    ],
+  },
   {
     version: '2.15.0',
     date: '2026-06-21',

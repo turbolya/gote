@@ -299,13 +299,25 @@ export function mergeCards(existing, incoming, max = MAX_CACHE) {
   for (const c of existing) byId.set(c.id, c);
   for (const c of incoming) byId.set(c.id, c); // overwrite/insert
   const merged = [...byId.values()];
-  merged.sort((a, b) => {
+  const byObservedDesc = (a, b) => {
     const ao = a.observedOn || "";
     const bo = b.observedOn || "";
     if (ao === bo) return Number(b.id) - Number(a.id);
     return ao < bo ? 1 : -1;
-  });
-  return merged.slice(0, max);
+  };
+  merged.sort(byObservedDesc);
+  if (merged.length <= max) return merged;
+  // Over the cap. Never drop a just-changed card: the whole point of a sync is
+  // to surface those, and a new identification often lands on an OLD observation
+  // (its observed_on sorts below the newest `max`, so a plain slice would lose
+  // it). Keep every changed card, top up with the newest-observed others, then
+  // restore observation-date order.
+  const changedIds = new Set(incoming.map((c) => c.id));
+  const changed = merged.filter((c) => changedIds.has(c.id));
+  const others = merged.filter((c) => !changedIds.has(c.id));
+  const kept = [...changed, ...others].slice(0, max);
+  kept.sort(byObservedDesc);
+  return kept;
 }
 
 // The newest `updated_at` across a set of cards — the watermark for the next
