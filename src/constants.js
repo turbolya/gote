@@ -9,9 +9,8 @@ export const SPEEDRUN_LIVES = 3;
 export const SPEEDRUN_VIEW_MS = 3000;
 
 // --- Support / donations ---------------------------------------------------
-// Ko-fi "Buy me a coffee" donation page. PLACEHOLDER until the account exists —
-// see TASKS.md. Update to https://ko-fi.com/<account> once created.
-export const KOFI_URL = 'https://ko-fi.com/';
+// Ko-fi "Buy me a coffee" donation page.
+export const KOFI_URL = 'https://ko-fi.com/goteapp';
 
 // App Store "write a review" deep link. Empty until the app has an App Store id;
 // then set to:  https://apps.apple.com/app/id<APP_ID>?action=write-review

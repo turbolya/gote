@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.12.4';
+export const APP_VERSION = '2.12.5';
 
 export const CHANGELOG = [
+  {
+    version: '2.12.5',
+    date: '2026-06-21',
+    changes: [
+      'The “Buy me a coffee” link now opens the real Ko-fi page — thank you for '
+        + 'supporting gote!',
+    ],
+  },
   {
     version: '2.12.4',
     date: '2026-06-21',

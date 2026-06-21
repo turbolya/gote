@@ -31,10 +31,11 @@ A running list of things to do for gote. Check items off as they're done.
       the Data & licensing disclaimer (src/screens/LegalScreen.js), iNaturalist
       attribution/terms compliance, and App Store submission requirements. Current
       text is plain-language, not lawyer-vetted.
-- [ ] Create a Ko-fi account ("Buy me a coffee" donations) and set its URL in
-      `src/constants.js` (KOFI_URL → https://ko-fi.com/<account>). A placeholder
-      button already exists in Settings → Support and in the startup support
-      popup; both just need the real URL once the account exists.
+- [x] Create a Ko-fi account ("Buy me a coffee" donations) and set its URL in
+      `src/constants.js` (KOFI_URL → https://ko-fi.com/goteapp). Wired into
+      Settings → Support, the startup support popup, and the menu link.
+- [ ] Once the app is published, add the App Store listing URL to the Ko-fi page
+      (link visitors from Ko-fi back to the App Store to download/review gote).
 - [ ] Wire up App Store review: once the app has an App Store ID, set
       APP_STORE_REVIEW_URL in `src/constants.js` (or add `expo-store-review` for
       the native rating prompt) so the startup popup's stars open a real review.
