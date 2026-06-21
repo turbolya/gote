@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.14.0';
+export const APP_VERSION = '2.14.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.14.1',
+    date: '2026-06-21',
+    changes: [
+      'The Nearby radius slider is now continuous: it magnetically snaps to 10, '
+        + '25, 50, 100 (and the 2.5/500 ends) with a haptic tick, but you can '
+        + 'still pick any value in between.',
+    ],
+  },
   {
     version: '2.14.0',
     date: '2026-06-21',

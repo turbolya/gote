@@ -13,6 +13,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import * as Location from 'expo-location';
+import * as Haptics from 'expo-haptics';
 import Slider from '@react-native-community/slider';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
@@ -35,9 +36,26 @@ const GROUPS = [
   'Actinopterygii',
 ];
 
-// Slider stops (km): the ends are the min/max (2.5 and 500); 10/25/50/100 are
-// the marked positions in between. The slider snaps between these.
-const RADII = [2.5, 10, 25, 50, 100, 500];
+// Search-radius slider (km). Continuous on a logarithmic scale (so the small
+// radii aren't crammed into the left edge), with magnetic detents at these
+// preset marks: the thumb grabs a preset when dragged close (with a haptic
+// tick), and releases to the actual in-between value when moved away.
+const RADIUS_MIN = 2.5;
+const RADIUS_MAX = 500;
+const RADIUS_PRESETS = [2.5, 10, 25, 50, 100, 500];
+const LOG_MIN = Math.log(RADIUS_MIN);
+const LOG_SPAN = Math.log(RADIUS_MAX) - LOG_MIN;
+// Track position (0..1) for a given radius in km, and its inverse.
+const posForKm = (km) => (Math.log(km) - LOG_MIN) / LOG_SPAN;
+const kmForPos = (t) => Math.exp(LOG_MIN + t * LOG_SPAN);
+// How close (as a fraction of the track) the thumb must be to a preset to snap.
+const SNAP_DIST = 0.035;
+// Round an in-between value to a sensible step for its magnitude.
+const roundKm = (km) => {
+  if (km < 10) return Math.round(km * 2) / 2; // 0.5 km steps below 10
+  if (km < 100) return Math.round(km); // 1 km steps
+  return Math.round(km / 5) * 5; // 5 km steps above 100
+};
 
 export default function NearbyConfigScreen({ onBack, onStart }) {
   const colors = useColors();
@@ -49,6 +67,27 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
   const [searching, setSearching] = useState(false);
   const [gpsBusy, setGpsBusy] = useState(false);
   const [radius, setRadius] = useState(50);
+  // The preset the thumb is currently snapped to (so the haptic fires once on
+  // entry, not on every drag event); null when between presets.
+  const lastSnap = useRef(50);
+  // Measured slider width, so tick labels can be positioned along the track.
+  const [trackW, setTrackW] = useState(0);
+
+  // Drag handler: snap to a preset when the thumb is close, otherwise take the
+  // actual (log-mapped, rounded) value at the thumb.
+  const onRadiusSlide = (t) => {
+    const preset = RADIUS_PRESETS.find((p) => Math.abs(t - posForKm(p)) <= SNAP_DIST);
+    if (preset != null) {
+      if (lastSnap.current !== preset) {
+        lastSnap.current = preset;
+        Haptics.selectionAsync().catch(() => {});
+      }
+      setRadius(preset);
+    } else {
+      lastSnap.current = null;
+      setRadius(roundKm(kmForPos(t)));
+    }
+  };
   // Selected groups (default: birds + mammals + plants — the broad favourites).
   const [selected, setSelected] = useState(
     () => new Set(['Aves', 'Mammalia', 'Plantae'])
@@ -202,23 +241,37 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
           testID="nearby-radius"
           style={styles.slider}
           minimumValue={0}
-          maximumValue={RADII.length - 1}
-          step={1}
-          value={RADII.indexOf(radius)}
-          onValueChange={(i) => setRadius(RADII[Math.round(i)])}
+          maximumValue={1}
+          value={posForKm(radius)}
+          onValueChange={onRadiusSlide}
           minimumTrackTintColor={colors.primary}
           maximumTrackTintColor={colors.border}
           thumbTintColor={colors.primary}
         />
-        <View style={styles.radiusTicks}>
-          {RADII.map((r) => (
-            <Text
-              key={r}
-              style={[styles.radiusTick, r === radius && styles.radiusTickOn]}
-            >
-              {r}
-            </Text>
-          ))}
+        <View
+          style={styles.radiusTicks}
+          onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}
+        >
+          {trackW > 0 &&
+            RADIUS_PRESETS.map((p) => {
+              const TICK_W = 44;
+              const left = Math.max(
+                0,
+                Math.min(trackW - TICK_W, posForKm(p) * trackW - TICK_W / 2)
+              );
+              return (
+                <Text
+                  key={p}
+                  style={[
+                    styles.radiusTick,
+                    { left, width: TICK_W },
+                    p === radius && styles.radiusTickOn,
+                  ]}
+                >
+                  {p}
+                </Text>
+              );
+            })}
         </View>
 
         {/* Groups */}
@@ -340,13 +393,14 @@ const makeStyles = (colors) => StyleSheet.create({
   labelInline: { marginBottom: 0 },
   radiusValue: { fontSize: 16, fontWeight: '800', color: colors.primaryDark },
   slider: { width: '100%', height: 40, marginTop: 6 },
-  radiusTicks: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
-    marginTop: 2,
+  radiusTicks: { height: 16, marginTop: 2 },
+  radiusTick: {
+    position: 'absolute',
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.muted,
   },
-  radiusTick: { fontSize: 12, fontWeight: '700', color: colors.muted },
   radiusTickOn: { color: colors.primaryDark },
 
   groups: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 18, rowGap: 4 },
