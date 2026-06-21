@@ -21,11 +21,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import PhotoViewer from '../components/PhotoViewer';
+import PieTimer from '../components/PieTimer';
 import { shuffle, fetchTaxonPhotos, toLargePhoto } from '../api';
 import { prefetchUpcoming } from '../prefetch';
 import { pickSimilarDistractors } from '../quiz';
 import { colors } from '../theme';
-import { SPEEDRUN_LIVES } from '../constants';
+import { SPEEDRUN_LIVES, SPEEDRUN_VIEW_MS } from '../constants';
 import { IS_E2E } from '../e2e/testMode';
 
 const NUM_CHOICES = 5;
@@ -116,6 +117,10 @@ export default function StudyScreen({
   const [fetched, setFetched] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [imgError, setImgError] = useState(false);
+  // Whether the main photo has finished loading — the Speedrun countdown only
+  // starts once the picture is actually on screen (a failed load counts too, so
+  // a broken image can't stall the round).
+  const [imgLoaded, setImgLoaded] = useState(false);
   const [viewer, setViewer] = useState(null); // { photos, startIndex } | null
   const lastTapRef = useRef(0);
 
@@ -128,8 +133,19 @@ export default function StudyScreen({
     setFetched(false);
     setLoadingMore(false);
     setImgError(false);
+    setImgLoaded(false);
     setViewer(null);
   }
+
+  // Speedrun: once the photo is ready, count down SPEEDRUN_VIEW_MS, then reveal
+  // the choices automatically. A broken image (imgError) counts as "ready" so a
+  // failed load can't freeze the round. Disabled in E2E so tests drive the pace.
+  const photoReady = imgLoaded || imgError;
+  const speedrunTiming =
+    speedrun && choiceMode && phase === 'front' && photoReady && !IS_E2E;
+  // While guessing in Speedrun, the photo is hidden — it only "flashed" for the
+  // countdown — so the choices test recall. It returns once the answer is shown.
+  const hidePhoto = speedrun && phase === 'choosing';
 
   // Open the fullscreen zoom viewer on the current photo (used by double-tap).
   const openZoom = () => {
@@ -215,8 +231,15 @@ export default function StudyScreen({
               source={{ uri: card.image }}
               style={StyleSheet.absoluteFill}
               resizeMode="contain"
+              onLoad={() => setImgLoaded(true)}
               onError={() => setImgError(true)}
             />
+            {/* Speedrun: cover the photo while guessing so it only "flashed". */}
+            {hidePhoto && (
+              <View style={[StyleSheet.absoluteFill, styles.hiddenPhoto]}>
+                <Icon name="eye-off-outline" size={40} color="rgba(255,255,255,0.45)" />
+              </View>
+            )}
           </>
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.fsFallback]}>
@@ -297,6 +320,23 @@ export default function StudyScreen({
           </View>
         )}
       </LinearGradient>
+
+      {/* Speedrun countdown: small pie in the top-right corner. Keyed on the
+          card so it remounts (and restarts) for each new photo. */}
+      {speedrunTiming && (
+        <View
+          style={[styles.pieCorner, { top: insets.top + 56 }]}
+          pointerEvents="none"
+        >
+          <PieTimer
+            key={shownKey}
+            size={36}
+            duration={SPEEDRUN_VIEW_MS}
+            color={ON_DARK}
+            onComplete={() => setPhase('choosing')}
+          />
+        </View>
+      )}
 
       {/* Active answer UI is CENTERED — away from the bottom button you just
           tapped — so a choice/grade button never lands under your finger. */}
@@ -477,6 +517,10 @@ const styles = StyleSheet.create({
   fsBackdropScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
   flagBtn: { alignItems: 'center', justifyContent: 'center' },
   fsFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1A1D1A' },
+  // Speedrun: opaque cover over the photo while guessing (the photo only flashed).
+  hiddenPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#13160F' },
+  // Speedrun countdown pie, floated in the top-right corner.
+  pieCorner: { position: 'absolute', right: 18, zIndex: 6 },
 
   // top gradient + chrome
   topGrad: {

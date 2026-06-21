@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.8.4';
+export const APP_VERSION = '2.9.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.9.0',
+    date: '2026-06-21',
+    changes: [
+      'Speedrun is now timed: each photo flashes for 3 seconds (the countdown '
+        + 'starts once it has loaded, shown by a little pie timer in the corner), '
+        + 'then the choices appear automatically and the photo is hidden — so '
+        + 'you answer from memory.',
+    ],
+  },
   {
     version: '2.8.4',
     date: '2026-06-20',

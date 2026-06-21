@@ -3,6 +3,11 @@
 // Speedrun ends after this many missed cards.
 export const SPEEDRUN_LIVES = 3;
 
+// Speedrun: how long each photo is shown before the choices appear automatically
+// (timer starts once the photo has finished loading). A pie-countdown in the
+// corner visualises it.
+export const SPEEDRUN_VIEW_MS = 3000;
+
 // --- Support / donations ---------------------------------------------------
 // Ko-fi "Buy me a coffee" donation page. PLACEHOLDER until the account exists —
 // see TASKS.md. Update to https://ko-fi.com/<account> once created.
