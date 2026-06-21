@@ -17,6 +17,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import Icon from './Icon';
+import { Appear } from './anim';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -36,6 +37,7 @@ export default function PhotoViewer({
       onRequestClose={onClose}
     >
       <View style={styles.backdrop}>
+        <Appear style={styles.flex} offset={0} scaleFrom={0.92} duration={260}>
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator size="large" color="#fff" />
@@ -74,6 +76,7 @@ export default function PhotoViewer({
             )}
           />
         )}
+        </Appear>
 
         {!!title && photos.length > 0 && (
           <View style={styles.titleBar} pointerEvents="none">
@@ -93,6 +96,7 @@ export default function PhotoViewer({
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   backdrop: { flex: 1, backgroundColor: '#000' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   emptyText: { color: 'rgba(255,255,255,0.7)', fontSize: 15 },

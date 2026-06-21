@@ -17,6 +17,7 @@ import {
 import Icon from '../components/Icon';
 import ScreenHeader from '../components/ScreenHeader';
 import { useColors, useThemedStyles } from '../theme';
+import { animateNextLayout } from '../components/anim';
 import {
   filterCards,
   statusCounts,
@@ -114,7 +115,10 @@ export default function LexiconScreen({
             <Pressable
               key={s.key}
               testID={`lexicon-filter-${s.key}`}
-              onPress={() => setStatus(on ? null : s.key)}
+              onPress={() => {
+                animateNextLayout();
+                setStatus(on ? null : s.key);
+              }}
               style={[styles.filterChip, on && styles.filterChipOn]}
             >
               <Icon
@@ -138,7 +142,10 @@ export default function LexiconScreen({
         <View style={styles.flagFilterRow}>
           <Pressable
             testID="lexicon-filter-flagged"
-            onPress={() => setFlagged((v) => !v)}
+            onPress={() => {
+              animateNextLayout();
+              setFlagged((v) => !v);
+            }}
             style={[styles.flagFilterChip, flaggedActive && styles.flagFilterChipOn]}
           >
             <Icon

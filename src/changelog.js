@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.10.0';
+export const APP_VERSION = '2.11.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.11.0',
+    date: '2026-06-21',
+    changes: [
+      'Motion polish throughout: screens and the species detail page slide in, '
+        + 'cards and answer choices fade/stagger in, the score counts up with an '
+        + 'accuracy bar, stats bars grow and re-sort smoothly, menu rows spring '
+        + 'on press and stagger in, and the accuracy chart animates up.',
+    ],
+  },
   {
     version: '2.10.0',
     date: '2026-06-21',

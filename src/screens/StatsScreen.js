@@ -17,6 +17,7 @@ import Icon from '../components/Icon';
 import ScreenHeader from '../components/ScreenHeader';
 import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonThumbs } from '../api';
+import { AnimatedBar, animateNextLayout } from '../components/anim';
 
 // Subtle teal fill for the per-row "recognition %" background bar (brand teal,
 // fading out toward its tip; fixed across light/dark like the hero gradient).
@@ -48,7 +49,9 @@ function CardStatRow({ item, image, maxCount, onPress, onImageError, flagged, on
   const missed = missedOf(item);
   const total = known + missed;
   const pct = total > 0 ? Math.round((known / total) * 100) : 0;
-  const width = (n) => (n > 0 ? `${Math.max(8, (n / maxCount) * 100)}%` : 0);
+  // Bar length as a number (percent of the largest single count in the list);
+  // nonzero counts keep a minimum so they stay visible. AnimatedBar grows it in.
+  const barPct = (n) => (n > 0 ? Math.max(8, (n / maxCount) * 100) : 0);
 
   return (
     <Pressable
@@ -103,13 +106,13 @@ function CardStatRow({ item, image, maxCount, onPress, onImageError, flagged, on
       <View style={styles.barsCol}>
         <View style={styles.barLine}>
           <View style={styles.barTrack}>
-            <View style={[styles.barFill, { backgroundColor: colors.correct, width: width(known) }]} />
+            <AnimatedBar pct={barPct(known)} style={[styles.barFill, { backgroundColor: colors.correct }]} />
           </View>
           <Text style={[styles.barCount, { color: colors.correct }]}>{known}</Text>
         </View>
         <View style={styles.barLine}>
           <View style={styles.barTrack}>
-            <View style={[styles.barFill, { backgroundColor: colors.wrong, width: width(missed) }]} />
+            <AnimatedBar pct={barPct(missed)} style={[styles.barFill, { backgroundColor: colors.wrong }]} />
           </View>
           <Text style={[styles.barCount, { color: colors.wrong }]}>{missed}</Text>
         </View>
@@ -303,7 +306,10 @@ export default function StatsScreen({ species, cards = [], lifetime, flags, onTo
               {/* Filter: my observations (default) ↔ all species ever seen. */}
               <Pressable
                 testID="stats-filter"
-                onPress={() => setObsOnly((v) => !v)}
+                onPress={() => {
+                  animateNextLayout();
+                  setObsOnly((v) => !v);
+                }}
                 style={[styles.filterToggle, obsOnly && styles.filterToggleOn]}
               >
                 <Icon
@@ -325,7 +331,10 @@ export default function StatsScreen({ species, cards = [], lifetime, flags, onTo
                   <Pressable
                     key={s.key}
                     testID={`stats-sort-${s.key}`}
-                    onPress={() => setSort(s.key)}
+                    onPress={() => {
+                      animateNextLayout();
+                      setSort(s.key);
+                    }}
                     style={[styles.sortChip, on && styles.sortChipOn]}
                   >
                     <Text style={[styles.sortText, on && styles.sortTextOn]}>

@@ -78,6 +78,7 @@ import LegalScreen from './src/screens/LegalScreen';
 import NearbyConfigScreen from './src/screens/NearbyConfigScreen';
 import SplashScreen from './src/components/SplashScreen';
 import SupportModal from './src/components/SupportModal';
+import { Appear } from './src/components/anim';
 
 const pickRandom = (cards, n) => shuffle(cards).slice(0, n);
 
@@ -701,7 +702,7 @@ export default function App() {
     return (
       <ThemeProvider value={theme}>
       <SafeAreaProvider>
-        <View style={styles.studyRoot}>
+        <Appear style={styles.studyRoot} offset={0} duration={300}>
           <StatusBar style="light" />
           <StudyScreen
             deck={deck}
@@ -719,7 +720,7 @@ export default function App() {
               finishRound(correctCount, missed, correctCount + missed.length)
             }
           />
-        </View>
+        </Appear>
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
       </SafeAreaProvider>
       </ThemeProvider>
@@ -731,7 +732,7 @@ export default function App() {
     return (
       <ThemeProvider value={theme}>
       <SafeAreaProvider>
-        <View style={styles.pickRoot}>
+        <Appear style={styles.pickRoot} offset={0} duration={300}>
           <StatusBar style={statusBarStyle} />
           <PickImageScreen
             round={pickRound}
@@ -752,7 +753,7 @@ export default function App() {
               finishRound(correctCount, missed, correctCount + missed.length)
             }
           />
-        </View>
+        </Appear>
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
       </SafeAreaProvider>
       </ThemeProvider>
@@ -766,7 +767,7 @@ export default function App() {
     return (
       <ThemeProvider value={theme}>
         <SafeAreaProvider>
-          <View style={styles.menuRoot}>
+          <Appear style={styles.menuRoot} offset={0} duration={320}>
             <StatusBar style="light" />
             <MenuScreen
               username={username}
@@ -784,7 +785,7 @@ export default function App() {
               // trigger the support/review popup on demand for testing.
               onDebugSupport={() => setShowSupport(true)}
             />
-          </View>
+          </Appear>
           {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
           <SupportModal visible={showSupport} onClose={() => setShowSupport(false)} />
         </SafeAreaProvider>
@@ -798,6 +799,9 @@ export default function App() {
       <SafeAreaView style={styles.safe}>
         <StatusBar style={statusBarStyle} />
 
+        {/* Keyed on `screen` so each of these non-full-bleed screens fades +
+            slides in when navigated to. */}
+        <Appear key={screen} style={styles.flex} offset={10} duration={300}>
         {screen === 'loading' && (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -941,19 +945,22 @@ export default function App() {
             onSelectMissed={(card) => setDetailCard(card)}
           />
         )}
+        </Appear>
 
         {/* Species detail page — an overlay over the current screen (Lexicon /
             Statistics / Results), which stays mounted underneath so its scroll
-            position and filters survive when this is dismissed. */}
+            position and filters survive when this is dismissed. Slides up in. */}
         {detailCard && (
           <SafeAreaView style={styles.detailOverlay} edges={['top', 'bottom']}>
-            <DetailScreen
-              card={detailCard}
-              locale={locale}
-              flags={flags}
-              onToggleFlag={toggleFlag}
-              onBack={() => setDetailCard(null)}
-            />
+            <Appear style={styles.flex} offset={40} duration={300}>
+              <DetailScreen
+                card={detailCard}
+                locale={locale}
+                flags={flags}
+                onToggleFlag={toggleFlag}
+                onBack={() => setDetailCard(null)}
+              />
+            </Appear>
           </SafeAreaView>
         )}
       </SafeAreaView>
@@ -965,6 +972,7 @@ export default function App() {
 }
 
 const makeStyles = (colors) => StyleSheet.create({
+  flex: { flex: 1 },
   safe: {
     flex: 1,
     backgroundColor: colors.bg,

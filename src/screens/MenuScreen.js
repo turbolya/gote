@@ -6,13 +6,15 @@
 // recent games. On scroll it collapses up into a pinned compact banner. Below it,
 // clean minimal sections — flat lists with hairline dividers and accent icons.
 
-import React, { useRef, useState } from 'react';
-import { View, Text, Pressable, Animated, Image, Linking, StyleSheet } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { View, Text, Pressable, Animated, Easing, Image, Linking, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import { useTheme, useThemedStyles } from '../theme';
+import { Appear } from '../components/anim';
 import { SPEEDRUN_LIVES, KOFI_URL } from '../constants';
+import { IS_E2E } from '../e2e/testMode';
 
 // The hero gradient is the brand teal in both themes (white text reads well on
 // it either way), so it's intentionally not theme-dependent. Three stops give it
@@ -33,10 +35,22 @@ const BAR_GAP = 4;
 function AccuracyBars({ data = [] }) {
   const styles = useThemedStyles(makeStyles);
   const [width, setWidth] = useState(0);
-  if (!data.length) return null;
+  // Grow the bars up from the baseline once they're laid out.
+  const grow = useRef(new Animated.Value(IS_E2E ? 1 : 0)).current;
   const maxBars =
     width > 0 ? Math.max(1, Math.floor((width + BAR_GAP) / (BAR_W + BAR_GAP))) : 0;
   const bars = maxBars > 0 ? data.slice(-maxBars) : [];
+  useEffect(() => {
+    if (IS_E2E || bars.length === 0) return;
+    grow.setValue(0);
+    Animated.timing(grow, {
+      toValue: 1,
+      duration: 600,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false, // animating height (%)
+    }).start();
+  }, [bars.length, grow]);
+  if (!data.length) return null;
   return (
     <View
       style={styles.chart}
@@ -44,13 +58,56 @@ function AccuracyBars({ data = [] }) {
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
     >
       {bars.map((pct, i) => (
-        <LinearGradient
+        <Animated.View
           key={i}
-          colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0.2)']}
-          style={[styles.bar, { height: `${Math.max(3, pct)}%` }]}
-        />
+          style={[
+            styles.bar,
+            {
+              height: grow.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0%', `${Math.max(3, pct)}%`],
+              }),
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0.2)']}
+            style={styles.barFill}
+          />
+        </Animated.View>
       ))}
     </View>
+  );
+}
+
+// One tappable list row (game mode / Lexicon / Settings). Top-level (stable
+// identity) so incidental re-renders don't replay the entrance animation.
+// Staggers in via `index`, and springs down slightly while pressed.
+function Row({ icon, accent, title, sub, onPress, testID, first, index = 0 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const scale = useRef(new Animated.Value(1)).current;
+  const to = (v) =>
+    Animated.spring(scale, { toValue: v, useNativeDriver: true, friction: 7, tension: 220 }).start();
+  return (
+    <Appear delay={index * 55} offset={10}>
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <Pressable
+          testID={testID}
+          onPress={onPress}
+          onPressIn={() => to(0.97)}
+          onPressOut={() => to(1)}
+          style={({ pressed }) => [styles.row, !first && styles.rowDivider, pressed && styles.rowPressed]}
+        >
+          <Icon name={icon} size={24} color={accent.fg} style={styles.rowIcon} />
+          <View style={styles.flex}>
+            <Text style={styles.rowTitle}>{title}</Text>
+            <Text style={styles.rowSub}>{sub}</Text>
+          </View>
+          <Icon name="chevron-right" size={20} color={colors.muted} />
+        </Pressable>
+      </Animated.View>
+    </Appear>
   );
 }
 
@@ -107,21 +164,6 @@ export default function MenuScreen({
     { key: 'custom', icon: 'options-outline', accent: accents.violet, title: 'Custom game', sub: 'Choose how many cards and which groups' },
   ];
 
-  const Row = ({ icon, accent, title, sub, onPress, testID, first }) => (
-    <Pressable
-      testID={testID}
-      style={({ pressed }) => [styles.row, !first && styles.rowDivider, pressed && styles.rowPressed]}
-      onPress={onPress}
-    >
-      <Icon name={icon} size={24} color={accent.fg} style={styles.rowIcon} />
-      <View style={styles.flex}>
-        <Text style={styles.rowTitle}>{title}</Text>
-        <Text style={styles.rowSub}>{sub}</Text>
-      </View>
-      <Icon name="chevron-right" size={20} color={colors.muted} />
-    </Pressable>
-  );
-
   return (
     <View style={styles.flex}>
       <Animated.ScrollView
@@ -143,14 +185,14 @@ export default function MenuScreen({
         <Text style={styles.section}>Play</Text>
         <View style={styles.group}>
           {playModes.map(({ key, ...rest }, i) => (
-            <Row key={key} {...rest} first={i === 0} testID={`mode-${key}`} onPress={() => onSelectMode(key)} />
+            <Row key={key} {...rest} first={i === 0} index={i} testID={`mode-${key}`} onPress={() => onSelectMode(key)} />
           ))}
         </View>
 
         <Text style={styles.section}>Learn</Text>
         <View style={styles.group}>
-          <Row first testID="mode-flash" icon="documents-outline" accent={accents.indigo} title="Flash cards" sub="Reveal the answer, then grade yourself" onPress={() => onSelectMode('flash')} />
-          <Row testID="open-lexicon" icon="library-outline" accent={accents.teal} title="Lexicon" sub="Browse all your species" onPress={onLexicon} />
+          <Row first index={0} testID="mode-flash" icon="documents-outline" accent={accents.indigo} title="Flash cards" sub="Reveal the answer, then grade yourself" onPress={() => onSelectMode('flash')} />
+          <Row index={1} testID="open-lexicon" icon="library-outline" accent={accents.teal} title="Lexicon" sub="Browse all your species" onPress={onLexicon} />
         </View>
 
         <Text style={styles.section}>Settings</Text>
@@ -258,7 +300,8 @@ const makeStyles = (colors) => StyleSheet.create({
     alignItems: 'flex-end',
     gap: BAR_GAP,
   },
-  bar: { width: BAR_W, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+  bar: { width: BAR_W },
+  barFill: { flex: 1, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
   heroContent: { paddingHorizontal: 22 },
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   // Brand wordmark: the rounded Fredoka logotype, lowercase, per the design

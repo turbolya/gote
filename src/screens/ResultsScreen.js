@@ -6,6 +6,7 @@ import React from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import Icon from '../components/Icon';
 import { useColors, useThemedStyles } from '../theme';
+import { Appear, AnimatedNumber, AnimatedBar } from '../components/anim';
 
 const FLAG_ON = '#E0A800'; // amber for an active flag
 
@@ -73,60 +74,75 @@ export default function ResultsScreen({
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.badge}>
-          <Icon name={icon} size={36} color={colors.primary} />
-        </View>
-        <Text style={styles.msg}>{msg}</Text>
+        <Appear scaleFrom={0.6} offset={0} duration={380}>
+          <View style={styles.badge}>
+            <Icon name={icon} size={36} color={colors.primary} />
+          </View>
+        </Appear>
+        <Appear delay={90} offset={8}>
+          <Text style={styles.msg}>{msg}</Text>
+        </Appear>
 
-        <View style={styles.scoreCard}>
-          {speedrun ? (
-            <>
-              <Text style={styles.pct}>{correct}</Text>
-              <Text style={styles.scoreDetail}>
-                cards before {missed.length} misses
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.pct}>{pct}%</Text>
-              <Text style={styles.scoreDetail}>
-                {correct} of {total} correct
-              </Text>
-            </>
-          )}
-        </View>
+        <Appear delay={160} offset={10} style={styles.scoreCardWrap}>
+          <View style={styles.scoreCard}>
+            {speedrun ? (
+              <>
+                <AnimatedNumber value={correct} style={styles.pct} />
+                <Text style={styles.scoreDetail}>
+                  cards before {missed.length} misses
+                </Text>
+              </>
+            ) : (
+              <>
+                <AnimatedNumber value={pct} style={styles.pct} format={(n) => `${n}%`} />
+                <Text style={styles.scoreDetail}>
+                  {correct} of {total} correct
+                </Text>
+                <View style={styles.scoreBarTrack}>
+                  <AnimatedBar pct={pct} style={styles.scoreBarFill} />
+                </View>
+              </>
+            )}
+          </View>
+        </Appear>
 
         {missed.length > 0 && (
-          <Pressable
-            testID="results-revisit"
-            style={[styles.actionButton, styles.revisitBtn]}
-            onPress={onRevisitMissed}
-          >
-            <Icon name="eye-outline" size={20} color={ORANGE_FG} />
-            <Text style={[styles.actionText, { color: ORANGE_FG }]}>
-              Revisit missed ({missed.length})
-            </Text>
-          </Pressable>
+          <Appear delay={240} offset={12} style={styles.stretch}>
+            <Pressable
+              testID="results-revisit"
+              style={[styles.actionButton, styles.revisitBtn]}
+              onPress={onRevisitMissed}
+            >
+              <Icon name="eye-outline" size={20} color={ORANGE_FG} />
+              <Text style={[styles.actionText, { color: ORANGE_FG }]}>
+                Revisit missed ({missed.length})
+              </Text>
+            </Pressable>
+          </Appear>
         )}
 
-        <Pressable
-          testID="results-playagain"
-          style={[styles.actionButton, styles.playAgainBtn]}
-          onPress={onPlayAgain}
-        >
-          <Icon name="play" size={18} color={TEAL_FG} />
-          <Text style={[styles.actionText, { color: TEAL_FG }]}>Play again</Text>
-        </Pressable>
+        <Appear delay={300} offset={12} style={styles.stretch}>
+          <Pressable
+            testID="results-playagain"
+            style={[styles.actionButton, styles.playAgainBtn]}
+            onPress={onPlayAgain}
+          >
+            <Icon name="play" size={18} color={TEAL_FG} />
+            <Text style={[styles.actionText, { color: TEAL_FG }]}>Play again</Text>
+          </Pressable>
+        </Appear>
 
         {/* Emphasized primary action. */}
-        <Pressable
-          testID="results-menu"
-          style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
-          onPress={onMenu}
-        >
-          <Icon name="home" size={20} color={colors.onDark} />
-          <Text style={styles.menuText}>Main menu</Text>
-        </Pressable>
+        <Appear delay={360} offset={12} style={styles.stretch}>
+          <Pressable
+            testID="results-menu"
+            style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
+            onPress={onMenu}
+          >
+            <Icon name="home" size={20} color={colors.onDark} />
+            <Text style={styles.menuText}>Main menu</Text>
+          </Pressable>
+        </Appear>
 
         {missed.length > 0 && (
           <View style={styles.missedList}>
@@ -137,8 +153,13 @@ export default function ResultsScreen({
             {missed.map((c, i) => {
               const flagged = !!(flags && flags.has(String(c.taxonId)));
               return (
-                <Pressable
+                <Appear
                   key={`${c.id}-${i}`}
+                  delay={420 + Math.min(i, 10) * 45}
+                  offset={10}
+                  style={styles.stretch}
+                >
+                <Pressable
                   testID={`results-missed-${c.taxonId}`}
                   onPress={() => onSelectMissed && onSelectMissed(c)}
                   style={({ pressed }) => [
@@ -170,6 +191,7 @@ export default function ResultsScreen({
                   )}
                   <Icon name="chevron-right" size={18} color={colors.muted} />
                 </Pressable>
+                </Appear>
               );
             })}
           </View>
@@ -188,6 +210,25 @@ export default function ResultsScreen({
 
 const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
+  // Animated-wrapper helper: keep full-width children (buttons / rows / score
+  // card) stretching across the centered container.
+  stretch: { alignSelf: 'stretch' },
+  scoreCardWrap: { alignSelf: 'stretch' },
+  // Thin accuracy bar under the score that fills to the round's percentage.
+  scoreBarTrack: {
+    alignSelf: 'stretch',
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: colors.faint,
+    overflow: 'hidden',
+    marginTop: 16,
+    marginHorizontal: 24,
+  },
+  scoreBarFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: colors.primary,
+  },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',

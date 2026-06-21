@@ -23,6 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import PhotoViewer from '../components/PhotoViewer';
 import PieTimer from '../components/PieTimer';
+import { Appear, Pop } from '../components/anim';
 import { shuffle, fetchTaxonPhotos, toLargePhoto } from '../api';
 import { prefetchUpcoming } from '../prefetch';
 import { pickSimilarDistractors } from '../quiz';
@@ -239,7 +240,15 @@ export default function StudyScreen({
         onPressOut={() => setPeek(false)}
       >
         {card && !imgError ? (
-          <>
+          // Keyed on the card so each new photo fades + settles in.
+          <Appear
+            key={shownKey}
+            style={StyleSheet.absoluteFill}
+            offset={0}
+            scaleFrom={1.04}
+            duration={300}
+            pointerEvents="none"
+          >
             <Image
               source={{ uri: card.image }}
               style={StyleSheet.absoluteFill}
@@ -260,7 +269,7 @@ export default function StudyScreen({
                 <Icon name="eye-off-outline" size={40} color="rgba(255,255,255,0.45)" />
               </View>
             )}
-          </>
+          </Appear>
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.fsFallback]}>
             <Icon name="image" size={48} color="rgba(255,255,255,0.5)" />
@@ -309,7 +318,7 @@ export default function StudyScreen({
               </Pressable>
             )}
             {speedrun ? (
-              <View style={styles.lives}>
+              <Pop trigger={lives} scale={1.35} style={styles.lives}>
                 {Array.from({ length: SPEEDRUN_LIVES }).map((_, i) => (
                   <Icon
                     key={i}
@@ -319,7 +328,7 @@ export default function StudyScreen({
                     style={styles.heart}
                   />
                 ))}
-              </View>
+              </Pop>
             ) : (
               <View style={styles.centerStat}>
                 <Icon name="star" size={15} color={on} />
@@ -381,65 +390,70 @@ export default function StudyScreen({
       >
         {choiceMode
           ? phase !== 'front' && (
-              <View style={styles.centerPanel}>
-                <View style={styles.promptRow}>
-                  {answered && (
-                    <Icon
-                      name={gotIt ? 'check-circle' : 'x-circle'}
-                      size={16}
-                      color={gotIt ? colors.correct : colors.wrong}
-                    />
-                  )}
-                  <Text testID="study-prompt" style={[styles.prompt, { color: on }]} numberOfLines={1}>
-                    {answered
-                      ? gotIt
-                        ? 'Correct!'
-                        : `It was ${answer}`
-                      : 'Which species is this?'}
-                  </Text>
-                </View>
+              <Appear style={styles.centerPanel} offset={14} scaleFrom={0.96} duration={300}>
+                <Pop trigger={answered}>
+                  <View style={styles.promptRow}>
+                    {answered && (
+                      <Icon
+                        name={gotIt ? 'check-circle' : 'x-circle'}
+                        size={16}
+                        color={gotIt ? colors.correct : colors.wrong}
+                      />
+                    )}
+                    <Text testID="study-prompt" style={[styles.prompt, { color: on }]} numberOfLines={1}>
+                      {answered
+                        ? gotIt
+                          ? 'Correct!'
+                          : `It was ${answer}`
+                        : 'Which species is this?'}
+                    </Text>
+                  </View>
+                </Pop>
 
-                {choices.map((name) => {
+                {choices.map((name, i) => {
                   const isAnswer = name === answer;
                   const isPicked = name === picked;
                   const showCorrect = answered && isAnswer;
                   const showWrong = answered && isPicked && !isAnswer;
                   return (
-                    <Pressable
-                      key={name}
-                      testID={`study-choice-${name}`}
-                      disabled={answered}
-                      onPress={() => pick(name)}
-                      style={[
-                        styles.choice,
-                        showCorrect && styles.choiceCorrect,
-                        showWrong && styles.choiceWrong,
-                      ]}
-                    >
-                      <Text
+                    <Appear key={name} delay={i * 45} offset={8} duration={260}>
+                      <Pressable
+                        testID={`study-choice-${name}`}
+                        disabled={answered}
+                        onPress={() => pick(name)}
                         style={[
-                          styles.choiceText,
-                          { color: on },
-                          (showCorrect || showWrong) && styles.choiceTextOn,
+                          styles.choice,
+                          showCorrect && styles.choiceCorrect,
+                          showWrong && styles.choiceWrong,
                         ]}
-                        numberOfLines={1}
                       >
-                        {name}
-                      </Text>
-                    </Pressable>
+                        <Text
+                          style={[
+                            styles.choiceText,
+                            { color: on },
+                            (showCorrect || showWrong) && styles.choiceTextOn,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {name}
+                        </Text>
+                      </Pressable>
+                    </Appear>
                   );
                 })}
 
                 {answered && (
-                  <Pressable testID="study-next" style={styles.nextBtn} onPress={() => onGrade(gotIt)}>
-                    <Text style={styles.nextText}>Next card</Text>
-                    <Icon name="arrow-right" size={18} color={colors.onDark} />
-                  </Pressable>
+                  <Appear offset={6} duration={240}>
+                    <Pressable testID="study-next" style={styles.nextBtn} onPress={() => onGrade(gotIt)}>
+                      <Text style={styles.nextText}>Next card</Text>
+                      <Icon name="arrow-right" size={18} color={colors.onDark} />
+                    </Pressable>
+                  </Appear>
                 )}
-              </View>
+              </Appear>
             )
           : flipped && (
-              <View style={styles.centerPanel}>
+              <Appear style={styles.centerPanel} offset={16} scaleFrom={0.9} duration={300}>
                 <Text
                   style={[
                     styles.speciesName,
@@ -473,7 +487,7 @@ export default function StudyScreen({
                     <Text style={styles.gradeText}>I knew it</Text>
                   </Pressable>
                 </View>
-              </View>
+              </Appear>
             )}
       </Animated.View>
 
