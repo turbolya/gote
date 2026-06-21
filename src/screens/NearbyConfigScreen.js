@@ -15,6 +15,7 @@ import {
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import Slider from '@react-native-community/slider';
+import MapView, { Marker, Circle } from 'react-native-maps';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import GroupIcon from '../components/GroupIcon';
@@ -57,6 +58,17 @@ const roundKm = (km) => {
   return Math.round(km / 5) * 5; // 5 km steps above 100
 };
 
+// A map region that comfortably frames a circle of `radiusKm` around a point
+// (~2.4× the diameter for padding; longitude widened toward the poles).
+const regionFor = (lat, lng, radiusKm) => {
+  const latDelta = Math.max(0.02, (radiusKm / 111) * 2.4);
+  const lngDelta = latDelta / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+  return { latitude: lat, longitude: lng, latitudeDelta: latDelta, longitudeDelta: lngDelta };
+};
+
+// Until a location is chosen, show a wide world view.
+const DEFAULT_REGION = { latitude: 25, longitude: 0, latitudeDelta: 100, longitudeDelta: 100 };
+
 export default function NearbyConfigScreen({ onBack, onStart }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -72,6 +84,34 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
   const lastSnap = useRef(50);
   // Measured slider width, so tick labels can be positioned along the track.
   const [trackW, setTrackW] = useState(0);
+  const mapRef = useRef(null);
+
+  // Animate the map to frame the radius circle around `p`.
+  const fitMap = (p, r = radius) => {
+    if (!p || !mapRef.current) return;
+    mapRef.current.animateToRegion(regionFor(p.lat, p.lng, r), 350);
+  };
+
+  // Tap the map to drop a pin as the location.
+  const onMapPress = (e) => {
+    const { latitude, longitude } = e.nativeEvent.coordinate;
+    const p = { lat: latitude, lng: longitude, name: 'Dropped pin' };
+    setPlace(p);
+    setQuery('');
+    setResults([]);
+    fitMap(p);
+  };
+
+  // Drag the marker to fine-tune the location.
+  const onMarkerDragEnd = (e) => {
+    const { latitude, longitude } = e.nativeEvent.coordinate;
+    setPlace((prev) => ({
+      ...(prev || {}),
+      lat: latitude,
+      lng: longitude,
+      name: prev?.name || 'Dropped pin',
+    }));
+  };
 
   // Drag handler: snap to a preset when the thumb is close, otherwise take the
   // actual (log-mapped, rounded) value at the thumb.
@@ -127,6 +167,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
     setPlace({ lat: p.lat, lng: p.lng, name: p.name });
     setQuery('');
     setResults([]);
+    fitMap({ lat: p.lat, lng: p.lng });
   };
 
   const useGps = async () => {
@@ -148,6 +189,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
       });
       setQuery('');
       setResults([]);
+      fitMap({ lat: pos.coords.latitude, lng: pos.coords.longitude });
     } catch {
       setError('Couldn’t get your location. Search for a place instead.');
     } finally {
@@ -232,6 +274,41 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
           </>
         )}
 
+        {/* Map: tap to drop a pin; the circle shows the chosen search radius. */}
+        <View style={[styles.mapWrap, styles.section]}>
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            initialRegion={place ? regionFor(place.lat, place.lng, radius) : DEFAULT_REGION}
+            onPress={onMapPress}
+          >
+            {place && (
+              <>
+                <Marker
+                  coordinate={{ latitude: place.lat, longitude: place.lng }}
+                  draggable
+                  onDragEnd={onMarkerDragEnd}
+                />
+                <Circle
+                  center={{ latitude: place.lat, longitude: place.lng }}
+                  radius={radius * 1000}
+                  strokeColor={colors.primary}
+                  strokeWidth={2}
+                  fillColor="rgba(0,138,172,0.15)"
+                />
+              </>
+            )}
+          </MapView>
+          {!place && (
+            <View style={styles.mapHint} pointerEvents="none">
+              <View style={styles.mapHintPill}>
+                <Icon name="map-pin" size={15} color="#fff" />
+                <Text style={styles.mapHintText}>Tap the map to drop a pin</Text>
+              </View>
+            </View>
+          )}
+        </View>
+
         {/* Radius */}
         <View style={[styles.radiusHeader, styles.section]}>
           <Text style={[styles.label, styles.labelInline]}>Search radius</Text>
@@ -244,6 +321,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
           maximumValue={1}
           value={posForKm(radius)}
           onValueChange={onRadiusSlide}
+          onSlidingComplete={() => place && fitMap(place)}
           minimumTrackTintColor={colors.primary}
           maximumTrackTintColor={colors.border}
           thumbTintColor={colors.primary}
@@ -384,6 +462,26 @@ const makeStyles = (colors) => StyleSheet.create({
     padding: 16,
   },
   chosenText: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.text },
+
+  mapWrap: {
+    height: 220,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  map: { flex: 1 },
+  mapHint: { position: 'absolute', left: 0, right: 0, bottom: 10, alignItems: 'center' },
+  mapHintPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
+  mapHintText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 
   radiusHeader: {
     flexDirection: 'row',

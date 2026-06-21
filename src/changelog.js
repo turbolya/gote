@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.14.1';
+export const APP_VERSION = '2.15.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.15.0',
+    date: '2026-06-21',
+    changes: [
+      'Nearby species now has a map: tap to drop a pin (or drag the marker), and '
+        + 'a circle shows your search radius — updating live as you move the '
+        + 'slider.',
+    ],
+  },
   {
     version: '2.14.1',
     date: '2026-06-21',
