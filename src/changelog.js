@@ -8,9 +8,14 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.15.2';
+export const APP_VERSION = '2.15.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.15.3',
+    date: '2026-06-21',
+    changes: ['Reverted the Nearby map to the standard style.'],
+  },
   {
     version: '2.15.2',
     date: '2026-06-21',

@@ -279,7 +279,6 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
           <MapView
             ref={mapRef}
             style={styles.map}
-            mapType="mutedStandard"
             initialRegion={place ? regionFor(place.lat, place.lng, radius) : DEFAULT_REGION}
             onPress={onMapPress}
           >
