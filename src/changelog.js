@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.13.0';
+export const APP_VERSION = '2.13.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.13.1',
+    date: '2026-06-21',
+    changes: [
+      'On a brand-new install the example collection downloads first and then '
+        + 'drops you on Settings to enter your own username; after that, each '
+        + 'launch quietly checks for new observations since last time.',
+    ],
+  },
   {
     version: '2.13.0',
     date: '2026-06-21',

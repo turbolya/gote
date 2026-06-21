@@ -308,9 +308,10 @@ export default function App() {
   );
 
   // Full download for a brand-new account (or forced refresh). Shows the loading
-  // screen, replaces the cache, then lands on the menu.
+  // screen, replaces the cache, then lands on `landOn` (the menu by default; the
+  // very first run lands on Settings so the user can set their own username).
   const fullDownload = useCallback(
-    async (name, prefs) => {
+    async (name, prefs, { landOn = 'menu' } = {}) => {
       setError(null);
       setProgress({ loaded: 0, total: 0 });
       // Set the username up front so the loading screen shows the NEW user, not
@@ -331,7 +332,7 @@ export default function App() {
         await saveUsername(name);
         const syncedAt = persistCache(name, prefs.locale);
         setSync({ state: 'done', syncedAt, message: null });
-        setScreen('menu');
+        setScreen(landOn);
       } catch (e) {
         // If another account's deck is still loaded, restore that identity so
         // the username (and the flags saved under it) keep matching the deck.
@@ -418,16 +419,17 @@ export default function App() {
           savedCache
         );
       } else {
-        // No account yet (fresh install): load a default public account so people
-        // without their own iNaturalist account can play immediately. They can
-        // switch to their own username anytime in Settings.
+        // Very first start (fresh install): download the default public account's
+        // deck (loarie) so there's something to play, then land on Settings so the
+        // user can set their own username (or just back out and play loarie's). It
+        // saves the username + cache, so later starts load from cache + a quick
+        // incremental sync (see loadAccount) rather than downloading again.
         setUsername(DEFAULT_USERNAME);
-        loadAccount(DEFAULT_USERNAME, {
-          perSpecies: ps,
-          locale: loc,
-          researchGrade: rg,
-          speciesOnly: so,
-        });
+        fullDownload(
+          DEFAULT_USERNAME,
+          { perSpecies: ps, locale: loc, researchGrade: rg, speciesOnly: so },
+          { landOn: 'settings' }
+        );
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
