@@ -146,6 +146,10 @@ export default function App() {
   );
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ loaded: 0, total: 0 });
+  // Distinguishes the two things that use the loading screen: loading an
+  // account's own observations vs. fetching species near a place (which draws
+  // from many observers, not the current user) — so the message can match.
+  const [loadingNearby, setLoadingNearby] = useState(false);
   const [lifetime, setLifetime] = useState({ answered: 0, correct: 0 });
   // Recent games' accuracy (0–100, oldest→newest) for the menu's mini chart.
   const [history, setHistory] = useState([]);
@@ -313,6 +317,7 @@ export default function App() {
   const fullDownload = useCallback(
     async (name, prefs, { landOn = 'menu' } = {}) => {
       setError(null);
+      setLoadingNearby(false);
       setProgress({ loaded: 0, total: 0 });
       // Set the username up front so the loading screen shows the NEW user, not
       // the previous one (restored below if the download fails).
@@ -506,6 +511,7 @@ export default function App() {
     async (config) => {
       setError(null);
       setProgress({ loaded: 0, total: 0 });
+      setLoadingNearby(true);
       setScreen('loading');
       try {
         const cards = await fetchNearbyCards({
@@ -817,7 +823,9 @@ export default function App() {
           <View style={styles.center}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loadingText}>
-              Loading observations{username ? ` for ${username}` : ''}…
+              {loadingNearby
+                ? 'Finding species observed near this place…'
+                : `Loading observations${username ? ` for ${username}` : ''}…`}
             </Text>
             {progress.total > 0 && (
               <Text style={styles.loadingSub}>

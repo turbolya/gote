@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.15.3';
+export const APP_VERSION = '2.15.4';
 
 export const CHANGELOG = [
+  {
+    version: '2.15.4',
+    date: '2026-06-21',
+    changes: [
+      'Nearby species: the loading screen no longer says it’s loading your '
+        + 'account — it now reads “Finding species observed near this place,” and '
+        + 'the setup screen explains the mode draws from all observers nearby.',
+    ],
+  },
   {
     version: '2.15.3',
     date: '2026-06-21',

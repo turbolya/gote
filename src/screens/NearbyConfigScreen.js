@@ -216,6 +216,12 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Quick note: this mode is location-based, not account-based. */}
+        <Text style={styles.intro}>
+          Learn the species most commonly observed near a place — drawn from all
+          iNaturalist observers there, not just your own records.
+        </Text>
+
         {/* Location */}
         <Text style={styles.label}>Location</Text>
 
@@ -411,6 +417,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
 const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 24, paddingTop: 12 },
+  intro: { fontSize: 14, lineHeight: 20, color: colors.muted, marginBottom: 22 },
   label: {
     fontSize: 13,
     fontWeight: '800',
