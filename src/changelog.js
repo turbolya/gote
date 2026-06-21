@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.15.1';
+export const APP_VERSION = '2.15.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.15.2',
+    date: '2026-06-21',
+    changes: [
+      'The Nearby map now uses a muted style so the radius circle and pin stand '
+        + 'out more.',
+    ],
+  },
   {
     version: '2.15.1',
     date: '2026-06-21',
