@@ -58,7 +58,7 @@ import {
   loadHistory,
   addGameResult,
 } from './src/storage';
-import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE } from './src/constants';
+import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME } from './src/constants';
 import { buildPickRound } from './src/quiz';
 import { prefetchImages } from './src/prefetch';
 import { groupKey, ThemeProvider, themeFor, resolveScheme } from './src/theme';
@@ -418,7 +418,16 @@ export default function App() {
           savedCache
         );
       } else {
-        setScreen('settings');
+        // No account yet (fresh install): load a default public account so people
+        // without their own iNaturalist account can play immediately. They can
+        // switch to their own username anytime in Settings.
+        setUsername(DEFAULT_USERNAME);
+        loadAccount(DEFAULT_USERNAME, {
+          perSpecies: ps,
+          locale: loc,
+          researchGrade: rg,
+          speciesOnly: so,
+        });
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps

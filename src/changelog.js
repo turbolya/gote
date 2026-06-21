@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.12.5';
+export const APP_VERSION = '2.13.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.13.0',
+    date: '2026-06-21',
+    changes: [
+      'No iNaturalist account? gote now starts you off with a built-in example '
+        + 'collection so you can play right away — set your own username anytime '
+        + 'in Settings.',
+    ],
+  },
   {
     version: '2.12.5',
     date: '2026-06-21',

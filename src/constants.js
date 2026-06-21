@@ -1,5 +1,11 @@
 // Shared game constants.
 
+// Default iNaturalist account loaded on a fresh install, so people without their
+// own account can play right away. 'loarie' (an iNaturalist co-founder) has a
+// large, well-identified set of public observations. Users can change this to
+// their own username in Settings.
+export const DEFAULT_USERNAME = 'loarie';
+
 // Speedrun ends after this many missed cards.
 export const SPEEDRUN_LIVES = 3;
 
