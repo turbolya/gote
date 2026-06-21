@@ -262,6 +262,19 @@ export default function StudyScreen({
           pointerEvents="none"
         />
       )}
+      {/* Static blurred backdrop behind the flip (self-grade only): as the card
+          rotates it foreshortens and stops covering the full width, so this keeps
+          a blurred copy of the photo behind it instead of bare black. */}
+      {canFlip && card && !imgError && (
+        <Image
+          source={{ uri: card.image }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+          blurRadius={30}
+          pointerEvents="none"
+        />
+      )}
+
       {/* Fullscreen photo. A blurred, darkened copy fills the whole screen
           (covering letterbox bars for wide/tall photos), with the full image
           shown on top in "contain" mode so no features are cropped off. */}
