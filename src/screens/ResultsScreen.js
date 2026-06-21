@@ -39,6 +39,7 @@ export default function ResultsScreen({
   correct,
   missed,
   lifetime,
+  streak,
   onRevisitMissed,
   onPlayAgain,
   onMenu,
@@ -105,6 +106,15 @@ export default function ResultsScreen({
             )}
           </View>
         </Appear>
+
+        {streak && streak.count > 0 && (
+          <Appear delay={210} offset={8} style={styles.stretch}>
+            <View style={styles.streakRow}>
+              <Icon name="flame" size={18} color={colors.primary} />
+              <Text style={styles.streakText}>{streak.count}-day streak</Text>
+            </View>
+          </Appear>
+        )}
 
         {missed.length > 0 && (
           <Appear delay={240} offset={12} style={styles.stretch}>
@@ -214,6 +224,15 @@ const makeStyles = (colors) => StyleSheet.create({
   // card) stretching across the centered container.
   stretch: { alignSelf: 'stretch' },
   scoreCardWrap: { alignSelf: 'stretch' },
+  // Daily-streak line under the score.
+  streakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 18,
+  },
+  streakText: { fontSize: 15, fontWeight: '800', color: colors.text },
   // Thin accuracy bar under the score that fills to the round's percentage.
   scoreBarTrack: {
     alignSelf: 'stretch',

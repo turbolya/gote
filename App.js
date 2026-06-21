@@ -57,6 +57,9 @@ import {
   saveFlags,
   loadHistory,
   addGameResult,
+  loadStreak,
+  recordStreakDay,
+  streakStatus,
 } from './src/storage';
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME } from './src/constants';
 import { buildPickRound } from './src/quiz';
@@ -153,6 +156,9 @@ export default function App() {
   const [lifetime, setLifetime] = useState({ answered: 0, correct: 0 });
   // Recent games' accuracy (0–100, oldest→newest) for the menu's mini chart.
   const [history, setHistory] = useState([]);
+  // Daily streak record { current, longest, lastActiveDay }; the displayed
+  // state (done / at-risk / broken) is derived via streakStatus at render.
+  const [streak, setStreak] = useState(null);
 
   // Raw cached cards (unfiltered) for the current account, kept in a ref so sync
   // can read/merge without re-renders. `fullDeck` is the filtered view shown to
@@ -378,7 +384,7 @@ export default function App() {
   // Restore saved state on first launch.
   useEffect(() => {
     (async () => {
-      const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedHistory] =
+      const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedHistory, savedStreak] =
         await Promise.all([
           loadUsername(),
           loadStats(),
@@ -386,9 +392,11 @@ export default function App() {
           loadSpeciesStats(),
           loadCache(),
           loadHistory(),
+          loadStreak(),
         ]);
       if (savedStats) setLifetime(savedStats);
       if (savedHistory && savedHistory.length) setHistory(savedHistory);
+      if (savedStreak) setStreak(savedStreak);
       // Flags are loaded per-account inside loadAccount (below).
       speciesRef.current = savedSpecies || {};
       setSpeciesStats(speciesRef.current);
@@ -611,9 +619,11 @@ export default function App() {
     // Persist the per-species tallies accumulated during the round.
     saveSpeciesStats(speciesRef.current);
     setSpeciesStats({ ...speciesRef.current });
-    // Record this game's accuracy for the menu chart (skip empty rounds).
+    // Record this game's accuracy for the menu chart, and count today toward
+    // the daily streak (both skip empty rounds).
     if (total > 0) {
       addGameResult((finalCorrect / total) * 100).then(setHistory);
+      recordStreakDay().then(setStreak);
     }
     setMissed(finalMissed);
     setCorrectCount(finalCorrect);
@@ -791,6 +801,7 @@ export default function App() {
               deckCount={fullDeck.length}
               lifetime={lifetime}
               history={history}
+              streak={streakStatus(streak)}
               onSelectMode={onSelectMode}
               onLexicon={() => setScreen('lexicon')}
               onStats={() => setScreen('stats')}
@@ -924,6 +935,7 @@ export default function App() {
               setSpeciesStats({});
               setLifetime({ answered: 0, correct: 0 });
               setHistory([]);
+              setStreak({ current: 0, longest: 0, lastActiveDay: null });
             }}
           />
         )}
@@ -954,6 +966,7 @@ export default function App() {
             correct={correctCount}
             missed={missed}
             lifetime={lifetime}
+            streak={streakStatus(streak)}
             onRevisitMissed={() =>
               startRound(missed, 'all', 'Revisiting missed cards', roundPool)
             }

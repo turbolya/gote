@@ -21,6 +21,10 @@ import { IS_E2E } from '../e2e/testMode';
 // a clearly non-uniform, diagonal shade.
 const HERO_GRADIENT = ['#17A7C6', '#008AAC', '#02485A'];
 
+// Light teal for the daily-streak flame on the hero (reads well on the teal).
+const FLAME_TEAL = '#82D9EA';
+const FLAME_DIM = 'rgba(255,255,255,0.5)';
+
 // Hero heights (excluding the top safe-area inset).
 const EXPANDED = 162;
 const COLLAPSED = 74;
@@ -116,6 +120,7 @@ export default function MenuScreen({
   deckCount,
   lifetime,
   history = [],
+  streak,
   onSelectMode,
   onLexicon,
   onStats,
@@ -258,6 +263,25 @@ export default function MenuScreen({
                 {username} · {deckCount} cards
               </Animated.Text>
             </View>
+            {/* Daily streak: filled flame once you've played today, outline when
+                the streak is alive but today's round is still pending. */}
+            {streak && (
+              <View style={styles.streakChip} testID="menu-streak">
+                <Icon
+                  name={streak.state === 'done' ? 'flame' : 'flame-outline'}
+                  size={18}
+                  color={streak.count > 0 ? FLAME_TEAL : FLAME_DIM}
+                />
+                <Text
+                  style={[
+                    styles.streakCount,
+                    { color: streak.count > 0 ? FLAME_TEAL : FLAME_DIM },
+                  ]}
+                >
+                  {streak.count}
+                </Text>
+              </View>
+            )}
           </View>
 
           {lifetimePct !== null && (
@@ -304,6 +328,9 @@ const makeStyles = (colors) => StyleSheet.create({
   barFill: { flex: 1, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
   heroContent: { paddingHorizontal: 22 },
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  // Daily-streak flame chip, top-right of the hero.
+  streakChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  streakCount: { fontSize: 18, fontWeight: '900' },
   // Brand wordmark: the rounded Fredoka logotype, lowercase, per the design
   // system. The face is SemiBold (600) baked into the file, so no fontWeight.
   heroTitle: { fontSize: 38, fontFamily: 'Fredoka', color: '#FFFFFF', letterSpacing: 0.5 },

@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.18.0';
+export const APP_VERSION = '2.19.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.19.0',
+    date: '2026-06-21',
+    changes: [
+      'Daily streak: a teal flame on the home screen counts the days you play in '
+        + 'a row — it fills in once you’ve played today, and your streak also '
+        + 'shows on the results screen.',
+    ],
+  },
   {
     version: '2.18.0',
     date: '2026-06-21',

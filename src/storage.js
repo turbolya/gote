@@ -10,6 +10,7 @@ const K_SPECIES = '@gote/species';
 const K_CACHE = '@gote/obscache';
 const K_FLAGS = '@gote/flags';
 const K_HISTORY = '@gote/history';
+const K_STREAK = '@gote/streak';
 
 // How many recent games to keep for the menu's accuracy chart. Comfortably more
 // than fit on screen; the chart shows only the newest that fit.
@@ -115,7 +116,7 @@ export async function saveSpeciesStats(map) {
 // per-game accuracy history shown on the menu).
 export async function resetStatistics() {
   try {
-    await AsyncStorage.multiRemove([K_STATS, K_SPECIES, K_HISTORY]);
+    await AsyncStorage.multiRemove([K_STATS, K_SPECIES, K_HISTORY, K_STREAK]);
   } catch {
     /* ignore */
   }
@@ -150,6 +151,78 @@ export async function addGameResult(pct) {
     /* ignore — best-effort */
   }
   return next;
+}
+
+// --- Daily streak ------------------------------------------------------------
+// Consecutive calendar days with at least one finished round. Stored as
+// { current, longest, lastActiveDay } where lastActiveDay is a local YYYY-MM-DD.
+
+// Local calendar-day key for a Date (uses local time, so no UTC/midnight traps).
+function dayKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+// The local day before `d` (built from date parts, so month ends and DST are
+// handled correctly — not a naive minus-24-hours).
+function prevDayKey(d) {
+  return dayKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1));
+}
+
+export async function loadStreak() {
+  try {
+    const raw = await AsyncStorage.getItem(K_STREAK);
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s && typeof s.current === 'number') {
+        return {
+          current: s.current,
+          longest: typeof s.longest === 'number' ? s.longest : s.current,
+          lastActiveDay: s.lastActiveDay || null,
+        };
+      }
+    }
+  } catch {
+    /* fall through */
+  }
+  return { current: 0, longest: 0, lastActiveDay: null };
+}
+
+// Mark today active and advance / continue / reset the streak. Idempotent within
+// a day. Returns the new record.
+export async function recordStreakDay(now = Date.now()) {
+  const d = new Date(now);
+  const today = dayKey(d);
+  const yesterday = prevDayKey(d);
+  const prev = await loadStreak();
+  let current;
+  if (prev.lastActiveDay === today) current = prev.current; // already counted
+  else if (prev.lastActiveDay === yesterday) current = prev.current + 1; // continued
+  else current = 1; // first ever, or a gap → restart
+  const next = {
+    current,
+    longest: Math.max(prev.longest || 0, current),
+    lastActiveDay: today,
+  };
+  try {
+    await AsyncStorage.setItem(K_STREAK, JSON.stringify(next));
+  } catch {
+    /* ignore — best-effort */
+  }
+  return next;
+}
+
+// Display state for "now" from a stored streak: 'done' (already counted today),
+// 'atRisk' (counted yesterday, not yet today), or 'broken' (gap → shows 0).
+export function streakStatus(streak, now = Date.now()) {
+  const longest = (streak && streak.longest) || 0;
+  if (!streak || !streak.lastActiveDay) return { count: 0, state: 'broken', longest };
+  const d = new Date(now);
+  if (streak.lastActiveDay === dayKey(d)) return { count: streak.current, state: 'done', longest };
+  if (streak.lastActiveDay === prevDayKey(d)) return { count: streak.current, state: 'atRisk', longest };
+  return { count: 0, state: 'broken', longest };
 }
 
 // --- Flagged species ---------------------------------------------------------
