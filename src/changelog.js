@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.13.1';
+export const APP_VERSION = '2.14.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.14.0',
+    date: '2026-06-21',
+    changes: [
+      'Nearby species: the search radius is now a slider from 2.5 km up to '
+        + '500 km, with marks at 10, 25, 50 and 100 km.',
+    ],
+  },
   {
     version: '2.13.1',
     date: '2026-06-21',

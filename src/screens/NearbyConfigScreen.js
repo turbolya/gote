@@ -13,6 +13,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import * as Location from 'expo-location';
+import Slider from '@react-native-community/slider';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import GroupIcon from '../components/GroupIcon';
@@ -34,7 +35,9 @@ const GROUPS = [
   'Actinopterygii',
 ];
 
-const RADII = [10, 25, 50, 100];
+// Slider stops (km): the ends are the min/max (2.5 and 500); 10/25/50/100 are
+// the marked positions in between. The slider snaps between these.
+const RADII = [2.5, 10, 25, 50, 100, 500];
 
 export default function NearbyConfigScreen({ onBack, onStart }) {
   const colors = useColors();
@@ -191,22 +194,31 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
         )}
 
         {/* Radius */}
-        <Text style={[styles.label, styles.section]}>Search radius</Text>
-        <View style={styles.radiusRow}>
-          {RADII.map((r) => {
-            const on = radius === r;
-            return (
-              <Pressable
-                key={r}
-                onPress={() => setRadius(r)}
-                style={[styles.radiusChip, on && styles.radiusChipOn]}
-              >
-                <Text style={[styles.radiusText, on && styles.radiusTextOn]}>
-                  {r} km
-                </Text>
-              </Pressable>
-            );
-          })}
+        <View style={[styles.radiusHeader, styles.section]}>
+          <Text style={[styles.label, styles.labelInline]}>Search radius</Text>
+          <Text style={styles.radiusValue}>{radius} km</Text>
+        </View>
+        <Slider
+          testID="nearby-radius"
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={RADII.length - 1}
+          step={1}
+          value={RADII.indexOf(radius)}
+          onValueChange={(i) => setRadius(RADII[Math.round(i)])}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.primary}
+        />
+        <View style={styles.radiusTicks}>
+          {RADII.map((r) => (
+            <Text
+              key={r}
+              style={[styles.radiusTick, r === radius && styles.radiusTickOn]}
+            >
+              {r}
+            </Text>
+          ))}
         </View>
 
         {/* Groups */}
@@ -320,16 +332,22 @@ const makeStyles = (colors) => StyleSheet.create({
   },
   chosenText: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.text },
 
-  radiusRow: { flexDirection: 'row', gap: 22 },
-  radiusChip: {
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+  radiusHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
   },
-  radiusChipOn: { borderBottomColor: colors.primary },
-  radiusText: { fontSize: 14.5, fontWeight: '700', color: colors.muted },
-  radiusTextOn: { color: colors.primaryDark },
+  labelInline: { marginBottom: 0 },
+  radiusValue: { fontSize: 16, fontWeight: '800', color: colors.primaryDark },
+  slider: { width: '100%', height: 40, marginTop: 6 },
+  radiusTicks: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginTop: 2,
+  },
+  radiusTick: { fontSize: 12, fontWeight: '700', color: colors.muted },
+  radiusTickOn: { color: colors.primaryDark },
 
   groups: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 18, rowGap: 4 },
   groupChip: {
