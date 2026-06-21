@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.15.4';
+export const APP_VERSION = '2.16.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.16.0',
+    date: '2026-06-21',
+    changes: [
+      'Statistics rows are now tinted by net score (correct minus incorrect): '
+        + 'teal for your strongest species, dark red for the weakest.',
+    ],
+  },
   {
     version: '2.15.4',
     date: '2026-06-21',

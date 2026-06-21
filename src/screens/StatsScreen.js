@@ -12,18 +12,19 @@ import {
   Alert,
   StyleSheet,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import ScreenHeader from '../components/ScreenHeader';
 import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonThumbs } from '../api';
 import { AnimatedBar, animateNextLayout } from '../components/anim';
 
-// Subtle teal fill for the per-row "recognition %" background bar (brand teal,
-// fading out toward its tip; fixed across light/dark like the hero gradient).
-const PCT_GRADIENT = ['rgba(0,138,172,0.22)', 'rgba(0,138,172,0.03)'];
-
 const FLAG_ON = '#E0A800'; // amber for an active flag
+
+// Row background tint endpoints: dark red for the lowest net score (correct −
+// incorrect) in the list, brand teal for the highest. Interpolated per row.
+const TINT_LOW = [139, 26, 26]; // dark red  (#8B1A1A)
+const TINT_HIGH = [0, 138, 172]; // brand teal (#008AAC)
+const TINT_ALPHA = 0.32;
 
 // Sort modes for the per-species list.
 const SORTS = [
@@ -42,13 +43,11 @@ const successOf = (s) => (totalOf(s) > 0 ? knownOf(s) / totalOf(s) : 0);
 // incorrect) sit on the right. Count bars are scaled to `maxCount` (the largest
 // single count across the list) so their lengths are comparable row to row;
 // nonzero bars keep a minimum width so they stay visible.
-function CardStatRow({ item, image, maxCount, onPress, onImageError, flagged, onFlag }) {
+function CardStatRow({ item, image, maxCount, tint, onPress, onImageError, flagged, onFlag }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const known = knownOf(item);
   const missed = missedOf(item);
-  const total = known + missed;
-  const pct = total > 0 ? Math.round((known / total) * 100) : 0;
   // Bar length as a number (percent of the largest single count in the list);
   // nonzero counts keep a minimum so they stay visible. AnimatedBar grows it in.
   const barPct = (n) => (n > 0 ? Math.max(8, (n / maxCount) * 100) : 0);
@@ -57,17 +56,10 @@ function CardStatRow({ item, image, maxCount, onPress, onImageError, flagged, on
     <Pressable
       testID={`stats-card-${item.key}`}
       onPress={onPress}
-      style={({ pressed }) => [styles.cardRow, pressed && styles.cardRowPressed]}
+      // Background tinted by net score (correct − incorrect): teal = best in the
+      // list, dark red = worst (see scoreTint in the parent).
+      style={({ pressed }) => [styles.cardRow, { backgroundColor: tint }, pressed && styles.cardRowPressed]}
     >
-      {/* Overall recognition % as a gradient bar behind the whole row. */}
-      <LinearGradient
-        colors={PCT_GRADIENT}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={[styles.pctBg, { width: `${pct}%` }]}
-        pointerEvents="none"
-      />
-
       {image ? (
         <Image
           source={{ uri: image }}
@@ -185,6 +177,19 @@ export default function StatsScreen({ species, cards = [], lifetime, flags, onTo
     () => Math.max(1, ...filtered.map((s) => Math.max(knownOf(s), missedOf(s)))),
     [filtered]
   );
+
+  // Net score (correct − incorrect) per species, and the list's range, so each
+  // row's background can be tinted teal (the highest net) → dark red (the lowest).
+  const [minNet, maxNet] = useMemo(() => {
+    const nets = filtered.map((s) => knownOf(s) - missedOf(s));
+    return nets.length ? [Math.min(...nets), Math.max(...nets)] : [0, 0];
+  }, [filtered]);
+  const scoreTint = (net) => {
+    const span = maxNet - minNet;
+    const t = span > 0 ? (net - minNet) / span : 0.5;
+    const mix = (i) => Math.round(TINT_LOW[i] + (TINT_HIGH[i] - TINT_LOW[i]) * t);
+    return `rgba(${mix(0)}, ${mix(1)}, ${mix(2)}, ${TINT_ALPHA})`;
+  };
 
   // Resolved thumbnail for a row: the stored/deck image (unless it failed to
   // load), else a fetched default thumbnail (unless that failed too).
@@ -357,6 +362,7 @@ export default function StatsScreen({ species, cards = [], lifetime, flags, onTo
                   item={item}
                   image={imageFor(item)}
                   maxCount={maxCount}
+                  tint={scoreTint(knownOf(item) - missedOf(item))}
                   onPress={() => openDetail(item)}
                   onImageError={markErrored}
                   flagged={!!(flags && flags.has(item.key))}
@@ -449,8 +455,8 @@ const makeStyles = (colors) => StyleSheet.create({
   sortText: { fontSize: 13, fontWeight: '700', color: colors.muted },
   sortTextOn: { color: colors.onDark },
 
-  // Per-species row — compact: thumb + name left, count bars right, with the
-  // recognition-% gradient filling the row background.
+  // Per-species row — compact: thumb + name left, count bars right. The row
+  // background is tinted by net score (set inline; see scoreTint).
   cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -460,10 +466,8 @@ const makeStyles = (colors) => StyleSheet.create({
     marginBottom: 6,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: colors.faint,
   },
   cardRowPressed: { opacity: 0.6 },
-  pctBg: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   thumb: {
     width: 40,
     height: 40,
