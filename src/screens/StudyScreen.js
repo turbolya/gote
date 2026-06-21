@@ -16,6 +16,7 @@ import {
   Image,
   ActivityIndicator,
   StyleSheet,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -124,6 +125,20 @@ export default function StudyScreen({
   const [viewer, setViewer] = useState(null); // { photos, startIndex } | null
   const lastTapRef = useRef(0);
 
+  // Press-and-hold the bare photo to "peek": the answer overlay (choices /
+  // species name / grade buttons) slides up and out while held, then slides back
+  // on release — so the panel never permanently hides the picture behind it.
+  // Only the uncovered parts of the image trigger it: the buttons are Pressables
+  // that capture their own touches, so this never fires on (or disables) them.
+  const peekAnim = useRef(new Animated.Value(0)).current; // 0 = shown, 1 = hidden
+  const setPeek = (hidden) => {
+    Animated.timing(peekAnim, {
+      toValue: hidden ? 1 : 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+  };
+
   // Reset the photo state when the displayed card changes (same render-time
   // guard as flip/phase above, keyed on card identity).
   const [photoKey, setPhotoKey] = useState(shownKey);
@@ -217,7 +232,12 @@ export default function StudyScreen({
       {/* Fullscreen photo. A blurred, darkened copy fills the whole screen
           (covering letterbox bars for wide/tall photos), with the full image
           shown on top in "contain" mode so no features are cropped off. */}
-      <Pressable style={StyleSheet.absoluteFill} onPress={onPhotoPress}>
+      <Pressable
+        style={StyleSheet.absoluteFill}
+        onPress={onPhotoPress}
+        onPressIn={() => setPeek(true)}
+        onPressOut={() => setPeek(false)}
+      >
         {card && !imgError ? (
           <>
             <Image
@@ -339,11 +359,23 @@ export default function StudyScreen({
       )}
 
       {/* Active answer UI is CENTERED — away from the bottom button you just
-          tapped — so a choice/grade button never lands under your finger. */}
-      <View
+          tapped — so a choice/grade button never lands under your finger.
+          Slides up + fades out while the bare photo is held (peek). */}
+      <Animated.View
         style={[
           styles.centerArea,
           { paddingTop: insets.top + 70, paddingBottom: insets.bottom + 84 },
+          {
+            opacity: peekAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+            transform: [
+              {
+                translateY: peekAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -80],
+                }),
+              },
+            ],
+          },
         ]}
         pointerEvents="box-none"
       >
@@ -443,7 +475,7 @@ export default function StudyScreen({
                 </View>
               </View>
             )}
-      </View>
+      </Animated.View>
 
       {/* Bottom gradient: only the Show/Reveal button (front state) + photo
           controls. The answer UI itself is centered, above. */}

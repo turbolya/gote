@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.9.0';
+export const APP_VERSION = '2.10.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.10.0',
+    date: '2026-06-21',
+    changes: [
+      'When choices or the answer cover the photo, press and hold any bare part '
+        + 'of the picture to peek: the panel slides up out of the way while you '
+        + 'hold, and slides back when you let go. The buttons keep working.',
+    ],
+  },
   {
     version: '2.9.0',
     date: '2026-06-21',
