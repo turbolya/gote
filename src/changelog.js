@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.16.0';
+export const APP_VERSION = '2.17.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.17.0',
+    date: '2026-06-21',
+    changes: [
+      'On a species page, tap any photo — the main one or the smaller ones — to '
+        + 'open it full screen, pinch to zoom, and swipe between photos.',
+    ],
+  },
   {
     version: '2.16.0',
     date: '2026-06-21',

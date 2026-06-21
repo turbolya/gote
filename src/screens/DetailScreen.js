@@ -15,6 +15,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import Icon from '../components/Icon';
+import PhotoViewer from '../components/PhotoViewer';
 import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonDetail, toLargePhoto } from '../api';
 
@@ -29,6 +30,9 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
   const flagged = !!(flags && card.taxonId != null && flags.has(String(card.taxonId)));
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Index of the photo open in the fullscreen viewer (pinch-zoom + swipe), or
+  // null when closed.
+  const [viewerIndex, setViewerIndex] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +56,9 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
   );
   // Curated photos minus the hero (avoid showing the same shot twice up top).
   const curated = (detail?.photos || []).filter((u) => u !== card.image);
+  // The full set for the fullscreen viewer: the user's hero photo first, then
+  // the curated strip — so the strip's photo at position i opens at index i + 1.
+  const viewerPhotos = [card.image, ...curated].map(toLargePhoto);
 
   return (
     <View style={styles.flex}>
@@ -61,11 +68,17 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
-          <Image
-            source={{ uri: toLargePhoto(card.image) }}
+          <Pressable
+            testID="detail-hero"
             style={styles.heroImg}
-            resizeMode="cover"
-          />
+            onPress={() => setViewerIndex(0)}
+          >
+            <Image
+              source={{ uri: toLargePhoto(card.image) }}
+              style={styles.heroImg}
+              resizeMode="cover"
+            />
+          </Pressable>
           <Pressable testID="detail-back" onPress={onBack} hitSlop={12} style={styles.backFab}>
             <Icon name="chevron-left" size={24} color={colors.onDark} />
           </Pressable>
@@ -103,8 +116,14 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.stripContent}
               >
-                {curated.map((uri) => (
-                  <Image key={uri} source={{ uri }} style={styles.stripImg} />
+                {curated.map((uri, i) => (
+                  <Pressable
+                    key={uri}
+                    testID={`detail-photo-${i}`}
+                    onPress={() => setViewerIndex(i + 1)}
+                  >
+                    <Image source={{ uri }} style={styles.stripImg} />
+                  </Pressable>
                 ))}
               </ScrollView>
             </>
@@ -162,6 +181,14 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
           )}
         </View>
       </ScrollView>
+
+      <PhotoViewer
+        visible={viewerIndex !== null}
+        photos={viewerPhotos}
+        title={name}
+        startIndex={viewerIndex || 0}
+        onClose={() => setViewerIndex(null)}
+      />
     </View>
   );
 }
