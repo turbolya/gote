@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.12.2';
+export const APP_VERSION = '2.12.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.12.3',
+    date: '2026-06-21',
+    changes: [
+      'Replaced the card flip with a clean fade-and-scale reveal in self-grade '
+        + 'rounds — the answer dissolves in over the photo, with nothing cut off. '
+        + 'Press and hold the photo to peek at it again.',
+    ],
+  },
   {
     version: '2.12.2',
     date: '2026-06-21',
