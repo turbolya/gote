@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.19.0';
+export const APP_VERSION = '2.20.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.20.0',
+    date: '2026-06-21',
+    changes: [
+      'The Statistics page now shows your daily streak, with your best run and a '
+        + 'short explanation of how it works.',
+    ],
+  },
   {
     version: '2.19.0',
     date: '2026-06-21',

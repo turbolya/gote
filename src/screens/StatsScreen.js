@@ -113,7 +113,7 @@ function CardStatRow({ item, image, maxCount, tint, onPress, onImageError, flagg
   );
 }
 
-export default function StatsScreen({ species, cards = [], lifetime, flags, onToggleFlag, onBack, onSelect, onReset }) {
+export default function StatsScreen({ species, cards = [], lifetime, streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const [sort, setSort] = useState('pct');
@@ -299,6 +299,28 @@ export default function StatsScreen({ species, cards = [], lifetime, flags, onTo
           </View>
         </View>
 
+        {/* Daily streak */}
+        {streak && (
+          <View style={styles.streakCard}>
+            <Icon
+              name={streak.count > 0 ? 'flame' : 'flame-outline'}
+              size={28}
+              color={streak.count > 0 ? colors.primary : colors.muted}
+            />
+            <View style={styles.flex}>
+              <Text style={styles.streakTitle}>
+                {streak.count > 0 ? `${streak.count}-day streak` : 'No streak yet'}
+              </Text>
+              <Text style={styles.streakSub}>
+                {streak.count > 0
+                  ? 'Days you’ve played in a row. Play any round today to keep it going.'
+                  : 'Play a round today to start a daily streak.'}
+                {streak.longest > 0 ? ` Best: ${streak.longest}.` : ''}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {empty ? (
           <Text style={styles.emptyText}>
             Play a few rounds and a per-species breakdown — how often you get each
@@ -395,6 +417,19 @@ const makeStyles = (colors) => StyleSheet.create({
   summaryItem: { flex: 1, alignItems: 'center' },
   summaryNum: { fontSize: 30, fontWeight: '900', color: colors.text },
   summaryLabel: { fontSize: 12, color: colors.muted, marginTop: 4 },
+
+  // Daily-streak card.
+  streakCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: colors.faint,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 22,
+  },
+  streakTitle: { fontSize: 17, fontWeight: '800', color: colors.text },
+  streakSub: { fontSize: 13, lineHeight: 18, color: colors.muted, marginTop: 2 },
   emptyText: {
     textAlign: 'center',
     color: colors.muted,
