@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   Animated,
+  Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -218,6 +219,37 @@ export default function StudyScreen({
   const answered = phase === 'answered';
   const gotIt = picked === answer;
 
+  // --- self-grade card flip --------------------------------------------------
+  // Only the self-grade modes flip: the photo card turns over on its Y axis to
+  // reveal the species name + grade buttons on its back. Multiple-choice modes
+  // keep the photo visible behind the choices, so they don't flip.
+  const canFlip = !choiceMode;
+  const flipAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    // Only the forward reveal animates; when the card changes (flipped resets to
+    // false) we snap straight back so the next card starts face-up instantly.
+    Animated.timing(flipAnim, {
+      toValue: flipped ? 1 : 0,
+      duration: flipped && !IS_E2E ? 480 : 0,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [flipped, flipAnim]);
+  const frontFaceStyle = canFlip && {
+    backfaceVisibility: 'hidden',
+    transform: [
+      { perspective: 1200 },
+      { rotateY: flipAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) },
+    ],
+  };
+  const backFaceStyle = {
+    backfaceVisibility: 'hidden',
+    transform: [
+      { perspective: 1200 },
+      { rotateY: flipAnim.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] }) },
+    ],
+  };
+
   return (
     <View style={styles.fsRoot} testID="study-screen">
       {/* E2E only: exposes the current card's answer (via accessibilityLabel,
@@ -236,46 +268,108 @@ export default function StudyScreen({
       <Pressable
         style={StyleSheet.absoluteFill}
         onPress={onPhotoPress}
-        onPressIn={() => setPeek(true)}
-        onPressOut={() => setPeek(false)}
+        // Peek (press-and-hold) only applies to the multiple-choice modes, where
+        // the choices overlay covers the photo. Self-grade flips instead.
+        onPressIn={() => choiceMode && setPeek(true)}
+        onPressOut={() => choiceMode && setPeek(false)}
       >
-        {card && !imgError ? (
-          // Keyed on the card so each new photo fades + settles in.
-          <Appear
-            key={shownKey}
-            style={StyleSheet.absoluteFill}
-            offset={0}
-            scaleFrom={1.04}
-            duration={300}
-            pointerEvents="none"
-          >
+        {/* Front face of the card: the photo. In self-grade it rotates away on
+            reveal; in choice modes it never rotates (frontFaceStyle is falsy). */}
+        <Animated.View style={[StyleSheet.absoluteFill, frontFaceStyle]} pointerEvents="none">
+          {card && !imgError ? (
+            // Keyed on the card so each new photo fades + settles in.
+            <Appear
+              key={shownKey}
+              style={StyleSheet.absoluteFill}
+              offset={0}
+              scaleFrom={1.04}
+              duration={300}
+              pointerEvents="none"
+            >
+              <Image
+                source={{ uri: card.image }}
+                style={StyleSheet.absoluteFill}
+                resizeMode="cover"
+                blurRadius={30}
+              />
+              <View style={styles.fsBackdropScrim} />
+              <Image
+                source={{ uri: card.image }}
+                style={StyleSheet.absoluteFill}
+                resizeMode="contain"
+                onLoad={() => setImgLoaded(true)}
+                onError={() => setImgError(true)}
+              />
+              {/* Speedrun: cover the photo while guessing so it only "flashed". */}
+              {hidePhoto && (
+                <View style={[StyleSheet.absoluteFill, styles.hiddenPhoto]}>
+                  <Icon name="eye-off-outline" size={40} color="rgba(255,255,255,0.45)" />
+                </View>
+              )}
+            </Appear>
+          ) : (
+            <View style={[StyleSheet.absoluteFill, styles.fsFallback]}>
+              <Icon name="image" size={48} color="rgba(255,255,255,0.5)" />
+            </View>
+          )}
+        </Animated.View>
+      </Pressable>
+
+      {/* Back face of the card (self-grade only): the species name + grade
+          buttons, revealed as the card turns over. Sits above the photo layer
+          but below the chrome; only interactive once flipped. */}
+      {canFlip && card && (
+        <Animated.View
+          style={[StyleSheet.absoluteFill, styles.backFace, backFaceStyle]}
+          pointerEvents={flipped ? 'auto' : 'none'}
+        >
+          {!imgError && (
             <Image
               source={{ uri: card.image }}
               style={StyleSheet.absoluteFill}
               resizeMode="cover"
               blurRadius={30}
             />
-            <View style={styles.fsBackdropScrim} />
-            <Image
-              source={{ uri: card.image }}
-              style={StyleSheet.absoluteFill}
-              resizeMode="contain"
-              onLoad={() => setImgLoaded(true)}
-              onError={() => setImgError(true)}
-            />
-            {/* Speedrun: cover the photo while guessing so it only "flashed". */}
-            {hidePhoto && (
-              <View style={[StyleSheet.absoluteFill, styles.hiddenPhoto]}>
-                <Icon name="eye-off-outline" size={40} color="rgba(255,255,255,0.45)" />
-              </View>
+          )}
+          <View style={styles.backScrim} />
+          <View
+            style={[
+              styles.backContent,
+              { paddingTop: insets.top + 64, paddingBottom: insets.bottom + 40 },
+            ]}
+          >
+            <Text
+              style={[styles.speciesName, { color: on }, !card.common && styles.speciesNameOnly]}
+              numberOfLines={3}
+            >
+              {card.common || card.scientific}
+            </Text>
+            {!!card.common && (
+              <Text style={[styles.speciesSci, { color: onDim }]} numberOfLines={2}>
+                {card.scientific}
+              </Text>
             )}
-          </Appear>
-        ) : (
-          <View style={[StyleSheet.absoluteFill, styles.fsFallback]}>
-            <Icon name="image" size={48} color="rgba(255,255,255,0.5)" />
+            <View style={[styles.gradeRow, styles.backGradeRow]}>
+              <Pressable
+                testID="study-grade-missed"
+                style={[styles.gradeButton, styles.missed]}
+                onPress={() => onGrade(false)}
+              >
+                <Icon name="x" size={20} color={ON_DARK} />
+                <Text style={styles.gradeText}>Missed it</Text>
+              </Pressable>
+              <Pressable
+                testID="study-grade-knew"
+                style={[styles.gradeButton, styles.knew]}
+                onPress={() => onGrade(true)}
+              >
+                <Icon name="check" size={20} color={ON_DARK} />
+                <Text style={styles.gradeText}>I knew it</Text>
+              </Pressable>
+            </View>
           </View>
-        )}
-      </Pressable>
+        </Animated.View>
+      )}
 
       {/* Top gradient + chrome */}
       <LinearGradient
@@ -452,43 +546,7 @@ export default function StudyScreen({
                 )}
               </Appear>
             )
-          : flipped && (
-              <Appear style={styles.centerPanel} offset={16} scaleFrom={0.9} duration={300}>
-                <Text
-                  style={[
-                    styles.speciesName,
-                    { color: on },
-                    !card.common && styles.speciesNameOnly,
-                  ]}
-                  numberOfLines={2}
-                >
-                  {card.common || card.scientific}
-                </Text>
-                {!!card.common && (
-                  <Text style={[styles.speciesSci, { color: onDim }]} numberOfLines={1}>
-                    {card.scientific}
-                  </Text>
-                )}
-                <View style={styles.gradeRow}>
-                  <Pressable
-                    testID="study-grade-missed"
-                    style={[styles.gradeButton, styles.missed]}
-                    onPress={() => onGrade(false)}
-                  >
-                    <Icon name="x" size={20} color={ON_DARK} />
-                    <Text style={styles.gradeText}>Missed it</Text>
-                  </Pressable>
-                  <Pressable
-                    testID="study-grade-knew"
-                    style={[styles.gradeButton, styles.knew]}
-                    onPress={() => onGrade(true)}
-                  >
-                    <Icon name="check" size={20} color={ON_DARK} />
-                    <Text style={styles.gradeText}>I knew it</Text>
-                  </Pressable>
-                </View>
-              </Appear>
-            )}
+          : /* self-grade renders its answer on the card back (see above) */ null}
       </Animated.View>
 
       {/* Bottom gradient: only the Show/Reveal button (front state) + photo
@@ -565,6 +623,12 @@ const styles = StyleSheet.create({
   fsFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1A1D1A' },
   // Speedrun: opaque cover over the photo while guessing (the photo only flashed).
   hiddenPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#13160F' },
+  // Self-grade card back (revealed by the flip): a blurred copy of the photo,
+  // darkened, with the species name + grade buttons over it.
+  backFace: { backgroundColor: '#13160F', overflow: 'hidden' },
+  backScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.62)' },
+  backContent: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
+  backGradeRow: { alignSelf: 'stretch', maxWidth: 460, marginTop: 26 },
   // Speedrun countdown pie, floated in the top-right corner.
   pieCorner: { position: 'absolute', right: 18, zIndex: 6 },
 

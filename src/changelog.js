@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.11.0';
+export const APP_VERSION = '2.12.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.12.0',
+    date: '2026-06-21',
+    changes: [
+      'Flash cards and other self-grade rounds now reveal the answer with a real '
+        + '3D card flip — the photo turns over to show the species name and the '
+        + '“I knew it / Missed it” buttons on its back.',
+    ],
+  },
   {
     version: '2.11.0',
     date: '2026-06-21',
