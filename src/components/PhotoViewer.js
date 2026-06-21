@@ -3,7 +3,7 @@
 // (one image) and "other photos of this species" (several). Core RN only
 // (Modal + ScrollView pinch-zoom + paged FlatList) so it works in Expo Go.
 
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,76 @@ import Icon from './Icon';
 import { Appear } from './anim';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+
+const DOUBLE_TAP_MS = 280;
+const MAX_ZOOM = 5;
+// Double-tap zoom level (a strong "zoom in to detail"; pinch can still go further).
+const DOUBLE_TAP_ZOOM = 3;
+
+// One swipeable page: pinch-to-zoom plus double-tap to toggle between fit-to-
+// screen (1×) and a zoomed-in view centered on the tapped point.
+function ZoomablePage({ uri }) {
+  const scrollRef = useRef(null);
+  const zoomedRef = useRef(false);
+  const lastTap = useRef(0);
+
+  const zoomTo = (scale, x, y) => {
+    const responder = scrollRef.current?.getScrollResponder?.() || scrollRef.current;
+    const zoom = responder?.scrollResponderZoomTo;
+    if (typeof zoom !== 'function') return; // iOS-only API; no-op elsewhere
+    if (scale <= 1) {
+      zoom.call(responder, { x: 0, y: 0, width: SCREEN_W, height: SCREEN_H, animated: true });
+      zoomedRef.current = false;
+    } else {
+      const w = SCREEN_W / scale;
+      const h = SCREEN_H / scale;
+      zoom.call(responder, {
+        x: Math.max(0, x - w / 2),
+        y: Math.max(0, y - h / 2),
+        width: w,
+        height: h,
+        animated: true,
+      });
+      zoomedRef.current = true;
+    }
+  };
+
+  const onTap = (e) => {
+    const now = Date.now();
+    const { locationX, locationY } = e.nativeEvent;
+    if (now - lastTap.current < DOUBLE_TAP_MS) {
+      lastTap.current = 0;
+      zoomTo(zoomedRef.current ? 1 : DOUBLE_TAP_ZOOM, locationX, locationY);
+    } else {
+      lastTap.current = now;
+    }
+  };
+
+  // Keep the toggle in sync if the user pinch-zooms manually.
+  const onScroll = (e) => {
+    zoomedRef.current = e.nativeEvent.zoomScale > 1.01;
+  };
+
+  return (
+    <ScrollView
+      ref={scrollRef}
+      style={styles.page}
+      contentContainerStyle={styles.pageContent}
+      maximumZoomScale={MAX_ZOOM}
+      minimumZoomScale={1}
+      bouncesZoom
+      centerContent
+      showsHorizontalScrollIndicator={false}
+      showsVerticalScrollIndicator={false}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+    >
+      <Pressable onPress={onTap}>
+        <Image source={{ uri }} style={styles.img} resizeMode="contain" />
+      </Pressable>
+    </ScrollView>
+  );
+}
 
 export default function PhotoViewer({
   visible,
@@ -60,20 +130,7 @@ export default function PhotoViewer({
             })}
             keyExtractor={(uri, i) => `${i}-${uri}`}
             showsHorizontalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <ScrollView
-                style={styles.page}
-                contentContainerStyle={styles.pageContent}
-                maximumZoomScale={4}
-                minimumZoomScale={1}
-                bouncesZoom
-                centerContent
-                showsHorizontalScrollIndicator={false}
-                showsVerticalScrollIndicator={false}
-              >
-                <Image source={{ uri: item }} style={styles.img} resizeMode="contain" />
-              </ScrollView>
-            )}
+            renderItem={({ item }) => <ZoomablePage uri={item} />}
           />
         )}
         </Appear>

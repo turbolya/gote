@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.17.0';
+export const APP_VERSION = '2.18.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.18.0',
+    date: '2026-06-21',
+    changes: [
+      'In the fullscreen photo viewer, double-tap to toggle between fit-to-screen '
+        + 'and zoomed in (anywhere photos open full screen).',
+    ],
+  },
   {
     version: '2.17.0',
     date: '2026-06-21',
