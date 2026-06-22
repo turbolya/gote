@@ -11,6 +11,11 @@ node_modules/
 # under ios/ (e.g. the old ios/build-device) slips through and makes pod install
 # choke on a compiled binary plist ("invalid byte sequence in UTF-8").
 /build-device/
+/build-shots/
+
+# Local-only App Store screenshot tooling (kept in-repo so Detox/jest resolve
+# from node_modules, but never committed — output goes to the gote-launch folder).
+/screenshots-local/
 
 # Expo
 .expo/
