@@ -585,7 +585,9 @@ export default function StudyScreen({
           lat={card.lat}
           lng={card.lng}
           placeGuess={card.placeGuess}
-          title={card.common || card.scientific}
+          // Hide the species name until the answer is revealed — otherwise the
+          // map would give away what the player is supposed to guess.
+          title={(choiceMode ? answered : flipped) ? card.common || card.scientific : null}
           onClose={() => setMapOpen(false)}
         />
       )}
