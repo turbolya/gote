@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import Icon from '../components/Icon';
 import PhotoViewer from '../components/PhotoViewer';
+import ObservationMap from '../components/ObservationMap';
 import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonDetail, toLargePhoto } from '../api';
 
@@ -33,6 +34,11 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
   // Index of the photo open in the fullscreen viewer (pinch-zoom + swipe), or
   // null when closed.
   const [viewerIndex, setViewerIndex] = useState(null);
+  const [mapOpen, setMapOpen] = useState(false);
+
+  // Whether this card came from an observation with coordinates (deck cards do;
+  // minimal cards built from a bare stats entry may not).
+  const hasGeo = Number.isFinite(card.lat) && Number.isFinite(card.lng);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,6 +111,21 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
           ) : null}
           {!!card.rank && (
             <Text style={styles.rank}>{card.rank.toUpperCase()}</Text>
+          )}
+
+          {/* Where this observation was recorded — tap to open a map */}
+          {hasGeo && (
+            <Pressable
+              testID="detail-location"
+              onPress={() => setMapOpen(true)}
+              style={styles.locationRow}
+            >
+              <Icon name="map-pin" size={16} color={colors.primaryDark} />
+              <Text style={styles.locationText} numberOfLines={1}>
+                {card.placeGuess || 'View on map'}
+              </Text>
+              <Icon name="chevron-right" size={16} color={colors.muted} />
+            </Pressable>
           )}
 
           {/* Curated photos */}
@@ -189,6 +210,17 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
         startIndex={viewerIndex || 0}
         onClose={() => setViewerIndex(null)}
       />
+
+      {hasGeo && (
+        <ObservationMap
+          visible={mapOpen}
+          lat={card.lat}
+          lng={card.lng}
+          placeGuess={card.placeGuess}
+          title={name}
+          onClose={() => setMapOpen(false)}
+        />
+      )}
     </View>
   );
 }
@@ -230,6 +262,17 @@ const makeStyles = (colors) => StyleSheet.create({
     color: colors.primary,
     marginTop: 8,
   },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: colors.faint,
+  },
+  locationText: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.text },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '800',

@@ -17,6 +17,8 @@ export const CHANGELOG = [
     changes: [
       'Cards now have a small location pin next to the photo credit — tap it to '
         + 'see a map of where the observation was recorded.',
+      'The species details page (from the Lexicon or Statistics) now shows the '
+        + 'observation place with a tappable map too.',
     ],
   },
   {
