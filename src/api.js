@@ -35,6 +35,10 @@ const FIELDS_OBSERVATION = {
   observed_on: true,
   updated_at: true,
   quality_grade: true,
+  // "lat,lng" string (public/obscured coords) + human-readable place, for the
+  // little map pin on the card. Obscured/private observations may omit these.
+  location: true,
+  place_guess: true,
   photos: { url: true, attribution: true, license_code: true },
   taxon: {
     name: true,
@@ -205,6 +209,15 @@ function sentenceCase(str) {
   );
 }
 
+// Parse iNat's "lat,lng" location string into { lat, lng } numbers, or an empty
+// object when missing/unparseable (obscured or private observations).
+function parseLocation(location) {
+  if (typeof location !== "string") return {};
+  const [lat, lng] = location.split(",").map((s) => parseFloat(s));
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return {};
+  return { lat, lng };
+}
+
 function observationToCard(obs) {
   const photo = obs.photos && obs.photos[0];
   const taxon = obs.taxon;
@@ -230,6 +243,11 @@ function observationToCard(obs) {
     // similar multiple-choice distractors (shared deeper ancestor = closer kin).
     ancestry: Array.isArray(taxon.ancestor_ids) ? taxon.ancestor_ids : [],
     observedOn: obs.observed_on || null,
+    // Observation location for the card's map pin. `location` is a "lat,lng"
+    // string; parse to numbers (null when absent or obscured). `placeGuess` is
+    // the human-readable place name shown as the map's caption.
+    ...parseLocation(obs.location),
+    placeGuess: obs.place_guess || null,
     // Cache/sync metadata:
     updatedAt: obs.updated_at || null, // server's last-modified, for incremental
     qualityGrade: obs.quality_grade || null, // for the research-grade local filter

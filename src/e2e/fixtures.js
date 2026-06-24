@@ -37,6 +37,10 @@ export const E2E_CARDS = [
     iconic,
     ancestry: [...anc, taxonId],
     observedOn: `2024-05-${String(i + 1).padStart(2, '0')}`,
+    // Deterministic coords near Budapest so the card's location pin + map render.
+    lat: 47.4979 + i * 0.01,
+    lng: 19.0402 + i * 0.01,
+    placeGuess: 'Budapest, Hungary',
     updatedAt: `2024-05-${String(i + 1).padStart(2, '0')}T00:00:00Z`,
     qualityGrade: 'research',
   };

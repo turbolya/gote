@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import PhotoViewer from '../components/PhotoViewer';
+import ObservationMap from '../components/ObservationMap';
 import PieTimer from '../components/PieTimer';
 import { Appear, Pop } from '../components/anim';
 import { shuffle, fetchTaxonPhotos, toLargePhoto } from '../api';
@@ -124,6 +125,7 @@ export default function StudyScreen({
   // a broken image can't stall the round).
   const [imgLoaded, setImgLoaded] = useState(false);
   const [viewer, setViewer] = useState(null); // { photos, startIndex } | null
+  const [mapOpen, setMapOpen] = useState(false); // observation-location map modal
   const lastTapRef = useRef(0);
 
   // Press-and-hold the bare photo to "peek": the answer overlay (choices /
@@ -151,6 +153,7 @@ export default function StudyScreen({
     setImgError(false);
     setImgLoaded(false);
     setViewer(null);
+    setMapOpen(false);
   }
 
   // Speedrun: once the photo is ready, count down SPEEDRUN_VIEW_MS, then reveal
@@ -212,6 +215,10 @@ export default function StudyScreen({
   const attribution = card && card.attribution
     ? card.attribution.replace(/^\(c\)\s*/i, '')
     : null;
+
+  // Whether this observation has coordinates for the map pin (older cached cards
+  // downloaded before this feature won't, and obscured/private ones may not).
+  const hasGeo = !!card && Number.isFinite(card.lat) && Number.isFinite(card.lng);
 
   // Shared fullscreen scaffold: photo fills the screen, top gradient holds the
   // exit/progress/score chrome. Bottom content differs per mode.
@@ -536,13 +543,27 @@ export default function StudyScreen({
               <Icon name="grid" size={20} color={on} />
             )}
           </Pressable>
-          {!!attribution && (
-            <View style={styles.attribution}>
-              <Text style={[styles.attributionText, { color: onDim }]} numberOfLines={1}>
-                © {attribution}
-              </Text>
-            </View>
-          )}
+          <View style={styles.bottomRight} pointerEvents="box-none">
+            {!!attribution && (
+              <View style={styles.attribution}>
+                <Text style={[styles.attributionText, { color: onDim }]} numberOfLines={1}>
+                  © {attribution}
+                </Text>
+              </View>
+            )}
+            {/* Map pin: opens a map showing where this observation was recorded.
+                Only shown when the observation has (public/obscured) coords. */}
+            {hasGeo && (
+              <Pressable
+                testID="study-location"
+                onPress={() => setMapOpen(true)}
+                hitSlop={10}
+                style={styles.locationBtn}
+              >
+                <Icon name="map-pin" size={20} color={on} />
+              </Pressable>
+            )}
+          </View>
         </View>
       </LinearGradient>
 
@@ -557,6 +578,17 @@ export default function StudyScreen({
         startIndex={viewer ? viewer.startIndex : 0}
         onClose={() => setViewer(null)}
       />
+
+      {hasGeo && (
+        <ObservationMap
+          visible={mapOpen}
+          lat={card.lat}
+          lng={card.lng}
+          placeGuess={card.placeGuess}
+          title={card.common || card.scientific}
+          onClose={() => setMapOpen(false)}
+        />
+      )}
     </View>
   );
 }
@@ -646,14 +678,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  bottomRight: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginLeft: 12,
+  },
   attribution: {
     flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    marginLeft: 12,
   },
   attributionText: { flexShrink: 1, fontSize: 11 },
+  locationBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+  },
 
   // reveal / show-choices outline button
   revealBtn: {

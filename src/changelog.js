@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.20.0';
+export const APP_VERSION = '2.21.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.0',
+    date: '2026-06-24',
+    changes: [
+      'Cards now have a small location pin next to the photo credit — tap it to '
+        + 'see a map of where the observation was recorded.',
+    ],
+  },
   {
     version: '2.20.0',
     date: '2026-06-21',
