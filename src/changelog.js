@@ -19,6 +19,8 @@ export const CHANGELOG = [
         + 'see a map of where the observation was recorded.',
       'The species details page (from the Lexicon or Statistics) now shows the '
         + 'observation place with a tappable map too.',
+      'The Statistics breakdown now loads and scrolls smoothly even with a very '
+        + 'long species list (e.g. after Nearby rounds spanning many users).',
     ],
   },
   {

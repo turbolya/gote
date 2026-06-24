@@ -9,6 +9,7 @@ import {
   Image,
   Pressable,
   ScrollView,
+  FlatList,
   Alert,
   StyleSheet,
 } from 'react-native';
@@ -123,6 +124,25 @@ export default function StatsScreen({ species, cards = [], lifetime, streak, fla
   // taxonId → fetched thumbnail URL, for species not in the current deck whose
   // stats predate per-species thumbnails (null = looked up, none found).
   const [fetchedImages, setFetchedImages] = useState({});
+  // Keys of rows that have scrolled into view at least once. We only fetch
+  // default thumbnails for these (not the whole list) so a long "All species"
+  // list doesn't fire dozens of API calls up front.
+  const [visibleKeys, setVisibleKeys] = useState(() => new Set());
+  // Stable refs for FlatList viewability (it warns if these change per render).
+  const viewConfigRef = useRef({ itemVisiblePercentThreshold: 10 });
+  const onViewableRef = useRef(({ viewableItems }) => {
+    setVisibleKeys((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const v of viewableItems) {
+        if (v.key != null && !next.has(v.key)) {
+          next.add(v.key);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  });
   // Image URLs that failed to load, so we can fall back to a fetched thumbnail.
   const [errored, setErrored] = useState(() => new Set());
   const markErrored = (url) =>
@@ -173,16 +193,33 @@ export default function StatsScreen({ species, cards = [], lifetime, streak, fla
     return arr;
   }, [filtered, sort]);
 
-  const maxCount = useMemo(
-    () => Math.max(1, ...filtered.map((s) => Math.max(knownOf(s), missedOf(s)))),
-    [filtered]
-  );
+  // Single-pass max of every count in the list. (Avoid Math.max(...arr): the
+  // spread overflows the call stack on very large lists — e.g. Nearby decks
+  // spanning many users.)
+  const maxCount = useMemo(() => {
+    let m = 1;
+    for (const s of filtered) {
+      const k = knownOf(s);
+      const mi = missedOf(s);
+      if (k > m) m = k;
+      if (mi > m) m = mi;
+    }
+    return m;
+  }, [filtered]);
 
   // Net score (correct − incorrect) per species, and the list's range, so each
   // row's background can be tinted teal (the highest net) → dark red (the lowest).
+  // Single-pass (no Math.min/max spread — see maxCount above).
   const [minNet, maxNet] = useMemo(() => {
-    const nets = filtered.map((s) => knownOf(s) - missedOf(s));
-    return nets.length ? [Math.min(...nets), Math.max(...nets)] : [0, 0];
+    if (!filtered.length) return [0, 0];
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const s of filtered) {
+      const n = knownOf(s) - missedOf(s);
+      if (n < lo) lo = n;
+      if (n > hi) hi = n;
+    }
+    return [lo, hi];
   }, [filtered]);
   const scoreTint = (net) => {
     const span = maxNet - minNet;
@@ -207,6 +244,7 @@ export default function StatsScreen({ species, cards = [], lifetime, streak, fla
     const need = sorted
       .filter(
         (s) =>
+          visibleKeys.has(s.key) &&
           /^\d+$/.test(s.key) &&
           !(s.key in fetchedImages) &&
           !(s.image && !errored.has(s.image))
@@ -226,7 +264,7 @@ export default function StatsScreen({ species, cards = [], lifetime, streak, fla
     return () => {
       cancelled = true;
     };
-  }, [sorted, fetchedImages, errored]);
+  }, [sorted, visibleKeys, fetchedImages, errored]);
 
   // Open the detail page: prefer the full deck card; otherwise build a minimal
   // card from the stats entry (the detail page fetches the rest by taxonId).
@@ -258,7 +296,7 @@ export default function StatsScreen({ species, cards = [], lifetime, streak, fla
   // re-renders like returning from the detail page, which keeps the position).
   const scrollRef = useRef(null);
   useEffect(() => {
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    scrollRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, [sort, obsOnly]);
 
   const confirmReset = () => {
@@ -272,133 +310,159 @@ export default function StatsScreen({ species, cards = [], lifetime, streak, fla
     );
   };
 
+  // Summary + streak block, shared by the empty state and the list header.
+  const summaryBlock = (
+    <>
+      <View style={styles.summary}>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryNum}>
+            {lifetimePct !== null ? `${lifetimePct}%` : '—'}
+          </Text>
+          <Text style={styles.summaryLabel}>Accuracy</Text>
+        </View>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryNum}>{lifetime ? lifetime.answered : 0}</Text>
+          <Text style={styles.summaryLabel}>Cards answered</Text>
+        </View>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryNum}>{list.length}</Text>
+          <Text style={styles.summaryLabel}>Species seen</Text>
+        </View>
+      </View>
+
+      {/* Daily streak */}
+      {streak && (
+        <View style={styles.streakCard}>
+          <Icon
+            name={streak.count > 0 ? 'flame' : 'flame-outline'}
+            size={28}
+            color={streak.count > 0 ? colors.primary : colors.muted}
+          />
+          <View style={styles.flex}>
+            <Text style={styles.streakTitle}>
+              {streak.count > 0 ? `${streak.count}-day streak` : 'No streak yet'}
+            </Text>
+            <Text style={styles.streakSub}>
+              {streak.count > 0
+                ? 'Days you’ve played in a row. Play any round today to keep it going.'
+                : 'Play a round today to start a daily streak.'}
+              {streak.longest > 0 ? ` Best: ${streak.longest}.` : ''}
+            </Text>
+          </View>
+        </View>
+      )}
+    </>
+  );
+
+  // List header: summary + the "By species" board controls (filter + sort).
+  const listHeader = (
+    <>
+      {summaryBlock}
+      <View style={styles.boardHeader}>
+        <Text style={styles.boardTitle}>By species</Text>
+        {/* Filter: my observations (default) ↔ all species ever seen. */}
+        <Pressable
+          testID="stats-filter"
+          onPress={() => {
+            animateNextLayout();
+            setObsOnly((v) => !v);
+          }}
+          style={[styles.filterToggle, obsOnly && styles.filterToggleOn]}
+        >
+          <Icon
+            name={obsOnly ? 'funnel' : 'funnel-outline'}
+            size={13}
+            color={obsOnly ? colors.onDark : colors.muted}
+          />
+          <Text style={[styles.filterText, obsOnly && styles.filterTextOn]}>
+            {obsOnly ? 'My observations' : 'All species'}
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* Sort options */}
+      <View style={styles.sortRow}>
+        {SORTS.map((s) => {
+          const on = sort === s.key;
+          return (
+            <Pressable
+              key={s.key}
+              testID={`stats-sort-${s.key}`}
+              onPress={() => {
+                animateNextLayout();
+                setSort(s.key);
+              }}
+              style={[styles.sortChip, on && styles.sortChipOn]}
+            >
+              <Text style={[styles.sortText, on && styles.sortTextOn]}>
+                {s.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </>
+  );
+
   return (
     <View style={styles.flex}>
       <ScreenHeader title="Statistics" onBack={onBack} />
 
-      <ScrollView
-        ref={scrollRef}
-        testID="stats-scroll"
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.summary}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryNum}>
-              {lifetimePct !== null ? `${lifetimePct}%` : '—'}
-            </Text>
-            <Text style={styles.summaryLabel}>Accuracy</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryNum}>{lifetime ? lifetime.answered : 0}</Text>
-            <Text style={styles.summaryLabel}>Cards answered</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryNum}>{list.length}</Text>
-            <Text style={styles.summaryLabel}>Species seen</Text>
-          </View>
-        </View>
-
-        {/* Daily streak */}
-        {streak && (
-          <View style={styles.streakCard}>
-            <Icon
-              name={streak.count > 0 ? 'flame' : 'flame-outline'}
-              size={28}
-              color={streak.count > 0 ? colors.primary : colors.muted}
-            />
-            <View style={styles.flex}>
-              <Text style={styles.streakTitle}>
-                {streak.count > 0 ? `${streak.count}-day streak` : 'No streak yet'}
-              </Text>
-              <Text style={styles.streakSub}>
-                {streak.count > 0
-                  ? 'Days you’ve played in a row. Play any round today to keep it going.'
-                  : 'Play a round today to start a daily streak.'}
-                {streak.longest > 0 ? ` Best: ${streak.longest}.` : ''}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {empty ? (
+      {empty ? (
+        <ScrollView
+          testID="stats-scroll"
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
+          {summaryBlock}
           <Text style={styles.emptyText}>
             Play a few rounds and a per-species breakdown — how often you get each
             one right or wrong — will show up here.
           </Text>
-        ) : (
-          <>
-            <View style={styles.boardHeader}>
-              <Text style={styles.boardTitle}>By species</Text>
-              {/* Filter: my observations (default) ↔ all species ever seen. */}
-              <Pressable
-                testID="stats-filter"
-                onPress={() => {
-                  animateNextLayout();
-                  setObsOnly((v) => !v);
-                }}
-                style={[styles.filterToggle, obsOnly && styles.filterToggleOn]}
-              >
-                <Icon
-                  name={obsOnly ? 'funnel' : 'funnel-outline'}
-                  size={13}
-                  color={obsOnly ? colors.onDark : colors.muted}
-                />
-                <Text style={[styles.filterText, obsOnly && styles.filterTextOn]}>
-                  {obsOnly ? 'My observations' : 'All species'}
-                </Text>
-              </Pressable>
-            </View>
-
-            {/* Sort options */}
-            <View style={styles.sortRow}>
-              {SORTS.map((s) => {
-                const on = sort === s.key;
-                return (
-                  <Pressable
-                    key={s.key}
-                    testID={`stats-sort-${s.key}`}
-                    onPress={() => {
-                      animateNextLayout();
-                      setSort(s.key);
-                    }}
-                    style={[styles.sortChip, on && styles.sortChipOn]}
-                  >
-                    <Text style={[styles.sortText, on && styles.sortTextOn]}>
-                      {s.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {sorted.length === 0 ? (
-              <Text style={styles.noneText}>
-                None of your current observations have been quizzed yet. Tap “My
-                observations” above to see every species you’ve seen.
-              </Text>
-            ) : (
-              sorted.map((item) => (
-                <CardStatRow
-                  key={item.key}
-                  item={item}
-                  image={imageFor(item)}
-                  maxCount={maxCount}
-                  tint={scoreTint(knownOf(item) - missedOf(item))}
-                  onPress={() => openDetail(item)}
-                  onImageError={markErrored}
-                  flagged={!!(flags && flags.has(item.key))}
-                  onFlag={onToggleFlag ? () => onToggleFlag(item.key) : null}
-                />
-              ))
-            )}
-
+        </ScrollView>
+      ) : (
+        // Virtualized list: only the on-screen rows are mounted, so a long
+        // "All species" breakdown (e.g. Nearby decks spanning many users) stays
+        // fast and stable instead of mounting every row + image at once.
+        <FlatList
+          ref={scrollRef}
+          testID="stats-scroll"
+          data={sorted}
+          keyExtractor={(item) => item.key}
+          renderItem={({ item }) => (
+            <CardStatRow
+              item={item}
+              image={imageFor(item)}
+              maxCount={maxCount}
+              tint={scoreTint(knownOf(item) - missedOf(item))}
+              onPress={() => openDetail(item)}
+              onImageError={markErrored}
+              flagged={!!(flags && flags.has(item.key))}
+              onFlag={onToggleFlag ? () => onToggleFlag(item.key) : null}
+            />
+          )}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={
+            <Text style={styles.noneText}>
+              None of your current observations have been quizzed yet. Tap “My
+              observations” above to see every species you’ve seen.
+            </Text>
+          }
+          ListFooterComponent={
             <Pressable testID="stats-reset" style={styles.resetButton} onPress={confirmReset}>
               <Text style={styles.resetText}>Reset statistics</Text>
             </Pressable>
-          </>
-        )}
-      </ScrollView>
+          }
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+          onViewableItemsChanged={onViewableRef.current}
+          viewabilityConfig={viewConfigRef.current}
+          initialNumToRender={12}
+          maxToRenderPerBatch={12}
+          windowSize={11}
+          removeClippedSubviews
+        />
+      )}
     </View>
   );
 }
