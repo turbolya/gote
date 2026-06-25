@@ -393,11 +393,7 @@ const makeStyles = (colors) => StyleSheet.create({
     alignSelf: 'flex-start',
     gap: 7,
     marginTop: 14,
-    // Dark, mostly-opaque teal (the hero gradient's darkest stop) so the white
-    // trend line behind the hero can't bleed through and wash out the text.
-    backgroundColor: 'rgba(2,72,90,0.7)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: 'rgba(255,255,255,0.16)',
     borderRadius: 999,
     paddingVertical: 8,
     paddingHorizontal: 14,
