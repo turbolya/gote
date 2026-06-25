@@ -21,6 +21,8 @@ export const CHANGELOG = [
         + 'observation place with a tappable map too.',
       'The Statistics breakdown now loads and scrolls smoothly even with a very '
         + 'long species list (e.g. after Nearby rounds spanning many users).',
+      'The menu hero now draws a smooth trend line over the recent-games bars, '
+        + 'showing how your lifetime accuracy has changed over time.',
     ],
   },
   {

@@ -10,6 +10,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, Pressable, Animated, Easing, Image, Linking, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 import Icon from '../components/Icon';
 import { useTheme, useThemedStyles } from '../theme';
 import { Appear } from '../components/anim';
@@ -33,17 +34,67 @@ const RANGE = EXPANDED - COLLAPSED;
 // Background accuracy-chart geometry.
 const BAR_W = 7;
 const BAR_GAP = 4;
+// Vertical inset so the trend line never clips at the very top/bottom edge.
+const LINE_PAD = 4;
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+// Build a smooth (Catmull-Rom → cubic-bezier) SVG path through the points, so
+// the lifetime-accuracy trend reads as a flowing curve rather than jagged
+// segments. Points are { x, y } in pixels.
+function smoothPath(pts) {
+  if (pts.length < 2) return '';
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${c1x},${c1y} ${c2x},${c2y} ${p2.x},${p2.y}`;
+  }
+  return d;
+}
 
 // A subtle chart of recent games' accuracy filling the hero behind the content:
 // one vertical bar per game (oldest → newest), each a white gradient fading down.
 function AccuracyBars({ data = [] }) {
   const styles = useThemedStyles(makeStyles);
-  const [width, setWidth] = useState(0);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const { w: width, h: height } = size;
   // Grow the bars up from the baseline once they're laid out.
   const grow = useRef(new Animated.Value(IS_E2E ? 1 : 0)).current;
   const maxBars =
     width > 0 ? Math.max(1, Math.floor((width + BAR_GAP) / (BAR_W + BAR_GAP))) : 0;
   const bars = maxBars > 0 ? data.slice(-maxBars) : [];
+
+  // Lifetime accuracy over time: the running average of every game's accuracy
+  // up to that point. Computed over the FULL history (not just the visible
+  // window) so the leftmost visible point still reflects all earlier games,
+  // then sliced to align 1:1 with the bars.
+  const lineVals = (() => {
+    if (maxBars === 0) return [];
+    const cum = [];
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+      sum += data[i];
+      cum.push(sum / (i + 1));
+    }
+    return cum.slice(-maxBars);
+  })();
+
+  // Map the visible line values to pixel points centered on each bar.
+  const points = lineVals.map((v, i) => ({
+    x: i * (BAR_W + BAR_GAP) + BAR_W / 2,
+    y: LINE_PAD + (1 - Math.min(100, Math.max(0, v)) / 100) * (height - 2 * LINE_PAD),
+  }));
+  const linePath = height > 0 ? smoothPath(points) : '';
+  // Reveal the line by "drawing" it (strokeDashoffset) in step with the bars.
+  const lineLen = Math.max(1, width * 3);
+
   useEffect(() => {
     if (IS_E2E || bars.length === 0) return;
     grow.setValue(0);
@@ -51,7 +102,7 @@ function AccuracyBars({ data = [] }) {
       toValue: 1,
       duration: 600,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: false, // animating height (%)
+      useNativeDriver: false, // animating height (%) + strokeDashoffset
     }).start();
   }, [bars.length, grow]);
   if (!data.length) return null;
@@ -59,7 +110,9 @@ function AccuracyBars({ data = [] }) {
     <View
       style={styles.chart}
       pointerEvents="none"
-      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      onLayout={(e) =>
+        setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })
+      }
     >
       {bars.map((pct, i) => (
         <Animated.View
@@ -80,6 +133,30 @@ function AccuracyBars({ data = [] }) {
           />
         </Animated.View>
       ))}
+
+      {/* Smooth lifetime-accuracy trend line, overlaid on the bars. */}
+      {linePath && points.length >= 2 && (
+        <Svg
+          width={width}
+          height={height}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        >
+          <AnimatedPath
+            d={linePath}
+            fill="none"
+            stroke="#FFFFFF"
+            strokeWidth={2.5}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            strokeDasharray={lineLen}
+            strokeDashoffset={grow.interpolate({
+              inputRange: [0, 1],
+              outputRange: [lineLen, 0],
+            })}
+          />
+        </Svg>
+      )}
     </View>
   );
 }
