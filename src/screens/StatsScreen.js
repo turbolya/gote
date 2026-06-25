@@ -2,7 +2,7 @@
 // species you've been quizzed on, with a thumbnail and two bars (correct /
 // incorrect), sortable by success rate or by correct/incorrect counts.
 
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -125,25 +125,42 @@ export default function StatsScreen({ species, cards = [], lifetime, history = [
   // taxonId → fetched thumbnail URL, for species not in the current deck whose
   // stats predate per-species thumbnails (null = looked up, none found).
   const [fetchedImages, setFetchedImages] = useState({});
-  // Keys of rows that have scrolled into view at least once. We only fetch
-  // default thumbnails for these (not the whole list) so a long "All species"
-  // list doesn't fire dozens of API calls up front.
-  const [visibleKeys, setVisibleKeys] = useState(() => new Set());
+  // Keys we've already requested a default thumbnail for, so we never re-fetch
+  // the same species. A ref (not state) so it never triggers a re-render and
+  // never grows the render cost — safe even with thousands of rows.
+  const requestedThumbsRef = useRef(new Set());
+
+  // Fetch default thumbnails for the given rows that still lack a usable image.
+  // Driven by which rows are actually on screen (see onViewableItemsChanged), so
+  // the work scales with the visible window, not the total list length — a long
+  // "All species" list never fires a burst of rate-limited calls up front.
+  const fetchThumbsFor = useCallback((items) => {
+    const need = [];
+    for (const it of items) {
+      const key = it && it.key;
+      if (!key || !/^\d+$/.test(key)) continue; // taxonId-keyed species only
+      if (requestedThumbsRef.current.has(key)) continue;
+      if (it.image) continue; // already has a stored/deck image
+      requestedThumbsRef.current.add(key);
+      need.push(key);
+    }
+    if (need.length === 0) return;
+    (async () => {
+      const map = await fetchTaxonThumbs(need.map(Number));
+      setFetchedImages((prev) => {
+        const next = { ...prev };
+        for (const k of need) next[k] = map[k] || null;
+        return next;
+      });
+    })();
+  }, []);
+
   // Stable refs for FlatList viewability (it warns if these change per render).
   const viewConfigRef = useRef({ itemVisiblePercentThreshold: 10 });
   const onViewableRef = useRef(({ viewableItems }) => {
-    setVisibleKeys((prev) => {
-      let changed = false;
-      const next = new Set(prev);
-      for (const v of viewableItems) {
-        if (v.key != null && !next.has(v.key)) {
-          next.add(v.key);
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
+    fetchThumbsFor(viewableItems.map((v) => v.item));
   });
+
   // Image URLs that failed to load, so we can fall back to a fetched thumbnail.
   const [errored, setErrored] = useState(() => new Set());
   const markErrored = (url) =>
@@ -237,35 +254,6 @@ export default function StatsScreen({ species, cards = [], lifetime, history = [
     if (f && !errored.has(f)) return f;
     return null;
   };
-
-  // Fetch a default thumbnail for any visible species that has no usable image
-  // yet — older stats for species no longer in the deck, or a broken stored
-  // URL. Batched + cached in the API.
-  useEffect(() => {
-    const need = sorted
-      .filter(
-        (s) =>
-          visibleKeys.has(s.key) &&
-          /^\d+$/.test(s.key) &&
-          !(s.key in fetchedImages) &&
-          !(s.image && !errored.has(s.image))
-      )
-      .map((s) => s.key);
-    if (need.length === 0) return;
-    let cancelled = false;
-    (async () => {
-      const map = await fetchTaxonThumbs(need.map(Number));
-      if (cancelled) return;
-      setFetchedImages((prev) => {
-        const next = { ...prev };
-        for (const k of need) next[k] = map[k] || null;
-        return next;
-      });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [sorted, visibleKeys, fetchedImages, errored]);
 
   // Open the detail page: prefer the full deck card; otherwise build a minimal
   // card from the stats entry (the detail page fetches the rest by taxonId).
@@ -465,7 +453,11 @@ export default function StatsScreen({ species, cards = [], lifetime, history = [
               maxCount={maxCount}
               tint={scoreTint(knownOf(item) - missedOf(item))}
               onPress={() => openDetail(item)}
-              onImageError={markErrored}
+              onImageError={(url) => {
+                markErrored(url);
+                // A broken stored image: try a default thumbnail as a fallback.
+                fetchThumbsFor([{ key: item.key }]);
+              }}
               flagged={!!(flags && flags.has(item.key))}
               onFlag={onToggleFlag ? () => onToggleFlag(item.key) : null}
             />
