@@ -375,7 +375,7 @@ const makeStyles = (colors) => StyleSheet.create({
   },
   bar: { width: BAR_W },
   barFill: { flex: 1, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
-  heroContent: { paddingHorizontal: 22 },
+  heroContent: { paddingHorizontal: 22, zIndex: 1 },
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   // Daily-streak flame chip, top-right of the hero.
   streakChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -393,10 +393,16 @@ const makeStyles = (colors) => StyleSheet.create({
     alignSelf: 'flex-start',
     gap: 7,
     marginTop: 14,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    // Dark, mostly-opaque teal (the hero gradient's darkest stop) so the white
+    // trend line behind the hero can't bleed through and wash out the text.
+    backgroundColor: 'rgba(2,72,90,0.7)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.22)',
     borderRadius: 999,
     paddingVertical: 8,
     paddingHorizontal: 14,
+    // Keep the pill (and its text) above the chart layer.
+    zIndex: 2,
   },
   statPillText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
 
