@@ -25,6 +25,8 @@ export const CHANGELOG = [
         + 'showing how your lifetime accuracy has changed over time.',
       'The Statistics page now has two explained charts: a per-game accuracy bar '
         + 'chart and a smooth lifetime-accuracy trend line.',
+      'Swipe right from the left edge to go back on the Settings, game-setup, '
+        + 'Statistics, Lexicon and species pages.',
     ],
   },
   {

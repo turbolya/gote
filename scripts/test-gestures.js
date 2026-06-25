@@ -12,7 +12,14 @@ const code = babel.transformFileSync(file, {
 const m = { exports: {} };
 new Function('module', 'exports', 'require', code)(m, m.exports, require);
 
-const { isUpwardFlick, flickOutcome, FLICK_DY } = m.exports;
+const {
+  isUpwardFlick,
+  flickOutcome,
+  FLICK_DY,
+  isBackSwipe,
+  backSwipeCommitted,
+  SWIPE_EDGE,
+} = m.exports;
 
 let pass = 0;
 let fail = 0;
@@ -50,6 +57,23 @@ t('flick: small drag cancels', () => {
 });
 t('flick: fast velocity commits even if short', () => {
   assert.equal(flickOutcome({ dy: -30, vy: -1.5 }, { mode: 'grid', fromGrid: false }), 'close');
+});
+
+t('back-swipe: claims rightward drag from the left edge', () => {
+  assert.equal(isBackSwipe({ x0: 10, dx: 40, dy: 5 }), true);
+});
+t('back-swipe: rejects swipes not starting at the edge', () => {
+  assert.equal(isBackSwipe({ x0: SWIPE_EDGE + 50, dx: 40, dy: 5 }), false);
+});
+t('back-swipe: rejects vertical / leftward / tiny drags', () => {
+  assert.equal(isBackSwipe({ x0: 5, dx: 40, dy: 40 }), false); // too vertical
+  assert.equal(isBackSwipe({ x0: 5, dx: -40, dy: 5 }), false); // leftward
+  assert.equal(isBackSwipe({ x0: 5, dx: 6, dy: 1 }), false); // too small
+});
+t('back-swipe: commits on travel or fling, cancels otherwise', () => {
+  assert.equal(backSwipeCommitted({ dx: 120, vx: 0 }), true);
+  assert.equal(backSwipeCommitted({ dx: 10, vx: 1.2 }), true);
+  assert.equal(backSwipeCommitted({ dx: 30, vx: 0.1 }), false);
 });
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

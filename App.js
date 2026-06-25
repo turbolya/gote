@@ -81,6 +81,7 @@ import LegalScreen from './src/screens/LegalScreen';
 import NearbyConfigScreen from './src/screens/NearbyConfigScreen';
 import SplashScreen from './src/components/SplashScreen';
 import SupportModal from './src/components/SupportModal';
+import SwipeBackView from './src/components/SwipeBackView';
 import { Appear } from './src/components/anim';
 
 const pickRandom = (cards, n) => shuffle(cards).slice(0, n);
@@ -827,6 +828,25 @@ export default function App() {
       <SafeAreaView style={styles.safe}>
         <StatusBar style={statusBarStyle} />
 
+        {/* Swipe-right-from-the-left-edge to go back. The target mirrors each
+            screen's own back action: the regular pages return to the menu, and
+            Settings sub-pages return to Settings. Screens without a back action
+            (loading, results) pass null, which disables the gesture. */}
+        <SwipeBackView
+          style={styles.flex}
+          onBack={
+            {
+              settings: fullDeck.length > 0 ? () => setScreen('menu') : null,
+              custom: () => setScreen('menu'),
+              flash: () => setScreen('menu'),
+              nearby: () => setScreen('menu'),
+              stats: () => setScreen('menu'),
+              lexicon: () => setScreen('menu'),
+              changelog: () => setScreen('settings'),
+              legal: () => setScreen('settings'),
+            }[screen] || null
+          }
+        >
         {/* Keyed on `screen` so each of these non-full-bleed screens fades +
             slides in when navigated to. */}
         <Appear key={screen} style={styles.flex} offset={10} duration={300}>
@@ -980,21 +1000,24 @@ export default function App() {
           />
         )}
         </Appear>
+        </SwipeBackView>
 
         {/* Species detail page — an overlay over the current screen (Lexicon /
             Statistics / Results), which stays mounted underneath so its scroll
             position and filters survive when this is dismissed. Slides up in. */}
         {detailCard && (
           <SafeAreaView style={styles.detailOverlay} edges={['top', 'bottom']}>
-            <Appear style={styles.flex} offset={40} duration={300}>
-              <DetailScreen
-                card={detailCard}
-                locale={locale}
-                flags={flags}
-                onToggleFlag={toggleFlag}
-                onBack={() => setDetailCard(null)}
-              />
-            </Appear>
+            <SwipeBackView style={styles.flex} onBack={() => setDetailCard(null)}>
+              <Appear style={styles.flex} offset={40} duration={300}>
+                <DetailScreen
+                  card={detailCard}
+                  locale={locale}
+                  flags={flags}
+                  onToggleFlag={toggleFlag}
+                  onBack={() => setDetailCard(null)}
+                />
+              </Appear>
+            </SwipeBackView>
           </SafeAreaView>
         )}
       </SafeAreaView>
