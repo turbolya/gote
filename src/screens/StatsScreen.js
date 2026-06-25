@@ -18,6 +18,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonThumbs } from '../api';
 import { AnimatedBar, animateNextLayout } from '../components/anim';
+import { RecentGamesChart, AccuracyTrendChart } from '../components/charts';
 
 const FLAG_ON = '#E0A800'; // amber for an active flag
 
@@ -114,7 +115,7 @@ function CardStatRow({ item, image, maxCount, tint, onPress, onImageError, flagg
   );
 }
 
-export default function StatsScreen({ species, cards = [], lifetime, streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
+export default function StatsScreen({ species, cards = [], lifetime, history = [], streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const [sort, setSort] = useState('pct');
@@ -354,10 +355,38 @@ export default function StatsScreen({ species, cards = [], lifetime, streak, fla
     </>
   );
 
+  // Trend charts over the per-game accuracy history. Shown when there's data.
+  const chartsBlock = (
+    <>
+      {history.length >= 1 && (
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Recent games</Text>
+          <RecentGamesChart history={history} height={104} />
+          <Text style={styles.chartCaption}>
+            Each bar is one round — how accurately you identified that game’s
+            cards (taller = better). Oldest on the left, newest on the right.
+          </Text>
+        </View>
+      )}
+      {history.length >= 2 && (
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Accuracy trend</Text>
+          <AccuracyTrendChart history={history} height={104} />
+          <Text style={styles.chartCaption}>
+            Your running lifetime accuracy — the average across every game up to
+            that point. It steadies as you play more, so the slope shows whether
+            you’re improving.
+          </Text>
+        </View>
+      )}
+    </>
+  );
+
   // List header: summary + the "By species" board controls (filter + sort).
   const listHeader = (
     <>
       {summaryBlock}
+      {chartsBlock}
       <View style={styles.boardHeader}>
         <Text style={styles.boardTitle}>By species</Text>
         {/* Filter: my observations (default) ↔ all species ever seen. */}
@@ -494,6 +523,23 @@ const makeStyles = (colors) => StyleSheet.create({
   },
   streakTitle: { fontSize: 17, fontWeight: '800', color: colors.text },
   streakSub: { fontSize: 13, lineHeight: 18, color: colors.muted, marginTop: 2 },
+
+  // Trend-chart cards (recent games + accuracy trend).
+  chartCard: {
+    backgroundColor: colors.faint,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  chartTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.primaryDark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 12,
+  },
+  chartCaption: { fontSize: 13, lineHeight: 18, color: colors.muted, marginTop: 12 },
   emptyText: {
     textAlign: 'center',
     color: colors.muted,

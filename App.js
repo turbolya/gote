@@ -925,6 +925,7 @@ export default function App() {
             species={speciesStats}
             cards={fullDeck}
             lifetime={lifetime}
+            history={history}
             streak={streakStatus(streak)}
             flags={flags}
             onToggleFlag={toggleFlag}

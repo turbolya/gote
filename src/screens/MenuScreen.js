@@ -11,6 +11,7 @@ import { View, Text, Pressable, Animated, Easing, Image, Linking, StyleSheet } f
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
+import { smoothPath, cumulativeAverage } from '../components/charts';
 import Icon from '../components/Icon';
 import { useTheme, useThemedStyles } from '../theme';
 import { Appear } from '../components/anim';
@@ -39,26 +40,6 @@ const LINE_PAD = 4;
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-// Build a smooth (Catmull-Rom → cubic-bezier) SVG path through the points, so
-// the lifetime-accuracy trend reads as a flowing curve rather than jagged
-// segments. Points are { x, y } in pixels.
-function smoothPath(pts) {
-  if (pts.length < 2) return '';
-  let d = `M ${pts[0].x} ${pts[0].y}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[i - 1] || pts[i];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
-    const p3 = pts[i + 2] || p2;
-    const c1x = p1.x + (p2.x - p0.x) / 6;
-    const c1y = p1.y + (p2.y - p0.y) / 6;
-    const c2x = p2.x - (p3.x - p1.x) / 6;
-    const c2y = p2.y - (p3.y - p1.y) / 6;
-    d += ` C ${c1x},${c1y} ${c2x},${c2y} ${p2.x},${p2.y}`;
-  }
-  return d;
-}
-
 // A subtle chart of recent games' accuracy filling the hero behind the content:
 // one vertical bar per game (oldest → newest), each a white gradient fading down.
 function AccuracyBars({ data = [] }) {
@@ -75,16 +56,7 @@ function AccuracyBars({ data = [] }) {
   // up to that point. Computed over the FULL history (not just the visible
   // window) so the leftmost visible point still reflects all earlier games,
   // then sliced to align 1:1 with the bars.
-  const lineVals = (() => {
-    if (maxBars === 0) return [];
-    const cum = [];
-    let sum = 0;
-    for (let i = 0; i < data.length; i++) {
-      sum += data[i];
-      cum.push(sum / (i + 1));
-    }
-    return cum.slice(-maxBars);
-  })();
+  const lineVals = maxBars === 0 ? [] : cumulativeAverage(data).slice(-maxBars);
 
   // Map the visible line values to pixel points centered on each bar.
   const points = lineVals.map((v, i) => ({

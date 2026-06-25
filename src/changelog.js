@@ -23,6 +23,8 @@ export const CHANGELOG = [
         + 'long species list (e.g. after Nearby rounds spanning many users).',
       'The menu hero now draws a smooth trend line over the recent-games bars, '
         + 'showing how your lifetime accuracy has changed over time.',
+      'The Statistics page now has two explained charts: a per-game accuracy bar '
+        + 'chart and a smooth lifetime-accuracy trend line.',
     ],
   },
   {
