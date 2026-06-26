@@ -11,7 +11,7 @@ import { View, Text, Pressable, Animated, Easing, Image, Linking, StyleSheet } f
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
-import { smoothPath, cumulativeAverage } from '../components/charts';
+import { smoothPath, cumulativeAverage, downsampleMean, sampleBucketEnds } from '../components/charts';
 import Icon from '../components/Icon';
 import { useTheme, useThemedStyles } from '../theme';
 import { Appear } from '../components/anim';
@@ -40,8 +40,11 @@ const LINE_PAD = 4;
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-// A subtle chart of recent games' accuracy filling the hero behind the content:
-// one vertical bar per game (oldest → newest), each a white gradient fading down.
+// A subtle chart of accuracy filling the hero behind the content: one vertical
+// bar per game (oldest → newest), each a white gradient fading down. Always
+// spans your FULL history — once there are more games than bars that fit, the
+// data is downsampled (bars become per-bucket averages) rather than dropping the
+// oldest games.
 function AccuracyBars({ data = [] }) {
   const styles = useThemedStyles(makeStyles);
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -50,13 +53,15 @@ function AccuracyBars({ data = [] }) {
   const grow = useRef(new Animated.Value(IS_E2E ? 1 : 0)).current;
   const maxBars =
     width > 0 ? Math.max(1, Math.floor((width + BAR_GAP) / (BAR_W + BAR_GAP))) : 0;
-  const bars = maxBars > 0 ? data.slice(-maxBars) : [];
+  // Per-game accuracy, downsampled to fit the available bars (averaging each
+  // bucket) so the whole lifetime stays on screen.
+  const bars = maxBars > 0 ? downsampleMean(data, maxBars) : [];
 
-  // Lifetime accuracy over time: the running average of every game's accuracy
-  // up to that point. Computed over the FULL history (not just the visible
-  // window) so the leftmost visible point still reflects all earlier games,
-  // then sliced to align 1:1 with the bars.
-  const lineVals = maxBars === 0 ? [] : cumulativeAverage(data).slice(-maxBars);
+  // Lifetime accuracy over time: the running average of every game's accuracy up
+  // to that point, computed over the FULL history then sampled (at bucket ends)
+  // to the same number of points as the bars — so the curve spans the entire
+  // history and ends on your true overall accuracy.
+  const lineVals = maxBars === 0 ? [] : sampleBucketEnds(cumulativeAverage(data), maxBars);
 
   // Map the visible line values to pixel points centered on each bar.
   const points = lineVals.map((v, i) => ({

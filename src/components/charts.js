@@ -35,6 +35,38 @@ export function cumulativeAverage(data) {
   return out;
 }
 
+// Partition n items into m contiguous, near-equal buckets; returns m [start,end)
+// index pairs (end exclusive). Assumes n >= m >= 1.
+function buckets(n, m) {
+  const out = [];
+  for (let i = 0; i < m; i++) {
+    out.push([Math.floor((i * n) / m), Math.floor(((i + 1) * n) / m)]);
+  }
+  return out;
+}
+
+// Downsample a series to at most m points by averaging each bucket — so the
+// whole history is always represented, just compressed once it outgrows the
+// available bars. Returned unchanged when it already fits (length <= m).
+export function downsampleMean(data, m) {
+  if (m <= 0) return [];
+  if (data.length <= m) return data.slice();
+  return buckets(data.length, m).map(([s, e]) => {
+    let sum = 0;
+    for (let i = s; i < e; i++) sum += data[i];
+    return sum / (e - s);
+  });
+}
+
+// Sample a series to at most m points by taking each bucket's LAST value, so the
+// final (most recent) value is always preserved. Used for the cumulative
+// lifetime-accuracy line, whose endpoint is the true overall accuracy.
+export function sampleBucketEnds(data, m) {
+  if (m <= 0) return [];
+  if (data.length <= m) return data.slice();
+  return buckets(data.length, m).map(([, e]) => data[e - 1]);
+}
+
 // Smooth (Catmull-Rom → cubic-bezier) SVG path through { x, y } points, so a
 // series reads as a flowing curve rather than jagged segments.
 export function smoothPath(points) {

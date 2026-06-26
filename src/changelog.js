@@ -21,8 +21,9 @@ export const CHANGELOG = [
         + 'observation place with a tappable map too.',
       'The Statistics breakdown now loads and scrolls smoothly even with a very '
         + 'long species list (e.g. after Nearby rounds spanning many users).',
-      'The menu hero now draws a smooth trend line over the recent-games bars, '
-        + 'showing how your lifetime accuracy has changed over time.',
+      'The menu hero chart now always spans your full history — once it fills the '
+        + 'screen it downsamples instead of dropping older games — with a smooth '
+        + 'trend line showing how your lifetime accuracy has changed over time.',
       'The Statistics page now has two explained charts: a per-game accuracy bar '
         + 'chart and a smooth lifetime-accuracy trend line.',
       'Swipe right from the left edge to go back on the Settings, game-setup, '
