@@ -400,7 +400,16 @@ const makeStyles = (colors) => StyleSheet.create({
     // Keep the pill (and its text) above the chart layer.
     zIndex: 2,
   },
-  statPillText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  statPillText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+    // Slight drop shadow so the text stays legible even if the trend line passes
+    // directly behind the pill.
+    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
 
   // Minimal sections
   section: {
