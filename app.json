@@ -2,7 +2,7 @@
   "expo": {
     "name": "gote",
     "slug": "gote",
-    "version": "2.21.0",
+    "version": "2.21.1",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "automatic",
@@ -14,7 +14,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.gote.app"
+      "bundleIdentifier": "com.gote.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.gote.app",

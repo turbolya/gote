@@ -179,7 +179,6 @@ export default function MenuScreen({
   onLexicon,
   onStats,
   onSettings,
-  onDebugSupport,
 }) {
   const { colors, accents } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -268,19 +267,6 @@ export default function MenuScreen({
           <Icon name="cafe-outline" size={16} color={colors.muted} />
           <Text style={styles.kofiText}>Buy me a coffee</Text>
         </Pressable>
-
-        {/* DEBUG ONLY — remove before release: opens the
-            support/review popup on demand for testing. */}
-        {onDebugSupport && (
-          <Pressable
-            testID="menu-debug-support"
-            onPress={onDebugSupport}
-            style={({ pressed }) => [styles.debugBtn, pressed && styles.kofiPressed]}
-          >
-            <Icon name="bug-outline" size={15} color={colors.muted} />
-            <Text style={styles.debugText}>Debug: open support popup</Text>
-          </Pressable>
-        )}
       </Animated.ScrollView>
 
       {/* Full-bleed collapsing hero banner (pinned on top). The whole banner —
@@ -445,19 +431,4 @@ const makeStyles = (colors) => StyleSheet.create({
   },
   kofiPressed: { opacity: 0.55 },
   kofiText: { fontSize: 13.5, fontWeight: '600', color: colors.muted },
-
-  // DEBUG ONLY — remove before release.
-  debugBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    marginTop: 14,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    borderRadius: 12,
-  },
-  debugText: { fontSize: 13, fontWeight: '700', color: colors.muted },
 });

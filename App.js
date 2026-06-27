@@ -810,9 +810,6 @@ export default function App() {
                 setError(null);
                 setScreen('settings');
               }}
-              // DEBUG ONLY — remove before release: lets us
-              // trigger the support/review popup on demand for testing.
-              onDebugSupport={() => setShowSupport(true)}
             />
           </Appear>
           {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}

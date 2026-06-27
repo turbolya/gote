@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.0';
+export const APP_VERSION = '2.21.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.1',
+    date: '2026-06-26',
+    changes: [
+      'Release preparation: removed a debug-only menu button and finalized the '
+        + 'app for its first App Store submission.',
+    ],
+  },
   {
     version: '2.21.0',
     date: '2026-06-24',
