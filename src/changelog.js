@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.2';
+export const APP_VERSION = '2.22.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.22.0',
+    date: '2026-06-28',
+    changes: [
+      'New option (Settings → Appearance): show a blurred random photo from '
+        + 'your cards behind the main menu, tinted to match light or dark mode.',
+    ],
+  },
   {
     version: '2.21.2',
     date: '2026-06-28',

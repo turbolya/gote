@@ -149,6 +149,8 @@ export default function SettingsScreen({
   speciesOnly: initialSpeciesOnly,
   themeMode,
   onThemeModeChange,
+  menuPhotoBackdrop,
+  onMenuBackdropChange,
   error,
   sync,
   onUpdateNow,
@@ -291,6 +293,17 @@ export default function SettingsScreen({
               </Pressable>
             );
           })}
+        </View>
+
+        <View style={[styles.card, styles.appearanceCard]}>
+          <SwitchRow
+            icon="image-outline"
+            accent={accents.violet}
+            label="Photo background"
+            hint="Show a blurred photo from your cards behind the main menu."
+            value={!!menuPhotoBackdrop}
+            onValueChange={onMenuBackdropChange}
+          />
         </View>
 
         {/* Study options */}
@@ -539,6 +552,7 @@ const makeStyles = (colors) => StyleSheet.create({
 
   // Minimal: a flat group — no container, rows divided by hairlines.
   card: {},
+  appearanceCard: { marginTop: 6 },
   sep: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,

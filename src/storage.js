@@ -58,6 +58,7 @@ const DEFAULT_PREFS = {
   researchGrade: false,
   speciesOnly: false,
   themeMode: 'system', // 'light' | 'dark' | 'system'
+  menuPhotoBackdrop: true, // blurred random-card photo behind the main menu
 };
 
 export async function loadPrefs() {

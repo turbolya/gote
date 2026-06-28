@@ -6,7 +6,7 @@
 // recent games. On scroll it collapses up into a pinned compact banner. Below it,
 // clean minimal sections — flat lists with hairline dividers and accent icons.
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, Animated, Easing, Image, Linking, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -172,6 +172,8 @@ function Row({ icon, accent, title, sub, onPress, testID, first, index = 0 }) {
 export default function MenuScreen({
   username,
   deckCount,
+  cards = [],
+  photoBackdrop = false,
   lifetime,
   history = [],
   streak,
@@ -180,9 +182,21 @@ export default function MenuScreen({
   onStats,
   onSettings,
 }) {
-  const { colors, accents } = useTheme();
+  const { colors, accents, scheme } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
+
+  // A blurred random-card photo behind the menu (toggleable in Settings). Picked
+  // once per mount — i.e. a fresh photo each time you return to the menu. Tinted
+  // white (light theme) or black (dark theme) so the menu stays readable.
+  const backdropUri = useMemo(() => {
+    if (!photoBackdrop) return null;
+    const withImg = (cards || []).filter((c) => c && c.image);
+    if (withImg.length === 0) return null;
+    return withImg[Math.floor(Math.random() * withImg.length)].image;
+  }, [photoBackdrop, cards]);
+  const backdropTint =
+    scheme === 'dark' ? 'rgba(0,0,0,0.74)' : 'rgba(255,255,255,0.80)';
   const lifetimePct =
     lifetime && lifetime.answered > 0
       ? Math.round((lifetime.correct / lifetime.answered) * 100)
@@ -224,6 +238,18 @@ export default function MenuScreen({
 
   return (
     <View style={styles.flex}>
+      {/* Blurred random-card photo backdrop (Settings → Appearance). */}
+      {backdropUri && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Image
+            source={{ uri: backdropUri }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+            blurRadius={40}
+          />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: backdropTint }]} />
+        </View>
+      )}
       <Animated.ScrollView
         testID="menu-scroll"
         style={styles.flex}
