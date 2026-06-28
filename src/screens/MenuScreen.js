@@ -267,6 +267,10 @@ export default function MenuScreen({
           <Icon name="cafe-outline" size={16} color={colors.muted} />
           <Text style={styles.kofiText}>Buy me a coffee</Text>
         </Pressable>
+        <Text style={styles.kofiNote}>
+          gote is free — donations just help keep it that way and don’t unlock
+          any features.
+        </Text>
       </Animated.ScrollView>
 
       {/* Full-bleed collapsing hero banner (pinned on top). The whole banner —
@@ -431,4 +435,13 @@ const makeStyles = (colors) => StyleSheet.create({
   },
   kofiPressed: { opacity: 0.55 },
   kofiText: { fontSize: 13.5, fontWeight: '600', color: colors.muted },
+  kofiNote: {
+    fontSize: 11,
+    color: colors.muted,
+    textAlign: 'center',
+    lineHeight: 15,
+    marginTop: 6,
+    paddingHorizontal: 24,
+    opacity: 0.85,
+  },
 });

@@ -70,6 +70,10 @@ export default function SupportModal({ visible, onClose }) {
             <Icon name="cafe-outline" size={18} color={colors.onDark} />
             <Text style={styles.kofiText}>Buy me a coffee</Text>
           </Pressable>
+          <Text style={styles.kofiNote}>
+            gote is free — donations just help keep it that way and don’t unlock
+            any features.
+          </Text>
 
           <Pressable style={styles.later} onPress={onClose} testID="support-later">
             <Text style={styles.laterText}>Maybe later</Text>
@@ -125,6 +129,14 @@ const makeStyles = (colors) => StyleSheet.create({
     marginTop: 18,
   },
   kofiText: { color: colors.onDark, fontSize: 16, fontWeight: '800' },
+  kofiNote: {
+    fontSize: 11.5,
+    color: colors.muted,
+    textAlign: 'center',
+    lineHeight: 16,
+    marginTop: 8,
+    paddingHorizontal: 8,
+  },
   later: { paddingVertical: 12, marginTop: 4 },
   laterText: { color: colors.muted, fontSize: 15, fontWeight: '600' },
 });

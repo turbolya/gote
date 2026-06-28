@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.1';
+export const APP_VERSION = '2.21.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.2',
+    date: '2026-06-28',
+    changes: [
+      'Clarified under the “Buy me a coffee” button that gote is free and '
+        + 'donations don’t unlock any features.',
+    ],
+  },
   {
     version: '2.21.1',
     date: '2026-06-26',
