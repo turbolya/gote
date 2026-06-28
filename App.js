@@ -127,8 +127,6 @@ export default function App() {
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
   const [researchGrade, setResearchGrade] = useState(false);
   const [speciesOnly, setSpeciesOnly] = useState(false);
-  // Show a blurred random-card photo behind the main menu.
-  const [menuPhotoBackdrop, setMenuPhotoBackdrop] = useState(true);
 
   // Theme: 'light' | 'dark' | 'system'. The active palette is provided to the
   // whole tree via ThemeProvider; styles read it through useThemedStyles.
@@ -146,18 +144,9 @@ export default function App() {
   const onThemeModeChange = useCallback(
     (mode) => {
       setThemeMode(mode);
-      savePrefs({ perSpecies, locale, researchGrade, speciesOnly, themeMode: mode, menuPhotoBackdrop });
+      savePrefs({ perSpecies, locale, researchGrade, speciesOnly, themeMode: mode });
     },
-    [perSpecies, locale, researchGrade, speciesOnly, menuPhotoBackdrop]
-  );
-
-  // Toggle + persist the menu photo backdrop (applies immediately).
-  const onMenuBackdropChange = useCallback(
-    (enabled) => {
-      setMenuPhotoBackdrop(enabled);
-      savePrefs({ perSpecies, locale, researchGrade, speciesOnly, themeMode, menuPhotoBackdrop: enabled });
-    },
-    [perSpecies, locale, researchGrade, speciesOnly, themeMode]
+    [perSpecies, locale, researchGrade, speciesOnly]
   );
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ loaded: 0, total: 0 });
@@ -419,14 +408,11 @@ export default function App() {
       const rg = !!(savedPrefs && savedPrefs.researchGrade);
       const so = !!(savedPrefs && savedPrefs.speciesOnly);
       const tm = (savedPrefs && savedPrefs.themeMode) || 'system';
-      // Default the menu backdrop on unless explicitly disabled.
-      const mb = !(savedPrefs && savedPrefs.menuPhotoBackdrop === false);
       setPerSpecies(ps);
       setLocale(loc);
       setResearchGrade(rg);
       setSpeciesOnly(so);
       setThemeMode(tm);
-      setMenuPhotoBackdrop(mb);
       // Seed the ref now: the startup background sync fires before React re-renders
       // with these values, and must filter by the saved prefs, not the defaults.
       prefsRef.current = { perSpecies: ps, researchGrade: rg, speciesOnly: so };
@@ -814,8 +800,6 @@ export default function App() {
             <MenuScreen
               username={username}
               deckCount={fullDeck.length}
-              cards={fullDeck}
-              photoBackdrop={menuPhotoBackdrop}
               lifetime={lifetime}
               history={history}
               streak={streakStatus(streak)}
@@ -888,8 +872,6 @@ export default function App() {
             speciesOnly={speciesOnly}
             themeMode={themeMode}
             onThemeModeChange={onThemeModeChange}
-            menuPhotoBackdrop={menuPhotoBackdrop}
-            onMenuBackdropChange={onMenuBackdropChange}
             error={error}
             sync={sync}
             onUpdateNow={
@@ -910,7 +892,7 @@ export default function App() {
                 researchGrade: prefs.researchGrade,
                 speciesOnly: prefs.speciesOnly,
               };
-              savePrefs({ ...prefs, themeMode, menuPhotoBackdrop });
+              savePrefs({ ...prefs, themeMode });
               // Re-download only when the account identity changes (username or
               // language). The toggles are local filters, so just re-derive the
               // deck and stay put — no network needed.
