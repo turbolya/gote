@@ -66,14 +66,15 @@ describe('Lexicon, flags & detail', () => {
     await visible('results-menu');
     await tap('results-menu');
     await tap('menu-stats');
+    // The trend charts sit above the list, so scroll the row into view first.
     // Flag toggle on the stats row (between the name and the bars).
-    await tap('stats-flag-1001');
+    await tapScroll('stats-flag-1001', 'stats-scroll');
     // Tapping the row opens the same detail page as the Lexicon.
-    await tap('stats-card-1001'); // European Robin (fixture)
+    await tapScroll('stats-card-1001', 'stats-scroll'); // European Robin (fixture)
     await visible('detail-back');
     await tap('detail-flag'); // flag toggle on the detail page
     await tap('detail-back');
-    await visible('stats-sort-pct');
+    await scrollToId('stats-sort-pct', 'stats-scroll', 'up');
   });
 });
 
@@ -113,8 +114,9 @@ describe('Settings & statistics', () => {
     // than exercise the destructive system dialog.
     await tap('menu-stats'); // Statistics opens from the accuracy banner
     // Per-species list + sort options (a flash round was played earlier, so
-    // there's at least one species with tallies).
-    await visible('stats-sort-pct');
+    // there's at least one species with tallies). The trend charts sit above
+    // the sort options, so scroll them into view first.
+    await scrollToId('stats-sort-pct', 'stats-scroll');
     await tap('stats-sort-incorrect');
     await tap('stats-sort-correct');
     // Filter toggle: my observations (default) ↔ all species ever seen.
