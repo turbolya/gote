@@ -156,6 +156,7 @@ export default function SettingsScreen({
   onLegal,
   onSave,
   onBack,
+  registerLeave,
 }) {
   const { colors, accents } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -199,6 +200,14 @@ export default function SettingsScreen({
     if (canSave) submit();
     else if (onBack) onBack();
   };
+
+  // Expose the current `leave` handler so the app's swipe-back gesture applies
+  // pending settings on exit, just like the header back button. Re-registered
+  // every render (leave closes over the latest field state); cleared on unmount.
+  useEffect(() => {
+    if (registerLeave) registerLeave(leave);
+    return () => registerLeave && registerLeave(null);
+  });
 
   return (
     <KeyboardAvoidingView

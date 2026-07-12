@@ -249,6 +249,12 @@ export default function App() {
   // How to restart the current mode (used by the "Play again" button).
   const replayRef = useRef(() => {});
 
+  // Latest "leave Settings" handler, registered by SettingsScreen while it's
+  // mounted. Lets the swipe-back gesture apply pending settings on exit exactly
+  // like the header back button (which routes through SettingsScreen.leave) —
+  // otherwise swiping away silently discards edits (e.g. a language change).
+  const settingsLeaveRef = useRef(null);
+
   // The pool of candidate cards for the current round's multiple-choice
   // distractors. Set per round: the account deck for account-based modes, the
   // nearby deck for "Nearby species", and carried over when revisiting missed
@@ -833,7 +839,9 @@ export default function App() {
           style={styles.flex}
           onBack={
             {
-              settings: fullDeck.length > 0 ? () => setScreen('menu') : null,
+              settings: fullDeck.length > 0
+                ? () => (settingsLeaveRef.current || (() => setScreen('menu')))()
+                : null,
               custom: () => setScreen('menu'),
               flash: () => setScreen('menu'),
               nearby: () => setScreen('menu'),
@@ -880,6 +888,7 @@ export default function App() {
             onChangelog={() => setScreen('changelog')}
             onLegal={() => setScreen('legal')}
             onBack={fullDeck.length > 0 ? () => setScreen('menu') : null}
+            registerLeave={(fn) => { settingsLeaveRef.current = fn; }}
             onSave={(name, prefs) => {
               setPerSpecies(prefs.perSpecies);
               setLocale(prefs.locale);

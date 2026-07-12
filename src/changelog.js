@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.4';
+export const APP_VERSION = '2.21.5';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.5',
+    date: '2026-06-29',
+    changes: [
+      'Swiping back from Settings now applies your changes (language, filters) '
+        + 'just like the back button, instead of discarding them.',
+    ],
+  },
   {
     version: '2.21.4',
     date: '2026-06-29',
