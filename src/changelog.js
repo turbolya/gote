@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.3';
+export const APP_VERSION = '2.21.4';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.4',
+    date: '2026-06-29',
+    changes: [
+      'The Android app icon now shows the gote newt, matching the iOS icon '
+        + '(it was a placeholder before).',
+    ],
+  },
   {
     version: '2.21.3',
     date: '2026-06-29',
