@@ -15,19 +15,15 @@ import {
   Animated,
   Easing,
   LayoutAnimation,
-  Platform,
-  UIManager,
   Text,
   View,
 } from 'react-native';
 import { IS_E2E } from '../e2e/testMode';
 
-if (
-  Platform.OS === 'android' &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+// Note: we deliberately do NOT call
+// UIManager.setLayoutAnimationEnabledExperimental(true). Under the New
+// Architecture (newArchEnabled) LayoutAnimation is enabled by default on
+// Android, and that call is a no-op that logs a warning.
 
 // Animate the next state-driven layout change (e.g. a list re-sorting/filtering).
 export function animateNextLayout(duration = 240) {

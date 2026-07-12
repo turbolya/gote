@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.2';
+export const APP_VERSION = '2.21.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.3',
+    date: '2026-06-29',
+    changes: [
+      'Removed a harmless Android console warning about layout animations under '
+        + 'the New Architecture.',
+    ],
+  },
   {
     version: '2.21.2',
     date: '2026-06-28',
