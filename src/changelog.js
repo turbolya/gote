@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.10';
+export const APP_VERSION = '2.21.11';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.11',
+    date: '2026-06-29',
+    changes: [
+      'Fixed flagged species from an older version leaking into every account; '
+        + 'they now migrate to the first account that opens and stay there.',
+    ],
+  },
   {
     version: '2.21.10',
     date: '2026-06-29',

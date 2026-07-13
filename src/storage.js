@@ -255,8 +255,13 @@ export async function loadFlags(username) {
   if (!username) return [];
   const { map, legacy } = await loadFlagsMap();
   if (Array.isArray(map[username])) return map[username].map(String);
-  // Migrate old global flags to the first account that loads them.
-  if (legacy) return legacy;
+  // One-time migration of the old global flag list: adopt it into the FIRST
+  // account that loads and persist immediately (which rewrites storage into the
+  // per-account map form), so later accounts don't also inherit the old flags.
+  if (legacy && legacy.length) {
+    await saveFlags(username, legacy);
+    return legacy.map(String);
+  }
   return [];
 }
 
