@@ -125,19 +125,48 @@ async function apiFetch(url, options) {
 // 60 requests/minute and the "Pick the right one" mode makes several calls per
 // round. Keyed by a string; values are whatever the caller stores.
 const taxonCache = new Map();
+// In-flight producer promises, so concurrent lookups for the same key (e.g. the
+// same species appearing twice in a "Pick the right one" round) share one fetch
+// instead of firing duplicate requests against the 60/min limit.
+const inflight = new Map();
+
+// An "empty" result — null/undefined, an empty array, or an empty object. Our
+// best-effort lookups return exactly these on a failed/blank fetch, so treating
+// them as empty lets us avoid caching failures (see cached()).
+function isEmptyResult(v) {
+  if (v == null) return true;
+  if (Array.isArray(v)) return v.length === 0;
+  if (typeof v === "object") return Object.keys(v).length === 0;
+  return false;
+}
 
 // Run `producer()` only on a cache miss; otherwise return the cached value.
+// Deliberately does NOT cache empty results: our taxa/similar/detail lookups
+// degrade to []/null on a network hiccup, and caching that would pin the failure
+// for the whole session (a species stuck with no photos / no detail until app
+// restart). Leaving empties uncached lets the next attempt recover — at the cost
+// of re-fetching the genuinely-empty ones, which are rare.
 async function cached(key, producer) {
   if (taxonCache.has(key)) return taxonCache.get(key);
-  const value = await producer();
-  taxonCache.set(key, value);
-  return value;
+  if (inflight.has(key)) return inflight.get(key);
+  const promise = (async () => {
+    try {
+      const value = await producer();
+      if (!isEmptyResult(value)) taxonCache.set(key, value);
+      return value;
+    } finally {
+      inflight.delete(key);
+    }
+  })();
+  inflight.set(key, promise);
+  return promise;
 }
 
 // Clear the session cache (e.g. when switching language so localized names
 // refresh). Best-effort; safe to call anytime.
 export function clearTaxonCache() {
   taxonCache.clear();
+  inflight.clear();
 }
 
 // Serialize a field selection for the v2 `fields` query param value.
