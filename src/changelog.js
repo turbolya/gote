@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.17';
+export const APP_VERSION = '2.21.18';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.18',
+    date: '2026-06-29',
+    changes: [
+      'You can now cancel a slow load (downloading a big account or finding '
+        + 'nearby species) from the loading screen.',
+    ],
+  },
   {
     version: '2.21.17',
     date: '2026-06-29',

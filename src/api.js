@@ -393,7 +393,7 @@ export function newestUpdatedAt(cards) {
 // incremental path); otherwise it's a full scan.
 async function fetchObservationCards(
   username,
-  { locale, updatedSince, max, onProgress } = {},
+  { locale, updatedSince, max, onProgress, signal } = {},
 ) {
   const clean = String(username || "").trim();
   if (!clean) throw new Error("Please enter an iNaturalist username.");
@@ -419,8 +419,9 @@ async function fetchObservationCards(
 
     let res;
     try {
-      res = await apiFetch(url, { headers: HEADERS });
+      res = await apiFetch(url, { headers: HEADERS, signal });
     } catch (e) {
+      if (e && e.name === "AbortError") throw e; // user cancelled — propagate
       throw new Error("Network error — check your internet connection.");
     }
 
@@ -468,11 +469,12 @@ async function fetchObservationCards(
  */
 export async function fetchCards(username, opts = {}) {
   if (IS_E2E) return fx.E2E_CARDS;
-  const { locale, max, onProgress } = opts;
+  const { locale, max, onProgress, signal } = opts;
   const cards = await fetchObservationCards(username, {
     locale,
     max,
     onProgress,
+    signal,
   });
   if (cards.length === 0) {
     throw new Error(
@@ -610,6 +612,7 @@ export async function fetchNearbyCards(opts = {}) {
     locale,
     max = 200,
     onProgress,
+    signal,
   } = opts;
   if (IS_E2E) return fx.e2eNearbyCards();
   if (lat == null || lng == null) {
@@ -633,8 +636,9 @@ export async function fetchNearbyCards(opts = {}) {
 
     let res;
     try {
-      res = await apiFetch(url, { headers: HEADERS });
+      res = await apiFetch(url, { headers: HEADERS, signal });
     } catch (e) {
+      if (e && e.name === "AbortError") throw e; // user cancelled — propagate
       throw new Error("Network error — check your internet connection.");
     }
     if (!res.ok) {

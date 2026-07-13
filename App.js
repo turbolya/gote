@@ -15,6 +15,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   View,
   Text,
+  Pressable,
   ActivityIndicator,
   StatusBar as RNStatusBar,
   Platform,
@@ -266,6 +267,13 @@ export default function App() {
   // and add a duplicate streak/history entry. Reset when a round starts.
   const finishedRef = useRef(false);
 
+  // AbortController for the in-progress full download / nearby fetch, so the
+  // loading screen's Cancel button can stop it. Set when a download starts.
+  const abortRef = useRef(null);
+  const cancelLoad = useCallback(() => {
+    if (abortRef.current) abortRef.current.abort();
+  }, []);
+
   // Latest "leave Settings" handler, registered by SettingsScreen while it's
   // mounted. Lets the swipe-back gesture apply pending settings on exit exactly
   // like the header back button (which routes through SettingsScreen.leave) —
@@ -363,9 +371,12 @@ export default function App() {
       const prevUser = usernameRef.current;
       setUsername(name);
       setScreen('loading');
+      const controller = new AbortController();
+      abortRef.current = controller;
       try {
         const cards = await fetchCards(name, {
           locale: prefs.locale,
+          signal: controller.signal,
           onProgress: (loaded, total) => setProgress({ loaded, total }),
         });
         // Only adopt the new account's flags once its deck actually loaded.
@@ -381,8 +392,16 @@ export default function App() {
         // If another account's deck is still loaded, restore that identity so
         // the username (and the flags saved under it) keep matching the deck.
         if (rawCardsRef.current.length > 0) setUsername(prevUser);
-        setError(e.message || 'Something went wrong. Please try again.');
-        setScreen('settings');
+        if (e && e.name === 'AbortError') {
+          // User cancelled: go back with no error, to the menu if a deck is
+          // still loaded, otherwise Settings to pick a username.
+          setScreen(rawCardsRef.current.length > 0 ? 'menu' : 'settings');
+        } else {
+          setError(e.message || 'Something went wrong. Please try again.');
+          setScreen('settings');
+        }
+      } finally {
+        abortRef.current = null;
       }
     },
     [applyCurrentFilters, persistCache]
@@ -560,6 +579,8 @@ export default function App() {
       setProgress({ loaded: 0, total: 0 });
       setLoadingNearby(true);
       setScreen('loading');
+      const controller = new AbortController();
+      abortRef.current = controller;
       try {
         const cards = await fetchNearbyCards({
           lat: config.lat,
@@ -567,14 +588,20 @@ export default function App() {
           radius: config.radius,
           iconicTaxa: config.iconicTaxa,
           locale,
+          signal: controller.signal,
           onProgress: (loaded, total) => setProgress({ loaded, total }),
         });
         const run = () => startRound(cards, 'nearby', 'Nearby species');
         replayRef.current = run;
         run();
       } catch (e) {
-        setError(e.message || 'Could not load nearby species.');
+        // On cancel, quietly return to the Nearby setup with no error.
+        if (!(e && e.name === 'AbortError')) {
+          setError(e.message || 'Could not load nearby species.');
+        }
         setScreen('nearby');
+      } finally {
+        abortRef.current = null;
       }
     },
     [locale, startRound]
@@ -923,6 +950,16 @@ export default function App() {
                 {Math.min(progress.loaded, progress.total)} of {progress.total}
               </Text>
             )}
+            <Pressable
+              testID="loading-cancel"
+              onPress={cancelLoad}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+              style={({ pressed }) => [styles.loadingCancel, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={styles.loadingCancelText}>Cancel</Text>
+            </Pressable>
           </View>
         )}
 
@@ -1114,4 +1151,6 @@ const makeStyles = (colors) => StyleSheet.create({
     textAlign: 'center',
   },
   loadingSub: { marginTop: 6, fontSize: 14, color: colors.muted },
+  loadingCancel: { marginTop: 28, paddingVertical: 8, paddingHorizontal: 16 },
+  loadingCancelText: { fontSize: 15, fontWeight: '700', color: colors.muted },
 });
