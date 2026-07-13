@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.14';
+export const APP_VERSION = '2.21.15';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.15',
+    date: '2026-06-29',
+    changes: [
+      'On Statistics, changing the sort or filter no longer jumps the list back '
+        + 'to the top, so the controls stay put and are easy to use again.',
+    ],
+  },
   {
     version: '2.21.14',
     date: '2026-06-29',

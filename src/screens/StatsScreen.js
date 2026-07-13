@@ -2,7 +2,7 @@
 // species you've been quizzed on, with a thumbnail and two bars (correct /
 // incorrect), sortable by success rate or by correct/incorrect counts.
 
-import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -291,12 +291,12 @@ export default function StatsScreen({ species, cards = [], lifetime, history = [
 
   const empty = list.length === 0;
 
-  // Jump back to the top when the sort or filter changes (but NOT on unrelated
-  // re-renders like returning from the detail page, which keeps the position).
+  // The FlatList ref. We deliberately do NOT auto-scroll to the top when the
+  // sort or filter changes: the sort/filter controls live in the scrollable
+  // header (below the trend charts), so jumping to the top would hide them —
+  // forcing the user to scroll back down to change sort again. Keeping the
+  // position lets the list re-order/re-filter in place right under the controls.
   const scrollRef = useRef(null);
-  useEffect(() => {
-    scrollRef.current?.scrollToOffset({ offset: 0, animated: false });
-  }, [sort, obsOnly]);
 
   const confirmReset = () => {
     Alert.alert(
