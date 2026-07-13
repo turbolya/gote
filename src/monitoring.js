@@ -1,18 +1,18 @@
 // Crash / error reporting via Sentry, behind a thin wrapper so the rest of the
 // app doesn't import Sentry directly and it can be disabled in one place.
 //
-// Sentry only activates when a DSN is configured (app.json → expo.extra.sentryDsn,
-// or the SENTRY_DSN env var at build time). With no DSN it's a no-op — so it
-// stays silent in Expo Go / local dev and never throws if the native module
-// isn't present.
+// Sentry only activates when a DSN is configured in app.json
+// (expo.extra.sentryDsn). With no DSN it's a no-op — so it stays silent in
+// Expo Go / local dev and never throws if the native module isn't present.
+//
+// Note: we intentionally read the DSN from app.json, not process.env — Expo
+// only inlines EXPO_PUBLIC_* vars into the JS bundle, so a plain SENTRY_DSN env
+// var would be undefined at runtime.
 
 import * as Sentry from '@sentry/react-native';
 import appConfig from '../app.json';
 
-const DSN =
-  process.env.SENTRY_DSN ||
-  (appConfig.expo.extra && appConfig.expo.extra.sentryDsn) ||
-  null;
+const DSN = (appConfig.expo.extra && appConfig.expo.extra.sentryDsn) || null;
 
 let enabled = false;
 

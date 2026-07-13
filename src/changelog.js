@@ -8,9 +8,16 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.9';
+export const APP_VERSION = '2.21.10';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.10',
+    date: '2026-06-29',
+    changes: [
+      'Internal: removed a dead crash-reporting config path (no visible change).',
+    ],
+  },
   {
     version: '2.21.9',
     date: '2026-06-29',
