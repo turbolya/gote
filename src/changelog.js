@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.16';
+export const APP_VERSION = '2.21.17';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.17',
+    date: '2026-06-29',
+    changes: [
+      'Accessibility: the icon-only buttons (back, close, flag, more photos, map) '
+        + 'now have VoiceOver labels.',
+    ],
+  },
   {
     version: '2.21.16',
     date: '2026-06-29',

@@ -319,6 +319,8 @@ export default function StudyScreen({
                 testID="study-flag"
                 onPress={() => onToggleFlag(card.taxonId)}
                 hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel={flagged ? 'Unflag species' : 'Flag species'}
                 style={styles.flagBtn}
               >
                 <Icon
@@ -537,6 +539,8 @@ export default function StudyScreen({
             onPress={showMorePhotos}
             disabled={loadingMore}
             hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="More photos of this species"
             style={styles.cornerBtn}
           >
             {loadingMore ? (
@@ -560,6 +564,8 @@ export default function StudyScreen({
                 testID="study-location"
                 onPress={() => setMapOpen(true)}
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Show observation location on a map"
                 style={styles.locationBtn}
               >
                 <Icon name="map-pin" size={20} color={on} />

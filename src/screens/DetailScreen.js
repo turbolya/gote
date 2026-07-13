@@ -85,7 +85,14 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
               resizeMode="cover"
             />
           </Pressable>
-          <Pressable testID="detail-back" onPress={onBack} hitSlop={12} style={styles.backFab}>
+          <Pressable
+            testID="detail-back"
+            onPress={onBack}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            style={styles.backFab}
+          >
             <Icon name="chevron-left" size={24} color={colors.onDark} />
           </Pressable>
           {onToggleFlag && card.taxonId != null && (
@@ -93,6 +100,8 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
               testID="detail-flag"
               onPress={() => onToggleFlag(card.taxonId)}
               hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={flagged ? 'Unflag species' : 'Flag species'}
               style={styles.flagFab}
             >
               <Icon

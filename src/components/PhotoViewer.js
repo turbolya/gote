@@ -146,7 +146,13 @@ export default function PhotoViewer({
           </View>
         )}
 
-        <Pressable style={styles.close} onPress={onClose} hitSlop={12}>
+        <Pressable
+          style={styles.close}
+          onPress={onClose}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+        >
           <Icon name="x" size={22} color="#fff" />
         </Pressable>
       </View>

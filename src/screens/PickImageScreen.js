@@ -114,6 +114,8 @@ export default function PickImageScreen({
               onPress={onToggleFlag}
               hitSlop={10}
               disabled={!round}
+              accessibilityRole="button"
+              accessibilityLabel={flagged ? 'Unflag species' : 'Flag species'}
               style={styles.flagBtn}
             >
               <Icon

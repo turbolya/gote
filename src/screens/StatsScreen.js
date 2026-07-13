@@ -87,6 +87,8 @@ const CardStatRow = React.memo(function CardStatRow({ item, image, maxCount, tin
           testID={`stats-flag-${item.key}`}
           onPress={onFlag}
           hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={flagged ? 'Unflag species' : 'Flag species'}
           style={styles.flagBtn}
         >
           <Icon

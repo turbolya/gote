@@ -101,7 +101,12 @@ export default function LexiconScreen({
           autoCapitalize="none"
         />
         {query.length > 0 && (
-          <Pressable onPress={() => setQuery('')} hitSlop={10}>
+          <Pressable
+            onPress={() => setQuery('')}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Clear search"
+          >
             <Icon name="x" size={18} color={colors.muted} />
           </Pressable>
         )}
@@ -197,6 +202,8 @@ export default function LexiconScreen({
                 testID={`lexicon-flag-${item.taxonId}`}
                 onPress={() => onToggleFlag(item.taxonId)}
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={isFlagged(item) ? 'Unflag species' : 'Flag species'}
                 style={styles.flagBtn}
               >
                 <Icon

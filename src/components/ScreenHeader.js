@@ -16,6 +16,8 @@ export default function ScreenHeader({ title, onBack }) {
         testID="screen-back"
         onPress={onBack}
         hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
         style={({ pressed }) => [styles.back, pressed && styles.backPressed]}
       >
         <Icon name="chevron-left" size={22} color={colors.text} />

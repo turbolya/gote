@@ -56,6 +56,8 @@ export default function ObservationMap({ visible, lat, lng, placeGuess, title, o
           testID="obs-map-close"
           onPress={onClose}
           hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Close map"
           style={[styles.closeBtn, { top: insets.top + 12 }]}
         >
           <Icon name="x" size={22} color="#111" />

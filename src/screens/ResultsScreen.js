@@ -65,6 +65,8 @@ export default function ResultsScreen({
           testID="results-close"
           onPress={onMenu}
           hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Close, back to menu"
           style={({ pressed }) => [styles.closeBtn, pressed && styles.pressed]}
         >
           <Icon name="x" size={22} color={colors.text} />
@@ -190,6 +192,8 @@ export default function ResultsScreen({
                     <Pressable
                       onPress={() => onToggleFlag(c.taxonId)}
                       hitSlop={10}
+                      accessibilityRole="button"
+                      accessibilityLabel={flagged ? 'Unflag species' : 'Flag species'}
                       style={styles.flagBtn}
                     >
                       <Icon
