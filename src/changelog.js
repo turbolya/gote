@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.8';
+export const APP_VERSION = '2.21.9';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.9',
+    date: '2026-06-29',
+    changes: [
+      'The Update button now correctly says “Already up to date” when nothing '
+        + 'changed, instead of always reporting one updated observation.',
+    ],
+  },
   {
     version: '2.21.8',
     date: '2026-06-29',

@@ -309,8 +309,17 @@ export default function App() {
           locale: loc,
           updatedSince: watermarkRef.current,
         });
-        if (updated.length > 0) {
-          rawCardsRef.current = mergeCards(rawCardsRef.current, updated);
+        // iNat's `updated_since` is INCLUSIVE, so the card(s) at the watermark
+        // come back on every sync. Keep only cards strictly newer than the
+        // watermark as real changes — otherwise a no-op sync always reports
+        // "Updated 1 observation." (When there's no watermark this is a full
+        // fetch and wm is -Infinity, so everything is kept.)
+        const wm = watermarkRef.current ? Date.parse(watermarkRef.current) : -Infinity;
+        const changed = updated.filter(
+          (c) => c.updatedAt && Date.parse(c.updatedAt) > wm
+        );
+        if (changed.length > 0) {
+          rawCardsRef.current = mergeCards(rawCardsRef.current, changed);
           const newWatermark = newestUpdatedAt(rawCardsRef.current);
           if (newWatermark) watermarkRef.current = newWatermark;
           applyCurrentFilters(prefsRef.current);
@@ -320,8 +329,8 @@ export default function App() {
           state: 'done',
           syncedAt,
           message:
-            updated.length > 0
-              ? `Updated ${updated.length} observation${updated.length === 1 ? '' : 's'}.`
+            changed.length > 0
+              ? `Updated ${changed.length} observation${changed.length === 1 ? '' : 's'}.`
               : 'Already up to date.',
         });
       } catch (e) {
