@@ -45,7 +45,7 @@ const successOf = (s) => (totalOf(s) > 0 ? knownOf(s) / totalOf(s) : 0);
 // incorrect) sit on the right. Count bars are scaled to `maxCount` (the largest
 // single count across the list) so their lengths are comparable row to row;
 // nonzero bars keep a minimum width so they stay visible.
-function CardStatRow({ item, image, maxCount, tint, onPress, onImageError, flagged, onFlag }) {
+const CardStatRow = React.memo(function CardStatRow({ item, image, maxCount, tint, onPress, onImageError, flagged, onFlag }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const known = knownOf(item);
@@ -113,7 +113,17 @@ function CardStatRow({ item, image, maxCount, tint, onPress, onImageError, flagg
       </View>
     </Pressable>
   );
-}
+},
+// Only re-render a row when its own data changes. The row's handlers act on its
+// stable `item`, so their (per-render) identity can be ignored — which lets an
+// unrelated parent re-render (a different row's thumbnail loading, etc.) skip
+// the ~12 mounted rows instead of re-rendering all of them.
+(a, b) =>
+  a.item === b.item &&
+  a.image === b.image &&
+  a.maxCount === b.maxCount &&
+  a.tint === b.tint &&
+  a.flagged === b.flagged);
 
 export default function StatsScreen({ species, cards = [], lifetime, history = [], streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
   const colors = useColors();

@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.13';
+export const APP_VERSION = '2.21.14';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.14',
+    date: '2026-06-29',
+    changes: [
+      'Internal: the Statistics species list re-renders less as thumbnails load '
+        + '(smoother on very long lists).',
+    ],
+  },
   {
     version: '2.21.13',
     date: '2026-06-29',
