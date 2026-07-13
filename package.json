@@ -1,6 +1,6 @@
 {
   "name": "gote",
-  "version": "2.21.15",
+  "version": "2.21.16",
   "license": "AGPL-3.0-only",
   "main": "index.js",
   "scripts": {

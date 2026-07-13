@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.15';
+export const APP_VERSION = '2.21.16';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.16',
+    date: '2026-06-29',
+    changes: [
+      'Your deck now fully refreshes periodically, so observations you delete on '
+        + 'iNaturalist eventually drop out of the app instead of lingering.',
+    ],
+  },
   {
     version: '2.21.15',
     date: '2026-06-29',

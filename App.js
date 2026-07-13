@@ -86,6 +86,12 @@ import { Appear } from './src/components/anim';
 
 const pickRandom = (cards, n) => shuffle(cards).slice(0, n);
 
+// After this long, re-download an account's deck from scratch on load instead of
+// an incremental sync. Incremental sync only adds/updates, so observations
+// deleted or made private on iNaturalist would otherwise linger forever; a
+// periodic full refresh prunes them (and repairs any cache drift).
+const STALE_REFRESH_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+
 // Keep the native launch screen up until our own (identical-looking) JS splash
 // has actually painted — otherwise there's a black flash in the gap between the
 // native splash auto-hiding and React rendering its first frame. We hide it
@@ -387,7 +393,11 @@ export default function App() {
   const loadAccount = useCallback(
     async (name, prefs, cache) => {
       const usable = cache || (await loadCache());
-      if (cacheMatches(usable, name, prefs.locale)) {
+      const cacheOk = cacheMatches(usable, name, prefs.locale);
+      // Once the cache is old enough, re-download in full so deletions on
+      // iNaturalist are reflected (incremental sync can't remove cards).
+      const stale = cacheOk && Date.now() - (usable.syncedAt || 0) > STALE_REFRESH_MS;
+      if (cacheOk && !stale) {
         // Load this account's flagged species (per-username, like the obs
         // cache). The full-download path loads them itself on success — never
         // up front, so a failed account switch can't leave the old deck paired
