@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.11';
+export const APP_VERSION = '2.21.12';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.12',
+    date: '2026-06-29',
+    changes: [
+      '“Pick the right one” now gives up quickly when it can’t reach the network '
+        + 'instead of retrying its way through your whole deck.',
+    ],
+  },
   {
     version: '2.21.11',
     date: '2026-06-29',

@@ -580,6 +580,13 @@ export default function App() {
     setPickRound(null);
     setPickLoading(true);
 
+    // Give up after this many candidates in a row return no curated photo at
+    // all. A real species always has one, so a run of empties means the network
+    // is down or we're rate-limited — bail instead of walking the whole deck
+    // (~2-3 API calls each) hammering the 60/min limit.
+    const MAX_CONSECUTIVE_EMPTY = 6;
+    let consecutiveEmpty = 0;
+
     for (let i = startIdx; i < roundDeck.length; i++) {
       const card = roundDeck[i];
       const [correctPhotos, similar] = await Promise.all([
@@ -587,6 +594,15 @@ export default function App() {
         fetchSimilarSpecies(card.taxonId, locale),
       ]);
       if (pickReqRef.current !== reqId) return; // superseded — bail
+
+      // No curated photo for the target → can't build a round anyway, and if it
+      // keeps happening the API is likely unavailable. Skip the extra batch call
+      // and count toward the early-abort threshold.
+      if (correctPhotos.length === 0) {
+        if (++consecutiveEmpty >= MAX_CONSECUTIVE_EMPTY) break;
+        continue;
+      }
+      consecutiveEmpty = 0;
 
       // Distractors must use OFFICIAL curated photos too (not the single
       // default thumbnail), so fetch each similar species' curated photos in
@@ -609,7 +625,7 @@ export default function App() {
       }
       // else: not enough look-alikes with curated photos; try the next card.
     }
-    // Ran out of usable cards.
+    // Ran out of usable cards (or bailed early on repeated empty lookups).
     setPickLoading(false);
     if (onExhausted) onExhausted();
   }, [locale]);
