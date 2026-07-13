@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.12';
+export const APP_VERSION = '2.21.13';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.13',
+    date: '2026-06-29',
+    changes: [
+      'The fullscreen photo viewer now adapts to screen-size changes (e.g. '
+        + 'rotating an iPad).',
+    ],
+  },
   {
     version: '2.21.12',
     date: '2026-06-29',

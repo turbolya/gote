@@ -13,13 +13,11 @@ import {
   ScrollView,
   FlatList,
   ActivityIndicator,
-  Dimensions,
+  useWindowDimensions,
   StyleSheet,
 } from 'react-native';
 import Icon from './Icon';
 import { Appear } from './anim';
-
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 const DOUBLE_TAP_MS = 280;
 const MAX_ZOOM = 5;
@@ -27,8 +25,9 @@ const MAX_ZOOM = 5;
 const DOUBLE_TAP_ZOOM = 3;
 
 // One swipeable page: pinch-to-zoom plus double-tap to toggle between fit-to-
-// screen (1×) and a zoomed-in view centered on the tapped point.
-function ZoomablePage({ uri }) {
+// screen (1×) and a zoomed-in view centered on the tapped point. Sized from the
+// live window dimensions (passed in) so it stays correct across rotation/resize.
+function ZoomablePage({ uri, screenW, screenH }) {
   const scrollRef = useRef(null);
   const zoomedRef = useRef(false);
   const lastTap = useRef(0);
@@ -38,11 +37,11 @@ function ZoomablePage({ uri }) {
     const zoom = responder?.scrollResponderZoomTo;
     if (typeof zoom !== 'function') return; // iOS-only API; no-op elsewhere
     if (scale <= 1) {
-      zoom.call(responder, { x: 0, y: 0, width: SCREEN_W, height: SCREEN_H, animated: true });
+      zoom.call(responder, { x: 0, y: 0, width: screenW, height: screenH, animated: true });
       zoomedRef.current = false;
     } else {
-      const w = SCREEN_W / scale;
-      const h = SCREEN_H / scale;
+      const w = screenW / scale;
+      const h = screenH / scale;
       zoom.call(responder, {
         x: Math.max(0, x - w / 2),
         y: Math.max(0, y - h / 2),
@@ -73,7 +72,7 @@ function ZoomablePage({ uri }) {
   return (
     <ScrollView
       ref={scrollRef}
-      style={styles.page}
+      style={[styles.page, { width: screenW }]}
       contentContainerStyle={styles.pageContent}
       maximumZoomScale={MAX_ZOOM}
       minimumZoomScale={1}
@@ -85,7 +84,7 @@ function ZoomablePage({ uri }) {
       scrollEventThrottle={16}
     >
       <Pressable onPress={onTap}>
-        <Image source={{ uri }} style={styles.img} resizeMode="contain" />
+        <Image source={{ uri }} style={{ width: screenW, height: screenH }} resizeMode="contain" />
       </Pressable>
     </ScrollView>
   );
@@ -99,6 +98,7 @@ export default function PhotoViewer({
   startIndex = 0,
   onClose,
 }) {
+  const { width: screenW, height: screenH } = useWindowDimensions();
   return (
     <Modal
       visible={visible}
@@ -124,13 +124,15 @@ export default function PhotoViewer({
             pagingEnabled
             initialScrollIndex={Math.min(startIndex, photos.length - 1)}
             getItemLayout={(_, i) => ({
-              length: SCREEN_W,
-              offset: SCREEN_W * i,
+              length: screenW,
+              offset: screenW * i,
               index: i,
             })}
             keyExtractor={(uri, i) => `${i}-${uri}`}
             showsHorizontalScrollIndicator={false}
-            renderItem={({ item }) => <ZoomablePage uri={item} />}
+            renderItem={({ item }) => (
+              <ZoomablePage uri={item} screenW={screenW} screenH={screenH} />
+            )}
           />
         )}
         </Appear>
@@ -157,9 +159,8 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: '#000' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   emptyText: { color: 'rgba(255,255,255,0.7)', fontSize: 15 },
-  page: { width: SCREEN_W },
+  page: { flex: 1 },
   pageContent: { flexGrow: 1, alignItems: 'center', justifyContent: 'center' },
-  img: { width: SCREEN_W, height: SCREEN_H },
   titleBar: {
     position: 'absolute',
     top: 52,
