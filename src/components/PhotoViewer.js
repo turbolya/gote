@@ -1,21 +1,27 @@
-// A reusable fullscreen photo viewer: a horizontally-paged, pinch-zoomable set
-// of images. Used by the "Pick the right one" tiles for both "zoom this photo"
-// (one image) and "other photos of this species" (several). Core RN only
-// (Modal + ScrollView pinch-zoom + paged FlatList) so it works in Expo Go.
+// A reusable fullscreen photo viewer: a horizontally-paged set of images, each
+// pinch-zoomable, pan-when-zoomed, and double-tap to toggle zoom. Cross-platform
+// (iOS + Android) via react-native-gesture-handler + reanimated. Used by the
+// "Pick the right one" tiles and the species/study photo galleries.
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
   Image,
   Pressable,
   Modal,
-  ScrollView,
   FlatList,
   ActivityIndicator,
   useWindowDimensions,
   StyleSheet,
 } from 'react-native';
+import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
 import Icon from './Icon';
 import { Appear } from './anim';
 
@@ -24,69 +30,122 @@ const MAX_ZOOM = 5;
 // Double-tap zoom level (a strong "zoom in to detail"; pinch can still go further).
 const DOUBLE_TAP_ZOOM = 3;
 
-// One swipeable page: pinch-to-zoom plus double-tap to toggle between fit-to-
-// screen (1×) and a zoomed-in view centered on the tapped point. Sized from the
-// live window dimensions (passed in) so it stays correct across rotation/resize.
-function ZoomablePage({ uri, screenW, screenH }) {
-  const scrollRef = useRef(null);
-  const zoomedRef = useRef(false);
-  const lastTap = useRef(0);
-
-  const zoomTo = (scale, x, y) => {
-    const responder = scrollRef.current?.getScrollResponder?.() || scrollRef.current;
-    const zoom = responder?.scrollResponderZoomTo;
-    if (typeof zoom !== 'function') return; // iOS-only API; no-op elsewhere
-    if (scale <= 1) {
-      zoom.call(responder, { x: 0, y: 0, width: screenW, height: screenH, animated: true });
-      zoomedRef.current = false;
-    } else {
-      const w = screenW / scale;
-      const h = screenH / scale;
-      zoom.call(responder, {
-        x: Math.max(0, x - w / 2),
-        y: Math.max(0, y - h / 2),
-        width: w,
-        height: h,
-        animated: true,
-      });
-      zoomedRef.current = true;
-    }
+// One swipeable, zoomable page. `onZoomChange(true|false)` tells the parent to
+// disable horizontal paging while this page is zoomed in (so a pan drags the
+// image instead of flipping to the next photo).
+function ZoomablePage({ uri, screenW, screenH, onZoomChange }) {
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const tx = useSharedValue(0);
+  const ty = useSharedValue(0);
+  const savedTx = useSharedValue(0);
+  const savedTy = useSharedValue(0);
+  // JS-side mirror of "is this page zoomed", to enable the pan gesture and to
+  // notify the parent (which toggles the FlatList's horizontal paging).
+  const [zoomed, setZoomed] = useState(false);
+  const notify = (z) => {
+    setZoomed(z);
+    if (onZoomChange) onZoomChange(z);
   };
 
-  const onTap = (e) => {
-    const now = Date.now();
-    const { locationX, locationY } = e.nativeEvent;
-    if (now - lastTap.current < DOUBLE_TAP_MS) {
-      lastTap.current = 0;
-      zoomTo(zoomedRef.current ? 1 : DOUBLE_TAP_ZOOM, locationX, locationY);
-    } else {
-      lastTap.current = now;
-    }
+  // Keep the image within bounds for the current scale (worklet).
+  const clamp = () => {
+    'worklet';
+    const maxX = Math.max(0, (screenW * scale.value - screenW) / 2);
+    const maxY = Math.max(0, (screenH * scale.value - screenH) / 2);
+    tx.value = Math.min(maxX, Math.max(-maxX, tx.value));
+    ty.value = Math.min(maxY, Math.max(-maxY, ty.value));
   };
 
-  // Keep the toggle in sync if the user pinch-zooms manually.
-  const onScroll = (e) => {
-    zoomedRef.current = e.nativeEvent.zoomScale > 1.01;
+  const resetZoom = () => {
+    'worklet';
+    scale.value = withTiming(1);
+    savedScale.value = 1;
+    tx.value = withTiming(0);
+    ty.value = withTiming(0);
+    savedTx.value = 0;
+    savedTy.value = 0;
+    runOnJS(notify)(false);
   };
+
+  const pinch = Gesture.Pinch()
+    .onUpdate((e) => {
+      'worklet';
+      scale.value = Math.max(1, Math.min(MAX_ZOOM, savedScale.value * e.scale));
+    })
+    .onEnd(() => {
+      'worklet';
+      if (scale.value <= 1.01) {
+        resetZoom();
+      } else {
+        savedScale.value = scale.value;
+        clamp();
+        savedTx.value = tx.value;
+        savedTy.value = ty.value;
+        runOnJS(notify)(true);
+      }
+    });
+
+  // Pan only matters while zoomed; disabled otherwise so horizontal swipes page
+  // between photos.
+  const pan = Gesture.Pan()
+    .enabled(zoomed)
+    .onUpdate((e) => {
+      'worklet';
+      tx.value = savedTx.value + e.translationX;
+      ty.value = savedTy.value + e.translationY;
+    })
+    .onEnd(() => {
+      'worklet';
+      clamp();
+      savedTx.value = tx.value;
+      savedTy.value = ty.value;
+    });
+
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .maxDelay(DOUBLE_TAP_MS)
+    .onEnd((e) => {
+      'worklet';
+      if (scale.value > 1.01) {
+        resetZoom();
+      } else {
+        const target = DOUBLE_TAP_ZOOM;
+        scale.value = withTiming(target);
+        savedScale.value = target;
+        // Shift toward the tapped point, clamped to bounds.
+        const maxX = (screenW * target - screenW) / 2;
+        const maxY = (screenH * target - screenH) / 2;
+        const cx = Math.min(maxX, Math.max(-maxX, (screenW / 2 - e.x) * (target - 1)));
+        const cy = Math.min(maxY, Math.max(-maxY, (screenH / 2 - e.y) * (target - 1)));
+        tx.value = withTiming(cx);
+        ty.value = withTiming(cy);
+        savedTx.value = cx;
+        savedTy.value = cy;
+        runOnJS(notify)(true);
+      }
+    });
+
+  const gesture = Gesture.Simultaneous(pinch, pan, doubleTap);
+
+  const imgStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: tx.value },
+      { translateY: ty.value },
+      { scale: scale.value },
+    ],
+  }));
 
   return (
-    <ScrollView
-      ref={scrollRef}
-      style={[styles.page, { width: screenW }]}
-      contentContainerStyle={styles.pageContent}
-      maximumZoomScale={MAX_ZOOM}
-      minimumZoomScale={1}
-      bouncesZoom
-      centerContent
-      showsHorizontalScrollIndicator={false}
-      showsVerticalScrollIndicator={false}
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-    >
-      <Pressable onPress={onTap}>
-        <Image source={{ uri }} style={{ width: screenW, height: screenH }} resizeMode="contain" />
-      </Pressable>
-    </ScrollView>
+    <GestureDetector gesture={gesture}>
+      <Animated.View style={[styles.page, { width: screenW, height: screenH }]}>
+        <Animated.Image
+          source={{ uri }}
+          style={[{ width: screenW, height: screenH }, imgStyle]}
+          resizeMode="contain"
+        />
+      </Animated.View>
+    </GestureDetector>
   );
 }
 
@@ -99,6 +158,11 @@ export default function PhotoViewer({
   onClose,
 }) {
   const { width: screenW, height: screenH } = useWindowDimensions();
+  // Horizontal paging is disabled while any page is zoomed in, so a pan drags
+  // the image rather than flipping photos.
+  const [paging, setPaging] = useState(true);
+  const listRef = useRef(null);
+
   return (
     <Modal
       visible={visible}
@@ -106,6 +170,7 @@ export default function PhotoViewer({
       animationType="fade"
       onRequestClose={onClose}
     >
+      <GestureHandlerRootView style={styles.flex}>
       <View style={styles.backdrop}>
         <Appear style={styles.flex} offset={0} scaleFrom={0.92} duration={260}>
         {loading ? (
@@ -119,9 +184,11 @@ export default function PhotoViewer({
           </View>
         ) : (
           <FlatList
+            ref={listRef}
             data={photos}
             horizontal
             pagingEnabled
+            scrollEnabled={paging}
             initialScrollIndex={Math.min(startIndex, photos.length - 1)}
             getItemLayout={(_, i) => ({
               length: screenW,
@@ -131,7 +198,12 @@ export default function PhotoViewer({
             keyExtractor={(uri, i) => `${i}-${uri}`}
             showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
-              <ZoomablePage uri={item} screenW={screenW} screenH={screenH} />
+              <ZoomablePage
+                uri={item}
+                screenW={screenW}
+                screenH={screenH}
+                onZoomChange={(z) => setPaging(!z)}
+              />
             )}
           />
         )}
@@ -156,6 +228,7 @@ export default function PhotoViewer({
           <Icon name="x" size={22} color="#fff" />
         </Pressable>
       </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -165,8 +238,7 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: '#000' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   emptyText: { color: 'rgba(255,255,255,0.7)', fontSize: 15 },
-  page: { flex: 1 },
-  pageContent: { flexGrow: 1, alignItems: 'center', justifyContent: 'center' },
+  page: { alignItems: 'center', justifyContent: 'center' },
   titleBar: {
     position: 'absolute',
     top: 52,

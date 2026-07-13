@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.18';
+export const APP_VERSION = '2.21.19';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.19',
+    date: '2026-06-29',
+    changes: [
+      'Fullscreen photos are now pinch-to-zoom, drag-to-pan, and double-tap-to-'
+        + 'zoom on Android too (previously zoom worked only on iOS).',
+    ],
+  },
   {
     version: '2.21.18',
     date: '2026-06-29',
