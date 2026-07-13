@@ -115,13 +115,13 @@ describe('Settings & statistics', () => {
     await tap('menu-stats'); // Statistics opens from the accuracy banner
     // Per-species list + sort options (a flash round was played earlier, so
     // there's at least one species with tallies). The trend charts sit above
-    // the sort options, so scroll them into view first.
-    await scrollToId('stats-sort-pct', 'stats-scroll');
-    await tap('stats-sort-incorrect');
-    await tap('stats-sort-correct');
+    // the sort/filter controls, AND changing the sort or filter scrolls the list
+    // back to the top — so re-scroll to each control before tapping it.
+    await tapScroll('stats-sort-incorrect', 'stats-scroll');
+    await tapScroll('stats-sort-correct', 'stats-scroll');
     // Filter toggle: my observations (default) ↔ all species ever seen.
-    await tap('stats-filter');
-    await tap('stats-filter');
+    await tapScroll('stats-filter', 'stats-scroll');
+    await tapScroll('stats-filter', 'stats-scroll');
     await scrollToId('stats-reset', 'stats-scroll');
     await expect(element(by.id('stats-reset'))).toBeVisible();
     await tap('screen-back');
