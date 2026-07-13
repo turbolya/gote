@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.7';
+export const APP_VERSION = '2.21.8';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.8',
+    date: '2026-06-29',
+    changes: [
+      'Ending a round no longer risks double-counting your score if the button '
+        + 'is tapped twice quickly.',
+    ],
+  },
   {
     version: '2.21.7',
     date: '2026-06-29',

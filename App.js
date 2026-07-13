@@ -255,6 +255,11 @@ export default function App() {
   // How to restart the current mode (used by the "Play again" button).
   const replayRef = useRef(() => {});
 
+  // Guards finishRound against double-firing (e.g. double-tapping "End", or
+  // "End" racing the final-card grade), which would double-count lifetime stats
+  // and add a duplicate streak/history entry. Reset when a round starts.
+  const finishedRef = useRef(false);
+
   // Latest "leave Settings" handler, registered by SettingsScreen while it's
   // mounted. Lets the swipe-back gesture apply pending settings on exit exactly
   // like the header back button (which routes through SettingsScreen.leave) —
@@ -468,6 +473,7 @@ export default function App() {
   // blank screen.
   const startRound = useCallback((cards, m, label = '', pool = null) => {
     if (!cards || cards.length === 0) return;
+    finishedRef.current = false;
     setMode(m);
     setRoundLabel(label);
     setDeck(shuffle(cards));
@@ -601,6 +607,7 @@ export default function App() {
 
   const startPick = useCallback(() => {
     replayRef.current = startPick;
+    finishedRef.current = false;
     const roundDeck = shuffle(fullDeck);
     setMode('pick');
     setRoundLabel('Pick the right one');
@@ -628,6 +635,8 @@ export default function App() {
   );
 
   const finishRound = useCallback(async (finalCorrect, finalMissed, total) => {
+    if (finishedRef.current) return; // already finishing this round — ignore
+    finishedRef.current = true;
     const updated = await addToStats(total, finalCorrect);
     setLifetime(updated);
     // Persist the per-species tallies accumulated during the round.
