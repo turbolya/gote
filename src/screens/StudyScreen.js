@@ -47,6 +47,7 @@ const cardName = (c) => (c ? c.common || c.scientific : '');
 export default function StudyScreen({
   deck,
   index,
+  loopNonce = 0,
   correctCount,
   roundLabel,
   speedrun = false,
@@ -69,8 +70,9 @@ export default function StudyScreen({
 
   // Reset flip/phase *during render* (not in an effect) whenever the displayed
   // card changes, so a fresh card never shows the previous card's revealed
-  // state for a frame. Keyed on card identity, not just index.
-  const shownKey = `${index}:${card ? card.id : ''}`;
+  // state for a frame. Keyed on card identity, plus `loopNonce` so a Speedrun
+  // reshuffle onto the same (e.g. single-card) deck still counts as a new card.
+  const shownKey = `${loopNonce}:${index}:${card ? card.id : ''}`;
   const [prevKey, setPrevKey] = useState(shownKey);
   if (prevKey !== shownKey) {
     setPrevKey(shownKey);

@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.5';
+export const APP_VERSION = '2.21.6';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.6',
+    date: '2026-06-29',
+    changes: [
+      'Fixed Speedrun getting stuck (and mis-counting your score) when your deck '
+        + 'had only a single card.',
+    ],
+  },
   {
     version: '2.21.5',
     date: '2026-06-29',

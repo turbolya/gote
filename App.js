@@ -233,6 +233,12 @@ export default function App() {
   const [roundLabel, setRoundLabel] = useState('');
   const [mode, setMode] = useState('all'); // all | 16 | custom | speedrun | pick
   const [lives, setLives] = useState(SPEEDRUN_LIVES);
+  // Bumped whenever Speedrun loops back to index 0 on a reshuffle. With a
+  // single-card deck the index and card id don't change on the loop, so the
+  // study screen's card-identity key wouldn't change and its per-card state
+  // (phase/photo) would never reset — leaving the round stuck on the answered
+  // card. Including this in the key forces the reset.
+  const [loopNonce, setLoopNonce] = useState(0);
 
   // "Pick the right one" mode: each round's options are fetched per-card.
   const [pickRound, setPickRound] = useState(null);
@@ -470,6 +476,7 @@ export default function App() {
     setCorrectCount(0);
     setMissed([]);
     setLives(SPEEDRUN_LIVES);
+    setLoopNonce(0);
     setScreen('study');
   }, []);
 
@@ -673,6 +680,9 @@ export default function App() {
         if (index + 1 >= deck.length) {
           setDeck(shuffle(deck));
           setIndex(0);
+          // Force a fresh card even when the deck is a single card (index + id
+          // unchanged), so the round doesn't stick on the answered state.
+          setLoopNonce((n) => n + 1);
         } else {
           setIndex(index + 1);
         }
@@ -741,6 +751,7 @@ export default function App() {
           <StudyScreen
             deck={deck}
             index={index}
+            loopNonce={loopNonce}
             correctCount={correctCount}
             roundLabel={roundLabel}
             speedrun={mode === 'speedrun'}
