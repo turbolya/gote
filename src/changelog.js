@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.19';
+export const APP_VERSION = '2.21.20';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.20',
+    date: '2026-06-29',
+    changes: [
+      'On Android, Nearby species now uses your current location with an '
+        + 'adjustable radius (the map and place search stay iOS-only for now).',
+    ],
+  },
   {
     version: '2.21.19',
     date: '2026-06-29',

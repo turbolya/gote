@@ -15,6 +15,7 @@ import {
   Pressable,
   Image,
   ActivityIndicator,
+  Platform,
   StyleSheet,
   Animated,
 } from 'react-native';
@@ -220,7 +221,13 @@ export default function StudyScreen({
 
   // Whether this observation has coordinates for the map pin (older cached cards
   // downloaded before this feature won't, and obscured/private ones may not).
-  const hasGeo = !!card && Number.isFinite(card.lat) && Number.isFinite(card.lng);
+  // The map (react-native-maps) needs a Google Maps key on Android, so the pin
+  // is iOS-only for now.
+  const hasGeo =
+    !!card &&
+    Number.isFinite(card.lat) &&
+    Number.isFinite(card.lng) &&
+    Platform.OS !== 'android';
 
   // Shared fullscreen scaffold: photo fills the screen, top gradient holds the
   // exit/progress/score chrome. Bottom content differs per mode.

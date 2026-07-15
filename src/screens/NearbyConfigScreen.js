@@ -10,6 +10,7 @@ import {
   Pressable,
   ScrollView,
   ActivityIndicator,
+  Platform,
   StyleSheet,
 } from 'react-native';
 import * as Location from 'expo-location';
@@ -72,6 +73,10 @@ const DEFAULT_REGION = { latitude: 25, longitude: 0, latitudeDelta: 100, longitu
 export default function NearbyConfigScreen({ onBack, onStart }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
+  // react-native-maps needs a Google Maps API key on Android (which we don't
+  // ship), so the map is blank there. On Android we drop the map + place search
+  // and use the device's current location only, with an adjustable radius.
+  const mapEnabled = Platform.OS !== 'android';
   // Selected location: { lat, lng, name } | null.
   const [place, setPlace] = useState(null);
   const [query, setQuery] = useState('');
@@ -218,8 +223,9 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
       >
         {/* Quick note: this mode is location-based, not account-based. */}
         <Text style={styles.intro}>
-          Learn the species most commonly observed near a place — drawn from all
-          iNaturalist observers there, not just your own records.
+          Learn the species most commonly observed near
+          {mapEnabled ? ' a place' : ' you'} — drawn from all iNaturalist
+          observers there, not just your own records.
         </Text>
 
         {/* Location */}
@@ -250,70 +256,77 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
               <Text style={styles.gpsText}>Use my location</Text>
             </Pressable>
 
-            <View style={styles.searchWrap}>
-              <Icon name="search" size={18} color={colors.muted} />
-              <TextInput
-                testID="nearby-search"
-                style={styles.search}
-                value={query}
-                onChangeText={onChangeQuery}
-                placeholder="Search for a place…"
-                placeholderTextColor={colors.muted}
-                autoCorrect={false}
-              />
-              {searching && <ActivityIndicator size="small" color={colors.muted} />}
-            </View>
+            {mapEnabled && (
+              <>
+                <View style={styles.searchWrap}>
+                  <Icon name="search" size={18} color={colors.muted} />
+                  <TextInput
+                    testID="nearby-search"
+                    style={styles.search}
+                    value={query}
+                    onChangeText={onChangeQuery}
+                    placeholder="Search for a place…"
+                    placeholderTextColor={colors.muted}
+                    autoCorrect={false}
+                  />
+                  {searching && <ActivityIndicator size="small" color={colors.muted} />}
+                </View>
 
-            {results.map((p) => (
-              <Pressable
-                key={p.id}
-                testID={`nearby-result-${p.id}`}
-                style={styles.resultRow}
-                onPress={() => pickPlace(p)}
-              >
-                <Icon name="map-pin" size={16} color={colors.muted} />
-                <Text style={styles.resultText} numberOfLines={1}>
-                  {p.name}
-                </Text>
-              </Pressable>
-            ))}
+                {results.map((p) => (
+                  <Pressable
+                    key={p.id}
+                    testID={`nearby-result-${p.id}`}
+                    style={styles.resultRow}
+                    onPress={() => pickPlace(p)}
+                  >
+                    <Icon name="map-pin" size={16} color={colors.muted} />
+                    <Text style={styles.resultText} numberOfLines={1}>
+                      {p.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </>
+            )}
           </>
         )}
 
-        {/* Map: tap to drop a pin; the circle shows the chosen search radius. */}
-        <View style={[styles.mapWrap, styles.section]}>
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            initialRegion={place ? regionFor(place.lat, place.lng, radius) : DEFAULT_REGION}
-            onPress={onMapPress}
-          >
-            {place && (
-              <>
-                <Marker
-                  coordinate={{ latitude: place.lat, longitude: place.lng }}
-                  draggable
-                  onDragEnd={onMarkerDragEnd}
-                />
-                <Circle
-                  center={{ latitude: place.lat, longitude: place.lng }}
-                  radius={radius * 1000}
-                  strokeColor={colors.primary}
-                  strokeWidth={2}
-                  fillColor="rgba(0,138,172,0.15)"
-                />
-              </>
-            )}
-          </MapView>
-          {!place && (
-            <View style={styles.mapHint} pointerEvents="none">
-              <View style={styles.mapHintPill}>
-                <Icon name="map-pin" size={15} color="#fff" />
-                <Text style={styles.mapHintText}>Tap the map to drop a pin</Text>
+        {/* Map: tap to drop a pin; the circle shows the chosen search radius.
+            Hidden on Android (no Google Maps key) — location is GPS-only there. */}
+        {mapEnabled && (
+          <View style={[styles.mapWrap, styles.section]}>
+            <MapView
+              ref={mapRef}
+              style={styles.map}
+              initialRegion={place ? regionFor(place.lat, place.lng, radius) : DEFAULT_REGION}
+              onPress={onMapPress}
+            >
+              {place && (
+                <>
+                  <Marker
+                    coordinate={{ latitude: place.lat, longitude: place.lng }}
+                    draggable
+                    onDragEnd={onMarkerDragEnd}
+                  />
+                  <Circle
+                    center={{ latitude: place.lat, longitude: place.lng }}
+                    radius={radius * 1000}
+                    strokeColor={colors.primary}
+                    strokeWidth={2}
+                    fillColor="rgba(0,138,172,0.15)"
+                  />
+                </>
+              )}
+            </MapView>
+            {!place && (
+              <View style={styles.mapHint} pointerEvents="none">
+                <View style={styles.mapHintPill}>
+                  <Icon name="map-pin" size={15} color="#fff" />
+                  <Text style={styles.mapHintText}>Tap the map to drop a pin</Text>
+                </View>
               </View>
-            </View>
-          )}
-        </View>
+            )}
+          </View>
+        )}
 
         {/* Radius */}
         <View style={[styles.radiusHeader, styles.section]}>
