@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.20';
+export const APP_VERSION = '2.21.21';
 
 export const CHANGELOG = [
+  {
+    version: '2.21.21',
+    date: '2026-07-15',
+    changes: [
+      'Internal: the App Store screenshot tooling now seeds realistic sample '
+        + 'stats (a full accuracy chart and a populated Statistics page). No '
+        + 'change to the app you use.',
+    ],
+  },
   {
     version: '2.21.20',
     date: '2026-06-29',

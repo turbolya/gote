@@ -66,8 +66,9 @@ import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME
 import { buildPickRound } from './src/quiz';
 import { prefetchImages } from './src/prefetch';
 import { groupKey, ThemeProvider, themeFor, resolveScheme } from './src/theme';
-import { IS_E2E } from './src/e2e/testMode';
+import { IS_E2E, IS_SHOTS } from './src/e2e/testMode';
 import { E2E_CARDS } from './src/e2e/fixtures';
+import { seedScreenshotStats } from './src/e2e/shotsSeed';
 import MenuScreen from './src/screens/MenuScreen';
 import CustomScreen from './src/screens/CustomScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -503,6 +504,26 @@ export default function App() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Screenshot builds only: once the real deck has loaded, plant realistic
+  // gameplay stats (busy hero chart, lifetime score, per-species breakdown keyed
+  // to this deck, active streak) so the App Store shots look like a used account.
+  // Runs once; the seeder persists + no-ops on later relaunches (see shotsSeed).
+  const shotsSeededRef = useRef(null);
+  useEffect(() => {
+    if (!IS_SHOTS) return;
+    if (!fullDeck || fullDeck.length === 0 || !username) return;
+    if (shotsSeededRef.current === username) return; // seeded this account already
+    shotsSeededRef.current = username;
+    seedScreenshotStats(fullDeck, username).then((seed) => {
+      if (!seed) return; // already seeded this account — restore loaded it
+      speciesRef.current = seed.species;
+      setSpeciesStats(seed.species);
+      setLifetime(seed.lifetime);
+      setHistory(seed.history);
+      setStreak(seed.streak);
+    });
+  }, [fullDeck, username]);
 
   // Start a fresh round from a set of cards. `pool` is the distractor pool for
   // multiple-choice (defaults to the round's own cards). An empty set is a

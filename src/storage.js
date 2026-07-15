@@ -93,6 +93,16 @@ export async function addToStats(answered, correct) {
   return next;
 }
 
+// Overwrite the lifetime totals wholesale (normal play uses addToStats). Used by
+// the screenshot seeder to plant a realistic lifetime score.
+export async function saveStats(stats) {
+  try {
+    await AsyncStorage.setItem(K_STATS, JSON.stringify(stats));
+  } catch {
+    /* ignore */
+  }
+}
+
 // Per-species tallies, keyed by taxon id: { [key]: { name, sci, known, missed } }.
 // Used by the statistics page (most missed / most known).
 export async function loadSpeciesStats() {
@@ -138,6 +148,19 @@ export async function loadHistory() {
     /* fall through */
   }
   return [];
+}
+
+// Overwrite the accuracy history wholesale (normal play uses addGameResult).
+// Used by the screenshot seeder to plant a full, trending chart.
+export async function saveHistory(history) {
+  try {
+    const arr = (Array.isArray(history) ? history : [])
+      .filter((n) => typeof n === 'number')
+      .slice(-MAX_HISTORY);
+    await AsyncStorage.setItem(K_HISTORY, JSON.stringify(arr));
+  } catch {
+    /* ignore */
+  }
 }
 
 // Append one finished game's accuracy percent and return the trimmed history.
@@ -189,6 +212,16 @@ export async function loadStreak() {
     /* fall through */
   }
   return { current: 0, longest: 0, lastActiveDay: null };
+}
+
+// Overwrite the streak record wholesale (normal play uses recordStreakDay).
+// Used by the screenshot seeder to plant an active multi-day streak.
+export async function saveStreak(streak) {
+  try {
+    await AsyncStorage.setItem(K_STREAK, JSON.stringify(streak));
+  } catch {
+    /* ignore */
+  }
 }
 
 // Mark today active and advance / continue / reset the streak. Idempotent within
