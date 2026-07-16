@@ -69,7 +69,7 @@ import { groupKey, ThemeProvider, themeFor, resolveScheme } from './src/theme';
 import { IS_E2E, IS_SHOTS } from './src/e2e/testMode';
 import { E2E_CARDS } from './src/e2e/fixtures';
 import { seedScreenshotStats } from './src/e2e/shotsSeed';
-import { pushWatchSnapshot } from './src/watch';
+import { pushWatchSnapshot, subscribeWatchResults } from './src/watch';
 import MenuScreen from './src/screens/MenuScreen';
 import CustomScreen from './src/screens/CustomScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -760,6 +760,44 @@ export default function App() {
       missed: prev.missed + (correct ? 0 : 1),
     };
   }, []);
+
+  // Results played on the Apple Watch: fold each answered card into the
+  // per-species tallies + lifetime totals + daily streak, and each finished
+  // wrist round into the accuracy history — wrist play counts exactly like
+  // phone play. Applications are serialized through a promise chain so the
+  // read-modify-write storage updates can't interleave. The streak uses the
+  // WATCH timestamp (recordStreakDay guards against rewinding, so late-synced
+  // results can't corrupt it). The updated stats then flow back to the watch
+  // via the snapshot-sync effect above.
+  const watchApplyRef = useRef(Promise.resolve());
+  useEffect(() => {
+    if (IS_E2E) return undefined;
+    const apply = (r) => {
+      watchApplyRef.current = watchApplyRef.current
+        .then(async () => {
+          if (!r || typeof r !== 'object') return;
+          if (r.kind === 'answer' && r.id != null) {
+            recordResult(
+              {
+                taxonId: r.id,
+                common: r.name,
+                scientific: r.sci || r.name,
+                image: r.image || null,
+              },
+              !!r.correct
+            );
+            saveSpeciesStats(speciesRef.current);
+            setSpeciesStats({ ...speciesRef.current });
+            setLifetime(await addToStats(1, r.correct ? 1 : 0));
+            setStreak(await recordStreakDay(r.ts || Date.now()));
+          } else if (r.kind === 'round' && r.total > 0) {
+            setHistory(await addGameResult((r.correct / r.total) * 100));
+          }
+        })
+        .catch(() => {});
+    };
+    return subscribeWatchResults(apply);
+  }, [recordResult]);
 
   const handleGrade = useCallback(
     (correct) => {

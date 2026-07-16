@@ -26,6 +26,7 @@ struct QuizView: View {
   @State private var score = 0
   @State private var total = 0
   @State private var lastId: Int? // avoid repeating the same card twice in a row
+  @State private var roundReported = false // summary sent to the phone once
 
   // Photo zoom (Digital Crown) + pan (drag). Reset for every new card.
   @State private var zoom: Double = 1.0
@@ -157,6 +158,14 @@ struct QuizView: View {
     VStack(spacing: 6) {
       Text("Round over")
         .font(.headline)
+        .onAppear {
+          // Queue the finished round for the phone's accuracy-history chart
+          // (once — the summary can only be entered, never revisited).
+          if !roundReported, total > 0 {
+            roundReported = true
+            WatchStore.shared.reportRound(correct: score, total: total)
+          }
+        }
       Text("\(score)/\(total)")
         .font(.system(size: 40, weight: .black, design: .rounded))
         .foregroundStyle(goteTeal)
@@ -187,7 +196,11 @@ struct QuizView: View {
     guard picked == nil, let round else { return }
     picked = option
     total += 1
-    if option == round.card.name { score += 1 }
+    let correct = option == round.card.name
+    if correct { score += 1 }
+    // Queue this answer to the phone so it counts into lifetime stats, the
+    // daily streak, and the per-species tallies.
+    WatchStore.shared.reportAnswer(card: round.card, correct: correct)
     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
       nextRound()
       phase = .photo

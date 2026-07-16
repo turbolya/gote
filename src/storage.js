@@ -231,6 +231,11 @@ export async function recordStreakDay(now = Date.now()) {
   const today = dayKey(d);
   const yesterday = prevDayKey(d);
   const prev = await loadStreak();
+  // Never rewind: results can arrive late (e.g. watch rounds syncing a day
+  // after they were played) — a timestamp older than the last active day must
+  // not move the streak backwards or reset it. (ISO YYYY-MM-DD compares
+  // correctly as a string.)
+  if (prev.lastActiveDay && today < prev.lastActiveDay) return prev;
   let current;
   if (prev.lastActiveDay === today) current = prev.current; // already counted
   else if (prev.lastActiveDay === yesterday) current = prev.current + 1; // continued

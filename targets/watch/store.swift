@@ -103,3 +103,35 @@ extension WatchStore: WCSessionDelegate {
     apply(context: applicationContext)
   }
 }
+
+// MARK: - Reporting results back to the phone
+
+// Wrist play counts: each answered card (and each finished round) is queued to
+// the phone with transferUserInfo — delivery survives the phone app being
+// closed and lands next time it runs. The phone folds these into the same
+// lifetime / streak / per-species / history stats as phone play, then pushes
+// an updated snapshot back here.
+extension WatchStore {
+  func reportAnswer(card: WatchCard, correct: Bool) {
+    guard WCSession.isSupported() else { return }
+    WCSession.default.transferUserInfo([
+      "kind": "answer",
+      "id": card.id,
+      "name": card.name,
+      "sci": card.sci,
+      "image": card.image,
+      "correct": correct,
+      "ts": Date().timeIntervalSince1970 * 1000,
+    ])
+  }
+
+  func reportRound(correct: Int, total: Int) {
+    guard WCSession.isSupported(), total > 0 else { return }
+    WCSession.default.transferUserInfo([
+      "kind": "round",
+      "correct": correct,
+      "total": total,
+      "ts": Date().timeIntervalSince1970 * 1000,
+    ])
+  }
+}

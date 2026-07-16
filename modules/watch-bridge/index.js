@@ -12,3 +12,20 @@ export function updateWatchContext(context) {
   if (!WatchBridge) return;
   WatchBridge.updateContext(context).catch(() => {});
 }
+
+// Subscribe to game results played on the watch. The native side buffers
+// every result; the event is only a wake-up, and consumePendingResults()
+// drains the buffer atomically — so results queued before JS attached still
+// arrive (drained immediately below) and nothing is double-processed.
+// Returns an unsubscribe function.
+export function subscribeWatchResults(onResult) {
+  if (!WatchBridge) return () => {};
+  const drain = () => {
+    WatchBridge.consumePendingResults()
+      .then((list) => (list || []).forEach(onResult))
+      .catch(() => {});
+  };
+  const sub = WatchBridge.addListener('onWatchResults', drain);
+  drain(); // anything that arrived before this subscription
+  return () => sub.remove();
+}

@@ -1,12 +1,20 @@
-// Phone-side WatchConnectivity bridge. The JS side (src/watch.js) calls
-// updateContext(...) with a small plist-safe snapshot (lifetime accuracy,
-// streak, mini-deck); WCSession delivers it to the paired watch as the
-// "application context" — the latest snapshot wins and is handed to the watch
-// app even if it isn't running when the update arrives.
+// Phone-side WatchConnectivity bridge.
+//
+// OUTBOUND — the JS side (src/watch.js) calls updateContext(...) with a small
+// plist-safe snapshot (lifetime accuracy, streak, mini-deck); WCSession
+// delivers it to the paired watch as the "application context" — the latest
+// snapshot wins and is handed to the watch app even if it isn't running when
+// the update arrives.
+//
+// INBOUND — the watch queues game results (answers / finished rounds) with
+// transferUserInfo. They're buffered here and drained by JS through
+// consumePendingResults(); the "onWatchResults" event is only a wake-up
+// signal, so results queued before JS attaches are never lost and never
+// double-processed.
 //
 // Everything here is a safe no-op when there is no paired watch (Android
 // never links this module; iPhones without a watch return isSupported()=false
-// or fail updateApplicationContext, which we swallow).
+// or fail the WCSession calls, which we swallow).
 
 import ExpoModulesCore
 import WatchConnectivity
@@ -14,6 +22,17 @@ import WatchConnectivity
 public class WatchBridgeModule: Module {
   public func definition() -> ModuleDefinition {
     Name("WatchBridge")
+
+    Events("onWatchResults")
+
+    // Activate the session at app start so results queued while the phone app
+    // was closed get delivered right away, and wire the wake-up event.
+    OnCreate {
+      WatchSessionHolder.shared.onResultsChanged = { [weak self] in
+        self?.sendEvent("onWatchResults", [:])
+      }
+      WatchSessionHolder.shared.activateIfNeeded()
+    }
 
     // Whether WatchConnectivity exists on this device at all (false on iPad).
     Function("isSupported") { () -> Bool in
@@ -25,14 +44,31 @@ public class WatchBridgeModule: Module {
     AsyncFunction("updateContext") { (context: [String: Any]) in
       WatchSessionHolder.shared.update(context: context)
     }
+
+    // Atomically take (and clear) every buffered watch game result.
+    AsyncFunction("consumePendingResults") { () -> [[String: Any]] in
+      WatchSessionHolder.shared.drainResults()
+    }
   }
 }
 
-// Owns the WCSession delegate + a pending snapshot to flush once the session
-// finishes activating (activation is asynchronous on first use).
+// Owns the WCSession delegate, a pending snapshot to flush once the session
+// finishes activating (activation is asynchronous on first use), and the
+// buffer of game results received from the watch.
 final class WatchSessionHolder: NSObject, WCSessionDelegate {
   static let shared = WatchSessionHolder()
+
+  var onResultsChanged: (() -> Void)?
   private var pending: [String: Any]?
+  private var results: [[String: Any]] = []
+  private let lock = NSLock()
+
+  func activateIfNeeded() {
+    guard WCSession.isSupported() else { return }
+    let session = WCSession.default
+    if session.delegate == nil { session.delegate = self }
+    if session.activationState != .activated { session.activate() }
+  }
 
   func update(context: [String: Any]) {
     guard WCSession.isSupported() else { return }
@@ -47,6 +83,14 @@ final class WatchSessionHolder: NSObject, WCSessionDelegate {
     }
   }
 
+  func drainResults() -> [[String: Any]] {
+    lock.lock()
+    defer { lock.unlock() }
+    let out = results
+    results = []
+    return out
+  }
+
   func session(
     _ session: WCSession,
     activationDidCompleteWith activationState: WCSessionActivationState,
@@ -56,6 +100,15 @@ final class WatchSessionHolder: NSObject, WCSessionDelegate {
       try? session.updateApplicationContext(context)
       pending = nil
     }
+  }
+
+  // Game results from the watch (queued transferUserInfo — also delivered
+  // here on activation for anything sent while this app wasn't running).
+  func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+    lock.lock()
+    results.append(userInfo)
+    lock.unlock()
+    onResultsChanged?()
   }
 
   // Required by the protocol on iOS (multi-watch handoff); nothing to do.

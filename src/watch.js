@@ -8,7 +8,10 @@
 // module) and on iPhones without a paired watch.
 
 import { Platform } from 'react-native';
-import { updateWatchContext } from '../modules/watch-bridge';
+import {
+  updateWatchContext,
+  subscribeWatchResults as subscribeNative,
+} from '../modules/watch-bridge';
 import { toSmallPhoto } from './api';
 
 // How many cards to send. WatchConnectivity's application context should stay
@@ -55,4 +58,13 @@ export function pushWatchSnapshot({ lifetime, streak, deck }) {
   if (json === lastSent) return;
   lastSent = json;
   updateWatchContext(context);
+}
+
+// Subscribe to game results played on the watch (answers + finished rounds).
+// `onResult` receives each raw payload: { kind: 'answer', id, name, sci,
+// image, correct, ts } or { kind: 'round', correct, total, ts }. Returns an
+// unsubscribe function; a no-op off iOS.
+export function subscribeWatchResults(onResult) {
+  if (Platform.OS !== 'ios') return () => {};
+  return subscribeNative(onResult);
 }

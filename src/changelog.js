@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.23.1';
+export const APP_VERSION = '2.24.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.24.0',
+    date: '2026-07-16',
+    changes: [
+      'Rounds played on the Apple Watch now count: every answer feeds your '
+        + 'lifetime accuracy, per-species statistics, and daily streak, and '
+        + 'each finished wrist round joins the accuracy chart — synced to the '
+        + 'phone even if it was in your pocket, and reflected back on the '
+        + 'watch and its complications.',
+    ],
+  },
   {
     version: '2.23.1',
     date: '2026-07-16',
