@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.22.3';
+export const APP_VERSION = '2.23.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.23.0',
+    date: '2026-07-16',
+    changes: [
+      'Watch quiz redesigned: the photo now opens fullscreen — zoom with the '
+        + 'Digital Crown, pan by dragging. Tap › for the answer choices (your '
+        + 'pick turns green or red, then it auto-advances), or ✕ to end the '
+        + 'round with a session summary.',
+    ],
+  },
   {
     version: '2.22.3',
     date: '2026-07-16',
