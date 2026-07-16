@@ -52,8 +52,14 @@ struct HomeView: View {
             NavigationLink {
               QuizView(deck: store.snapshot.deck)
             } label: {
-              Label("Play", systemImage: "play.fill")
-                .font(.headline)
+              HStack(spacing: 8) {
+                Image("newt")
+                  .resizable()
+                  .scaledToFit()
+                  .frame(height: 22)
+                Text("Play")
+                  .font(.headline)
+              }
             }
             .buttonStyle(.borderedProminent)
             .tint(goteTeal)
@@ -66,7 +72,6 @@ struct HomeView: View {
         }
         .padding(.horizontal, 4)
       }
-      .navigationTitle("gote")
     }
   }
 }

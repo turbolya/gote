@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.22.0';
+export const APP_VERSION = '2.22.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.22.1',
+    date: '2026-07-16',
+    changes: [
+      'Watch app polish: cleaner home screen (no header) and the newt on the '
+        + 'Play button.',
+    ],
+  },
   {
     version: '2.22.0',
     date: '2026-07-16',

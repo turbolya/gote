@@ -12,6 +12,10 @@ module.exports = {
   bundleIdentifier: '.watch',
   deploymentTarget: '10.0',
   icon: '../../assets/app-icon.png',
+  // Generated into the target's asset catalog → usable as Image("newt").
+  images: {
+    newt: '../../assets/gote.png',
+  },
   entitlements: {
     'com.apple.security.application-groups': ['group.com.gote.app'],
   },

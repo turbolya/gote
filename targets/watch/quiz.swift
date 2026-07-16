@@ -58,7 +58,7 @@ struct QuizView: View {
         ProgressView()
       }
     }
-    .navigationTitle(total > 0 ? "\(score)/\(total)" : "gote")
+    .navigationTitle(total > 0 ? "\(score)/\(total)" : "")
     .onAppear { if round == nil { nextRound() } }
   }
 
