@@ -32,16 +32,20 @@ struct HomeView: View {
               .multilineTextAlignment(.center)
           }
 
-          // Daily streak
-          HStack(spacing: 6) {
-            Image(systemName: "flame.fill")
-              .foregroundStyle(store.snapshot.streak > 0 ? .orange : .secondary)
-            Text(store.snapshot.streak > 0
-              ? "\(store.snapshot.streak)-day streak"
-              : "No streak yet")
-              .font(.footnote.weight(.semibold))
+          // Daily streak — two stacked lines so nothing crops on small screens.
+          VStack(spacing: 1) {
+            HStack(spacing: 5) {
+              Image(systemName: "flame.fill")
+                .foregroundStyle(store.snapshot.streak > 0 ? .orange : .secondary)
+              Text(store.snapshot.streak > 0
+                ? "\(store.snapshot.streak)-day streak"
+                : "No streak yet")
+                .font(.footnote.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            }
             if store.snapshot.streakBest > 0 {
-              Text("· best \(store.snapshot.streakBest)")
+              Text("best: \(store.snapshot.streakBest)")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             }

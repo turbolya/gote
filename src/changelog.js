@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.22.2';
+export const APP_VERSION = '2.22.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.22.3',
+    date: '2026-07-16',
+    changes: [
+      'Watch app: the streak text no longer gets cropped — the personal best '
+        + 'moved to its own line.',
+    ],
+  },
   {
     version: '2.22.2',
     date: '2026-07-16',
