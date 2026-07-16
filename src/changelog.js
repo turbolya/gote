@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.23.0';
+export const APP_VERSION = '2.23.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.23.1',
+    date: '2026-07-16',
+    changes: [
+      'Watch quiz fix: picking an answer now visibly reveals the result — the '
+        + 'correct choice turns green and a wrong pick turns red.',
+    ],
+  },
   {
     version: '2.23.0',
     date: '2026-07-16',

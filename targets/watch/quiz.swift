@@ -114,18 +114,27 @@ struct QuizView: View {
       VStack(spacing: 6) {
         if let round {
           ForEach(round.options, id: \.self) { option in
+            // Plain button + explicit background: the .bordered style renders
+            // DISABLED buttons dimmed gray, which swallowed the green/red
+            // reveal tint. Extra taps during the reveal are ignored by the
+            // guard in choose() instead.
             Button {
               choose(option)
             } label: {
               Text(option)
                 .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white)
                 .lineLimit(2)
                 .minimumScaleFactor(0.75)
                 .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 6)
+                .background(
+                  RoundedRectangle(cornerRadius: 11)
+                    .fill(fill(for: option))
+                )
             }
-            .buttonStyle(.bordered)
-            .tint(tint(for: option))
-            .disabled(picked != nil)
+            .buttonStyle(.plain)
           }
         }
       }
@@ -165,13 +174,13 @@ struct QuizView: View {
 
   // MARK: - Logic
 
-  // Button tint: neutral while unanswered; after a pick, the right answer goes
-  // green and a wrong pick goes red.
-  private func tint(for option: String) -> Color {
-    guard let picked, let round else { return goteTeal }
-    if option == round.card.name { return .green }
-    if option == picked { return .red }
-    return .gray
+  // Button fill: translucent teal while unanswered; after a pick, the right
+  // answer goes solid green, a wrong pick solid red, the rest fade out.
+  private func fill(for option: String) -> Color {
+    guard let picked, let round else { return goteTeal.opacity(0.38) }
+    if option == round.card.name { return .green.opacity(0.85) }
+    if option == picked { return .red.opacity(0.85) }
+    return .gray.opacity(0.22)
   }
 
   private func choose(_ option: String) {
