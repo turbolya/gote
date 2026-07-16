@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.22.1';
+export const APP_VERSION = '2.22.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.22.2',
+    date: '2026-07-16',
+    changes: [
+      'The watch now offers two separate watch-face complications — Accuracy '
+        + 'and Streak — so you can add either (or both) to any face.',
+    ],
+  },
   {
     version: '2.22.1',
     date: '2026-07-16',

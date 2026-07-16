@@ -1,7 +1,8 @@
-// gote watch-face complication: lifetime accuracy (+ streak where the family
-// has room). Reads the snapshot the watch app persists to the shared app-group
-// defaults; the app reloads the timeline whenever a new snapshot arrives, so
-// `.never` refresh is enough.
+// gote watch-face complications. A WidgetBundle exposing TWO independent
+// complications — "Accuracy" (lifetime accuracy) and "Streak" (daily streak) —
+// so either (or both) can be placed on a watch face. Both read the snapshot
+// the watch app persists to the shared app-group defaults; the app reloads the
+// timelines whenever a new snapshot arrives, so `.never` refresh is enough.
 
 import SwiftUI
 import WidgetKit
@@ -14,6 +15,7 @@ struct GoteEntry: TimelineEntry {
   let accuracy: Int? // nil until something has been played
   let answered: Int
   let streak: Int
+  let streakBest: Int
 }
 
 private func loadEntry() -> GoteEntry {
@@ -24,15 +26,16 @@ private func loadEntry() -> GoteEntry {
       date: .now,
       accuracy: obj["accuracy"] as? Int,
       answered: obj["answered"] as? Int ?? 0,
-      streak: obj["streak"] as? Int ?? 0
+      streak: obj["streak"] as? Int ?? 0,
+      streakBest: obj["streakBest"] as? Int ?? 0
     )
   }
-  return GoteEntry(date: .now, accuracy: nil, answered: 0, streak: 0)
+  return GoteEntry(date: .now, accuracy: nil, answered: 0, streak: 0, streakBest: 0)
 }
 
 struct GoteProvider: TimelineProvider {
   func placeholder(in context: Context) -> GoteEntry {
-    GoteEntry(date: .now, accuracy: 83, answered: 1680, streak: 12)
+    GoteEntry(date: .now, accuracy: 83, answered: 1680, streak: 12, streakBest: 21)
   }
 
   func getSnapshot(in context: Context, completion: @escaping (GoteEntry) -> Void) {
@@ -44,7 +47,9 @@ struct GoteProvider: TimelineProvider {
   }
 }
 
-struct GoteWidgetView: View {
+// MARK: - Accuracy complication
+
+struct AccuracyView: View {
   @Environment(\.widgetFamily) var family
   let entry: GoteEntry
 
@@ -52,9 +57,8 @@ struct GoteWidgetView: View {
     Group {
       switch family {
       case .accessoryCircular:
-        // Accuracy gauge with the streak flame as its label.
         Gauge(value: Double(entry.accuracy ?? 0), in: 0...100) {
-          Image(systemName: "flame.fill")
+          Text("acc")
         } currentValueLabel: {
           Text(entry.accuracy.map { "\($0)%" } ?? "–")
             .font(.system(.body, design: .rounded).weight(.bold))
@@ -63,14 +67,12 @@ struct GoteWidgetView: View {
         .gaugeStyle(.accessoryCircular)
 
       case .accessoryCorner:
-        Text(entry.accuracy.map { "\($0)%" } ?? "gote")
+        Text(entry.accuracy.map { "\($0)%" } ?? "–")
           .font(.system(.title3, design: .rounded).weight(.bold))
-          .widgetLabel {
-            Text(entry.streak > 0 ? "🔥 \(entry.streak)-day streak" : "gote")
-          }
+          .widgetLabel { Text("lifetime accuracy") }
 
       case .accessoryInline:
-        Text(inlineText)
+        Text(entry.accuracy.map { "gote \($0)% accuracy" } ?? "gote")
 
       default: // .accessoryRectangular
         VStack(alignment: .leading, spacing: 1) {
@@ -78,37 +80,101 @@ struct GoteWidgetView: View {
             .font(.headline.weight(.heavy))
           Text(entry.accuracy.map { "\($0)% lifetime accuracy" } ?? "No rounds yet")
             .font(.footnote)
-          HStack(spacing: 3) {
-            Image(systemName: "flame.fill")
-            Text(entry.streak > 0 ? "\(entry.streak)-day streak" : "no streak")
+          if entry.answered > 0 {
+            Text("\(entry.answered) cards answered")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
           }
-          .font(.footnote)
-          .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
       }
     }
     .containerBackground(for: .widget) { Color.clear }
   }
-
-  private var inlineText: String {
-    if let accuracy = entry.accuracy {
-      return entry.streak > 0 ? "gote \(accuracy)% · 🔥\(entry.streak)" : "gote \(accuracy)%"
-    }
-    return "gote"
-  }
 }
 
-@main
-struct GoteWatchWidget: Widget {
+struct AccuracyWidget: Widget {
   var body: some WidgetConfiguration {
-    StaticConfiguration(kind: "GoteWatchWidget", provider: GoteProvider()) { entry in
-      GoteWidgetView(entry: entry)
+    StaticConfiguration(kind: "GoteAccuracy", provider: GoteProvider()) { entry in
+      AccuracyView(entry: entry)
     }
-    .configurationDisplayName("gote")
-    .description("Your lifetime accuracy and daily streak.")
+    .configurationDisplayName("Accuracy")
+    .description("Your lifetime identification accuracy.")
     .supportedFamilies([
       .accessoryCircular, .accessoryCorner, .accessoryRectangular, .accessoryInline,
     ])
+  }
+}
+
+// MARK: - Streak complication
+
+struct StreakView: View {
+  @Environment(\.widgetFamily) var family
+  let entry: GoteEntry
+
+  var body: some View {
+    Group {
+      switch family {
+      case .accessoryCircular:
+        VStack(spacing: 0) {
+          Image(systemName: "flame.fill")
+            .font(.caption2)
+          Text("\(entry.streak)")
+            .font(.system(.title3, design: .rounded).weight(.bold))
+            .minimumScaleFactor(0.6)
+        }
+
+      case .accessoryCorner:
+        Text("\(entry.streak)")
+          .font(.system(.title3, design: .rounded).weight(.bold))
+          .widgetLabel {
+            Text(entry.streak > 0 ? "day streak" : "no streak")
+          }
+
+      case .accessoryInline:
+        Text(entry.streak > 0 ? "🔥 \(entry.streak)-day streak" : "gote — no streak")
+
+      default: // .accessoryRectangular
+        VStack(alignment: .leading, spacing: 1) {
+          Text("gote")
+            .font(.headline.weight(.heavy))
+          HStack(spacing: 3) {
+            Image(systemName: "flame.fill")
+            Text(entry.streak > 0 ? "\(entry.streak)-day streak" : "No streak yet")
+          }
+          .font(.footnote)
+          if entry.streakBest > 0 {
+            Text("Best: \(entry.streakBest)")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+      }
+    }
+    .containerBackground(for: .widget) { Color.clear }
+  }
+}
+
+struct StreakWidget: Widget {
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: "GoteStreak", provider: GoteProvider()) { entry in
+      StreakView(entry: entry)
+    }
+    .configurationDisplayName("Streak")
+    .description("Your daily play streak.")
+    .supportedFamilies([
+      .accessoryCircular, .accessoryCorner, .accessoryRectangular, .accessoryInline,
+    ])
+  }
+}
+
+// MARK: - Bundle
+
+@main
+struct GoteWidgets: WidgetBundle {
+  var body: some Widget {
+    AccuracyWidget()
+    StreakWidget()
   }
 }
