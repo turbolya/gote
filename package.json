@@ -1,6 +1,6 @@
 {
   "name": "gote",
-  "version": "2.21.21",
+  "version": "2.22.0",
   "license": "AGPL-3.0-only",
   "main": "index.js",
   "scripts": {
@@ -15,6 +15,7 @@
     "e2e:test:debug": "detox test --configuration ios.sim.debug"
   },
   "dependencies": {
+    "@bacons/apple-targets": "^4.0.7",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",

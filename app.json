@@ -2,7 +2,7 @@
   "expo": {
     "name": "gote",
     "slug": "gote",
-    "version": "2.21.21",
+    "version": "2.22.0",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "automatic",
@@ -37,7 +37,13 @@
           "locationWhenInUsePermission": "gote uses your location only to find species typically observed near you. It is not stored or shared."
         }
       ],
-      "@config-plugins/detox"
+      "@config-plugins/detox",
+      [
+        "@bacons/apple-targets",
+        {
+          "appleTeamId": "24M7W58WAU"
+        }
+      ]
     ],
     "extra": {
       "sentryDsn": ""

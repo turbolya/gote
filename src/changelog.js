@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.21.21';
+export const APP_VERSION = '2.22.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.22.0',
+    date: '2026-07-16',
+    changes: [
+      'New: Apple Watch companion app — see your lifetime accuracy and daily '
+        + 'streak at a glance, and play a quick 4-choice photo quiz from your '
+        + 'synced cards, right on your wrist.',
+      'New: a watch-face complication showing your accuracy and streak.',
+    ],
+  },
   {
     version: '2.21.21',
     date: '2026-07-15',

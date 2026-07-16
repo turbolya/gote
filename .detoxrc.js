@@ -16,14 +16,18 @@ module.exports = {
     'ios.debug': {
       type: 'ios.app',
       binaryPath: 'ios/build/Build/Products/Debug-iphonesimulator/Gote.app',
+      // NOTE: -destination, not -sdk. Passing -sdk iphonesimulator overrides
+      // the SDK for EVERY target in the scheme — including the embedded watchOS
+      // app/widget (targets/), which then fail to compile against the iOS SDK.
       build:
-        'EXPO_PUBLIC_E2E=1 xcodebuild -workspace ios/Gote.xcworkspace -scheme Gote -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build -quiet',
+        "EXPO_PUBLIC_E2E=1 xcodebuild -workspace ios/Gote.xcworkspace -scheme Gote -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath ios/build -quiet",
     },
     'ios.release': {
       type: 'ios.app',
       binaryPath: 'ios/build/Build/Products/Release-iphonesimulator/Gote.app',
+      // See the -destination note on ios.debug above.
       build:
-        'EXPO_PUBLIC_E2E=1 xcodebuild -workspace ios/Gote.xcworkspace -scheme Gote -configuration Release -sdk iphonesimulator -derivedDataPath ios/build -quiet',
+        "EXPO_PUBLIC_E2E=1 xcodebuild -workspace ios/Gote.xcworkspace -scheme Gote -configuration Release -destination 'generic/platform=iOS Simulator' -derivedDataPath ios/build -quiet",
     },
   },
   devices: {

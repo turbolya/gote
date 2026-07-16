@@ -226,6 +226,12 @@ export function toLargePhoto(url) {
   return setPhotoSize(url, "large");
 }
 
+// Downscale to the small variant — used for the Apple Watch mini-deck (tiny
+// screen, and the watch often loads over Bluetooth/cellular).
+export function toSmallPhoto(url) {
+  return setPhotoSize(url, "small");
+}
+
 // Sentence-case a name: first letter uppercase, the rest lowercase. Unicode-
 // aware (handles accented characters like Hungarian "ő", unlike a \w regex,
 // which would wrongly uppercase the letter after each accented character).

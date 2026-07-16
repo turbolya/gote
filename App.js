@@ -69,6 +69,7 @@ import { groupKey, ThemeProvider, themeFor, resolveScheme } from './src/theme';
 import { IS_E2E, IS_SHOTS } from './src/e2e/testMode';
 import { E2E_CARDS } from './src/e2e/fixtures';
 import { seedScreenshotStats } from './src/e2e/shotsSeed';
+import { pushWatchSnapshot } from './src/watch';
 import MenuScreen from './src/screens/MenuScreen';
 import CustomScreen from './src/screens/CustomScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -524,6 +525,14 @@ export default function App() {
       setStreak(seed.streak);
     });
   }, [fullDeck, username]);
+
+  // Keep the paired Apple Watch in sync: push the lifetime accuracy, streak,
+  // and a mini-deck whenever they change (deduped inside pushWatchSnapshot).
+  // No-op off iOS, without a paired watch, and in E2E.
+  useEffect(() => {
+    if (IS_E2E) return;
+    pushWatchSnapshot({ lifetime, streak: streakStatus(streak), deck: fullDeck });
+  }, [lifetime, streak, fullDeck]);
 
   // Start a fresh round from a set of cards. `pool` is the distractor pool for
   // multiple-choice (defaults to the round's own cards). An empty set is a
