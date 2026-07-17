@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.24.2';
+export const APP_VERSION = '2.24.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.24.3',
+    date: '2026-07-17',
+    changes: [
+      'Internal: App Store screenshot tooling now captures the Apple Watch '
+        + 'screens and complications too. No change to the app you use.',
+    ],
+  },
   {
     version: '2.24.2',
     date: '2026-07-17',

@@ -37,6 +37,11 @@ final class WatchStore: NSObject, ObservableObject {
 
   @Published var snapshot: Snapshot = WatchStore.loadPersisted()
 
+  // Screenshot builds are launched with `-goteShot`; in that mode we freeze the
+  // demo snapshot (see applyShotSnapshot) and ignore incoming WatchConnectivity
+  // contexts, which would otherwise clobber the demo stats with the phone's.
+  private let isShot = ProcessInfo.processInfo.arguments.contains("-goteShot")
+
   private override init() {
     super.init()
     guard WCSession.isSupported() else { return }
@@ -57,6 +62,7 @@ final class WatchStore: NSObject, ObservableObject {
   // Map the loose [String: Any] context into a typed snapshot, persist it, and
   // poke the complication so the watch face updates.
   fileprivate func apply(context: [String: Any]) {
+    if isShot { return } // don't let live syncs overwrite the demo snapshot
     let deckRaw = context["deck"] as? [[String: Any]] ?? []
     let deck: [WatchCard] = deckRaw.compactMap { d in
       guard let id = d["id"] as? Int,
@@ -112,6 +118,32 @@ extension WatchStore: WCSessionDelegate {
 // lifetime / streak / per-species / history stats as phone play, then pushes
 // an updated snapshot back here.
 extension WatchStore {
+  // Screenshot-only: force the canonical demo stats (matching the iPhone
+  // screenshot set — 83% · 1392/1680, 12-day streak) so every device in the
+  // marketing set is consistent, while KEEPING the real synced deck for real
+  // photos. If the phone hasn't synced a deck yet, a demo deck is planted too
+  // (no images → the quiz shows a placeholder rather than a broken photo).
+  // Never runs in normal use (only from the -goteShot launch path).
+  func applyShotSnapshot() {
+    var snap = snapshot
+    snap.accuracy = 83
+    snap.correct = 1392
+    snap.answered = 1680
+    snap.streak = 12
+    snap.streakBest = 21
+    if snap.deck.isEmpty {
+      let names: [(Int, String, String)] = [
+        (12727, "American Robin", "Turdus migratorius"),
+        (48662, "Mallard", "Anas platyrhynchos"),
+        (52381, "Monarch", "Danaus plexippus"),
+        (47219, "Western Honey Bee", "Apis mellifera"),
+        (58583, "Common Dandelion", "Taraxacum officinale"),
+      ]
+      snap.deck = names.map { WatchCard(id: $0.0, name: $0.1, sci: $0.2, image: "") }
+    }
+    snapshot = snap
+  }
+
   func reportAnswer(card: WatchCard, correct: Bool) {
     send([
       "kind": "answer",

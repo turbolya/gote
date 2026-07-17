@@ -17,9 +17,12 @@ private struct Round {
 
 struct QuizView: View {
   let deck: [WatchCard]
+  // Screenshot builds jump straight to one phase (with a canned reveal / score)
+  // via `-goteShot`; nil in normal play. See RootView in index.swift.
+  var shot: Phase? = nil
   @Environment(\.dismiss) private var dismiss
 
-  private enum Phase { case photo, answers, summary }
+  enum Phase { case photo, answers, summary }
   @State private var phase: Phase = .photo
   @State private var round: Round?
   @State private var picked: String?
@@ -42,7 +45,30 @@ struct QuizView: View {
       }
     }
     .navigationBarBackButtonHidden(true)
-    .onAppear { if round == nil { nextRound() } }
+    .onAppear { if round == nil { setup() } }
+    // In the screenshot demo-fallback path the deck can arrive (seeded) just
+    // after first render — build the round once it does.
+    .onChange(of: deck.count) { _, _ in if round == nil { setup() } }
+  }
+
+  // First-round setup. In a screenshot build (`shot` set) it also jumps to the
+  // requested phase and freezes a representative state — a revealed answer, or a
+  // finished-round score — without the 2-second auto-advance.
+  private func setup() {
+    nextRound()
+    guard let shot, let r = round else { return }
+    phase = shot
+    switch shot {
+    case .answers:
+      // Reveal: pre-pick a WRONG option, so one button shows red and the
+      // correct one shows green. Nice-looking session score in the title.
+      picked = r.options.first { $0 != r.card.name }
+      score = 3; total = 5
+    case .summary:
+      score = 4; total = 5
+    case .photo:
+      break
+    }
   }
 
   // MARK: - 1. Fullscreen photo
@@ -161,7 +187,7 @@ struct QuizView: View {
         .onAppear {
           // Queue the finished round for the phone's accuracy-history chart
           // (once — the summary can only be entered, never revisited).
-          if !roundReported, total > 0 {
+          if !roundReported, total > 0, shot == nil {
             roundReported = true
             WatchStore.shared.reportRound(correct: score, total: total)
           }
