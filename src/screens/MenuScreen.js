@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { smoothPath, cumulativeAverage, downsampleMean, sampleBucketEnds } from '../components/charts';
 import Icon from '../components/Icon';
+import WatchTip from '../components/WatchTip';
 import { useTheme, useThemedStyles } from '../theme';
 import { Appear } from '../components/anim';
 import { SPEEDRUN_LIVES, KOFI_URL } from '../constants';
@@ -175,6 +176,8 @@ export default function MenuScreen({
   lifetime,
   history = [],
   streak,
+  watchTipDismissed,
+  onDismissWatchTip,
   onSelectMode,
   onLexicon,
   onStats,
@@ -240,6 +243,10 @@ export default function MenuScreen({
           { useNativeDriver: false }
         )}
       >
+        {/* "Did you know?" Apple Watch notice — iPhone-only, dismissible
+            (self-hides on iPad/Android and once hidden). */}
+        <WatchTip dismissed={watchTipDismissed} onDismiss={onDismissWatchTip} />
+
         <Text style={styles.section}>Play</Text>
         <View style={styles.group}>
           {playModes.map(({ key, ...rest }, i) => (

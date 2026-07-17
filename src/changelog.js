@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.24.1';
+export const APP_VERSION = '2.24.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.24.2',
+    date: '2026-07-17',
+    changes: [
+      'A "Did you know?" note on the main menu points iPhone users to the '
+        + 'Apple Watch app. Hide it any time — it stays available under '
+        + 'Settings ▸ Apple Watch.',
+    ],
+  },
   {
     version: '2.24.1',
     date: '2026-07-17',

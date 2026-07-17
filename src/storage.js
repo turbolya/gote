@@ -12,6 +12,7 @@ const K_FLAGS = '@gote/flags';
 const K_HISTORY = '@gote/history';
 const K_STREAK = '@gote/streak';
 const K_WATCH_IDS = '@gote/watchResultIds';
+const K_WATCH_TIP = '@gote/watchTipDismissed';
 
 // How many applied watch-result ids to remember (for dedup — see below). Bounds
 // storage; far more than the in-flight window between the two delivery channels.
@@ -267,6 +268,26 @@ export function streakStatus(streak, now = Date.now()) {
   if (streak.lastActiveDay === dayKey(d)) return { count: streak.current, state: 'done', longest };
   if (streak.lastActiveDay === prevDayKey(d)) return { count: streak.current, state: 'atRisk', longest };
   return { count: 0, state: 'broken', longest };
+}
+
+// --- Watch tip dismissal -----------------------------------------------------
+// Whether the user has hidden the "Did you know? (Apple Watch)" notice on the
+// main menu. It stays available in Settings regardless.
+
+export async function loadWatchTipDismissed() {
+  try {
+    return (await AsyncStorage.getItem(K_WATCH_TIP)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export async function saveWatchTipDismissed(dismissed) {
+  try {
+    await AsyncStorage.setItem(K_WATCH_TIP, dismissed ? '1' : '0');
+  } catch {
+    /* ignore — best-effort */
+  }
 }
 
 // --- Applied watch-result ids (dedup) ----------------------------------------

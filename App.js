@@ -63,6 +63,8 @@ import {
   streakStatus,
   loadAppliedWatchIds,
   saveAppliedWatchIds,
+  loadWatchTipDismissed,
+  saveWatchTipDismissed,
 } from './src/storage';
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME } from './src/constants';
 import { buildPickRound } from './src/quiz';
@@ -171,6 +173,9 @@ export default function App() {
   // Daily streak record { current, longest, lastActiveDay }; the displayed
   // state (done / at-risk / broken) is derived via streakStatus at render.
   const [streak, setStreak] = useState(null);
+  // Whether the "Did you know? (Apple Watch)" menu notice has been hidden. Always
+  // still shown in Settings; iPhone-only display is handled inside WatchTip.
+  const [watchTipDismissed, setWatchTipDismissed] = useState(false);
 
   // Raw cached cards (unfiltered) for the current account, kept in a ref so sync
   // can read/merge without re-renders. `fullDeck` is the filtered view shown to
@@ -444,7 +449,7 @@ export default function App() {
   // Restore saved state on first launch.
   useEffect(() => {
     (async () => {
-      const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedHistory, savedStreak] =
+      const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedHistory, savedStreak, savedWatchTip] =
         await Promise.all([
           loadUsername(),
           loadStats(),
@@ -453,10 +458,12 @@ export default function App() {
           loadCache(),
           loadHistory(),
           loadStreak(),
+          loadWatchTipDismissed(),
         ]);
       if (savedStats) setLifetime(savedStats);
       if (savedHistory && savedHistory.length) setHistory(savedHistory);
       if (savedStreak) setStreak(savedStreak);
+      setWatchTipDismissed(savedWatchTip);
       // Flags are loaded per-account inside loadAccount (below).
       speciesRef.current = savedSpecies || {};
       setSpeciesStats(speciesRef.current);
@@ -973,6 +980,11 @@ export default function App() {
               lifetime={lifetime}
               history={history}
               streak={streakStatus(streak)}
+              watchTipDismissed={watchTipDismissed}
+              onDismissWatchTip={() => {
+                setWatchTipDismissed(true);
+                saveWatchTipDismissed(true);
+              }}
               onSelectMode={onSelectMode}
               onLexicon={() => setScreen('lexicon')}
               onStats={() => setScreen('stats')}

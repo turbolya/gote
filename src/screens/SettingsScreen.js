@@ -27,6 +27,11 @@ import { DEFAULT_LOCALE } from '../constants';
 import { getCacheSize, clearCache, formatBytes } from '../cache';
 import Icon from '../components/Icon';
 import LanguageDropdown from '../components/LanguageDropdown';
+import WatchTip from '../components/WatchTip';
+
+// The Apple Watch companion only pairs with an iPhone — hide its section on
+// iPad and Android (WatchTip self-gates too, but this drops the empty header).
+const IS_IPHONE = Platform.OS === 'ios' && !Platform.isPad;
 
 const ISSUES_URL = 'https://github.com/turbolya/gote/issues/new';
 const FEEDBACK_EMAIL = 'milder.spilled.9d@icloud.com';
@@ -414,6 +419,15 @@ export default function SettingsScreen({
             </Pressable>
           </View>
         </View>
+
+        {/* Apple Watch — always shown here (iPhone only), even after the menu
+            tip has been dismissed, so it stays rediscoverable. */}
+        {IS_IPHONE && (
+          <>
+            <Text style={styles.section}>Apple Watch</Text>
+            <WatchTip />
+          </>
+        )}
 
         {/* About */}
         <Text style={styles.section}>About</Text>
