@@ -11,6 +11,11 @@ const K_CACHE = '@gote/obscache';
 const K_FLAGS = '@gote/flags';
 const K_HISTORY = '@gote/history';
 const K_STREAK = '@gote/streak';
+const K_WATCH_IDS = '@gote/watchResultIds';
+
+// How many applied watch-result ids to remember (for dedup — see below). Bounds
+// storage; far more than the in-flight window between the two delivery channels.
+const MAX_WATCH_IDS = 500;
 
 // How many recent games to keep for the menu's accuracy chart. Comfortably more
 // than fit on screen; the chart shows only the newest that fit.
@@ -262,6 +267,35 @@ export function streakStatus(streak, now = Date.now()) {
   if (streak.lastActiveDay === dayKey(d)) return { count: streak.current, state: 'done', longest };
   if (streak.lastActiveDay === prevDayKey(d)) return { count: streak.current, state: 'atRisk', longest };
   return { count: 0, state: 'broken', longest };
+}
+
+// --- Applied watch-result ids (dedup) ----------------------------------------
+// The watch delivers each game result on two channels (queued transferUserInfo
+// + instant sendMessage when reachable), and transferUserInfo can redeliver
+// across app launches. Each result carries a unique `rid`; we remember the ids
+// we've already folded into stats so a result is never counted twice. Stored as
+// a capped FIFO list (newest last).
+
+export async function loadAppliedWatchIds() {
+  try {
+    const raw = await AsyncStorage.getItem(K_WATCH_IDS);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr;
+    }
+  } catch {
+    /* fall through */
+  }
+  return [];
+}
+
+export async function saveAppliedWatchIds(ids) {
+  try {
+    const capped = (Array.isArray(ids) ? ids : []).slice(-MAX_WATCH_IDS);
+    await AsyncStorage.setItem(K_WATCH_IDS, JSON.stringify(capped));
+  } catch {
+    /* ignore — best-effort */
+  }
 }
 
 // --- Flagged species ---------------------------------------------------------

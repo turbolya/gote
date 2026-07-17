@@ -150,6 +150,22 @@ const DAY = 24 * 60 * 60 * 1000;
     assert.deepStrictEqual(out, [17, 67]);
   });
 
+  // --- applied-id dedup store -------------------------------------------------
+  await test('applied watch ids: round-trips and caps at MAX_WATCH_IDS (500)', async () => {
+    const as = makeAsyncStorage();
+    const s = loadStorage(as);
+    assert.deepStrictEqual(await s.loadAppliedWatchIds(), [], 'empty by default');
+    await s.saveAppliedWatchIds(['a', 'b', 'c']);
+    assert.deepStrictEqual(await s.loadAppliedWatchIds(), ['a', 'b', 'c']);
+    // Overflow keeps only the newest 500 (FIFO, newest last).
+    const many = Array.from({ length: 600 }, (_, i) => `r${i}`);
+    await s.saveAppliedWatchIds(many);
+    const kept = await s.loadAppliedWatchIds();
+    assert.strictEqual(kept.length, 500);
+    assert.strictEqual(kept[0], 'r100', 'drops the oldest 100');
+    assert.strictEqual(kept[499], 'r599', 'keeps the newest');
+  });
+
   console.log(results.join('\n'));
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);

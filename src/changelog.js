@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.24.0';
+export const APP_VERSION = '2.24.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.24.1',
+    date: '2026-07-17',
+    changes: [
+      'Apple Watch results now also sync the instant they happen when your '
+        + 'phone is nearby (with the reliable queued sync as backup), so your '
+        + 'stats and streak update right away.',
+    ],
+  },
   {
     version: '2.24.0',
     date: '2026-07-16',

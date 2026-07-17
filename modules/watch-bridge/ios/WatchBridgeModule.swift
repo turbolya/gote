@@ -102,11 +102,22 @@ final class WatchSessionHolder: NSObject, WCSessionDelegate {
     }
   }
 
-  // Game results from the watch (queued transferUserInfo — also delivered
-  // here on activation for anything sent while this app wasn't running).
+  // Game results from the watch arrive on two channels — queued transferUserInfo
+  // (reliable, also delivered on activation for anything sent while this app
+  // wasn't running) and instant sendMessage (when reachable). Both are buffered;
+  // JS dedupes by each result's "rid" so a result sent on both channels counts
+  // once.
   func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+    buffer(userInfo)
+  }
+
+  func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+    buffer(message)
+  }
+
+  private func buffer(_ result: [String: Any]) {
     lock.lock()
-    results.append(userInfo)
+    results.append(result)
     lock.unlock()
     onResultsChanged?()
   }

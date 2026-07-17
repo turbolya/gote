@@ -61,6 +61,8 @@ import {
   loadStreak,
   recordStreakDay,
   streakStatus,
+  loadAppliedWatchIds,
+  saveAppliedWatchIds,
 } from './src/storage';
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME } from './src/constants';
 import { buildPickRound } from './src/quiz';
@@ -770,12 +772,24 @@ export default function App() {
   // results can't corrupt it). The updated stats then flow back to the watch
   // via the snapshot-sync effect above.
   const watchApplyRef = useRef(Promise.resolve());
+  const watchIdsRef = useRef(null); // Set of applied result ids (lazy-loaded)
   useEffect(() => {
     if (IS_E2E) return undefined;
     const apply = (r) => {
       watchApplyRef.current = watchApplyRef.current
         .then(async () => {
           if (!r || typeof r !== 'object') return;
+          // Dedup: the watch sends each result on two channels (and
+          // transferUserInfo can redeliver across launches). Apply each unique
+          // `rid` once, remembered across restarts.
+          if (watchIdsRef.current === null) {
+            watchIdsRef.current = new Set(await loadAppliedWatchIds());
+          }
+          if (r.rid != null) {
+            if (watchIdsRef.current.has(r.rid)) return; // already counted
+            watchIdsRef.current.add(r.rid);
+            saveAppliedWatchIds([...watchIdsRef.current]);
+          }
           if (r.kind === 'answer' && r.id != null) {
             recordResult(
               {

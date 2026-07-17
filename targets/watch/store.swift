@@ -113,25 +113,41 @@ extension WatchStore: WCSessionDelegate {
 // an updated snapshot back here.
 extension WatchStore {
   func reportAnswer(card: WatchCard, correct: Bool) {
-    guard WCSession.isSupported() else { return }
-    WCSession.default.transferUserInfo([
+    send([
       "kind": "answer",
       "id": card.id,
       "name": card.name,
       "sci": card.sci,
       "image": card.image,
       "correct": correct,
-      "ts": Date().timeIntervalSince1970 * 1000,
     ])
   }
 
   func reportRound(correct: Int, total: Int) {
-    guard WCSession.isSupported(), total > 0 else { return }
-    WCSession.default.transferUserInfo([
+    guard total > 0 else { return }
+    send([
       "kind": "round",
       "correct": correct,
       "total": total,
-      "ts": Date().timeIntervalSince1970 * 1000,
     ])
+  }
+
+  // Deliver a result to the phone via BOTH paths, tagged with a unique id so
+  // the phone applies it exactly once (it dedupes by "rid"):
+  //   • transferUserInfo — queued + reliable, survives the phone app being
+  //     closed (the backbone; this is what counts on a real device).
+  //   • sendMessage when reachable — instant delivery while both apps are
+  //     active (great UX, and the only path that works between paired
+  //     simulators, where background transfers don't bridge).
+  private func send(_ payload: [String: Any]) {
+    guard WCSession.isSupported() else { return }
+    var msg = payload
+    msg["rid"] = UUID().uuidString
+    msg["ts"] = Date().timeIntervalSince1970 * 1000
+    let session = WCSession.default
+    session.transferUserInfo(msg)
+    if session.isReachable {
+      session.sendMessage(msg, replyHandler: nil, errorHandler: nil)
+    }
   }
 }
