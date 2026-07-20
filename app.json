@@ -25,7 +25,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#008AAC"
-      }
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -46,7 +50,37 @@
       ]
     ],
     "extra": {
-      "sentryDsn": ""
-    }
+      "sentryDsn": "",
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "bundleIdentifier": "com.gote.app.watch.widget",
+                  "targetName": "GoteWatchWidget",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.gote.app"
+                    ]
+                  }
+                },
+                {
+                  "bundleIdentifier": "com.gote.app.watch",
+                  "targetName": "GoteWatch",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.gote.app"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "d6fc66db-3cfd-447d-aad1-166f4e5aad56"
+      }
+    },
+    "owner": "tupakkas-team"
   }
 }
