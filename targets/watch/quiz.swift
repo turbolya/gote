@@ -77,7 +77,16 @@ struct QuizView: View {
     GeometryReader { geo in
       ZStack {
         Color.black
-        if let round {
+        if let round, round.card.image.isEmpty {
+          // No photo URL (e.g. the seeded demo deck when the phone hasn't
+          // synced): show the placeholder rather than letting AsyncImage spin
+          // on an empty URL forever, and still report ready so a screenshot
+          // capture doesn't sit waiting for an image that can never arrive.
+          Image(systemName: "photo")
+            .imageScale(.large)
+            .foregroundStyle(.secondary)
+            .onAppear { if shot != nil { markShotPhotoReady() } }
+        } else if let round {
           AsyncImage(url: URL(string: round.card.image)) { imagePhase in
             switch imagePhase {
             case .success(let image):
@@ -87,6 +96,10 @@ struct QuizView: View {
                 .frame(width: geo.size.width, height: geo.size.height)
                 .scaleEffect(zoom)
                 .offset(panOffset)
+                // Screenshot builds: signal that the photo is actually on
+                // screen, so the capture script waits for the real image
+                // instead of racing the download and catching the spinner.
+                .onAppear { if shot != nil { markShotPhotoReady() } }
             case .failure:
               Image(systemName: "photo")
                 .imageScale(.large)
@@ -208,6 +221,20 @@ struct QuizView: View {
   }
 
   // MARK: - Logic
+
+  // Drop a marker in the shared app-group container once the quiz photo has
+  // rendered. capture-screenshots.sh polls for this file before taking the
+  // shot (and deletes it before each launch), making the capture deterministic
+  // rather than a fixed sleep that can race a slow image download.
+  // Written to the app's own Documents dir (NOT the app group): `simctl
+  // get_app_container <udid> <bundleid> data` can resolve that on a watch sim,
+  // whereas resolving an app-group container there fails outright.
+  private func markShotPhotoReady() {
+    guard let dir = FileManager.default.urls(
+      for: .documentDirectory, in: .userDomainMask
+    ).first else { return }
+    try? Data().write(to: dir.appendingPathComponent("shot-photo-ready"))
+  }
 
   // Button fill: translucent teal while unanswered; after a pick, the right
   // answer goes solid green, a wrong pick solid red, the rest fade out.
