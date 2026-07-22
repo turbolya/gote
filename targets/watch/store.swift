@@ -126,9 +126,12 @@ extension WatchStore {
   // Never runs in normal use (only from the -goteShot launch path).
   func applyShotSnapshot() {
     var snap = snapshot
-    snap.accuracy = 83
-    snap.correct = 1392
-    snap.answered = 1680
+    // Kept in step with the phone seeder (src/e2e/shotsSeed.js), whose rate is
+    // the mean of the generated history — so every device in the marketing set
+    // shows the same lifetime accuracy.
+    snap.accuracy = 78
+    snap.correct = 1409
+    snap.answered = 1801
     snap.streak = 12
     snap.streakBest = 21
     if snap.deck.isEmpty {

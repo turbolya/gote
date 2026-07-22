@@ -89,17 +89,40 @@ function buildSpecies(deckCards) {
   return { species, sumKnown, sumAttempts };
 }
 
-// A rising accuracy history: an improving learner climbing from ~55% to ~92%
-// with game-to-game noise, so the hero bars fill the width and the trend line
-// slopes up.
+// A believable accuracy history: overall improvement, but genuinely uneven.
+// A plain rising line + small independent noise reads as synthetic, and worse,
+// independent noise AVERAGES OUT — so the trend line (a running average) comes
+// out almost perfectly smooth. Four ingredients fix that:
+//
+//   • learning curve — quick early gains that flatten, not a straight ramp
+//   • form (AR(1) walk) — multi-game slumps and hot streaks. Being CORRELATED
+//     across games, this is what actually moves the running average, giving the
+//     trend line visible ups and downs
+//   • per-round jitter — small decks and luck swing an individual game a lot,
+//     so the bars vary sharply
+//   • occasional outliers — the odd disastrous round or near-perfect run
+//
+// The form walk is deliberately PERSISTENT (0.92 ⇒ slumps lasting ~12 games
+// rather than ~5). The trend chart's y-axis is a fixed 0–100, so a running
+// average that only wobbles by a fraction of a point is invisible; sustained
+// slumps are what actually push it down a visible amount. These constants and
+// seed were picked by sweeping for the best combination of a real dip in the
+// trend line (~4 points), plenty of direction changes, and a clear overall
+// rise (~19 points).
 function buildHistory() {
-  const rand = rng(0xc0ffee);
+  const rand = rng(0x5eed);
   const out = [];
+  let form = 0;
   for (let i = 0; i < GAMES; i++) {
     const t = GAMES > 1 ? i / (GAMES - 1) : 1;
-    const base = 55 + t * 37; // 55 → 92
-    const noise = (rand() - 0.5) * 18; // ±9
-    out.push(Math.max(0, Math.min(100, Math.round(base + noise))));
+    const skill = 64 + 30 * (1 - Math.exp(-2.8 * t));
+    form = form * 0.92 + (rand() - 0.5) * 18; // mean-reverting, so it wanders
+    const jitter = (rand() - 0.5) * 20;
+    let v = skill + form + jitter;
+    const r = rand();
+    if (r < 0.05) v -= 22 + rand() * 18; // a bad day
+    else if (r > 0.975) v = Math.max(v, 95 + rand() * 5); // a great one
+    out.push(Math.max(0, Math.min(100, Math.round(v))));
   }
   return out;
 }
@@ -119,10 +142,18 @@ export async function seedScreenshotStats(deckCards, username) {
 
   // Lifetime totals: the per-species attempts plus a chunk of extra volume for
   // "past decks / Nearby rounds" (species not in the current deck), so the hero
-  // shows an impressive-but-believable answered count at a strong overall rate.
+  // shows an impressive-but-believable answered count.
+  //
+  // The RATE is derived from the history's mean rather than the species sums,
+  // so the hero's "X% lifetime accuracy" lands on the same number the trend
+  // line ends at — the Statistics caption literally describes that line as the
+  // running lifetime accuracy, so the two disagreeing is the kind of detail
+  // that makes seeded data look fake.
+  const meanPct =
+    history.reduce((a, b) => a + b, 0) / (history.length || 1);
   const extra = 380 + Math.round(sumAttempts * 0.6);
   const answered = sumAttempts + extra;
-  const correct = Math.min(answered, sumKnown + Math.round(extra * 0.9));
+  const correct = Math.min(answered, Math.round(answered * (meanPct / 100)));
   const lifetime = { answered, correct };
 
   // Active streak: counted today (shows as a live "done" streak), with a longer

@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.24.4';
+export const APP_VERSION = '2.24.5';
 
 export const CHANGELOG = [
+  {
+    version: '2.24.5',
+    date: '2026-07-22',
+    changes: [
+      'Internal: the sample stats used for App Store screenshots now look like '
+        + 'real play — uneven rounds, slumps and hot streaks. No change to the '
+        + 'app you use.',
+    ],
+  },
   {
     version: '2.24.4',
     date: '2026-07-20',
