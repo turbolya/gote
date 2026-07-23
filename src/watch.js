@@ -14,10 +14,16 @@ import {
 } from '../modules/watch-bridge';
 import { toSmallPhoto } from './api';
 
-// How many cards to send. WatchConnectivity's application context should stay
-// small (~64 KB); two dozen id+name+URL entries is a few KB and plenty for a
-// wrist-sized quiz session.
-const DECK_LIMIT = 24;
+// How many cards to send to the watch's quiz pool. Kept in one application-
+// context payload, which must stay well under WatchConnectivity's limits
+// (sendMessage caps ~64 KB; application context tolerates more). Each card is
+// just id + name + small-photo URL — `sci` is deliberately omitted because the
+// watch never displays it (the phone re-derives it from the taxon id when a
+// wrist answer syncs back). Measured as the binary plist WC actually sends,
+// 240 unique cards ≈ 29 KB — a ~2× margin below the strict 64 KB cap, so a
+// full session no longer feels repetitive. The watch pulls the photos
+// themselves over the network on demand, so only URLs travel here.
+const DECK_LIMIT = 240;
 
 // The last snapshot sent, as JSON — dedupe so unrelated re-renders (or the
 // same deck re-applying) don't re-send an identical context.
@@ -38,7 +44,6 @@ export function pushWatchSnapshot({ lifetime, streak, deck }) {
     .map((c) => ({
       id: c.taxonId,
       name: c.common || c.scientific,
-      sci: c.scientific || '',
       image: toSmallPhoto(c.image),
     }));
 

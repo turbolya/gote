@@ -798,8 +798,15 @@ export default function App() {
             saveAppliedWatchIds([...watchIdsRef.current]);
           }
           if (r.kind === 'answer' && r.id != null) {
+            // Prefer the phone's own full card (real scientific name, image) —
+            // the watch's mini-deck is a subset of this deck, and it no longer
+            // echoes `sci` back. Fall back to the watch-supplied fields only if
+            // the card somehow isn't in the current deck.
+            const deckCard = rawCardsRef.current.find(
+              (c) => String(c.taxonId) === String(r.id)
+            );
             recordResult(
-              {
+              deckCard || {
                 taxonId: r.id,
                 common: r.name,
                 scientific: r.sci || r.name,

@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.24.5';
+export const APP_VERSION = '2.24.6';
 
 export const CHANGELOG = [
+  {
+    version: '2.24.6',
+    date: '2026-07-22',
+    changes: [
+      'The Apple Watch quiz now draws from a much larger set of your species '
+        + '(up to 240, from 24), so it stays varied for far longer.',
+    ],
+  },
   {
     version: '2.24.5',
     date: '2026-07-22',
