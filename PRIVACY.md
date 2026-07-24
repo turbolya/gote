@@ -131,7 +131,11 @@ with a new date, and significant changes will be noted in the app's changelog.
 
 ## Contact
 
-Questions about privacy: **koch.mate@gmail.com**
+Questions about privacy, or a request about your data:
+**milder.spilled.9d@icloud.com**
+
+(The same address the app uses for feedback and bug reports, under
+Settings → Send feedback.)
 
 Source code: <https://github.com/turbolya/gote>
 
