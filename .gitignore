@@ -13,9 +13,9 @@ node_modules/
 /build-device/
 /build-shots/
 
-# Local-only App Store screenshot tooling (kept in-repo so Detox/jest resolve
-# from node_modules, but never committed — output goes to the gote-launch folder).
-/screenshots-local/
+# NOTE: screenshots-local/ IS tracked — it's the App Store screenshot tooling.
+# Only its OUTPUT is kept out of the repo: the PNGs are written to the separate
+# gote-launch folder, so there is nothing to ignore here.
 
 # Expo
 .expo/
