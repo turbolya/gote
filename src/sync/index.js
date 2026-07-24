@@ -71,6 +71,17 @@ const PULL_LIMIT = 500;
 // before either updated the ledger, and double-count them.
 let inFlight = null;
 
+// Coalescing timer for bursts. A watch session delivers one event per answer;
+// firing a round-trip for each would be a dozen requests in as many seconds.
+let pending = null;
+
+// Everything in this file swallows its errors on purpose — a failed sync must
+// never break a screen. That makes silent breakage the failure mode, so in
+// development say something. Stripped from production builds.
+function debug(...args) {
+  if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[sync]', ...args);
+}
+
 // --- producing ---------------------------------------------------------------
 
 // Record one stat delta for upload. Called AFTER local storage is already
@@ -135,14 +146,32 @@ export async function syncNow() {
   return inFlight;
 }
 
+// Sync soon, coalescing repeated calls into one. For bursts — a watch session
+// arriving answer by answer — where syncing per event would be wasteful.
+export function scheduleSync(delayMs = 5000) {
+  if (!SYNC_ENABLED) return;
+  if (pending) clearTimeout(pending);
+  pending = setTimeout(() => {
+    pending = null;
+    syncNow();
+  }, delayMs);
+}
+
 async function run() {
   try {
     const supabase = getClient();
     const userId = await ensureSession();
-    if (!supabase || !userId) return null;
+    if (!supabase) return null;
+    if (!userId) {
+      // Almost always one of: anonymous sign-ins not enabled on the project,
+      // wrong URL/key, or no network.
+      debug('no session — sign-in failed, staying queued');
+      return null;
+    }
     await push(supabase, userId);
     return await pull(supabase, userId);
-  } catch {
+  } catch (e) {
+    debug('run failed', e && e.message);
     return null; // offline, rate-limited, whatever — try again next time
   }
 }
@@ -155,7 +184,11 @@ async function push(supabase, userId) {
   // never arrived would otherwise fail forever on the duplicate primary key,
   // wedging the queue. Same id → same row → no double count.
   const { error } = await supabase.from('events').upsert(rows, { onConflict: 'id' });
-  if (error) return; // keep them queued
+  if (error) {
+    debug('push rejected —', error.message, '(', rows.length, 'queued )');
+    return; // keep them queued
+  }
+  debug('pushed', rows.length);
   await clearFromOutbox(rows.map((r) => r.id));
 }
 

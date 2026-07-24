@@ -17,6 +17,7 @@ import {
   Text,
   Pressable,
   ActivityIndicator,
+  AppState,
   StatusBar as RNStatusBar,
   Platform,
   StyleSheet,
@@ -73,6 +74,7 @@ import {
 import {
   recordEvent,
   syncNow as syncCloud,
+  scheduleSync,
   syncSettings,
   pushSettings,
   SYNC_ENABLED,
@@ -796,12 +798,16 @@ export default function App() {
     const delta = roundDeltaRef.current;
     roundDeltaRef.current = {};
     if (total > 0) {
+      // Queue, then flush. recordEvent only writes to the outbox; without this
+      // the round would sit there until the next cold launch, which looks
+      // exactly like sync being broken. Not awaited — the results screen must
+      // never wait on the network.
       recordEvent({
         answered: total,
         correct: finalCorrect,
         pct: (finalCorrect / total) * 100,
         species: delta,
-      });
+      }).then(() => syncCloud());
     }
     setMissed(finalMissed);
     setCorrectCount(finalCorrect);
@@ -849,6 +855,17 @@ export default function App() {
   // WATCH timestamp (recordStreakDay guards against rewinding, so late-synced
   // results can't corrupt it). The updated stats then flow back to the watch
   // via the snapshot-sync effect above.
+  // Catch up whenever the app comes back to the foreground. Rounds played
+  // offline in the field would otherwise wait for a cold launch, and a phone
+  // that is only ever backgrounded can go days without one.
+  useEffect(() => {
+    if (!SYNC_ENABLED) return undefined;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') scheduleSync(1000);
+    });
+    return () => sub.remove();
+  }, []);
+
   const watchApplyRef = useRef(Promise.resolve());
   const watchIdsRef = useRef(null); // Set of applied result ids (lazy-loaded)
   useEffect(() => {
@@ -914,6 +931,9 @@ export default function App() {
             // counted one by one above, so this carries pct only.
             recordEvent({ pct: (r.correct / r.total) * 100, ts: r.ts || Date.now() });
           }
+          // Debounced: a watch session arrives one answer at a time, and a
+          // round-trip per answer would be a dozen requests in as many seconds.
+          scheduleSync();
         })
         .catch(() => {});
     };

@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.26.0';
+export const APP_VERSION = '2.26.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.26.1',
+    date: '2026-07-24',
+    changes: [
+      'Fixed the groundwork sync so finished rounds are sent straight away '
+        + 'rather than waiting for the next app start.',
+    ],
+  },
   {
     version: '2.26.0',
     date: '2026-07-24',
