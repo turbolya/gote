@@ -83,8 +83,21 @@ EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
 # EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi…
 ```
 
-For EAS builds, add the same two under `env` in each `eas.json` profile that
-should sync. Leave them out of a profile and that build simply has sync off.
+For EAS builds, the credentials live in the **`testflight`** profile only:
+
+```bash
+eas build -p ios --profile testflight   # sync ON  — internal TestFlight
+eas build -p ios --profile production   # sync OFF — App Store
+```
+
+`testflight` extends `production`, so the two are identical apart from the env
+block. The split is deliberate. Internal TestFlight needs no privacy policy, no
+nutrition label and no Beta App Review, so sync can be tested on real devices
+today — but an App Store build that collects data needs in-app account deletion
+(guideline 5.1.1(v)) and updated privacy disclosures first. Keeping the
+credentials out of `production` means that cannot happen by forgetting.
+
+Move them into `production` once those two are done, and drop this profile.
 
 > Never put the **secret** key (`sb_secret_…`, formerly `service_role`) anywhere
 > in this repo or in the app. It bypasses RLS entirely. The publishable/anon key

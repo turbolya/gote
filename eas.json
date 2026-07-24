@@ -34,6 +34,14 @@
       "android": {
         "buildType": "app-bundle"
       }
+    },
+    "testflight": {
+      "extends": "production",
+      "channel": "testflight",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://gpnmouedaccoexfqvmkh.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_gv0VjWQaJRzSihdd4tuxdQ_ys1UJQ4G"
+      }
     }
   },
   "submit": {
