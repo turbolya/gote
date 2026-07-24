@@ -54,9 +54,10 @@ your devices can share one set of statistics.
 What is stored there:
 
 - An account identifier — a random ID, not linked to your name
-- Your gameplay statistics: for each round, the number of cards answered and got
-  right, the date in your local calendar, and per-species tallies including the
-  species name
+- Your gameplay history, round by round: for each round the number of cards
+  answered and got right, the date in your local calendar, and which species you
+  got right or wrong. This is detailed — see "What your synced play history
+  actually contains" below
 - Your preferences, and the iNaturalist username you entered
 - **Your email address, only if you choose to link devices.** It is used solely
   to recognise your devices as belonging to the same person. There is no
@@ -85,8 +86,34 @@ place manually instead; every other part of gote works without location access.
 - No advertising, no ad identifiers, no ad networks
 - No tracking across other apps or websites, and no data sold or shared with
   data brokers
-- No analytics profile of you as an individual
+- No third-party analytics SDK, and no profiling of you for marketing,
+  recommendations or any purpose other than showing you your own statistics
 - No account required to use the app
+
+To be clear about what that last point does **not** mean: with sync on, the
+record of your play is detailed. See below.
+
+## What your synced play history actually contains
+
+If you enable sync, it is worth understanding what is being stored, because
+"gameplay statistics" is vaguer than the reality.
+
+Every round you finish is stored as its own row: how many cards you answered,
+how many you got right, the calendar date, and which species you got right or
+wrong. Individual answers played on the Apple Watch are stored the same way.
+Nothing is aggregated away — the history is kept round by round, because your
+statistics, accuracy chart and streak are calculated from it.
+
+Taken together that is a detailed picture of what you studied and when: which
+species you struggle with, and every day you played. It is tied to your account
+identifier, and to your email address if you linked devices.
+
+It exists for one reason — so the app can show you your own progress on all of
+your devices. It is not analysed, profiled, sold, shared, or used to build any
+kind of behavioural model, and nobody outside gote's own service has access to
+it. If that is more than you want stored, do not turn sync on; the app is fully
+usable without it, and everything stays on your device. If you already turned it
+on, Delete synced account removes all of it.
 
 ## Deleting your data
 

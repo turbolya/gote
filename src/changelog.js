@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.28.1';
+export const APP_VERSION = '2.28.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.28.2',
+    date: '2026-07-24',
+    changes: [
+      'Clearer about what sync stores: it keeps a round-by-round record of '
+        + 'your play, and the privacy policy and Data & licensing screen now '
+        + 'say so plainly instead of calling it just statistics.',
+    ],
+  },
   {
     version: '2.28.1',
     date: '2026-07-24',

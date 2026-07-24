@@ -61,11 +61,17 @@ export default function LegalScreen({ onBack }) {
           Settings → Reset statistics.
         </Para>
         <Para>
-          If you turn on Sync across devices, your gameplay statistics and the
-          email address you use to link devices are stored on our server so your
-          devices can share one set of numbers. You can delete that account and
-          everything on it at any time from Settings → Devices → Sync across
-          devices. No advertising, no tracking, and nothing is ever sold.
+          If you turn on Sync across devices, a round-by-round record of your
+          play — what you answered, when, and which species you got right or
+          wrong — is stored on our server, along with the email address you use
+          to link devices. It is detailed, because your statistics and streak are
+          calculated from it, and it exists only to show you your own progress on
+          every device. You can delete that account and everything on it at any
+          time from Settings → Devices → Sync across devices.
+        </Para>
+        <Para>
+          No advertising, no tracking across apps, no profiling, and nothing is
+          ever sold or shared.
         </Para>
         <Para>
           Full details are in the{' '}
