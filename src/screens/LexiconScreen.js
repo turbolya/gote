@@ -26,7 +26,6 @@ import {
   genusOf,
 } from '../lexicon';
 
-const FLAG_ON = '#E0A800';
 
 export default function LexiconScreen({
   cards,
@@ -156,7 +155,7 @@ export default function LexiconScreen({
             <Icon
               name={flaggedActive ? 'flag' : 'flag-outline'}
               size={15}
-              color={flaggedActive ? FLAG_ON : colors.muted}
+              color={flaggedActive ? colors.flag : colors.muted}
             />
             <Text style={[styles.filterText, flaggedActive && styles.filterTextOn]}>
               Flagged
@@ -209,7 +208,7 @@ export default function LexiconScreen({
                 <Icon
                   name={isFlagged(item) ? 'flag' : 'flag-outline'}
                   size={20}
-                  color={isFlagged(item) ? FLAG_ON : colors.muted}
+                  color={isFlagged(item) ? colors.flag : colors.muted}
                 />
               </Pressable>
             )}
@@ -271,7 +270,7 @@ const makeStyles = (colors) => StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  flagFilterChipOn: { borderBottomColor: FLAG_ON },
+  flagFilterChipOn: { borderBottomColor: colors.flag },
 
   listContent: { paddingTop: 8, paddingBottom: 32 },
   row: {

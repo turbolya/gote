@@ -413,7 +413,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
             })
           }
         >
-          {canStart && <Icon name="play" size={18} color={colors.onDark} />}
+          {canStart && <Icon name="play" size={18} color={colors.onPrimary} />}
           <Text style={styles.startText}>
             {!place
               ? 'Pick a location'
@@ -429,7 +429,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
 
 const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 24, paddingTop: 12 },
+  container: { padding: 20, paddingTop: 12 },
   intro: { fontSize: 14, lineHeight: 20, color: colors.muted, marginBottom: 22 },
   label: {
     fontSize: 13,
@@ -437,7 +437,7 @@ const makeStyles = (colors) => StyleSheet.create({
     color: colors.primaryDark,
     marginBottom: 12,
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
   section: { marginTop: 28 },
 
@@ -546,6 +546,6 @@ const makeStyles = (colors) => StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 16,
   },
-  startDisabled: { backgroundColor: '#A7CFDA' },
-  startText: { color: colors.onDark, fontSize: 18, fontWeight: '800' },
+  startDisabled: { backgroundColor: colors.border },
+  startText: { color: colors.onPrimary, fontSize: 18, fontWeight: '800' },
 });

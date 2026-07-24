@@ -20,7 +20,6 @@ import { fetchTaxonThumbs } from '../api';
 import { AnimatedBar, animateNextLayout } from '../components/anim';
 import { RecentGamesChart, AccuracyTrendChart } from '../components/charts';
 
-const FLAG_ON = '#E0A800'; // amber for an active flag
 
 // Row background tint endpoints: dark red for the lowest net score (correct −
 // incorrect) in the list, brand teal for the highest. Interpolated per row.
@@ -94,7 +93,7 @@ const CardStatRow = React.memo(function CardStatRow({ item, image, maxCount, tin
           <Icon
             name={flagged ? 'flag' : 'flag-outline'}
             size={18}
-            color={flagged ? FLAG_ON : colors.muted}
+            color={flagged ? colors.flag : colors.muted}
           />
         </Pressable>
       )}
@@ -540,7 +539,7 @@ const makeStyles = (colors) => StyleSheet.create({
     fontWeight: '800',
     color: colors.primaryDark,
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
     marginBottom: 12,
   },
   chartCaption: { fontSize: 13, lineHeight: 18, color: colors.muted, marginTop: 12 },
@@ -564,7 +563,7 @@ const makeStyles = (colors) => StyleSheet.create({
     fontWeight: '800',
     color: colors.primaryDark,
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
 
   // "My observations" / "All species" filter toggle

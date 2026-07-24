@@ -24,7 +24,6 @@ import { fetchTaxonDetail, toLargePhoto } from '../api';
 // Ranks worth surfacing in the taxonomy block (skip the very fine sub-ranks).
 const SHOWN_RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 
-const FLAG_ON = '#E0A800'; // amber for an active flag
 
 export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack }) {
   const colors = useColors();
@@ -112,7 +111,7 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
               <Icon
                 name={flagged ? 'flag' : 'flag-outline'}
                 size={22}
-                color={flagged ? FLAG_ON : colors.onDark}
+                color={flagged ? colors.flagOnDark : colors.onDark}
               />
             </Pressable>
           )}

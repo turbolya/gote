@@ -5,18 +5,14 @@
 import React from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import Icon from '../components/Icon';
-import { useColors, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles } from '../theme';
 import { Appear, AnimatedNumber, AnimatedBar } from '../components/anim';
 
-const FLAG_ON = '#E0A800'; // amber for an active flag
 
-// Tinted action buttons: light teal for "Play again" (the primary-action tint),
-// light orange for "Revisit missed".
-const TEAL_BG = '#D8EEF4';
-const TEAL_FG = '#036178';
-const TEAL_BORDER = '#B8DEEA';
-const ORANGE_BG = '#FCE6D2';
-const ORANGE_FG = '#C2410C';
+// Tinted action buttons — teal for "Play again", amber for "Revisit missed".
+// These use the theme's `accents`, which carry a light AND dark pair for each
+// hue; they were hardcoded pastels before, which stayed pale in dark mode and
+// glowed against the dark background.
 
 // Ionicons name + message keyed off performance.
 function grade(pct) {
@@ -47,7 +43,7 @@ export default function ResultsScreen({
   flags,
   onToggleFlag,
 }) {
-  const colors = useColors();
+  const { colors, accents } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const speedrun = mode === 'speedrun';
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
@@ -125,8 +121,8 @@ export default function ResultsScreen({
               style={[styles.actionButton, styles.revisitBtn]}
               onPress={onRevisitMissed}
             >
-              <Icon name="eye-outline" size={20} color={ORANGE_FG} />
-              <Text style={[styles.actionText, { color: ORANGE_FG }]}>
+              <Icon name="eye-outline" size={20} color={accents.amber.fg} />
+              <Text style={[styles.actionText, { color: accents.amber.fg }]}>
                 Revisit missed ({missed.length})
               </Text>
             </Pressable>
@@ -139,8 +135,8 @@ export default function ResultsScreen({
             style={[styles.actionButton, styles.playAgainBtn]}
             onPress={onPlayAgain}
           >
-            <Icon name="play" size={18} color={TEAL_FG} />
-            <Text style={[styles.actionText, { color: TEAL_FG }]}>Play again</Text>
+            <Icon name="play" size={18} color={accents.teal.fg} />
+            <Text style={[styles.actionText, { color: accents.teal.fg }]}>Play again</Text>
           </Pressable>
         </Appear>
 
@@ -199,7 +195,7 @@ export default function ResultsScreen({
                       <Icon
                         name={flagged ? 'flag' : 'flag-outline'}
                         size={20}
-                        color={flagged ? FLAG_ON : colors.muted}
+                        color={flagged ? colors.flag : colors.muted}
                       />
                     </Pressable>
                   )}
@@ -222,7 +218,7 @@ export default function ResultsScreen({
   );
 }
 
-const makeStyles = (colors) => StyleSheet.create({
+const makeStyles = (colors, accents) => StyleSheet.create({
   flex: { flex: 1 },
   // Animated-wrapper helper: keep full-width children (buttons / rows / score
   // card) stretching across the centered container.
@@ -267,7 +263,7 @@ const makeStyles = (colors) => StyleSheet.create({
     justifyContent: 'center',
   },
   pressed: { opacity: 0.7 },
-  container: { padding: 24, paddingTop: 8, alignItems: 'center' },
+  container: { padding: 20, paddingTop: 8, alignItems: 'center' },
   badge: {
     width: 84,
     height: 84,
@@ -308,8 +304,8 @@ const makeStyles = (colors) => StyleSheet.create({
     marginBottom: 12,
   },
   actionText: { fontSize: 17, fontWeight: '800' },
-  revisitBtn: { backgroundColor: ORANGE_BG, borderColor: '#F6D2B3' },
-  playAgainBtn: { backgroundColor: TEAL_BG, borderColor: TEAL_BORDER },
+  revisitBtn: { backgroundColor: accents.amber.bg, borderColor: accents.amber.bg },
+  playAgainBtn: { backgroundColor: accents.teal.bg, borderColor: accents.teal.bg },
 
   // Emphasized primary action: main menu.
   menuButton: {

@@ -25,7 +25,6 @@ import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonPhotos } from '../api';
 import { IS_E2E } from '../e2e/testMode';
 
-const FLAG_ON = '#E0A800'; // amber for an active flag (on the light background)
 
 export default function PickImageScreen({
   round, // { name, options:[{taxonId, photo, name, correct}] } | null while loading
@@ -121,7 +120,7 @@ export default function PickImageScreen({
               <Icon
                 name={flagged ? 'flag' : 'flag-outline'}
                 size={18}
-                color={flagged ? FLAG_ON : colors.muted}
+                color={flagged ? colors.flag : colors.muted}
               />
             </Pressable>
           )}

@@ -10,7 +10,6 @@ import { useColors, useThemedStyles, groupKey, groupLabel, groupIcon } from '../
 
 const STEP = 4;
 const PRESETS = [8, 16, 32];
-const FLAG_ON = '#E0A800';
 
 export default function CustomScreen({
   deck,
@@ -103,7 +102,7 @@ export default function CustomScreen({
             <Icon
               name={flaggedOnly ? 'flag' : 'flag-outline'}
               size={16}
-              color={flaggedOnly ? FLAG_ON : colors.muted}
+              color={flaggedOnly ? colors.flag : colors.muted}
             />
             <Text
               style={[styles.flagToggleText, flaggedOnly && styles.flagToggleTextOn]}
@@ -182,7 +181,7 @@ export default function CustomScreen({
             onStart([...selected], Math.min(count, available), flaggedOnly)
           }
         >
-          {canStart && <Icon name="play" size={18} color={colors.onDark} />}
+          {canStart && <Icon name="play" size={18} color={colors.onPrimary} />}
           <Text style={styles.startText}>
             {canStart
               ? `Start • ${Math.min(count, available)} cards`
@@ -196,14 +195,14 @@ export default function CustomScreen({
 
 const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 24, paddingTop: 16 },
+  container: { padding: 20, paddingTop: 16 },
   label: {
     fontSize: 13,
     fontWeight: '800',
     color: colors.primaryDark,
     marginBottom: 12,
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
   flagToggle: {
     flexDirection: 'row',
@@ -215,9 +214,10 @@ const makeStyles = (colors) => StyleSheet.create({
     borderBottomColor: 'transparent',
     marginBottom: 22,
   },
-  flagToggleOn: { borderBottomColor: FLAG_ON },
+  flagToggleOn: { borderBottomColor: colors.flag },
   flagToggleText: { fontSize: 14, fontWeight: '700', color: colors.muted },
-  flagToggleTextOn: { color: '#7A5B00' },
+  // Was a hardcoded #7A5B00, which sat at 2.9:1 on the dark background.
+  flagToggleTextOn: { color: colors.flag },
   chips: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 18, rowGap: 4 },
   chip: {
     flexDirection: 'row',
@@ -272,6 +272,6 @@ const makeStyles = (colors) => StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 16,
   },
-  startDisabled: { backgroundColor: '#A7CFDA' },
-  startText: { color: colors.onDark, fontSize: 18, fontWeight: '800' },
+  startDisabled: { backgroundColor: colors.border },
+  startText: { color: colors.onPrimary, fontSize: 18, fontWeight: '800' },
 });

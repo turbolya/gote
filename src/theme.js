@@ -7,6 +7,9 @@
 
 import { createContext, useContext, useMemo } from 'react';
 
+// Colour choices are contrast-checked against WCAG AA — see scripts/test-contrast.js,
+// which fails the build if any pairing regresses. Text needs 4.5:1 (3:1 when it's
+// ≥18px, or ≥14px bold); icons and other non-text UI need 3:1.
 export const lightColors = {
   primary: '#008AAC', // brand teal
   primaryDark: '#036178',
@@ -14,13 +17,26 @@ export const lightColors = {
   bg: '#FAFAF8', // soft off-white
   card: '#FFFFFF',
   text: '#1A1D1A', // near-black
-  muted: '#8A8F86', // neutral gray for secondary text
+  // Secondary text. Darkened from #8A8F86, which only reached 2.9:1 on `faint`
+  // and failed AA everywhere it was used (subtitles, hints, captions).
+  muted: '#667063',
   faint: '#F0F1ED', // subtle fills / pressed states
-  correct: '#3F9D52',
-  wrong: '#D9534F',
+  // Also used for the small bold tallies on Statistics, so these clear 4.5:1
+  // rather than only the 3:1 that the bars alone would need.
+  correct: '#2F7A3E',
+  wrong: '#C4403C',
   border: '#E7E8E3',
   shadow: '#000000',
   onDark: '#FFFFFF', // text/icons over photo backdrops
+  // Label on a `primary` fill. White on the light teal is 4.01:1 — fine for the
+  // large bold button text it's used for, short of AA for anything smaller.
+  onPrimary: '#FFFFFF',
+  // "Flagged" amber. The bright #E0A800 sits at 2.1:1 on light — invisible by
+  // the 3:1 non-text bar — so light mode gets a deeper gold.
+  flag: '#9A7000',
+  // Flag shown OVER a photo (paired with `onDark`). Photos are dark backdrops
+  // in both themes, so this stays the bright amber regardless of scheme.
+  flagOnDark: '#E0A800',
 };
 
 export const darkColors = {
@@ -37,6 +53,11 @@ export const darkColors = {
   border: '#30342C',
   shadow: '#000000',
   onDark: '#FFFFFF', // photos are dark backdrops in both themes
+  // The dark palette's `primary` is a bright cyan, so a white label on it is
+  // only 2.1:1 — worse than light mode. A near-black label gives 8.8:1.
+  onPrimary: '#12140F',
+  flag: '#E0A800', // reads well on dark (8.6:1); light mode uses a deeper gold
+  flagOnDark: '#E0A800', // over photos — same in both schemes
 };
 
 // Tinted accents. With the Minimal design these are mainly used as `fg` (the

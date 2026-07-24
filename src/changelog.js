@@ -8,9 +8,23 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.24.6';
+export const APP_VERSION = '2.25.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.25.0',
+    date: '2026-07-22',
+    changes: [
+      'Readability: secondary text, the correct/incorrect tallies and the flag '
+        + 'marker are all easier to read — every text and icon colour now meets '
+        + 'the WCAG AA contrast standard in both light and dark themes.',
+      'Dark mode fixes: primary buttons had a white label on bright teal, and '
+        + 'the Results screen buttons and the "flagged only" toggle kept their '
+        + 'light-theme colours. All now adapt properly.',
+      'Consistent spacing: every screen uses the same page margins, so content '
+        + 'no longer shifts as you move between them.',
+    ],
+  },
   {
     version: '2.24.6',
     date: '2026-07-22',
