@@ -3,6 +3,12 @@
 -- Run this once in the SQL editor of a fresh project (see docs/SUPABASE.md).
 -- It is idempotent: safe to re-run.
 --
+-- ANONYMOUS SIGN-INS ARE ENABLED, so read every policy below with this in mind:
+-- an anonymous user carries the `authenticated` role, and anyone can create one
+-- with a single unauthenticated API call. `to authenticated` does NOT mean "a
+-- real signed-up person" — it means "anyone who asked". Every policy here is
+-- therefore scoped by auth.uid(), and any table added later must be too.
+--
 -- DESIGN
 -- ------
 -- The phone is the source of truth for what the user sees. Every screen reads
@@ -49,11 +55,25 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
--- Readable by any signed-in user (a future shared deck shows its author's
--- name); writable only by the owner.
+-- Owner-only for now.
+--
+-- NOT `using (true)`, which is the obvious way to write "any signed-in user can
+-- see a deck author's name" and is a trap: with anonymous sign-ins enabled,
+-- ANYONE can mint an `authenticated` session with one unauthenticated API call.
+-- `to authenticated` therefore means "to the public", and `using (true)` would
+-- publish the full list of user ids and signup times to the internet.
+--
+-- When deck sharing lands, widen this to authors who have actually shared
+-- something rather than to everyone:
+--
+--   using (
+--     auth.uid() = id
+--     or exists (select 1 from public.decks d
+--                where d.owner = profiles.id and d.visibility <> 'private')
+--   )
 drop policy if exists profiles_select on public.profiles;
 create policy profiles_select on public.profiles
-  for select to authenticated using (true);
+  for select to authenticated using (auth.uid() = id);
 
 drop policy if exists profiles_insert on public.profiles;
 create policy profiles_insert on public.profiles

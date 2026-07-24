@@ -49,11 +49,24 @@ and writable by anyone who downloads gote.
 
 Authentication ▸ Providers ▸ **Anonymous sign-ins** ▸ enable.
 
+Direct link (the sidebar label has changed over time — it is currently
+**Sign In / Providers**, and the anonymous toggle is not a provider card but a
+separate switch further down the page):
+
+    https://supabase.com/dashboard/project/<project-ref>/auth/providers
+
 This is what lets sync work without asking anyone to create an account. On first
 sync the app signs in anonymously and gets a stable user id to hang rows off.
 
-Also under Authentication ▸ Providers, **Email** should be on (it is by
-default). That covers the linking flow in step 6.
+**Read the warning the dashboard shows you — it is not boilerplate.** An
+anonymous user carries the `authenticated` role, and *anyone* can mint one with
+a single unauthenticated API call. So `to authenticated` does not mean "a real
+signed-up person", it means "anyone who asked", and a policy written
+`to authenticated using (true)` publishes that table to the internet. Every
+policy in `schema.sql` is scoped by `auth.uid()` for exactly this reason, and
+any table you add later must be too.
+
+**Email** should also be on (it is by default) — that covers step 6.
 
 ## 4. Put the credentials in the build
 
