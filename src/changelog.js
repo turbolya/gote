@@ -8,7 +8,7 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.25.0';
+export const APP_VERSION = '2.25.1';
 
 export const CHANGELOG = [
   {

@@ -400,7 +400,7 @@ export default function StatsScreen({ species, cards = [], lifetime, history = [
           <Icon
             name={obsOnly ? 'funnel' : 'funnel-outline'}
             size={13}
-            color={obsOnly ? colors.onDark : colors.muted}
+            color={obsOnly ? colors.onPrimary : colors.muted}
           />
           <Text style={[styles.filterText, obsOnly && styles.filterTextOn]}>
             {obsOnly ? 'My observations' : 'All species'}
@@ -579,7 +579,7 @@ const makeStyles = (colors) => StyleSheet.create({
   },
   filterToggleOn: { borderColor: colors.primary, backgroundColor: colors.primary },
   filterText: { fontSize: 12.5, fontWeight: '700', color: colors.muted },
-  filterTextOn: { color: colors.onDark },
+  filterTextOn: { color: colors.onPrimary },
 
   noneText: {
     color: colors.muted,
@@ -601,7 +601,7 @@ const makeStyles = (colors) => StyleSheet.create({
   },
   sortChipOn: { borderColor: colors.primary, backgroundColor: colors.primary },
   sortText: { fontSize: 13, fontWeight: '700', color: colors.muted },
-  sortTextOn: { color: colors.onDark },
+  sortTextOn: { color: colors.onPrimary },
 
   // Per-species row — compact: thumb + name left, count bars right. The row
   // background is tinted by net score (set inline; see scoreTint).

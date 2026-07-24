@@ -466,7 +466,7 @@ export default function StudyScreen({
                   <Appear offset={6} duration={240}>
                     <Pressable testID="study-next" style={styles.nextBtn} onPress={() => onGrade(gotIt)}>
                       <Text style={styles.nextText}>Next card</Text>
-                      <Icon name="arrow-right" size={18} color={colors.onDark} />
+                      <Icon name="arrow-right" size={18} color={colors.onPrimary} />
                     </Pressable>
                   </Appear>
                 )}
@@ -787,5 +787,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginTop: 4,
   },
-  nextText: { color: colors.onDark, fontSize: 17, fontWeight: '800' },
+  nextText: { color: colors.onPrimary, fontSize: 17, fontWeight: '800' },
 });

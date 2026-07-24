@@ -11,7 +11,13 @@ module.exports = {
   displayName: 'gote',
   bundleIdentifier: '.watch',
   deploymentTarget: '10.0',
-  icon: '../../assets/app-icon.png',
+  // watchOS masks the icon into a CIRCLE, which crops hardest at the top and
+  // bottom — and app-icon.png is full-bleed (the newt spans 78% of its height,
+  // with only a 9% bottom margin), so it came out cramped. adaptive-icon.png is
+  // the same newt padded into a safe zone (23–29% margins), which sits
+  // comfortably inside the circular mask. Supplied square and opaque: the
+  // system does the masking, so pre-cutting a circle would only add corners.
+  icon: '../../assets/adaptive-icon.png',
   // Generated into the target's asset catalog → usable as Image("newt").
   images: {
     newt: '../../assets/gote.png',

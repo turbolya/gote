@@ -250,7 +250,7 @@ export default function PickImageScreen({
                 </View>
                 <Pressable testID="pick-next" style={styles.nextBtn} onPress={onNext}>
                   <Text style={styles.nextText}>Next</Text>
-                  <Icon name="arrow-right" size={18} color={colors.onDark} />
+                  <Icon name="arrow-right" size={18} color={colors.onPrimary} />
                 </Pressable>
               </>
             ) : (
@@ -367,7 +367,7 @@ const makeStyles = (colors) => StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 16,
   },
-  nextText: { color: colors.onDark, fontSize: 17, fontWeight: '800' },
+  nextText: { color: colors.onPrimary, fontSize: 17, fontWeight: '800' },
   skipBtn: { paddingVertical: 10, paddingHorizontal: 24, borderRadius: 12, backgroundColor: colors.faint },
   skipText: { color: colors.text, fontSize: 15, fontWeight: '700' },
 });

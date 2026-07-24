@@ -67,7 +67,7 @@ export default function SupportModal({ visible, onClose }) {
           </View>
 
           <Pressable style={styles.kofi} onPress={donate} testID="support-kofi">
-            <Icon name="cafe-outline" size={18} color={colors.onDark} />
+            <Icon name="cafe-outline" size={18} color={colors.onPrimary} />
             <Text style={styles.kofiText}>Buy me a coffee</Text>
           </Pressable>
           <Text style={styles.kofiNote}>
@@ -128,7 +128,7 @@ const makeStyles = (colors) => StyleSheet.create({
     width: '100%',
     marginTop: 18,
   },
-  kofiText: { color: colors.onDark, fontSize: 16, fontWeight: '800' },
+  kofiText: { color: colors.onPrimary, fontSize: 16, fontWeight: '800' },
   kofiNote: {
     fontSize: 11.5,
     color: colors.muted,

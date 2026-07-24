@@ -147,7 +147,7 @@ export default function ResultsScreen({
             style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
             onPress={onMenu}
           >
-            <Icon name="home" size={20} color={colors.onDark} />
+            <Icon name="home" size={20} color={colors.onPrimary} />
             <Text style={styles.menuText}>Main menu</Text>
           </Pressable>
         </Appear>
@@ -324,7 +324,7 @@ const makeStyles = (colors, accents) => StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 4,
   },
-  menuText: { color: colors.onDark, fontSize: 18, fontWeight: '900' },
+  menuText: { color: colors.onPrimary, fontSize: 18, fontWeight: '900' },
 
   missedList: {
     alignSelf: 'stretch',
