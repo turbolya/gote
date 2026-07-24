@@ -32,7 +32,13 @@ import {
 } from '../storage';
 import { getClient } from './client';
 import { SYNC_ENABLED } from './config';
-import { ensureSession } from './auth';
+import {
+  ensureSession,
+  currentUserId,
+  currentEmail,
+  isAnonymous,
+  signOut as authSignOut,
+} from './auth';
 import {
   loadOutbox,
   pushToOutbox,
@@ -41,6 +47,9 @@ import {
   saveAppliedIds,
   loadLastPulledAt,
   saveLastPulledAt,
+  loadLastUserId,
+  saveLastUserId,
+  resetPullState,
   getDeviceId,
   uid,
 } from './outbox';
@@ -56,11 +65,13 @@ export { SYNC_ENABLED } from './config';
 export {
   ensureSession,
   currentUserId,
+  currentEmail,
   isAnonymous,
   linkEmail,
   signInWithEmail,
   verifyCode,
-  signOut,
+  confirmLink,
+  confirmSignIn,
 } from './auth';
 
 // How many rows one pull fetches. Generous enough that a device offline for
@@ -266,6 +277,96 @@ async function applyRemote(events) {
     streak: await loadStreak(),
     count: applied.length,
   };
+}
+
+// --- accounts ----------------------------------------------------------------
+
+// What the Sync screen needs to render.
+export async function getSyncStatus() {
+  if (!SYNC_ENABLED) return { enabled: false };
+  try {
+    const [userId, email, anon, queued] = await Promise.all([
+      currentUserId(),
+      currentEmail(),
+      isAnonymous(),
+      loadOutbox(),
+    ]);
+    return {
+      enabled: true,
+      signedIn: Boolean(userId),
+      anonymous: anon,
+      email: email || null,
+      queued: queued.length,
+    };
+  } catch {
+    return { enabled: true, signedIn: false, anonymous: true, email: null, queued: 0 };
+  }
+}
+
+// Call after any successful sign-in or link. Two very different cases:
+//
+//   LINK (this device's anonymous account gains an email) — the user id does
+//   not change, so its rows are already on the account and there is nothing to
+//   reconcile.
+//
+//   SIGN IN (this device joins an account created elsewhere) — the user id
+//   changes. Everything played here so far went to the abandoned anonymous
+//   account and would simply vanish from the user's history, so it is re-sent
+//   as one baseline event. The device skips its own rows on pull, so the
+//   baseline is never applied here and cannot double-count; the OTHER devices
+//   apply it once.
+export async function afterAuthChange() {
+  if (!SYNC_ENABLED) return null;
+  try {
+    const userId = await currentUserId();
+    if (!userId) return null;
+    const previous = await loadLastUserId();
+    if (previous && previous !== userId) {
+      // The watermark and ledger describe the old account. Left in place they
+      // would make the app skip the new account's entire history.
+      await resetPullState();
+      await uploadBaseline();
+    }
+    await saveLastUserId(userId);
+    return await syncNow();
+  } catch (e) {
+    debug('afterAuthChange failed', e && e.message);
+    return null;
+  }
+}
+
+// One event carrying this device's lifetime totals, so joining an existing
+// account contributes its history instead of discarding it.
+//
+// Known limitation: a single event carries one local day, so the day-by-day
+// streak history from before the switch stays on this device — the totals and
+// per-species tallies merge, the old calendar does not. Emitting one row per
+// active day would preserve it, at the cost of hundreds of rows for a
+// long-standing player. Revisit if streaks turn out to matter more than that.
+async function uploadBaseline() {
+  const [stats, species] = await Promise.all([loadStats(), loadSpeciesStats()]);
+  if (!stats || (!stats.answered && !Object.keys(species || {}).length)) return;
+  await recordEvent({
+    answered: stats.answered || 0,
+    correct: stats.correct || 0,
+    pct: null, // not a round — must not land on the accuracy chart
+    species: species || {},
+  });
+  debug('baseline queued', stats.answered, 'answers');
+}
+
+// Sign out and go back to a fresh anonymous account. Local stats are left
+// alone: they are this device's own history and the user did not ask to erase
+// anything. The pull state is reset so the next account is read from scratch.
+export async function signOutAndReset() {
+  if (!SYNC_ENABLED) return;
+  try {
+    await authSignOut();
+    await resetPullState();
+    await saveLastUserId('');
+  } catch {
+    /* best-effort */
+  }
 }
 
 // Pull settings from the server and adopt them if they're newer. Separate from

@@ -116,17 +116,34 @@ Anonymous accounts are **per device**. Two devices signing in anonymously become
 two unrelated users with two separate piles of stats — anonymous auth gives
 identity without friction, not sync.
 
-Linking an email is what makes them the same person. The functions are ready in
-`src/sync/auth.js`; the UI for them is not built yet:
+Linking an email is what makes them the same person. **Settings ▸ Devices ▸ Sync
+across devices** (`src/screens/SyncScreen.js`) does this — email plus a 6-digit
+code, no password and no account to create up front.
 
-- `linkEmail(email)` on the first device — attaches the address to the existing
-  anonymous account, **keeping its id and all its history**
-- `signInWithEmail(email)` on the second — deliberately fails if the address is
-  unknown, rather than silently creating a third empty account and looking like
-  data loss
-- `verifyCode(email, code)` confirms either
+The screen offers two paths, because the two cases behave differently
+underneath:
 
-Until that UI exists, sync backs up one device and prepares the ground.
+- **"This is my first device"** → `linkEmail`. Attaches the address to the
+  anonymous account this device already has. The user id does not change, so
+  all of its history stays put. Lossless.
+- **"I already have gote elsewhere"** → `signInWithEmail`. Joins an account
+  created on another device, so the user id *changes*. `afterAuthChange()`
+  handles the consequences: it resets the pull watermark (which describes the
+  old account and would otherwise make the app skip the new one's entire
+  history) and re-sends this device's totals as one baseline event, so joining
+  contributes its progress instead of abandoning it. A device skips its own
+  rows on pull, so that baseline can never double-count locally.
+
+`signInWithEmail` passes `shouldCreateUser: false` on purpose: an unknown
+address must fail loudly rather than silently mint a third empty account, which
+would look exactly like data loss.
+
+Known limitation: one event carries one local day, so a baseline merges totals
+and per-species tallies but not the day-by-day streak calendar from before the
+switch. Preserving that would mean a row per active day.
+
+To test both sides you need two installs. On a simulator, deleting the app and
+reinstalling gives you a fresh anonymous account to sign in with.
 
 ---
 
@@ -181,7 +198,6 @@ Deliberately out of scope, with the groundwork in place:
   safe to show other users (`auth.users` holds emails and must never be
   world-readable). The table sketch and the one RLS policy that implements
   sharing are commented at the bottom of `schema.sql`.
-- **Sign-in UI** for the email linking described in step 6.
 - **Account deletion.** App Store guideline 5.1.1(v) requires it in-app once you
   offer accounts. Every table cascades from `auth.users`, so deleting the user
   deletes the data — it needs a UI and an edge function to call.

@@ -98,6 +98,7 @@ import LexiconScreen from './src/screens/LexiconScreen';
 import DetailScreen from './src/screens/DetailScreen';
 import ChangelogScreen from './src/screens/ChangelogScreen';
 import LegalScreen from './src/screens/LegalScreen';
+import SyncScreen from './src/screens/SyncScreen';
 import NearbyConfigScreen from './src/screens/NearbyConfigScreen';
 import SplashScreen from './src/components/SplashScreen';
 import SupportModal from './src/components/SupportModal';
@@ -1193,6 +1194,7 @@ export default function App() {
             }
             onChangelog={() => setScreen('changelog')}
             onLegal={() => setScreen('legal')}
+            onSync={SYNC_ENABLED ? () => setScreen('sync') : null}
             onBack={fullDeck.length > 0 ? () => setScreen('menu') : null}
             registerLeave={(fn) => { settingsLeaveRef.current = fn; }}
             onSave={(name, prefs) => {
@@ -1293,6 +1295,21 @@ export default function App() {
             onToggleFlag={toggleFlag}
             onBack={() => setScreen('menu')}
             onSelect={(card) => setDetailCard(card)}
+          />
+        )}
+
+        {screen === 'sync' && (
+          <SyncScreen
+            onBack={() => setScreen('settings')}
+            // Signing in can fold in a whole other device's history, so adopt
+            // the merged rollups immediately rather than waiting for a relaunch.
+            onSynced={(merged) => {
+              setLifetime(merged.lifetime);
+              speciesRef.current = merged.species;
+              setSpeciesStats({ ...merged.species });
+              setHistory(merged.history);
+              setStreak(merged.streak);
+            }}
           />
         )}
 

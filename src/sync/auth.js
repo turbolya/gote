@@ -90,6 +90,12 @@ export async function signInWithEmail(email) {
 }
 
 // Confirm either of the above with the emailed code.
+//
+// The OTP `type` differs between the two flows and Supabase rejects the wrong
+// one, so they get separate entry points rather than a default that is silently
+// wrong half the time:
+//   linkEmail       → 'email_change' (attaching an address to this account)
+//   signInWithEmail → 'email'        (proving ownership of an existing one)
 export async function verifyCode(email, token, type = 'email') {
   const supabase = getClient();
   if (!supabase) return { ok: false, error: 'sync-disabled' };
@@ -98,6 +104,26 @@ export async function verifyCode(email, token, type = 'email') {
     return error ? { ok: false, error: error.message } : { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
+  }
+}
+
+export function confirmLink(email, code) {
+  return verifyCode(email, code, 'email_change');
+}
+
+export function confirmSignIn(email, code) {
+  return verifyCode(email, code, 'email');
+}
+
+// The address attached to this account, or null while anonymous.
+export async function currentEmail() {
+  const supabase = getClient();
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    return (data && data.user && data.user.email) || null;
+  } catch {
+    return null;
   }
 }
 

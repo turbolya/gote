@@ -8,9 +8,21 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.26.1';
+export const APP_VERSION = '2.27.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.27.0',
+    date: '2026-07-24',
+    changes: [
+      'New: sync across devices. Settings ▸ Devices ▸ Sync across devices '
+        + 'links your phone, iPad and watch to one set of statistics, streak '
+        + 'and species list. Just an email and a 6-digit code — no password, '
+        + 'and playing still never needs an account.',
+      'Signing in on a second device merges its progress in rather than '
+        + 'replacing it, and signing out leaves that device untouched.',
+    ],
+  },
   {
     version: '2.26.1',
     date: '2026-07-24',

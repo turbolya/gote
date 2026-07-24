@@ -15,6 +15,7 @@ const K_OUTBOX = '@gote/sync/outbox';
 const K_APPLIED = '@gote/sync/appliedIds';
 const K_PULLED_AT = '@gote/sync/lastPulledAt';
 const K_DEVICE = '@gote/sync/deviceId';
+const K_LAST_USER = '@gote/sync/lastUserId';
 
 // A cap so a long offline stretch (or a server that stays unreachable) can't
 // grow the queue without bound. Oldest go first: they are the ones whose
@@ -68,6 +69,39 @@ export async function loadLastPulledAt() {
 export async function saveLastPulledAt(iso) {
   try {
     if (iso) await AsyncStorage.setItem(K_PULLED_AT, String(iso));
+  } catch {
+    /* ignore */
+  }
+}
+
+// Which account this device last synced with. Signing in on a second device
+// switches accounts, and both the pull watermark and the applied-id ledger
+// describe the OLD one — leaving them in place would make the app skip the new
+// account's entire history, since those rows are older than the watermark.
+export async function loadLastUserId() {
+  try {
+    return (await AsyncStorage.getItem(K_LAST_USER)) || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveLastUserId(id) {
+  try {
+    // Falsy clears it — signing out must not leave the old id behind, or the
+    // next sign-in would look like "same account" and skip the reconcile.
+    if (id) await AsyncStorage.setItem(K_LAST_USER, String(id));
+    else await AsyncStorage.removeItem(K_LAST_USER);
+  } catch {
+    /* ignore */
+  }
+}
+
+// Forget everything we know about what has been pulled. Called on an account
+// switch so the new account is re-read from the beginning.
+export async function resetPullState() {
+  try {
+    await AsyncStorage.multiRemove([K_PULLED_AT, K_APPLIED]);
   } catch {
     /* ignore */
   }

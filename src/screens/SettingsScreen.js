@@ -159,6 +159,7 @@ export default function SettingsScreen({
   onUpdateNow,
   onChangelog,
   onLegal,
+  onSync,
   onSave,
   onBack,
   registerLeave,
@@ -426,6 +427,23 @@ export default function SettingsScreen({
           <>
             <Text style={styles.section}>Apple Watch</Text>
             <WatchTip />
+          </>
+        )}
+
+        {/* Sync — only when the build carries Supabase credentials, so an
+            unconfigured build shows no trace of a feature it cannot offer. */}
+        {onSync && (
+          <>
+            <Text style={styles.section}>Devices</Text>
+            <View style={styles.card}>
+              <NavRow
+                testID="settings-sync"
+                icon="refresh-cw"
+                accent={accents.teal}
+                label="Sync across devices"
+                onPress={onSync}
+              />
+            </View>
           </>
         )}
 
