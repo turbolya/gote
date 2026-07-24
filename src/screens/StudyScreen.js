@@ -38,6 +38,19 @@ const ON_DARK = '#FFFFFF';
 const ON_DARK_DIM = 'rgba(255,255,255,0.78)';
 const DOUBLE_TAP_MS = 280;
 
+// The answer UI floats over the photo — it's a panel, not a form, so it should
+// not grow with the screen. On a 1024pt-wide iPad a full-width panel ends up
+// WIDER than the letterboxed photo behind it, and every choice becomes a huge
+// pill with a couple of centered words stranded in it. Cap it at a comfortable
+// reading measure instead and let the centering do the rest.
+//
+// No Platform.isPad check needed: every iPhone is narrower than this in
+// portrait (the widest is 440pt, minus the 20pt page margins = 400pt), so the
+// cap simply never binds there. Writing it as a plain maxWidth also keeps it
+// correct in iPad landscape, Split View and Slide Over, which a device check
+// would have to special-case one by one.
+const PANEL_MAX_WIDTH = 440;
+
 // Dark gradient behind the chrome — darker than before so white UI stays
 // readable even over bright/washed-out photos. Strong at the edge, fading to
 // transparent toward the photo center.
@@ -668,6 +681,7 @@ const styles = StyleSheet.create({
   },
   centerPanel: {
     width: '100%',
+    maxWidth: PANEL_MAX_WIDTH,
     backgroundColor: 'rgba(0,0,0,0.32)',
     borderRadius: 20,
     paddingVertical: 16,
@@ -717,8 +731,14 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 
-  // reveal / show-choices outline button
+  // reveal / show-choices outline button. Capped and centered to match the
+  // answer panel it opens — a full-width button under a 440pt panel reads as
+  // two unrelated pieces of UI. The corner row below it stays full-width: those
+  // are screen chrome and belong in the corners.
   revealBtn: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: PANEL_MAX_WIDTH,
     borderWidth: 2,
     borderRadius: 16,
     paddingVertical: 15,

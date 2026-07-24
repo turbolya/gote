@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.25.1';
+export const APP_VERSION = '2.25.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.25.2',
+    date: '2026-07-24',
+    changes: [
+      'iPad: the answer choices no longer stretch across the whole screen. '
+        + 'They sit in a panel the width of the photo, so the names are easier '
+        + 'to read and quicker to tap.',
+    ],
+  },
   {
     version: '2.25.1',
     date: '2026-07-24',
