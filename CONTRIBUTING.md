@@ -23,8 +23,16 @@ same licence the project already runs on.
 ## Before you open a pull request
 
 ```bash
-npm test            # unit + WCAG contrast suites (105 tests)
+npm test            # unit, contrast and merge suites (145 tests)
 npx expo-doctor     # dependency/config health
+```
+
+If you touched anything under `src/sync/`, run the integration suite too — it
+drives the real push/pull code against a local Postgres with row-level security
+on, which is where sync bugs actually live:
+
+```bash
+npx supabase start && npm run test:sync && npx supabase stop
 ```
 
 If you touched anything the end-to-end tests cover, run those too — they need a

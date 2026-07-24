@@ -38,6 +38,12 @@ function loadStorage(asyncStorage) {
   }).code;
   const m = { exports: {} };
   const fakeRequire = (id) => {
+    // storage.js reads and writes through src/kv.js, so the mock goes in there.
+    // kv exports plain named functions (not a default), and the mock already has
+    // exactly the four it needs, so it can stand in directly.
+    if (id === './kv') {
+      return { __esModule: true, ...asyncStorage };
+    }
     if (id === '@react-native-async-storage/async-storage') {
       // __esModule so Babel's _interopRequireDefault keeps `.default` as our
       // mock rather than double-wrapping it (which would make getItem undefined).

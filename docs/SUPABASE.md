@@ -26,7 +26,7 @@ users exist the clock keeps resetting.
 
 ## 2. Run the schema
 
-SQL Editor ▸ New query ▸ paste all of [`supabase/schema.sql`](../supabase/schema.sql)
+SQL Editor ▸ New query ▸ paste all of [`supabase/migrations/20260724120000_init.sql`](../supabase/migrations/20260724120000_init.sql)
 ▸ Run.
 
 It is idempotent, so re-running it after an edit is safe. It creates:
@@ -63,7 +63,7 @@ anonymous user carries the `authenticated` role, and *anyone* can mint one with
 a single unauthenticated API call. So `to authenticated` does not mean "a real
 signed-up person", it means "anyone who asked", and a policy written
 `to authenticated using (true)` publishes that table to the internet. Every
-policy in `schema.sql` is scoped by `auth.uid()` for exactly this reason, and
+policy in the migration is scoped by `auth.uid()` for exactly this reason, and
 any table you add later must be too.
 
 **Email** should also be on (it is by default) — that covers step 6.
@@ -197,6 +197,44 @@ delete from the app and the row disappears, along with that user's `events`.
 > `typescript` is therefore pinned to `^5.9.3` in devDependencies. Do not let it
 > float to 7 until Expo supports it.
 
+## 8. Testing sync
+
+`npm test` covers the merge logic (`scripts/test-sync.js`, 40 cases). That
+passed the entire time two sync bugs were shipping, because both lived in the
+wiring *around* the merge — a queued event that was never flushed, and a stale
+pull watermark after switching accounts. Neither is reachable without a
+database.
+
+So there is a second suite that drives the real push/pull code against a real
+Postgres with RLS on:
+
+```bash
+npx supabase start        # Docker; applies supabase/migrations/
+npm run test:sync
+npx supabase stop
+```
+
+It runs against the **local** stack, so the cloud project is never touched. If
+no instance is reachable it skips with exit code 0 rather than failing, so a
+machine without Docker is fine.
+
+A "device" in these tests is an independent in-memory kv backend plus its own
+Supabase client — which is exactly what separates two installs, since identity
+and the outbox live in key-value storage. That makes a second device free and
+the tests deterministic, with no simulator involved.
+
+What it covers: anonymous sign-in; two devices getting different accounts; a
+round reaching the database; the outbox emptying; repeat syncs not duplicating;
+a device not re-applying its own rows; **RLS actually isolating two users** (read
+and forged write); history being append-only; the full two-device link-and-merge;
+the account switch not double-counting; and deletion cascading.
+
+The emailed code is minted with `auth.admin.generateLink`, which returns the
+same OTP the email would carry — no inbox, no polling, no flake.
+
+`src/kv.js` is what makes this possible: storage goes through it rather than
+importing AsyncStorage directly, so these modules load under plain Node.
+
 ---
 
 ## How it works
@@ -233,7 +271,7 @@ from the timestamp server-side, so a streak survives timezones and travel.
 
 | Path | What |
 |---|---|
-| `supabase/schema.sql` | tables, RLS policies, future-decks sketch |
+| `supabase/migrations/` | tables, RLS policies, future-decks sketch |
 | `src/sync/config.js` | credentials + the single on/off switch |
 | `src/sync/client.js` | lazily-created Supabase client |
 | `src/sync/auth.js` | anonymous session, email linking |
@@ -251,7 +289,7 @@ Deliberately out of scope, with the groundwork in place:
 - **Deck sharing.** `profiles` exists so a shared deck has an author that is
   safe to show other users (`auth.users` holds emails and must never be
   world-readable). The table sketch and the one RLS policy that implements
-  sharing are commented at the bottom of `schema.sql`.
+  sharing are commented at the bottom of the migration.
 - **Privacy policy updates.** Sync means you now hold data: an anonymous user
   id, gameplay counts, and an email if the user links one. This has to appear in
   the privacy policy, Apple's nutrition label and Play's Data Safety form before

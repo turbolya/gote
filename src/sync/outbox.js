@@ -9,7 +9,7 @@
 // Kept separate from src/storage.js because that file is the app's own state;
 // this is transport bookkeeping that only the sync layer reads.
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as kv from '../kv';
 
 const K_OUTBOX = '@gote/sync/outbox';
 const K_APPLIED = '@gote/sync/appliedIds';
@@ -60,7 +60,7 @@ export async function saveAppliedIds(ids) {
 // device with a wrong time can't skip rows it never saw.
 export async function loadLastPulledAt() {
   try {
-    return (await AsyncStorage.getItem(K_PULLED_AT)) || null;
+    return (await kv.getItem(K_PULLED_AT)) || null;
   } catch {
     return null;
   }
@@ -68,7 +68,7 @@ export async function loadLastPulledAt() {
 
 export async function saveLastPulledAt(iso) {
   try {
-    if (iso) await AsyncStorage.setItem(K_PULLED_AT, String(iso));
+    if (iso) await kv.setItem(K_PULLED_AT, String(iso));
   } catch {
     /* ignore */
   }
@@ -80,7 +80,7 @@ export async function saveLastPulledAt(iso) {
 // account's entire history, since those rows are older than the watermark.
 export async function loadLastUserId() {
   try {
-    return (await AsyncStorage.getItem(K_LAST_USER)) || null;
+    return (await kv.getItem(K_LAST_USER)) || null;
   } catch {
     return null;
   }
@@ -90,8 +90,8 @@ export async function saveLastUserId(id) {
   try {
     // Falsy clears it — signing out must not leave the old id behind, or the
     // next sign-in would look like "same account" and skip the reconcile.
-    if (id) await AsyncStorage.setItem(K_LAST_USER, String(id));
-    else await AsyncStorage.removeItem(K_LAST_USER);
+    if (id) await kv.setItem(K_LAST_USER, String(id));
+    else await kv.removeItem(K_LAST_USER);
   } catch {
     /* ignore */
   }
@@ -101,7 +101,7 @@ export async function saveLastUserId(id) {
 // switch so the new account is re-read from the beginning.
 export async function resetPullState() {
   try {
-    await AsyncStorage.multiRemove([K_PULLED_AT, K_APPLIED]);
+    await kv.multiRemove([K_PULLED_AT, K_APPLIED]);
   } catch {
     /* ignore */
   }
@@ -111,10 +111,10 @@ export async function resetPullState() {
 // skip re-applying what it already counted locally.
 export async function getDeviceId() {
   try {
-    const existing = await AsyncStorage.getItem(K_DEVICE);
+    const existing = await kv.getItem(K_DEVICE);
     if (existing) return existing;
     const id = uid();
-    await AsyncStorage.setItem(K_DEVICE, id);
+    await kv.setItem(K_DEVICE, id);
     return id;
   } catch {
     return 'unknown';
@@ -135,7 +135,7 @@ export function uid() {
 
 async function readJson(key, fallback) {
   try {
-    const raw = await AsyncStorage.getItem(key);
+    const raw = await kv.getItem(key);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw);
     return Array.isArray(fallback) && !Array.isArray(parsed) ? fallback : parsed;
@@ -146,7 +146,7 @@ async function readJson(key, fallback) {
 
 async function writeJson(key, value) {
   try {
-    await AsyncStorage.setItem(key, JSON.stringify(value));
+    await kv.setItem(key, JSON.stringify(value));
   } catch {
     /* best-effort */
   }

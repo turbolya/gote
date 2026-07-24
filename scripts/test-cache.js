@@ -11,10 +11,23 @@ function load(rel) {
     plugins: ['@babel/plugin-transform-modules-commonjs'],
   }).code;
   const m = { exports: {} };
-  // Stub out RN-only deps (AsyncStorage) so storage.js can load in Node.
+  // Stub out RN-only deps so storage.js can load in Node. src/kv.js is the
+  // key-value seam storage.js goes through; it imports AsyncStorage at module
+  // scope, which does not exist outside a React Native runtime. (These tests
+  // only exercise pure helpers like cacheMatches, so no-op methods suffice —
+  // scripts/test-sync-integration.js is the one that drives real reads/writes,
+  // via kv's own in-memory backend.)
   const fakeRequire = (id) => {
     if (id === '@react-native-async-storage/async-storage') {
       return { default: {} };
+    }
+    if (id === './kv' || id === '../kv') {
+      return {
+        getItem: async () => null,
+        setItem: async () => {},
+        removeItem: async () => {},
+        multiRemove: async () => {},
+      };
     }
     // E2E-only modules (ESM); api.js only touches them when IS_E2E is true.
     if (id === './e2e/testMode') return { IS_E2E: false };

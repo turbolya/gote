@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.28.3';
+export const APP_VERSION = '2.28.4';
 
 export const CHANGELOG = [
+  {
+    version: '2.28.4',
+    date: '2026-07-24',
+    changes: [
+      'Internal: sync now has an automated test suite that runs against a real '
+        + 'database, so cross-device bugs get caught before a release. No '
+        + 'change to the app you use.',
+    ],
+  },
   {
     version: '2.28.3',
     date: '2026-07-24',

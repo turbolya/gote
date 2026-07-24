@@ -1,6 +1,6 @@
 {
   "name": "gote",
-  "version": "2.28.3",
+  "version": "2.28.4",
   "license": "AGPL-3.0-only",
   "main": "index.js",
   "scripts": {
@@ -9,6 +9,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "node scripts/test-gestures.js && node scripts/test-cache.js && node scripts/test-quiz.js && node scripts/test-lexicon.js && node scripts/test-watch.js && node scripts/test-contrast.js && node scripts/test-sync.js",
+    "test:sync": "node scripts/test-sync-integration.js",
     "e2e:build": "detox build --configuration ios.sim.release",
     "e2e:test": "detox test --configuration ios.sim.release",
     "e2e:build:debug": "detox build --configuration ios.sim.debug",

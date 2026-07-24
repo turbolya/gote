@@ -33,4 +33,13 @@ export const SUPABASE_KEY =
 // deterministic (the whole point of the fixture deck), and the screenshot build
 // seeds fake lifetime stats — uploading those would poison the real account
 // they are captured from.
-export const SYNC_ENABLED = Boolean(SUPABASE_URL && SUPABASE_KEY) && !IS_E2E && !IS_SHOTS;
+// `let`, not `const`, purely so tests can force it on: under Node no
+// EXPO_PUBLIC_* value is inlined, so this would otherwise be false and every
+// sync function would return early. ESM live bindings mean importers see the
+// change. Nothing in the app ever reassigns it.
+export let SYNC_ENABLED = Boolean(SUPABASE_URL && SUPABASE_KEY) && !IS_E2E && !IS_SHOTS;
+
+// Tests only.
+export function setSyncEnabledForTests(value) {
+  SYNC_ENABLED = Boolean(value);
+}

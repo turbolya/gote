@@ -1,7 +1,10 @@
-// Tiny persistence layer over AsyncStorage: remembers the last username and
-// keeps a running lifetime score (answered / correct).
+// Tiny persistence layer over the device's key-value store: remembers the last
+// username and keeps a running lifetime score (answered / correct).
+//
+// Goes through src/kv.js rather than AsyncStorage directly, so a Node test can
+// swap in an in-memory backend and exercise this file (see src/kv.js).
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as kv from './kv';
 
 const K_USER = '@gote/username';
 const K_STATS = '@gote/stats';
@@ -34,7 +37,7 @@ const CACHE_VERSION = 5;
 
 export async function loadUsername() {
   try {
-    return await AsyncStorage.getItem(K_USER);
+    return await kv.getItem(K_USER);
   } catch {
     return null;
   }
@@ -42,7 +45,7 @@ export async function loadUsername() {
 
 export async function saveUsername(username) {
   try {
-    await AsyncStorage.setItem(K_USER, username);
+    await kv.setItem(K_USER, username);
   } catch {
     /* ignore write errors — persistence is best-effort */
   }
@@ -50,7 +53,7 @@ export async function saveUsername(username) {
 
 export async function loadStats() {
   try {
-    const raw = await AsyncStorage.getItem(K_STATS);
+    const raw = await kv.getItem(K_STATS);
     if (raw) return JSON.parse(raw);
   } catch {
     /* fall through to default */
@@ -69,7 +72,7 @@ const DEFAULT_PREFS = {
 
 export async function loadPrefs() {
   try {
-    const raw = await AsyncStorage.getItem(K_PREFS);
+    const raw = await kv.getItem(K_PREFS);
     if (raw) return { ...DEFAULT_PREFS, ...JSON.parse(raw) };
   } catch {
     /* fall through to default */
@@ -79,7 +82,7 @@ export async function loadPrefs() {
 
 export async function savePrefs(prefs) {
   try {
-    await AsyncStorage.setItem(K_PREFS, JSON.stringify(prefs));
+    await kv.setItem(K_PREFS, JSON.stringify(prefs));
   } catch {
     /* ignore */
   }
@@ -93,7 +96,7 @@ export async function addToStats(answered, correct) {
     correct: prev.correct + correct,
   };
   try {
-    await AsyncStorage.setItem(K_STATS, JSON.stringify(next));
+    await kv.setItem(K_STATS, JSON.stringify(next));
   } catch {
     /* ignore */
   }
@@ -104,7 +107,7 @@ export async function addToStats(answered, correct) {
 // the screenshot seeder to plant a realistic lifetime score.
 export async function saveStats(stats) {
   try {
-    await AsyncStorage.setItem(K_STATS, JSON.stringify(stats));
+    await kv.setItem(K_STATS, JSON.stringify(stats));
   } catch {
     /* ignore */
   }
@@ -114,7 +117,7 @@ export async function saveStats(stats) {
 // Used by the statistics page (most missed / most known).
 export async function loadSpeciesStats() {
   try {
-    const raw = await AsyncStorage.getItem(K_SPECIES);
+    const raw = await kv.getItem(K_SPECIES);
     if (raw) return JSON.parse(raw);
   } catch {
     /* fall through to default */
@@ -124,7 +127,7 @@ export async function loadSpeciesStats() {
 
 export async function saveSpeciesStats(map) {
   try {
-    await AsyncStorage.setItem(K_SPECIES, JSON.stringify(map));
+    await kv.setItem(K_SPECIES, JSON.stringify(map));
   } catch {
     /* ignore */
   }
@@ -134,7 +137,7 @@ export async function saveSpeciesStats(map) {
 // per-game accuracy history shown on the menu).
 export async function resetStatistics() {
   try {
-    await AsyncStorage.multiRemove([K_STATS, K_SPECIES, K_HISTORY, K_STREAK]);
+    await kv.multiRemove([K_STATS, K_SPECIES, K_HISTORY, K_STREAK]);
   } catch {
     /* ignore */
   }
@@ -146,7 +149,7 @@ export async function resetStatistics() {
 
 export async function loadHistory() {
   try {
-    const raw = await AsyncStorage.getItem(K_HISTORY);
+    const raw = await kv.getItem(K_HISTORY);
     if (raw) {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) return arr.filter((n) => typeof n === 'number');
@@ -164,7 +167,7 @@ export async function saveHistory(history) {
     const arr = (Array.isArray(history) ? history : [])
       .filter((n) => typeof n === 'number')
       .slice(-MAX_HISTORY);
-    await AsyncStorage.setItem(K_HISTORY, JSON.stringify(arr));
+    await kv.setItem(K_HISTORY, JSON.stringify(arr));
   } catch {
     /* ignore */
   }
@@ -177,7 +180,7 @@ export async function addGameResult(pct) {
     -MAX_HISTORY
   );
   try {
-    await AsyncStorage.setItem(K_HISTORY, JSON.stringify(next));
+    await kv.setItem(K_HISTORY, JSON.stringify(next));
   } catch {
     /* ignore — best-effort */
   }
@@ -204,7 +207,7 @@ function prevDayKey(d) {
 
 export async function loadStreak() {
   try {
-    const raw = await AsyncStorage.getItem(K_STREAK);
+    const raw = await kv.getItem(K_STREAK);
     if (raw) {
       const s = JSON.parse(raw);
       if (s && typeof s.current === 'number') {
@@ -225,7 +228,7 @@ export async function loadStreak() {
 // Used by the screenshot seeder to plant an active multi-day streak.
 export async function saveStreak(streak) {
   try {
-    await AsyncStorage.setItem(K_STREAK, JSON.stringify(streak));
+    await kv.setItem(K_STREAK, JSON.stringify(streak));
   } catch {
     /* ignore */
   }
@@ -253,7 +256,7 @@ export async function recordStreakDay(now = Date.now()) {
     lastActiveDay: today,
   };
   try {
-    await AsyncStorage.setItem(K_STREAK, JSON.stringify(next));
+    await kv.setItem(K_STREAK, JSON.stringify(next));
   } catch {
     /* ignore — best-effort */
   }
@@ -280,7 +283,7 @@ export function streakStatus(streak, now = Date.now()) {
 
 export async function loadActiveDays() {
   try {
-    const raw = await AsyncStorage.getItem(K_DAYS);
+    const raw = await kv.getItem(K_DAYS);
     if (raw) {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) return arr.filter((d) => typeof d === 'string');
@@ -294,7 +297,7 @@ export async function loadActiveDays() {
 export async function saveActiveDays(days) {
   try {
     const arr = [...new Set((days || []).filter((d) => typeof d === 'string'))].sort();
-    await AsyncStorage.setItem(K_DAYS, JSON.stringify(arr));
+    await kv.setItem(K_DAYS, JSON.stringify(arr));
   } catch {
     /* ignore — best-effort */
   }
@@ -330,7 +333,7 @@ export async function backfillActiveDays(streak) {
 
 export async function loadWatchTipDismissed() {
   try {
-    return (await AsyncStorage.getItem(K_WATCH_TIP)) === '1';
+    return (await kv.getItem(K_WATCH_TIP)) === '1';
   } catch {
     return false;
   }
@@ -338,7 +341,7 @@ export async function loadWatchTipDismissed() {
 
 export async function saveWatchTipDismissed(dismissed) {
   try {
-    await AsyncStorage.setItem(K_WATCH_TIP, dismissed ? '1' : '0');
+    await kv.setItem(K_WATCH_TIP, dismissed ? '1' : '0');
   } catch {
     /* ignore — best-effort */
   }
@@ -353,7 +356,7 @@ export async function saveWatchTipDismissed(dismissed) {
 
 export async function loadAppliedWatchIds() {
   try {
-    const raw = await AsyncStorage.getItem(K_WATCH_IDS);
+    const raw = await kv.getItem(K_WATCH_IDS);
     if (raw) {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) return arr;
@@ -367,7 +370,7 @@ export async function loadAppliedWatchIds() {
 export async function saveAppliedWatchIds(ids) {
   try {
     const capped = (Array.isArray(ids) ? ids : []).slice(-MAX_WATCH_IDS);
-    await AsyncStorage.setItem(K_WATCH_IDS, JSON.stringify(capped));
+    await kv.setItem(K_WATCH_IDS, JSON.stringify(capped));
   } catch {
     /* ignore — best-effort */
   }
@@ -383,7 +386,7 @@ export async function saveAppliedWatchIds(ids) {
 // Read the raw flags map, tolerating absent/corrupt/legacy data.
 async function loadFlagsMap() {
   try {
-    const raw = await AsyncStorage.getItem(K_FLAGS);
+    const raw = await kv.getItem(K_FLAGS);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
@@ -417,7 +420,7 @@ export async function saveFlags(username, taxonIds) {
   try {
     const { map } = await loadFlagsMap();
     map[username] = [...new Set((taxonIds || []).map(String))];
-    await AsyncStorage.setItem(K_FLAGS, JSON.stringify(map));
+    await kv.setItem(K_FLAGS, JSON.stringify(map));
   } catch {
     /* ignore — best-effort */
   }
@@ -443,7 +446,7 @@ export function cacheMatches(cache, username, locale) {
 
 export async function loadCache() {
   try {
-    const raw = await AsyncStorage.getItem(K_CACHE);
+    const raw = await kv.getItem(K_CACHE);
     if (raw) return JSON.parse(raw);
   } catch {
     /* fall through */
@@ -453,7 +456,7 @@ export async function loadCache() {
 
 export async function saveCache({ username, locale, cards, watermark, syncedAt }) {
   try {
-    await AsyncStorage.setItem(
+    await kv.setItem(
       K_CACHE,
       JSON.stringify({
         version: CACHE_VERSION,
@@ -471,7 +474,7 @@ export async function saveCache({ username, locale, cards, watermark, syncedAt }
 
 export async function clearCacheData() {
   try {
-    await AsyncStorage.removeItem(K_CACHE);
+    await kv.removeItem(K_CACHE);
   } catch {
     /* ignore */
   }
