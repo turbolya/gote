@@ -70,20 +70,25 @@ any table you add later must be too.
 
 ## 4. Put the credentials in the build
 
-Settings ▸ API gives you the **Project URL** and the **anon public** key.
+Settings ▸ API gives you the **Project URL** and the client key. New projects
+issue a **publishable** key (`sb_publishable_…`); older ones an **anon** JWT
+(`eyJhbGciOi…`). They are interchangeable — the app accepts either.
 
-Local development — create `.env` in the repo root:
+Local development — create `.env` in the repo root (gitignored):
 
 ```
-EXPO_PUBLIC_SUPABASE_URL=https://gpnmouedaccoexfqvmkh.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi…
+EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
+# or, on an older project:
+# EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi…
 ```
 
 For EAS builds, add the same two under `env` in each `eas.json` profile that
 should sync. Leave them out of a profile and that build simply has sync off.
 
-> Never put the **service_role** key anywhere in this repo. It bypasses RLS
-> entirely. `anon` is the only key that belongs in a client.
+> Never put the **secret** key (`sb_secret_…`, formerly `service_role`) anywhere
+> in this repo or in the app. It bypasses RLS entirely. The publishable/anon key
+> is the only one that belongs in a client.
 
 ## 5. Check that it works
 

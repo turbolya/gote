@@ -5,14 +5,14 @@
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SUPABASE_URL, SUPABASE_ANON_KEY, SYNC_ENABLED } from './config';
+import { SUPABASE_URL, SUPABASE_KEY, SYNC_ENABLED } from './config';
 
 let client = null;
 
 export function getClient() {
   if (!SYNC_ENABLED) return null;
   if (client) return client;
-  client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  client = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: {
       // Sessions live in AsyncStorage like the rest of the app's state, so a
       // signed-in user stays signed in across launches.

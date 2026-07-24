@@ -6,15 +6,24 @@
 // JS bundle at build time, so there is no runtime config fetch and no extra
 // dependency. See docs/SUPABASE.md for where to set them.
 //
-// Both values are safe to ship in a public binary. The anon key is designed to
-// be public — it grants nothing on its own, because every table has row-level
-// security and the policies key off auth.uid(). The key that must never appear
-// here (or anywhere in this repo) is service_role.
+// Both values are safe to ship in a public binary. The publishable (or anon)
+// key is designed to be public — it grants nothing on its own, because every
+// table has row-level security and the policies key off auth.uid(). The key
+// that must NEVER appear here or anywhere in this repo is the secret one
+// (sb_secret_… / service_role): it bypasses RLS entirely.
 
 import { IS_E2E, IS_SHOTS } from '../e2e/testMode';
 
 export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-export const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+
+// Supabase has two generations of client key. New projects issue a PUBLISHABLE
+// key (sb_publishable_…); older ones an `anon` JWT. They are interchangeable in
+// createClient, so accept either — publishable first, since that is what a
+// project created today hands you.
+export const SUPABASE_KEY =
+  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+  '';
 
 // Sync is entirely opt-in and OFF unless credentials were baked into the
 // build. An unconfigured build behaves exactly as gote did before sync
@@ -24,4 +33,4 @@ export const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''
 // deterministic (the whole point of the fixture deck), and the screenshot build
 // seeds fake lifetime stats — uploading those would poison the real account
 // they are captured from.
-export const SYNC_ENABLED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY) && !IS_E2E && !IS_SHOTS;
+export const SYNC_ENABLED = Boolean(SUPABASE_URL && SUPABASE_KEY) && !IS_E2E && !IS_SHOTS;
