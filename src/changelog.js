@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.28.4';
+export const APP_VERSION = '2.29.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.0',
+    date: '2026-07-24',
+    changes: [
+      'Sync fix: if you had already been playing before turning sync on, your '
+        + 'existing statistics are now uploaded too — previously only new '
+        + 'rounds were, so a second device started from zero.',
+      'Sync fix: signing in on a second device now correctly pulls the full '
+        + 'history of that account.',
+    ],
+  },
   {
     version: '2.28.4',
     date: '2026-07-24',

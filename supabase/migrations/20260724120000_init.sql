@@ -197,3 +197,33 @@ create policy settings_update on public.settings
 --     using (owner = auth.uid() or visibility in ('public','unlisted'));
 --
 -- Writes stay `owner = auth.uid()`. Add the tables when the feature is built.
+
+-- ---------------------------------------------------------------------------
+-- Table privileges.
+-- ---------------------------------------------------------------------------
+-- RLS decides WHICH ROWS a user may touch; a GRANT decides whether the role may
+-- touch the table at all. Both are required — RLS on a table the role has no
+-- privilege on just yields "permission denied for table events".
+--
+-- Pasting this file into the dashboard SQL editor happens to work without these
+-- grants, because that session runs as a role whose default privileges already
+-- cover anon/authenticated. Applying the same file as a migration (supabase db
+-- reset / db push, and therefore the whole local test stack) does not. Granting
+-- explicitly makes the schema self-contained and identical either way.
+--
+-- No grants for `anon`: every policy here requires auth.uid(), so a signed-out
+-- caller has nothing to gain, and withholding the privilege says so plainly.
+grant select, insert on public.events to authenticated;
+grant select, insert, update on public.settings to authenticated;
+grant select, insert, update on public.profiles to authenticated;
+
+-- Deliberately no DELETE and no UPDATE on events: history is append-only, and
+-- account deletion runs through the cascade from auth.users instead.
+
+-- service_role bypasses RLS but still needs table privileges; without these,
+-- the delete-account edge function and any admin tooling get "permission
+-- denied". Cloud projects grant this by default, so the omission only shows up
+-- when the migration is applied to a fresh database.
+grant all on public.events to service_role;
+grant all on public.settings to service_role;
+grant all on public.profiles to service_role;

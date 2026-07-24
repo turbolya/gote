@@ -180,6 +180,13 @@ async function run() {
       debug('no session — sign-in failed, staying queued');
       return null;
     }
+    // Detect an account change HERE rather than trusting callers to announce
+    // it. This lives in the sync path because the id it compares against is
+    // only ever written here: a device that had never linked had no recorded
+    // previous account, so the reconcile silently did nothing and the device
+    // kept a watermark from the account it just left — pulling none of its new
+    // account's history.
+    await reconcileAccount(userId);
     await push(supabase, userId);
     return await pull(supabase, userId);
   } catch (e) {
@@ -188,14 +195,45 @@ async function run() {
   }
 }
 
+// Contribute this device's existing history to the account it is now syncing
+// with. Two situations, one action:
+//
+//   FIRST EVER SYNC — someone who has played for months and only now turns sync
+//   on. Without a baseline the server would only ever learn about rounds played
+//   from this moment, and their second device would show an empty account.
+//
+//   ACCOUNT SWITCH — everything here went to the account they just left, so it
+//   would otherwise vanish from their history. The pull watermark also has to
+//   go, since it describes the old account and would make the app skip the new
+//   one's entire past.
+async function reconcileAccount(userId) {
+  const previous = await loadLastUserId();
+  if (previous === userId) return; // same account as last time — nothing to do
+  if (previous) {
+    debug('account changed', previous, '->', userId);
+    await resetPullState();
+  } else {
+    debug('first sync for this device');
+  }
+  await uploadBaseline();
+  await saveLastUserId(userId);
+}
+
 async function push(supabase, userId) {
   const queued = await loadOutbox();
   if (!queued.length) return;
   const rows = queued.map((e) => ({ ...e, user_id: userId }));
-  // Upsert, not insert: a push that succeeded server-side but whose response
-  // never arrived would otherwise fail forever on the duplicate primary key,
-  // wedging the queue. Same id → same row → no double count.
-  const { error } = await supabase.from('events').upsert(rows, { onConflict: 'id' });
+  // ON CONFLICT DO NOTHING, not DO UPDATE. A push that succeeded server-side
+  // but whose response never arrived must not fail forever on the duplicate
+  // primary key and wedge the queue — but the row already there is the truth,
+  // and re-writing it is exactly what an append-only log must never do.
+  //
+  // It also has to be DO NOTHING for a more mundane reason: DO UPDATE requires
+  // UPDATE privilege at plan time, whether or not a conflict happens, and
+  // `events` deliberately grants none.
+  const { error } = await supabase
+    .from('events')
+    .upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
   if (error) {
     debug('push rejected —', error.message, '(', rows.length, 'queued )');
     return; // keep them queued
@@ -318,22 +356,10 @@ export async function getSyncStatus() {
 //   apply it once.
 export async function afterAuthChange() {
   if (!SYNC_ENABLED) return null;
-  try {
-    const userId = await currentUserId();
-    if (!userId) return null;
-    const previous = await loadLastUserId();
-    if (previous && previous !== userId) {
-      // The watermark and ledger describe the old account. Left in place they
-      // would make the app skip the new account's entire history.
-      await resetPullState();
-      await uploadBaseline();
-    }
-    await saveLastUserId(userId);
-    return await syncNow();
-  } catch (e) {
-    debug('afterAuthChange failed', e && e.message);
-    return null;
-  }
+  // The reconcile itself lives in run() (see reconcileAccount), so it cannot be
+  // missed by a caller that forgets to announce a sign-in. This is just "sync
+  // now, please" with a name that says why.
+  return syncNow();
 }
 
 // One event carrying this device's lifetime totals, so joining an existing
@@ -345,15 +371,60 @@ export async function afterAuthChange() {
 // active day would preserve it, at the cost of hundreds of rows for a
 // long-standing player. Revisit if streaks turn out to matter more than that.
 async function uploadBaseline() {
-  const [stats, species] = await Promise.all([loadStats(), loadSpeciesStats()]);
-  if (!stats || (!stats.answered && !Object.keys(species || {}).length)) return;
+  const [stats, species, queued] = await Promise.all([
+    loadStats(),
+    loadSpeciesStats(),
+    loadOutbox(),
+  ]);
+
+  // Subtract what is still in the outbox. Those rounds are already counted in
+  // the local rollups AND are about to be pushed as events, so a baseline of
+  // the raw totals would put them on the account twice — invisible on this
+  // device (it skips its own rows) and wrong on every other one.
+  let answered = num(stats && stats.answered);
+  let correct = num(stats && stats.correct);
+  const sp = {};
+  for (const [key, v] of Object.entries(species || {})) {
+    sp[key] = {
+      name: v.name,
+      sci: v.sci,
+      image: v.image || null,
+      known: num(v.known),
+      missed: num(v.missed),
+    };
+  }
+  for (const e of queued) {
+    answered -= num(e.answered);
+    correct -= num(e.correct);
+    for (const [key, d] of Object.entries(e.species || {})) {
+      if (!sp[key]) continue;
+      sp[key].known -= num(d.known);
+      sp[key].missed -= num(d.missed);
+    }
+  }
+
+  answered = Math.max(0, answered);
+  correct = Math.max(0, correct);
+  const species2 = {};
+  for (const [key, v] of Object.entries(sp)) {
+    const known = Math.max(0, v.known);
+    const missed = Math.max(0, v.missed);
+    if (known || missed) species2[key] = { ...v, known, missed };
+  }
+
+  if (!answered && !correct && !Object.keys(species2).length) return;
+
   await recordEvent({
-    answered: stats.answered || 0,
-    correct: stats.correct || 0,
+    answered,
+    correct,
     pct: null, // not a round — must not land on the accuracy chart
-    species: species || {},
+    species: species2,
   });
-  debug('baseline queued', stats.answered, 'answers');
+  debug('baseline queued:', answered, 'answers');
+}
+
+function num(v) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : 0;
 }
 
 // Delete the account and every synced row, then start over anonymously.

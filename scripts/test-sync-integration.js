@@ -301,6 +301,45 @@ function makeDevice({ createClient, url, anon, name }) {
     eq(await a.storage.loadStats(), { answered: 10, correct: 7 }, 'local totals');
   });
 
+  await test('an existing player uploads their history on first sync', async () => {
+    // Someone who has played for months and only now turns sync on. Without a
+    // baseline the server would learn only about rounds played from this moment
+    // and their second device would show an empty account.
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const userId = await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 120, correct: 96 });
+    await a.storage.saveSpeciesStats({
+      42: { name: 'Smooth newt', sci: 'Lissotriton vulgaris', known: 30, missed: 4 },
+    });
+    await a.sync.syncNow();
+
+    const { data } = await a.client.from('events').select('*').eq('user_id', userId);
+    const rows = data || [];
+    eq(rows.length, 1, 'baseline row count');
+    eq(rows[0].answered, 120, 'baseline answered');
+    eq(rows[0].correct, 96, 'baseline correct');
+    eq(rows[0].pct, null, 'a baseline is not a round and must not reach the chart');
+    eq(rows[0].species['42'].known, 30, 'baseline species tally');
+  });
+
+  await test('the baseline does not re-count a queued round', async () => {
+    // The trap: local rollups ALREADY include a round that is still sitting in
+    // the outbox. A baseline of the raw totals plus that round's own event
+    // would put it on the account twice — invisible here, wrong everywhere else.
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const userId = await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 10, correct: 7 });
+    await a.sync.recordEvent({ answered: 10, correct: 7, pct: 70 }); // queued, not pushed
+    await a.sync.syncNow();
+
+    const { data } = await a.client.from('events').select('answered, correct').eq('user_id', userId);
+    const total = (data || []).reduce(
+      (acc, r) => ({ answered: acc.answered + r.answered, correct: acc.correct + r.correct }),
+      { answered: 0, correct: 0 }
+    );
+    eq(total, { answered: 10, correct: 7 }, 'server total after first sync');
+  });
+
   // --- isolation -----------------------------------------------------------
   console.log('\nrow-level security');
 
