@@ -1,0 +1,55 @@
+                 ADDITIONAL PERMISSION FOR APP STORE DISTRIBUTION
+              (GNU Affero General Public License version 3, section 7)
+
+gote is licensed under the GNU Affero General Public License version 3
+("AGPL-3.0-only"); the verbatim text of that license is in the file LICENSE.
+The following additional permission is granted by the copyright holder and
+applies to gote in addition to, and not in place of, the AGPL-3.0.
+
+Why this exists
+---------------
+
+Mobile application stores impose terms on the software they distribute --
+limits on the number of devices and copies, restrictions to devices the user
+"owns or controls", and a requirement that installed binaries be signed by the
+store operator so that a user cannot install a modified build. Some of those
+terms conflict with the AGPL-3.0, which forbids imposing further restrictions
+(section 7) and requires that users of a User Product be able to install
+modified versions (section 6). Without an explicit permission, distributing
+this program through such a store would be inconsistent with its own license.
+
+The permission
+--------------
+
+As a special exception under section 7 of the GNU Affero General Public
+License version 3, the copyright holder of gote grants permission to
+distribute this Program, and works based on it, through the Apple App Store,
+Apple TestFlight, Google Play, and comparable application distribution
+platforms, notwithstanding any terms imposed by the operators of those
+platforms that would otherwise conflict with sections 4, 5, 6, 7 or 12 of
+that License -- including restrictions on the number of devices or copies,
+restrictions to devices the recipient owns or controls, and any requirement
+that installed binaries be signed by the platform operator.
+
+Scope
+-----
+
+This permission covers only the act of distributing through those platforms.
+Every other obligation of the AGPL-3.0 continues to apply in full: the
+complete corresponding source of any distributed version must still be made
+available under the AGPL-3.0, modifications must still be released under the
+AGPL-3.0, and a modified version offered to users over a network must still
+have its source offered to those users under section 13.
+
+As permitted by section 7 of the AGPL-3.0, anyone who conveys this Program, or
+a work based on it, may remove this additional permission. Doing so leaves the
+AGPL-3.0 in force, unmodified.
+
+Contributions
+-------------
+
+Contributions to gote are accepted under the AGPL-3.0 together with this
+additional permission, so that the permission continues to cover the whole
+work as it grows. See CONTRIBUTING.md.
+
+Copyright (C) 2026 turbolya

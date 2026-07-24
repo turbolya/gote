@@ -105,3 +105,14 @@ Licensed under the **GNU Affero General Public License v3.0** — see
 derivative work or networked service built from it must also be released in full
 under the AGPL-3.0. It may not be incorporated into closed-source or proprietary
 software.
+
+One **additional permission** applies, in
+[LICENSE-EXCEPTION](LICENSE-EXCEPTION): the app may be distributed through the
+Apple App Store, Google Play and comparable platforms despite the store terms
+that would otherwise conflict with the AGPL-3.0 (device limits, store-signed
+binaries). It covers distribution only — every copyleft obligation above stays
+in force.
+
+Contributions are accepted under the AGPL-3.0 **plus** that permission, so it
+keeps covering the whole work as the codebase grows — see
+[CONTRIBUTING.md](CONTRIBUTING.md).
