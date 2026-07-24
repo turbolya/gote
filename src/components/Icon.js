@@ -42,6 +42,7 @@ const MAP = {
   search: 'search-outline',
   settings: 'settings-outline',
   star: 'star',
+  trash: 'trash-outline',
   x: 'close',
   zap: 'flash-outline',
   // Names used via variables/ternaries elsewhere (results grades, answer marks).

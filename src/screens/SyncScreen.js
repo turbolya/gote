@@ -22,6 +22,7 @@ import {
   Pressable,
   ScrollView,
   ActivityIndicator,
+  Alert,
   StyleSheet,
 } from 'react-native';
 import ScreenHeader from '../components/ScreenHeader';
@@ -35,6 +36,7 @@ import {
   confirmSignIn,
   afterAuthChange,
   signOutAndReset,
+  deleteAccount,
   ensureSession,
 } from '../sync';
 
@@ -127,6 +129,48 @@ export default function SyncScreen({ onBack, onSynced }) {
     await refresh();
   }, [refresh]);
 
+  // Delete the account and everything synced to it. Two-step by design: it is
+  // irreversible, and the confirmation spells out exactly what goes and what
+  // stays, because "delete account" reads like "delete everything" and this
+  // deliberately leaves the device's own statistics alone.
+  const removeAccount = useCallback(() => {
+    Alert.alert(
+      'Delete synced account?',
+      'This permanently deletes your account and every round, statistic and '
+        + 'setting synced to it, on all your devices. It cannot be undone.\n\n'
+        + "This device's own statistics stay on this device. To clear those "
+        + 'too, use Reset statistics in Settings afterwards.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setBusy(true);
+            setError(null);
+            const res = await deleteAccount();
+            setBusy(false);
+            if (!res.ok) {
+              setError(
+                res.error === 'not-signed-in'
+                  ? 'You are not signed in.'
+                  : `Could not delete the account: ${res.error}`
+              );
+              return;
+            }
+            setEmail('');
+            setStage('idle');
+            setNotice(
+              'Your account and all synced data have been deleted. This device '
+                + 'keeps its own statistics.'
+            );
+            await refresh();
+          },
+        },
+      ]
+    );
+  }, [refresh]);
+
   const linked = status && status.signedIn && !status.anonymous && status.email;
 
   return (
@@ -169,6 +213,7 @@ export default function SyncScreen({ onBack, onSynced }) {
               Signing out leaves this device's progress exactly as it is. Nothing
               is deleted.
             </Text>
+
           </>
         ) : (
           <>
@@ -266,6 +311,30 @@ export default function SyncScreen({ onBack, onSynced }) {
                 : 'Your progress on this device is merged into that account, not replaced.'}
             </Text>
           </>
+        )}
+
+        {/* Outside the linked/anonymous split on purpose. An anonymous account
+            is still an account with rows on the server, so deletion has to be
+            reachable without signing in first — both for guideline 5.1.1(v) and
+            because someone who never linked an email still deserves a way to
+            erase what was stored for them. */}
+        {status && status.signedIn && (
+          <View style={styles.danger}>
+            <Text style={styles.dangerLabel}>Delete account</Text>
+            <Text style={styles.footnote}>
+              Permanently deletes your synced account and everything on it, on
+              every device. This device's own statistics stay here.
+            </Text>
+            <Pressable
+              testID="sync-delete"
+              style={styles.dangerBtn}
+              onPress={removeAccount}
+              disabled={busy}
+            >
+              <Icon name="trash" size={16} color={colors.wrong} />
+              <Text style={styles.dangerText}>Delete synced account</Text>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
     </View>
@@ -403,4 +472,32 @@ const makeStyles = (colors) =>
     secondaryText: { color: colors.text, fontSize: 15, fontWeight: '700' },
 
     footnote: { fontSize: 12, lineHeight: 18, color: colors.muted, marginTop: 14 },
+
+    // Set apart from the rest, so an irreversible action is never one stray tap
+    // away from the ordinary controls above it.
+    danger: {
+      marginTop: 32,
+      paddingTop: 20,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    dangerLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.wrong,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
+    dangerBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      borderWidth: 1.5,
+      borderColor: colors.wrong,
+      borderRadius: 14,
+      paddingVertical: 13,
+      marginTop: 14,
+    },
+    dangerText: { color: colors.wrong, fontSize: 15, fontWeight: '700' },
   });

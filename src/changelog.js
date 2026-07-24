@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.27.0';
+export const APP_VERSION = '2.28.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.28.0',
+    date: '2026-07-24',
+    changes: [
+      'You can now delete your synced account and everything on it from '
+        + 'Settings ▸ Devices ▸ Sync across devices. Your statistics on this '
+        + 'device are kept — use Reset statistics if you want those gone too.',
+    ],
+  },
   {
     version: '2.27.0',
     date: '2026-07-24',

@@ -158,6 +158,45 @@ switch. Preserving that would mean a row per active day.
 To test both sides you need two installs. On a simulator, deleting the app and
 reinstalling gives you a fresh anonymous account to sign in with.
 
+## 7. Deploy the account-deletion function
+
+Required before shipping to the App Store — guideline 5.1.1(v) says an app that
+lets people create an account must let them delete it in-app.
+
+```bash
+npx supabase login
+npx supabase link --project-ref gpnmouedaccoexfqvmkh
+npx supabase functions deploy delete-account
+```
+
+No secrets to configure: `SUPABASE_URL`, `SUPABASE_ANON_KEY` and
+`SUPABASE_SERVICE_ROLE_KEY` are injected into edge functions by the platform.
+
+It has to be a function rather than client code because deleting an auth user
+needs the **service-role** key, which bypasses RLS and can never ship in an app.
+The function takes the id to delete from the caller's **verified JWT**, never
+from the request body — accepting a body parameter would turn it into "any user
+can delete any other user".
+
+Deletion cascades: `events`, `settings` and `profiles` all reference
+`auth.users` with `on delete cascade`, so one call removes everything. Any table
+added later is covered automatically as long as it carries the same cascade.
+
+In the app: **Settings ▸ Devices ▸ Sync across devices ▸ Delete synced account**.
+It is offered to anonymous accounts too — an anonymous user still has rows on
+the server, and deletion should not require signing in first.
+
+Verify it with the [Users list](https://supabase.com/dashboard/project/_/auth/users):
+delete from the app and the row disappears, along with that user's `events`.
+
+> **TypeScript warning.** This function is the only `.ts` file in an otherwise
+> all-JavaScript project, and Expo's CLI reacts to it: on the next `expo export`
+> it auto-creates `tsconfig.json` and installs `typescript` — picking **7.x**,
+> whose API Expo's own tsconfig reader cannot read, which breaks the bundler
+> with `Cannot read properties of undefined (reading 'getCurrentDirectory')`.
+> `typescript` is therefore pinned to `^5.9.3` in devDependencies. Do not let it
+> float to 7 until Expo supports it.
+
 ---
 
 ## How it works
@@ -201,6 +240,8 @@ from the timestamp server-side, so a streak survives timezones and travel.
 | `src/sync/outbox.js` | offline queue, applied-id ledger, device id |
 | `src/sync/merge.js` | **pure** merge logic (tested) |
 | `src/sync/index.js` | push/pull orchestration — the only file App.js imports |
+| `src/screens/SyncScreen.js` | the UI: link, sign in, sign out, delete |
+| `supabase/functions/delete-account/` | edge function for account deletion |
 | `scripts/test-sync.js` | 40 tests over the merge |
 
 ## Not built yet
@@ -211,9 +252,6 @@ Deliberately out of scope, with the groundwork in place:
   safe to show other users (`auth.users` holds emails and must never be
   world-readable). The table sketch and the one RLS policy that implements
   sharing are commented at the bottom of `schema.sql`.
-- **Account deletion.** App Store guideline 5.1.1(v) requires it in-app once you
-  offer accounts. Every table cascades from `auth.users`, so deleting the user
-  deletes the data — it needs a UI and an edge function to call.
 - **Privacy policy updates.** Sync means you now hold data: an anonymous user
   id, gameplay counts, and an email if the user links one. This has to appear in
   the privacy policy, Apple's nutrition label and Play's Data Safety form before

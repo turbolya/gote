@@ -41,6 +41,7 @@ import {
 } from './auth';
 import {
   loadOutbox,
+  saveOutbox,
   pushToOutbox,
   clearFromOutbox,
   loadAppliedIds,
@@ -353,6 +354,48 @@ async function uploadBaseline() {
     species: species || {},
   });
   debug('baseline queued', stats.answered, 'answers');
+}
+
+// Delete the account and every synced row, then start over anonymously.
+// Required by App Store guideline 5.1.1(v).
+//
+// The actual delete happens in the delete-account edge function: removing an
+// auth user needs the service-role key, which bypasses RLS and must never be
+// in the app. The function takes the user id from the caller's verified JWT,
+// so this request carries no id at all — there is nothing here to tamper with.
+//
+// Local stats are deliberately NOT touched. They are this device's own history,
+// the user asked to delete an ACCOUNT, and Settings already has a separate
+// "reset statistics" for wiping local data. Deleting both on one tap would
+// destroy data nobody asked to lose.
+export async function deleteAccount() {
+  if (!SYNC_ENABLED) return { ok: false, error: 'sync-disabled' };
+  try {
+    const supabase = getClient();
+    const userId = await ensureSession();
+    if (!supabase || !userId) return { ok: false, error: 'not-signed-in' };
+
+    const { data, error } = await supabase.functions.invoke('delete-account', {
+      method: 'POST',
+    });
+    if (error) {
+      debug('delete failed', error.message);
+      return { ok: false, error: error.message };
+    }
+    if (data && data.error) return { ok: false, error: data.error };
+
+    // Drop everything that referred to the deleted account, INCLUDING the
+    // outbox: those queued events belong to a user that no longer exists, and
+    // uploading them into the next anonymous account would resurrect the data
+    // the user just asked to erase.
+    await Promise.all([resetPullState(), saveOutbox([]), saveLastUserId('')]);
+    await authSignOut();
+    await ensureSession(); // fresh anonymous identity, so the app keeps working
+    return { ok: true };
+  } catch (e) {
+    debug('delete threw', e && e.message);
+    return { ok: false, error: String(e) };
+  }
 }
 
 // Sign out and go back to a fresh anonymous account. Local stats are left

@@ -1,6 +1,6 @@
 {
   "name": "gote",
-  "version": "2.27.0",
+  "version": "2.28.0",
   "license": "AGPL-3.0-only",
   "main": "index.js",
   "scripts": {
@@ -46,9 +46,11 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@config-plugins/detox": "^11.0.0",
+    "@types/react": "~19.1.10",
     "babel-preset-expo": "~54.0.10",
     "detox": "^20.51.3",
-    "jest": "^29.7.0"
+    "jest": "^29.7.0",
+    "typescript": "^5.9.3"
   },
   "overrides": {
     "expo-font": "~14.0.12"
