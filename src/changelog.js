@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.28.2';
+export const APP_VERSION = '2.28.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.28.3',
+    date: '2026-07-24',
+    changes: [
+      'The Privacy Policy link in Data & licensing now opens the published '
+        + 'policy page.',
+    ],
+  },
   {
     version: '2.28.2',
     date: '2026-07-24',
