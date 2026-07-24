@@ -12,6 +12,17 @@ export const APP_VERSION = '2.25.1';
 
 export const CHANGELOG = [
   {
+    version: '2.25.1',
+    date: '2026-07-24',
+    changes: [
+      'The Apple Watch app icon now has proper breathing room — it was cropped '
+        + 'tight by the round icon shape.',
+      'More dark-mode contrast fixes: the Main menu, Next, Statistics filter '
+        + 'and sort, and Buy me a coffee buttons had a white label on the '
+        + 'bright teal fill.',
+    ],
+  },
+  {
     version: '2.25.0',
     date: '2026-07-22',
     changes: [
