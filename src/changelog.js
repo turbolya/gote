@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.28.0';
+export const APP_VERSION = '2.28.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.28.1',
+    date: '2026-07-24',
+    changes: [
+      'Settings ▸ Data & licensing now explains what gote stores, what sync '
+        + 'sends, and how to delete it — with a link to the full privacy policy.',
+    ],
+  },
   {
     version: '2.28.0',
     date: '2026-07-24',

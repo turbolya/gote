@@ -54,6 +54,27 @@ export default function LegalScreen({ onBack }) {
           observer’s terms.
         </Para>
 
+        <Text style={styles.heading}>Your data</Text>
+        <Para>
+          gote works without an account. Your statistics, streak and preferences
+          are stored on this device, and clearing them is always available under
+          Settings → Reset statistics.
+        </Para>
+        <Para>
+          If you turn on Sync across devices, your gameplay statistics and the
+          email address you use to link devices are stored on our server so your
+          devices can share one set of numbers. You can delete that account and
+          everything on it at any time from Settings → Devices → Sync across
+          devices. No advertising, no tracking, and nothing is ever sold.
+        </Para>
+        <Para>
+          Full details are in the{' '}
+          <Link url="https://github.com/turbolya/gote/blob/main/PRIVACY.md">
+            Privacy Policy
+          </Link>
+          .
+        </Para>
+
         <Text style={styles.heading}>Not affiliated with iNaturalist</Text>
         <Para>
           gote is an independent, unofficial app. It is not created, endorsed, or
