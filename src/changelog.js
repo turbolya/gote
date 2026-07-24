@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.25.2';
+export const APP_VERSION = '2.26.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.26.0',
+    date: '2026-07-24',
+    changes: [
+      'Groundwork for syncing your stats and settings between devices, so an '
+        + 'iPhone and an iPad can share one set of numbers. Nothing changes yet '
+        + '— the app still keeps everything on your device — and playing will '
+        + 'never require an account.',
+    ],
+  },
   {
     version: '2.25.2',
     date: '2026-07-24',

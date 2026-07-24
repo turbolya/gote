@@ -11,6 +11,7 @@ const K_CACHE = '@gote/obscache';
 const K_FLAGS = '@gote/flags';
 const K_HISTORY = '@gote/history';
 const K_STREAK = '@gote/streak';
+const K_DAYS = '@gote/activeDays';
 const K_WATCH_IDS = '@gote/watchResultIds';
 const K_WATCH_TIP = '@gote/watchTipDismissed';
 
@@ -268,6 +269,59 @@ export function streakStatus(streak, now = Date.now()) {
   if (streak.lastActiveDay === dayKey(d)) return { count: streak.current, state: 'done', longest };
   if (streak.lastActiveDay === prevDayKey(d)) return { count: streak.current, state: 'atRisk', longest };
   return { count: 0, state: 'broken', longest };
+}
+
+// --- Active days (for cross-device streaks) ----------------------------------
+// The set of local calendar days with at least one finished round, as
+// YYYY-MM-DD strings. Redundant with the streak record on a single device —
+// but a streak COUNT cannot be merged across devices, while a set of days can:
+// union it and recompute. Maintained alongside the counter so nothing changes
+// for a local-only player. See src/sync/merge.js → streakFromDays.
+
+export async function loadActiveDays() {
+  try {
+    const raw = await AsyncStorage.getItem(K_DAYS);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr.filter((d) => typeof d === 'string');
+    }
+  } catch {
+    /* fall through */
+  }
+  return [];
+}
+
+export async function saveActiveDays(days) {
+  try {
+    const arr = [...new Set((days || []).filter((d) => typeof d === 'string'))].sort();
+    await AsyncStorage.setItem(K_DAYS, JSON.stringify(arr));
+  } catch {
+    /* ignore — best-effort */
+  }
+}
+
+// Add one day to the set. Returns the full set.
+export async function addActiveDay(now = Date.now()) {
+  const days = await loadActiveDays();
+  const key = dayKey(new Date(now));
+  if (days.includes(key)) return days;
+  const next = [...days, key].sort();
+  await saveActiveDays(next);
+  return next;
+}
+
+// The day set for a player who was here before it existed. Their streak record
+// only remembers ONE day (lastActiveDay), so the earlier run is unrecoverable —
+// seed what we have and let the caller keep the stored `longest`, rather than
+// recomputing a smaller one and appearing to erase their record.
+export async function backfillActiveDays(streak) {
+  const days = await loadActiveDays();
+  if (days.length) return days;
+  const last = streak && streak.lastActiveDay;
+  if (!last) return days;
+  const seeded = [last];
+  await saveActiveDays(seeded);
+  return seeded;
 }
 
 // --- Watch tip dismissal -----------------------------------------------------

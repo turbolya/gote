@@ -46,4 +46,7 @@ artifacts/
 
 # Env
 .env*.local
+# Supabase credentials for local dev (docs/SUPABASE.md). The anon key is safe to
+# publish, but builds should get it from eas.json's env rather than a stray file.
+.env
 *.tmp

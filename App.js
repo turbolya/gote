@@ -65,7 +65,18 @@ import {
   saveAppliedWatchIds,
   loadWatchTipDismissed,
   saveWatchTipDismissed,
+  addActiveDay,
 } from './src/storage';
+// NOTE the alias: this component already has its own `syncNow` (the
+// iNaturalist observation sync, below), and a local const shadows an import of
+// the same name inside the function body — silently calling the wrong one.
+import {
+  recordEvent,
+  syncNow as syncCloud,
+  syncSettings,
+  pushSettings,
+  SYNC_ENABLED,
+} from './src/sync';
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME } from './src/constants';
 import { buildPickRound } from './src/quiz';
 import { prefetchImages } from './src/prefetch';
@@ -157,7 +168,9 @@ export default function App() {
   const onThemeModeChange = useCallback(
     (mode) => {
       setThemeMode(mode);
-      savePrefs({ perSpecies, locale, researchGrade, speciesOnly, themeMode: mode });
+      const next = { perSpecies, locale, researchGrade, speciesOnly, themeMode: mode };
+      savePrefs(next);
+      pushSettings(next);
     },
     [perSpecies, locale, researchGrade, speciesOnly]
   );
@@ -267,6 +280,10 @@ export default function App() {
   // we mutate as cards are graded; `speciesStats` is the snapshot for display.
   const [speciesStats, setSpeciesStats] = useState({});
   const speciesRef = useRef({});
+  // Just THIS round's per-species deltas, for cross-device sync. speciesRef is
+  // a running lifetime total and can't be uploaded as a delta without
+  // double-counting everything the player has ever answered.
+  const roundDeltaRef = useRef({});
 
   // How to restart the current mode (used by the "Play again" button).
   const replayRef = useRef(() => {});
@@ -482,6 +499,22 @@ export default function App() {
       // Seed the ref now: the startup background sync fires before React re-renders
       // with these values, and must filter by the saved prefs, not the defaults.
       prefsRef.current = { perSpecies: ps, researchGrade: rg, speciesOnly: so };
+      // Cross-device sync. A no-op unless the build carries Supabase
+      // credentials (src/sync/config.js). Fired here, once local state is
+      // seeded, so anything folded in from another device isn't clobbered by
+      // the restore — and NOT awaited, because a slow network must never delay
+      // the menu appearing.
+      if (SYNC_ENABLED) {
+        syncCloud().then((merged) => {
+          if (!merged) return;
+          setLifetime(merged.lifetime);
+          speciesRef.current = merged.species;
+          setSpeciesStats({ ...merged.species });
+          setHistory(merged.history);
+          setStreak(merged.streak);
+        });
+        syncSettings();
+      }
       // E2E: load the fixture deck offline and jump straight to the menu.
       if (IS_E2E) {
         setUsername('e2e-tester');
@@ -551,6 +584,11 @@ export default function App() {
   const startRound = useCallback((cards, m, label = '', pool = null) => {
     if (!cards || cards.length === 0) return;
     finishedRef.current = false;
+    // Drop any deltas left by a round the player abandoned. Those cards were
+    // never persisted locally either (tallies are saved at finishRound), so
+    // carrying them into the next round would sync answers the phone itself
+    // doesn't have.
+    roundDeltaRef.current = {};
     setMode(m);
     setRoundLabel(label);
     setDeck(shuffle(cards));
@@ -709,6 +747,8 @@ export default function App() {
   const startPick = useCallback(() => {
     replayRef.current = startPick;
     finishedRef.current = false;
+    roundDeltaRef.current = {}; // see startRound
+
     const roundDeck = shuffle(fullDeck);
     setMode('pick');
     setRoundLabel('Pick the right one');
@@ -748,15 +788,35 @@ export default function App() {
     if (total > 0) {
       addGameResult((finalCorrect / total) * 100).then(setHistory);
       recordStreakDay().then(setStreak);
+      addActiveDay();
+    }
+    // Queue the round for other devices. Local storage is already written
+    // above, so this is purely additive and safe to fail — an offline round
+    // still counts here and uploads whenever the network returns.
+    const delta = roundDeltaRef.current;
+    roundDeltaRef.current = {};
+    if (total > 0) {
+      recordEvent({
+        answered: total,
+        correct: finalCorrect,
+        pct: (finalCorrect / total) * 100,
+        species: delta,
+      });
     }
     setMissed(finalMissed);
     setCorrectCount(finalCorrect);
     setScreen('results');
   }, []);
 
-  // Record a single card's outcome into the per-species tallies.
-  const recordResult = useCallback((card, correct) => {
-    if (!card) return;
+  // Record a single card's outcome into the per-species tallies. Returns the
+  // species key so callers can build a sync delta for it.
+  //
+  // `track` accumulates the same outcome into this round's delta. Watch results
+  // pass false: they arrive one answer at a time and are uploaded as their own
+  // event immediately, so folding them into the phone's in-progress round would
+  // count them twice.
+  const recordResult = useCallback((card, correct, { track = true } = {}) => {
+    if (!card) return null;
     const key = card.taxonId != null ? String(card.taxonId) : card.scientific;
     const prev = speciesRef.current[key] || { known: 0, missed: 0 };
     speciesRef.current[key] = {
@@ -768,6 +828,17 @@ export default function App() {
       known: prev.known + (correct ? 1 : 0),
       missed: prev.missed + (correct ? 0 : 1),
     };
+    if (track) {
+      const d = roundDeltaRef.current[key] || { known: 0, missed: 0 };
+      roundDeltaRef.current[key] = {
+        name: card.common || card.scientific,
+        sci: card.scientific,
+        image: card.image || d.image || null,
+        known: d.known + (correct ? 1 : 0),
+        missed: d.missed + (correct ? 0 : 1),
+      };
+    }
+    return key;
   }, []);
 
   // Results played on the Apple Watch: fold each answered card into the
@@ -805,21 +876,43 @@ export default function App() {
             const deckCard = rawCardsRef.current.find(
               (c) => String(c.taxonId) === String(r.id)
             );
-            recordResult(
-              deckCard || {
-                taxonId: r.id,
-                common: r.name,
-                scientific: r.sci || r.name,
-                image: r.image || null,
-              },
-              !!r.correct
-            );
+            const card = deckCard || {
+              taxonId: r.id,
+              common: r.name,
+              scientific: r.sci || r.name,
+              image: r.image || null,
+            };
+            // track:false — this is its own event, not part of a phone round.
+            const key = recordResult(card, !!r.correct, { track: false });
             saveSpeciesStats(speciesRef.current);
             setSpeciesStats({ ...speciesRef.current });
             setLifetime(await addToStats(1, r.correct ? 1 : 0));
             setStreak(await recordStreakDay(r.ts || Date.now()));
+            addActiveDay(r.ts || Date.now());
+            // A wrist answer syncs to the user's other devices exactly like a
+            // phone answer. No pct: one card is not a round, and it must not
+            // land on the accuracy chart.
+            if (key) {
+              recordEvent({
+                answered: 1,
+                correct: r.correct ? 1 : 0,
+                ts: r.ts || Date.now(),
+                species: {
+                  [key]: {
+                    name: card.common || card.scientific,
+                    sci: card.scientific,
+                    image: card.image || null,
+                    known: r.correct ? 1 : 0,
+                    missed: r.correct ? 0 : 1,
+                  },
+                },
+              });
+            }
           } else if (r.kind === 'round' && r.total > 0) {
             setHistory(await addGameResult((r.correct / r.total) * 100));
+            // The finished wrist round as a chart point. Its cards were already
+            // counted one by one above, so this carries pct only.
+            recordEvent({ pct: (r.correct / r.total) * 100, ts: r.ts || Date.now() });
           }
         })
         .catch(() => {});
@@ -1095,6 +1188,9 @@ export default function App() {
                 speciesOnly: prefs.speciesOnly,
               };
               savePrefs({ ...prefs, themeMode });
+              // The username is the first arg, not a field on `prefs`
+              // (SettingsScreen calls onSave(username.trim(), { … })).
+              pushSettings({ ...prefs, themeMode }, name);
               // Re-download only when the account identity changes (username or
               // language). The toggles are local filters, so just re-derive the
               // deck and stay put — no network needed.
