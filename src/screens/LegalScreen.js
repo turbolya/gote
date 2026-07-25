@@ -75,7 +75,7 @@ export default function LegalScreen({ onBack }) {
         </Para>
         <Para>
           Full details are in the{' '}
-          <Link url="https://turbolya.github.io/gote/PRIVACY.html">
+          <Link url="https://goteapp.com/PRIVACY.html">
             Privacy Policy
           </Link>
           .
