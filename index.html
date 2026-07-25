@@ -37,23 +37,33 @@ title: false
     margin: 0 auto 30px;
     line-height: 1.5;
   }
-  .cta-row { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
-  .cta {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 13px 22px; border-radius: 999px;
-    font-weight: 700; font-size: 15px;
+  /* store badges — the familiar black App Store / Google Play button style,
+     drawn with inline SVG logos so they need no third-party assets. */
+  .store-row { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+  .store-badge {
+    display: inline-flex; align-items: center; gap: 11px;
+    padding: 9px 18px 9px 15px;
+    min-width: 192px;
+    background: #000; color: #fff;
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 13px;
+    text-align: left;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18);
   }
-  .cta-primary {
-    background: #fff; color: var(--brand-deep);
+  a.store-badge:hover { text-decoration: none; background: #0d0d0d; border-color: rgba(255,255,255,.4); }
+  .store-badge .badge-icon { width: 27px; height: 27px; flex: none; }
+  .store-badge .badge-icon svg { display: block; width: 100%; height: 100%; }
+  .store-badge .badge-txt { display: flex; flex-direction: column; line-height: 1.12; }
+  .store-badge .badge-txt .lead { font-size: 10px; font-weight: 500; letter-spacing: .02em; opacity: .92; }
+  .store-badge .badge-txt .name { font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+
+  .hero-source {
+    display: inline-block; margin-top: 22px;
+    color: #fff; font-weight: 600; font-size: 14px; opacity: .92;
+    border-bottom: 1px solid rgba(255,255,255,.45);
   }
-  .cta-primary:hover { text-decoration: none; opacity: .92; }
-  .cta-ghost {
-    background: rgba(255,255,255,.14);
-    color: #fff;
-    border: 1px solid rgba(255,255,255,.4);
-  }
-  .cta-ghost:hover { text-decoration: none; background: rgba(255,255,255,.22); }
-  .hero .soon { display: block; margin-top: 18px; font-size: 13px; opacity: .82; }
+  .hero-source:hover { opacity: 1; text-decoration: none; border-color: #fff; }
+  .hero .soon { display: block; margin-top: 16px; font-size: 13px; opacity: .82; }
 
   .section { padding: 64px 0 8px; }
   .section h2 {
@@ -117,6 +127,20 @@ title: false
   }
   .closer h2 { font-size: 1.6rem; letter-spacing: -.02em; margin: 0 0 10px; }
   .closer p { color: var(--muted); font-size: 1.05rem; }
+
+  /* support / Ko-fi */
+  .support { text-align: center; max-width: 600px; margin: 44px auto 0; padding: 0 20px; }
+  .support h2 { font-size: 1.4rem; letter-spacing: -.02em; margin: 0 0 8px; }
+  .support p { color: var(--muted); font-size: 1.02rem; margin: 0 0 22px; }
+  .kofi-btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 13px 24px; border-radius: 999px;
+    background: #FF5E5B; color: #fff;
+    font-weight: 700; font-size: 15px;
+    box-shadow: 0 6px 18px rgba(255,94,91,.35);
+  }
+  .kofi-btn:hover { text-decoration: none; background: #ff4744; }
+  .kofi-btn svg { width: 22px; height: 22px; display: block; }
 </style>
 
 <section class="hero">
@@ -127,11 +151,18 @@ title: false
     Quick flashcard rounds built from real nature photos — birds, plants,
     insects, fungi and more. Free, no ads, no account needed.
   </p>
-  <div class="cta-row">
-    <span class="cta cta-primary">Coming to the App&nbsp;Store</span>
-    <a class="cta cta-ghost" href="https://github.com/turbolya/gote">View the source</a>
+  <div class="store-row">
+    <span class="store-badge" role="img" aria-label="Coming soon on the App Store">
+      <span class="badge-icon" aria-hidden="true"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#fff"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.51 4.08zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg></span>
+      <span class="badge-txt"><span class="lead">Coming soon on</span><span class="name">App Store</span></span>
+    </span>
+    <span class="store-badge" role="img" aria-label="Coming soon on Google Play">
+      <span class="badge-icon" aria-hidden="true"><svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#00d0ff" d="M20.6 21.8C15.7 26.8 13 34.5 13 44.5v423c0 10 2.7 17.7 7.6 22.7l1.4 1.4 236.9-236.9v-5.6L22 20.4z"/><path fill="#ffe000" d="M337.5 335.5l-79-79v-5.6l79-79 1.8 1 93.6 53.2c26.7 15.2 26.7 40 0 55.2l-93.6 53.2z"/><path fill="#ff3a44" d="M339.3 334.5 258.5 253.7 20.6 491.6c8.8 9.3 23.3 10.5 39.7 1.2l279-158.3z"/><path fill="#00e575" d="M339.3 172.9 60.3 14.7C43.9 5.3 29.4 6.6 20.6 15.9l237.9 237.8z"/></svg></span>
+      <span class="badge-txt"><span class="lead">Coming soon on</span><span class="name">Google Play</span></span>
+    </span>
   </div>
-  <span class="soon">iPhone · iPad · Apple Watch</span>
+  <a class="hero-source" href="https://github.com/turbolya/gote">View the source on GitHub</a>
+  <span class="soon">iPhone · iPad · Android · Apple Watch</span>
 </section>
 
 <section class="section wrap">
@@ -223,4 +254,16 @@ title: false
     or just curious about your backyard — gote turns recognition into a few fun
     minutes a day.
   </p>
+</section>
+
+<section class="support">
+  <h2>Enjoying gote?</h2>
+  <p>
+    gote is free, open-source and has no ads. If it’s useful to you, a small
+    tip helps cover the running costs and keeps it growing.
+  </p>
+  <a class="kofi-btn" href="https://ko-fi.com/goteapp">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="#fff" d="M3.2 6.5A1.5 1.5 0 0 1 4.7 5h11.6a1.5 1.5 0 0 1 1.5 1.5V8h2.1a3.1 3.1 0 0 1 0 6.2h-.7A5.6 5.6 0 0 1 14 18.9v.1a3 3 0 0 1-3 3H6.2a3 3 0 0 1-3-3V6.5Zm14.6 3v3.2h.4a1.6 1.6 0 0 0 0-3.2h-.4Z"/><path fill="#FF5E5B" d="M8.9 8.2c1-.9 2.4-.6 3 .3.6-.9 2-1.2 3-.3.9.8.8 2 .1 2.8-.7.8-2.3 1.9-3.1 2.4-.8-.5-2.4-1.6-3.1-2.4-.7-.8-.8-2 .1-2.8Z"/></svg>
+    Support gote on Ko-fi
+  </a>
 </section>
