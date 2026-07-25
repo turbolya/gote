@@ -30,14 +30,14 @@ import Icon from '../components/Icon';
 import { useColors, useThemedStyles } from '../theme';
 import {
   getSyncStatus,
+  enableSync,
+  disableSync,
   linkEmail,
   signInWithEmail,
   confirmLink,
   confirmSignIn,
   afterAuthChange,
-  signOutAndReset,
   deleteAccount,
-  ensureSession,
 } from '../sync';
 
 // 'link'   — attach an address to the account this device already has
@@ -63,12 +63,28 @@ export default function SyncScreen({ onBack, onSynced }) {
   }, []);
 
   useEffect(() => {
-    // Make sure a session exists before reporting state, or a first visit shows
-    // "not signed in" purely because sync hasn't run yet.
-    (async () => {
-      await ensureSession();
-      await refresh();
-    })();
+    // Just read the state. Deliberately does NOT create a session — opening this
+    // screen must not itself start syncing, or "off by default" would be a lie.
+    refresh();
+  }, [refresh]);
+
+  const turnOn = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    await enableSync();
+    setBusy(false);
+    setNotice('Sync is on. Your progress is backed up, and you can add an email to share it across devices.');
+    await refresh();
+  }, [refresh]);
+
+  const turnOff = useCallback(async () => {
+    setBusy(true);
+    await disableSync();
+    setBusy(false);
+    setEmail('');
+    setStage('idle');
+    setNotice('Sync is off. Everything stays on this device.');
+    await refresh();
   }, [refresh]);
 
   const send = useCallback(async () => {
@@ -118,16 +134,6 @@ export default function SyncScreen({ onBack, onSynced }) {
     await refresh();
     if (merged && onSynced) onSynced(merged);
   }, [code, email, mode, refresh, onSynced]);
-
-  const disconnect = useCallback(async () => {
-    setBusy(true);
-    await signOutAndReset();
-    await ensureSession();
-    setBusy(false);
-    setEmail('');
-    setNotice('Signed out. This device keeps its own progress.');
-    await refresh();
-  }, [refresh]);
 
   // Delete the account and everything synced to it. Two-step by design: it is
   // irreversible, and the confirmation spells out exactly what goes and what
@@ -179,6 +185,38 @@ export default function SyncScreen({ onBack, onSynced }) {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         {!status ? (
           <ActivityIndicator color={colors.primary} style={styles.spinner} />
+        ) : !status.on ? (
+          // OFF — the default. Nothing has been uploaded and no account exists
+          // until the user turns this on here.
+          <>
+            <Text style={styles.intro}>
+              Right now everything gote knows about you stays on this device —
+              nothing is uploaded anywhere.
+            </Text>
+            <Text style={styles.intro}>
+              Turn on sync to back up your progress and share the same
+              statistics, streak and species list across your devices.
+            </Text>
+            <Text style={styles.introSmall}>
+              This stores your gameplay history on our server. No password and no
+              account to create; add an email only if you want a second device.
+              You can turn it off or delete everything at any time.
+            </Text>
+            {!!notice && <Text style={styles.notice}>{notice}</Text>}
+            {!!error && <Text style={styles.error}>{error}</Text>}
+            <Pressable
+              testID="sync-enable"
+              style={[styles.primaryBtn, busy && styles.btnBusy]}
+              onPress={turnOn}
+              disabled={busy}
+            >
+              {busy ? (
+                <ActivityIndicator color={colors.onPrimary} />
+              ) : (
+                <Text style={styles.primaryText}>Turn on sync</Text>
+              )}
+            </Pressable>
+          </>
         ) : linked ? (
           <>
             <View style={styles.card}>
@@ -201,31 +239,37 @@ export default function SyncScreen({ onBack, onSynced }) {
                 upload — they'll go up next time you're online.
               </Text>
             )}
+            {!!notice && <Text style={styles.notice}>{notice}</Text>}
             <Pressable
-              testID="sync-signout"
+              testID="sync-turnoff"
               style={styles.secondaryBtn}
-              onPress={disconnect}
+              onPress={turnOff}
               disabled={busy}
             >
-              <Text style={styles.secondaryText}>Sign out on this device</Text>
+              <Text style={styles.secondaryText}>Turn off sync on this device</Text>
             </Pressable>
             <Text style={styles.footnote}>
-              Signing out leaves this device's progress exactly as it is. Nothing
-              is deleted.
+              Turning off sync stops uploading and leaves this device's progress
+              exactly as it is. Your synced data stays on the server until you
+              delete the account below.
             </Text>
-
           </>
         ) : (
           <>
-            <Text style={styles.intro}>
-              gote keeps your progress on your device. Add an email address and
-              it's backed up too — and the same statistics, streak and species
-              list appear on your other devices.
-            </Text>
-            <Text style={styles.introSmall}>
-              No password, no account to create. We only use the address to
-              recognise your devices.
-            </Text>
+            <View style={styles.card}>
+              <View style={styles.linkedRow}>
+                <Icon name="cloud" size={20} color={colors.primary} />
+                <View style={styles.linkedText}>
+                  <Text style={styles.linkedTitle}>Sync is on</Text>
+                  <Text style={styles.linkedEmail}>Backing up this device</Text>
+                </View>
+              </View>
+              <Text style={styles.hint}>
+                Add an email address to bring the same statistics, streak and
+                species list to your other devices. No password, no account to
+                create — the address only lets us recognise your devices.
+              </Text>
+            </View>
 
             <View style={styles.tabs}>
               <Tab
@@ -310,6 +354,15 @@ export default function SyncScreen({ onBack, onSynced }) {
                 ? 'Everything you have played on this device stays with you — connecting keeps it and adds a backup.'
                 : 'Your progress on this device is merged into that account, not replaced.'}
             </Text>
+
+            <Pressable
+              testID="sync-turnoff"
+              style={styles.secondaryBtn}
+              onPress={turnOff}
+              disabled={busy}
+            >
+              <Text style={styles.secondaryText}>Turn off sync on this device</Text>
+            </Pressable>
           </>
         )}
 

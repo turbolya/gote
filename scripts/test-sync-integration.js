@@ -82,8 +82,8 @@ function makeLoader(kvBackend) {
   return load;
 }
 
-function memoryKv() {
-  const map = new Map();
+function memoryKv(initial = {}) {
+  const map = new Map(Object.entries(initial));
   return {
     getItem: async (k) => (map.has(k) ? map.get(k) : null),
     setItem: async (k, v) => {
@@ -158,8 +158,10 @@ function ok(cond, what) {
 
 // --- a simulated device -----------------------------------------------------
 
-function makeDevice({ createClient, url, anon, name }) {
-  const kv = memoryKv();
+function makeDevice({ createClient, url, anon, name, optIn = true }) {
+  // Sync is opt-in and OFF by default. Every test here is about sync MECHANICS,
+  // so devices start opted in; the one test of the gate itself passes optIn:false.
+  const kv = memoryKv(optIn ? { '@gote/sync/optIn': '1' } : {});
   const load = makeLoader(kv);
 
   // Its own client, so its own session — two devices are two users.
@@ -230,6 +232,20 @@ function makeDevice({ createClient, url, anon, name }) {
 
   // --- anonymous sign-in ---------------------------------------------------
   console.log('auth');
+
+  await test('sync is off by default: no upload, no account', async () => {
+    // The privacy contract: a sync-capable build that the user has NOT opted
+    // into must behave exactly like a build with no server at all.
+    const d = makeDevice({ createClient, url, anon, name: 'off', optIn: false });
+    const rid = await d.sync.recordEvent({ answered: 5, correct: 5, pct: 100 });
+    eq(rid, null, 'recordEvent should no-op while sync is off');
+    const merged = await d.sync.syncNow();
+    eq(merged, null, 'syncNow should no-op while sync is off');
+    eq(JSON.parse(d.kv._dump()['@gote/sync/outbox'] || 'null'), null, 'nothing queued');
+    // No anonymous user was created.
+    const { data } = await d.client.auth.getSession();
+    eq(data.session, null, 'a session was created despite sync being off');
+  });
 
   await test('a device can sign in anonymously', async () => {
     const d = makeDevice({ createClient, url, anon, name: 'A' });

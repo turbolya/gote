@@ -16,6 +16,27 @@ const K_APPLIED = '@gote/sync/appliedIds';
 const K_PULLED_AT = '@gote/sync/lastPulledAt';
 const K_DEVICE = '@gote/sync/deviceId';
 const K_LAST_USER = '@gote/sync/lastUserId';
+const K_OPT_IN = '@gote/sync/optIn';
+
+// Whether the user has turned sync ON. Off by default: a sync-capable build
+// still uploads NOTHING and creates no account until this is set. Everything
+// else in the sync layer is gated on it, so "off" means the app behaves exactly
+// as a build with no credentials would — local only.
+export async function loadSyncOptIn() {
+  try {
+    return (await kv.getItem(K_OPT_IN)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export async function saveSyncOptIn(on) {
+  try {
+    await kv.setItem(K_OPT_IN, on ? '1' : '0');
+  } catch {
+    /* ignore */
+  }
+}
 
 // A cap so a long offline stretch (or a server that stays unreachable) can't
 // grow the queue without bound. Oldest go first: they are the ones whose

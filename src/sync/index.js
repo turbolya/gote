@@ -52,6 +52,8 @@ import {
   saveLastUserId,
   resetPullState,
   getDeviceId,
+  loadSyncOptIn,
+  saveSyncOptIn,
   uid,
 } from './outbox';
 import {
@@ -63,6 +65,7 @@ import {
 } from './merge';
 
 export { SYNC_ENABLED } from './config';
+export { loadSyncOptIn } from './outbox';
 export {
   ensureSession,
   currentUserId,
@@ -74,6 +77,15 @@ export {
   confirmLink,
   confirmSignIn,
 } from './auth';
+
+// The runtime gate for ALL sync activity: the build must carry credentials AND
+// the user must have turned sync on. Off by default — a sync-capable build
+// uploads nothing, creates no account, and behaves exactly like a credential-
+// less build until the user opts in from the Sync screen. This is what makes
+// "nothing leaves your device by default" literally true.
+async function syncOn() {
+  return SYNC_ENABLED && (await loadSyncOptIn());
+}
 
 // How many rows one pull fetches. Generous enough that a device offline for
 // months catches up in a couple of passes, small enough not to stall a launch.
@@ -105,7 +117,10 @@ function debug(...args) {
 //                     which is not a round and must not become a chart point
 //   species           { [taxonId]: { name, sci, image, known, missed } }
 export async function recordEvent({ answered = 0, correct = 0, pct = null, species = {}, ts = Date.now() } = {}) {
-  if (!SYNC_ENABLED) return null;
+  // Nothing is even queued while sync is off — no sync-related data touches disk
+  // until the user opts in. Their existing history is captured wholesale by the
+  // baseline at that point (see uploadBaseline), so nothing is lost.
+  if (!(await syncOn())) return null;
   try {
     const event = {
       id: uid(),
@@ -126,7 +141,7 @@ export async function recordEvent({ answered = 0, correct = 0, pct = null, speci
 
 // Mirror a settings change. Cheap and idempotent — the row is one per user.
 export async function pushSettings(prefs, username) {
-  if (!SYNC_ENABLED) return;
+  if (!(await syncOn())) return;
   try {
     const supabase = getClient();
     const userId = await ensureSession();
@@ -150,7 +165,7 @@ export async function pushSettings(prefs, username) {
 // local storage. Returns a summary the caller can use to refresh state, or null
 // if nothing changed / sync is off.
 export async function syncNow() {
-  if (!SYNC_ENABLED) return null;
+  if (!(await syncOn())) return null;
   if (inFlight) return inFlight;
   inFlight = run().finally(() => {
     inFlight = null;
@@ -321,8 +336,14 @@ async function applyRemote(events) {
 // --- accounts ----------------------------------------------------------------
 
 // What the Sync screen needs to render.
+//
+// When sync is off, this reports so WITHOUT creating a session — checking the
+// status must not itself mint an anonymous account, or "off by default" would be
+// a lie the moment someone opened the screen.
 export async function getSyncStatus() {
-  if (!SYNC_ENABLED) return { enabled: false };
+  if (!SYNC_ENABLED) return { enabled: false, on: false };
+  const on = await loadSyncOptIn();
+  if (!on) return { enabled: true, on: false };
   try {
     const [userId, email, anon, queued] = await Promise.all([
       currentUserId(),
@@ -332,14 +353,33 @@ export async function getSyncStatus() {
     ]);
     return {
       enabled: true,
+      on: true,
       signedIn: Boolean(userId),
       anonymous: anon,
       email: email || null,
       queued: queued.length,
     };
   } catch {
-    return { enabled: true, signedIn: false, anonymous: true, email: null, queued: 0 };
+    return { enabled: true, on: true, signedIn: false, anonymous: true, email: null, queued: 0 };
   }
+}
+
+// Turn sync ON. Records consent, then syncs: the first run signs the device in
+// anonymously and uploads a baseline of everything played so far, so nothing
+// already on the device is left behind. Returns the merge summary (or null).
+export async function enableSync() {
+  if (!SYNC_ENABLED) return null;
+  await saveSyncOptIn(true);
+  return syncNow();
+}
+
+// Turn sync OFF. Stops all upload and signs out, so nothing more leaves the
+// device. Local statistics are untouched — this is about the network, not the
+// data. Anything already on the server stays until the account is deleted; the
+// screen says so, and Delete synced account is the way to remove it.
+export async function disableSync() {
+  await saveSyncOptIn(false);
+  await signOutAndReset();
 }
 
 // Call after any successful sign-in or link. Two very different cases:
@@ -355,7 +395,10 @@ export async function getSyncStatus() {
 //   baseline is never applied here and cannot double-count; the OTHER devices
 //   apply it once.
 export async function afterAuthChange() {
-  if (!SYNC_ENABLED) return null;
+  // Linking or signing in is itself the act of turning sync on, so make sure the
+  // opt-in is recorded before syncing (a user can reach the email flow only from
+  // the Sync screen, but recording it here keeps the invariant local).
+  await saveSyncOptIn(true);
   // The reconcile itself lives in run() (see reconcileAccount), so it cannot be
   // missed by a caller that forgets to announce a sign-in. This is just "sync
   // now, please" with a name that says why.
@@ -461,7 +504,10 @@ export async function deleteAccount() {
     // the user just asked to erase.
     await Promise.all([resetPullState(), saveOutbox([]), saveLastUserId('')]);
     await authSignOut();
-    await ensureSession(); // fresh anonymous identity, so the app keeps working
+    // Turn sync OFF after a delete. The user removed their synced data;
+    // silently minting a fresh anonymous account and re-uploading would undo
+    // exactly what they asked for. They can turn it back on any time.
+    await saveSyncOptIn(false);
     return { ok: true };
   } catch (e) {
     debug('delete threw', e && e.message);
@@ -487,7 +533,7 @@ export async function signOutAndReset() {
 // syncNow because settings are last-write-wins and stats are not — mixing the
 // two merge rules in one function is how you end up applying the wrong one.
 export async function syncSettings() {
-  if (!SYNC_ENABLED) return null;
+  if (!(await syncOn())) return null;
   try {
     const supabase = getClient();
     const userId = await ensureSession();

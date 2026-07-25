@@ -20,6 +20,7 @@ const MAP = {
   'bar-chart-2': 'stats-chart-outline',
   'book-open': 'book-outline',
   check: 'checkmark',
+  cloud: 'cloud-outline',
   'chevron-down': 'chevron-down',
   'chevron-left': 'chevron-back',
   'chevron-right': 'chevron-forward',

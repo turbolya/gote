@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.0';
+export const APP_VERSION = '2.29.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.1',
+    date: '2026-07-24',
+    changes: [
+      'Sync is now off by default and opt-in: nothing leaves your device until '
+        + 'you turn on Settings ▸ Devices ▸ Sync across devices. Turning it off '
+        + 'again stops all uploading.',
+    ],
+  },
   {
     version: '2.29.0',
     date: '2026-07-24',
