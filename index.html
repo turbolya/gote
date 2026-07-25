@@ -65,68 +65,50 @@ title: false
   .hero-source:hover { opacity: 1; text-decoration: none; border-color: #fff; }
   .hero .soon { display: block; margin-top: 16px; font-size: 13px; opacity: .82; }
 
-  .section { padding: 64px 0 8px; }
-  .section h2 {
-    text-align: center; font-size: 1.8rem; letter-spacing: -.02em;
-    margin: 0 0 8px;
+  /* editorial feature rows — one screenshot beside one short line, sides
+     alternating. Deliberately spare: no cards, no icons, plenty of air. */
+  .showcase { padding: 60px 0 0; }
+  .frow {
+    display: flex; align-items: center;
+    gap: clamp(28px, 6vw, 76px);
+    max-width: 900px; margin: 0 auto;
+    padding: clamp(30px, 5vw, 60px) 20px;
   }
-  .section .lead {
-    text-align: center; color: var(--muted); max-width: 44ch;
-    margin: 0 auto 40px; font-size: 1.05rem;
+  .frow:nth-child(even) { flex-direction: row-reverse; }
+  .frow-media { flex: 0 0 auto; width: 236px; max-width: 46vw; }
+  .frow-media figure {
+    margin: 0; border-radius: 30px; overflow: hidden;
+    background: var(--card); border: 1px solid var(--border);
+    box-shadow: var(--shadow); aspect-ratio: 640 / 1390;
   }
-  .features {
-    display: grid; gap: 18px;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  .frow-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .frow-text { flex: 1 1 0; max-width: 30rem; }
+  .frow-text h2 {
+    font-size: clamp(1.55rem, 3.6vw, 2.05rem);
+    line-height: 1.12; letter-spacing: -.025em; margin: 0 0 .5em;
   }
-  .feature {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 22px;
-    box-shadow: var(--shadow);
-  }
-  .feature .glyph {
-    font-size: 26px; line-height: 1;
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 46px; height: 46px; border-radius: 12px;
-    background: color-mix(in srgb, var(--brand) 14%, transparent);
-    margin-bottom: 14px;
-  }
-  .feature h3 { margin: 0 0 6px; font-size: 1.1rem; letter-spacing: -.01em; }
-  .feature p { margin: 0; color: var(--muted); font-size: .96rem; line-height: 1.5; }
+  .frow-text p { margin: 0; color: var(--muted); font-size: 1.1rem; line-height: 1.55; }
 
-  /* screenshot showcase — phone frames */
-  .shots {
-    display: flex; flex-wrap: wrap; justify-content: center;
-    gap: clamp(16px, 4vw, 40px);
-    padding: 8px 0 4px;
+  .modes {
+    max-width: 620px; margin: 30px auto 0; padding: 0 20px;
+    text-align: center; color: var(--muted);
+    font-size: 1.05rem; line-height: 1.65;
   }
-  .shot { width: 210px; max-width: 44vw; text-align: center; }
-  .shot figure {
-    margin: 0;
-    border-radius: 26px;
-    overflow: hidden;
-    background: var(--card);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    aspect-ratio: 640 / 1390;
-  }
-  .shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
-  .shot figcaption {
-    margin-top: 14px; font-size: .92rem; font-weight: 600; color: var(--muted);
-  }
-  @media (max-width: 720px) {
-    .shots { gap: 18px; }
-    .shot { width: 150px; }
-    .shot figure { border-radius: 20px; }
+  .modes strong { color: var(--text); font-weight: 600; }
+
+  @media (max-width: 680px) {
+    .frow, .frow:nth-child(even) { flex-direction: column; text-align: center; gap: 24px; }
+    .frow { padding: 34px 20px; }
+    .frow-media { width: 208px; }
+    .frow-text { max-width: 32ch; margin: 0 auto; }
   }
 
   .closer {
     text-align: center;
-    max-width: 620px; margin: 72px auto 0; padding: 0 20px;
+    max-width: 600px; margin: 60px auto 0; padding: 0 20px;
   }
-  .closer h2 { font-size: 1.6rem; letter-spacing: -.02em; margin: 0 0 10px; }
-  .closer p { color: var(--muted); font-size: 1.05rem; }
+  .closer h2 { font-size: clamp(1.5rem, 3.4vw, 1.9rem); letter-spacing: -.025em; margin: 0 0 12px; }
+  .closer p { color: var(--muted); font-size: 1.08rem; line-height: 1.55; }
 
   /* support / Ko-fi */
   .support { text-align: center; max-width: 600px; margin: 44px auto 0; padding: 0 20px; }
@@ -165,95 +147,51 @@ title: false
   <span class="soon">iPhone · iPad · Android · Apple Watch</span>
 </section>
 
-<section class="section wrap">
-  <h2>A look inside</h2>
-  <p class="lead">A calm, photo-first interface that keeps the species front and centre.</p>
-  <div class="shots">
-    <div class="shot">
-      <figure><img src="/assets/screenshots/menu.jpg" alt="The gote home screen with play modes and lifetime accuracy" loading="lazy" width="640" height="1390"></figure>
-      <figcaption>Your home &amp; progress</figcaption>
+<section class="showcase">
+  <div class="frow">
+    <div class="frow-media">
+      <figure><img src="/assets/screenshots/quiz.jpg" alt="A gote photo quiz — a plant in the wild with five species to choose from" loading="lazy" width="640" height="1390"></figure>
     </div>
-    <div class="shot">
-      <figure><img src="/assets/screenshots/quiz.jpg" alt="A photo quiz asking which species is shown, with five choices" loading="lazy" width="640" height="1390"></figure>
-      <figcaption>Guess from a real photo</figcaption>
+    <div class="frow-text">
+      <h2>See a photo. Name what you’re looking at.</h2>
+      <p>Every card is a real observation, with five believable options drawn from
+      genuine look-alikes — so you learn the difference, not just the answer.</p>
     </div>
-    <div class="shot">
-      <figure><img src="/assets/screenshots/stats.jpg" alt="Statistics screen with accuracy, streak and an accuracy trend chart" loading="lazy" width="640" height="1390"></figure>
-      <figcaption>Statistics &amp; streak</figcaption>
+  </div>
+
+  <div class="frow">
+    <div class="frow-media">
+      <figure><img src="/assets/screenshots/stats.jpg" alt="gote statistics — accuracy, a daily streak, and an accuracy trend line" loading="lazy" width="640" height="1390"></figure>
     </div>
-    <div class="shot">
-      <figure><img src="/assets/screenshots/lexicon.jpg" alt="Searchable lexicon of species with thumbnails and scientific names" loading="lazy" width="640" height="1390"></figure>
-      <figcaption>Browse your lexicon</figcaption>
+    <div class="frow-text">
+      <h2>Feel yourself getting sharper.</h2>
+      <p>A daily streak to keep, a line that climbs as you play, and your own
+      accuracy for every species you’ve met.</p>
+    </div>
+  </div>
+
+  <div class="frow">
+    <div class="frow-media">
+      <figure><img src="/assets/screenshots/lexicon.jpg" alt="gote lexicon — a searchable list of species with photos and scientific names" loading="lazy" width="640" height="1390"></figure>
+    </div>
+    <div class="frow-text">
+      <h2>A field guide that builds itself.</h2>
+      <p>Everything you’ve seen gathers in one searchable place. Or drop a pin on
+      the map and learn what actually lives there.</p>
     </div>
   </div>
 </section>
 
-<section class="section wrap">
-  <h2>Pick a mode and play</h2>
-  <p class="lead">Six ways to study the same photos, so recognition never gets stale.</p>
-  <div class="features">
-    <div class="feature">
-      <span class="glyph">🖼️</span>
-      <h3>By name</h3>
-      <p>See a photo, choose the right species from the options.</p>
-    </div>
-    <div class="feature">
-      <span class="glyph">🔤</span>
-      <h3>By picture</h3>
-      <p>See a name, pick the matching photo from real look-alikes.</p>
-    </div>
-    <div class="feature">
-      <span class="glyph">⚡</span>
-      <h3>Speedrun</h3>
-      <p>A photo flashes for a few seconds — then race the clock.</p>
-    </div>
-    <div class="feature">
-      <span class="glyph">🃏</span>
-      <h3>Flash cards</h3>
-      <p>Flip to reveal the answer, then grade yourself.</p>
-    </div>
-    <div class="feature">
-      <span class="glyph">📍</span>
-      <h3>Nearby species</h3>
-      <p>Drop a pin and learn what’s commonly seen there, from every observer around that spot.</p>
-    </div>
-    <div class="feature">
-      <span class="glyph">⌚</span>
-      <h3>On your wrist</h3>
-      <p>A quick quiz and your streak on Apple Watch, synced from your phone.</p>
-    </div>
-  </div>
-</section>
-
-<section class="section wrap">
-  <h2>Track your progress</h2>
-  <p class="lead">The more you play, the more it learns what you already know.</p>
-  <div class="features">
-    <div class="feature">
-      <span class="glyph">📚</span>
-      <h3>Your lexicon</h3>
-      <p>A searchable list of every species you’ve seen, filtered by how well you know each.</p>
-    </div>
-    <div class="feature">
-      <span class="glyph">📈</span>
-      <h3>Statistics &amp; streak</h3>
-      <p>Per-species accuracy, a daily streak, and an accuracy chart that grows as you play.</p>
-    </div>
-    <div class="feature">
-      <span class="glyph">🌿</span>
-      <h3>Built for naturalists</h3>
-      <p>Start with a sample set, or study your own iNaturalist observations. Every photo credits its photographer.</p>
-    </div>
-  </div>
-</section>
+<p class="modes">
+  Play it your way — <strong>by name, by picture, speedrun, or flashcards</strong>,
+  from a sample set or your own iNaturalist observations. There’s an
+  Apple&nbsp;Watch app, too.
+</p>
 
 <section class="closer">
-  <h2>Turn your sightings into a game</h2>
-  <p>
-    Whether you’re a birder sharpening your IDs, a student learning local flora,
-    or just curious about your backyard — gote turns recognition into a few fun
-    minutes a day.
-  </p>
+  <h2>For the perpetually curious.</h2>
+  <p>The birders, the plant people, and anyone who’s ever crouched over something
+  small and wondered what on earth it was.</p>
 </section>
 
 <section class="support">
