@@ -83,10 +83,9 @@ export default function LegalScreen({ onBack }) {
 
         <Text style={styles.heading}>Not affiliated with iNaturalist</Text>
         <Para>
-          gote is an independent, unofficial app. It is not created, endorsed, or
-          supported by iNaturalist, the California Academy of Sciences, or the
-          National Geographic Society. “iNaturalist” is a trademark of its
-          owners.
+          gote is an independent, unofficial app. It is not created by
+          iNaturalist, the California Academy of Sciences, or the National
+          Geographic Society. “iNaturalist” is a trademark of its owners.
         </Para>
 
         <Text style={styles.heading}>Learn more</Text>

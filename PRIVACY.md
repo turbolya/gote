@@ -162,6 +162,5 @@ Source code: <https://github.com/turbolya/gote>
 
 ---
 
-*gote is an independent, unofficial app. It is not created, endorsed or
-supported by iNaturalist, the California Academy of Sciences, or the National
-Geographic Society.*
+*gote is an independent, unofficial app. It is not created by iNaturalist, the
+California Academy of Sciences, or the National Geographic Society.*
