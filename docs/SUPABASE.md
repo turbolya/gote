@@ -68,6 +68,30 @@ any table you add later must be too.
 
 **Email** should also be on (it is by default) — that covers step 6.
 
+### Email must send a CODE, not a link (this bit the first TestFlight build)
+
+gote's link/sign-in flow confirms with a **typed 6-digit code** (`verifyOtp`).
+Two hosted-project defaults break that, and both are fixed in the dashboard with
+**no app rebuild** — they change already-installed builds immediately:
+
+1. **Email templates.** The stock "Magic Link" and "Change Email Address"
+   templates send `{{ .ConfirmationURL }}` — a link — which gives the user
+   nothing to type, and the link points at the Site URL (`localhost` by
+   default), so it's dead on a phone. Authentication ▸ Emails ▸ edit both
+   templates to contain **`{{ .Token }}`**. The versions in
+   `supabase/templates/` are what to paste (they drive the local stack via
+   `config.toml`); `magic_link.html` → "Magic Link", `email_change.html` →
+   "Change Email Address".
+
+2. **Confirm email must be ON.** With it off, `updateUser({email})` links the
+   anonymous account *immediately*, so the app shows "Connected" before the user
+   ever enters a code — ownership is never proven. Authentication ▸ Providers ▸
+   Email ▸ **Confirm email** ▸ on.
+
+If you have the project linked (`supabase link`), `supabase config push` can
+send the `[auth]` config and templates from `config.toml` instead of clicking
+through the dashboard. It writes to your live project, so review the diff first.
+
 ## 4. Put the credentials in the build
 
 Settings ▸ API gives you the **Project URL** and the client key. New projects

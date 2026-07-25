@@ -225,7 +225,11 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+# ON for gote: this also gates the email-CHANGE confirmation. With it off,
+# updateUser({email}) links the anonymous account immediately, so the app shows
+# "Connected" before the user ever enters the code — proving ownership is
+# skipped. The hosted project must have this on too (docs/SUPABASE.md).
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
@@ -244,6 +248,20 @@ otp_expiry = 3600
 # pass = "env(SENDGRID_API_KEY)"
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
+
+# gote sends CODES, not links. The app's link/sign-in flow confirms with a
+# typed 6-digit OTP (verifyOtp), so these templates must contain {{ .Token }}.
+# The stock templates send {{ .ConfirmationURL }} — a magic link — which leaves
+# the user nothing to type and points at the Site URL (localhost by default).
+# The hosted project needs the same two templates set in the dashboard; see
+# docs/SUPABASE.md. magic_link → signInWithEmail; email_change → linkEmail.
+[auth.email.template.magic_link]
+subject = "Your gote sign-in code"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your gote email"
+content_path = "./supabase/templates/email_change.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

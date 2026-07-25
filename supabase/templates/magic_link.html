@@ -1,0 +1,13 @@
+<!--
+  Sign-in code email (Supabase "magic link" template, used by signInWithOtp —
+  the "I already have gote elsewhere" path).
+
+  MUST contain {{ .Token }}. The app confirms with a typed 6-digit code
+  (verifyOtp), so the default template — which sends {{ .ConfirmationURL }},
+  a link — gives the user nothing to enter, and the link points at the
+  project's Site URL (localhost by default). The token is what the flow needs.
+-->
+<h2>Your gote sign-in code</h2>
+<p>Enter this code in gote to sign in on this device:</p>
+<p style="font-size:28px;font-weight:bold;letter-spacing:4px">{{ .Token }}</p>
+<p>The code expires in an hour. If you didn't ask to sign in, ignore this email.</p>

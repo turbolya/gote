@@ -1,0 +1,12 @@
+<!--
+  Connect-device code email (Supabase "email change" template, used by
+  updateUser({email}) — the "This is my first device" path, which attaches an
+  address to the anonymous account).
+
+  MUST contain {{ .Token }}, for the same reason as magic_link.html: the app
+  asks the user to type a 6-digit code, not to click a link.
+-->
+<h2>Confirm your gote email</h2>
+<p>Enter this code in gote to connect this device:</p>
+<p style="font-size:28px;font-weight:bold;letter-spacing:4px">{{ .Token }}</p>
+<p>The code expires in an hour. If you didn't ask to connect a device, ignore this email.</p>
