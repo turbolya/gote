@@ -75,13 +75,31 @@ title: false
     padding: clamp(30px, 5vw, 60px) 20px;
   }
   .frow:nth-child(even) { flex-direction: row-reverse; }
-  .frow-media { flex: 0 0 auto; width: 236px; max-width: 46vw; }
+  .frow-media { flex: 0 0 auto; width: 244px; max-width: 48vw; }
+  /* iPhone frame — a titanium bezel drawn around the screenshot */
   .frow-media figure {
-    margin: 0; border-radius: 30px; overflow: hidden;
-    background: var(--card); border: 1px solid var(--border);
-    box-shadow: var(--shadow); aspect-ratio: 640 / 1390;
+    position: relative; margin: 0;
+    padding: 3.2%;
+    border-radius: 15% / 6.9%;
+    background: linear-gradient(150deg, #43464d 0%, #191a1e 55%, #0f1013 100%);
+    box-shadow:
+      0 16px 38px rgba(0,0,0,.24),
+      inset 0 0 0 1.5px rgba(255,255,255,.10);
+    aspect-ratio: 640 / 1390;
   }
-  .frow-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .frow-media figure img {
+    display: block; width: 100%; height: 100%; object-fit: cover;
+    border-radius: 11.5% / 5.3%;
+  }
+  /* side buttons */
+  .frow-media figure::before {
+    content: ""; position: absolute; left: -2px; top: 17%; width: 3px; height: 12%;
+    border-radius: 2px; background: #2f3135;
+  }
+  .frow-media figure::after {
+    content: ""; position: absolute; right: -2px; top: 22%; width: 3px; height: 9%;
+    border-radius: 2px; background: #2f3135;
+  }
   .frow-text { flex: 1 1 0; max-width: 30rem; }
   .frow-text h2 {
     font-size: clamp(1.55rem, 3.6vw, 2.05rem);
@@ -101,14 +119,33 @@ title: false
   .watch h2 { font-size: clamp(1.5rem, 3.4vw, 1.9rem); letter-spacing: -.025em; margin: 0 0 12px; }
   .watch p { color: var(--muted); font-size: 1.08rem; line-height: 1.55; max-width: 34rem; margin: 0 auto 34px; }
   .watch-shots { display: flex; justify-content: center; gap: clamp(20px, 6vw, 52px); }
-  .wshot { width: 170px; max-width: 40vw; }
+  .wshot { width: 176px; max-width: 42vw; }
+  /* Apple Watch frame — a case with a digital crown + side button */
   .wshot figure {
-    margin: 0; border-radius: 34px; overflow: hidden; background: #000;
-    border: 1px solid var(--border); box-shadow: var(--shadow);
+    position: relative; margin: 0;
+    padding: 8% 7%;
+    border-radius: 34% / 30%;
+    background: linear-gradient(150deg, #43464d, #191a1e 60%);
+    box-shadow:
+      0 12px 28px rgba(0,0,0,.28),
+      inset 0 0 0 1.5px rgba(255,255,255,.10);
     aspect-ratio: 416 / 496;
   }
-  .wshot img { display: block; width: 100%; height: 100%; object-fit: cover; }
-  .wshot figcaption { margin-top: 13px; font-size: .9rem; font-weight: 600; color: var(--muted); }
+  .wshot figure img {
+    display: block; width: 100%; height: 100%; object-fit: cover;
+    border-radius: 22% / 18%; background: #000;
+  }
+  /* digital crown + side button on the right edge */
+  .wshot figure::before {
+    content: ""; position: absolute; right: -4px; top: 33%; width: 6px; height: 15%;
+    border-radius: 3px; background: #34363b;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
+  }
+  .wshot figure::after {
+    content: ""; position: absolute; right: -2px; top: 53%; width: 4px; height: 15%;
+    border-radius: 3px; background: #26282c;
+  }
+  .wshot figcaption { margin-top: 15px; font-size: .9rem; font-weight: 600; color: var(--muted); }
 
   @media (max-width: 680px) {
     .frow, .frow:nth-child(even) { flex-direction: column; text-align: center; gap: 24px; }
@@ -264,8 +301,8 @@ title: false
   streak right on your watch face.</p>
   <div class="watch-shots">
     <div class="wshot">
-      <figure><img src="/assets/screenshots/watch-play.jpg" alt="gote on Apple Watch — a quiz round with four species answers" loading="lazy" width="416" height="496"></figure>
-      <figcaption>A round on your wrist</figcaption>
+      <figure><img src="/assets/screenshots/watch-play.jpg" alt="gote on Apple Watch — a real nature photo to identify" loading="lazy" width="416" height="496"></figure>
+      <figcaption>A photo on your wrist</figcaption>
     </div>
     <div class="wshot">
       <figure><img src="/assets/screenshots/watch-face.jpg" alt="gote Apple Watch complications — accuracy ring and streak on the watch face" loading="lazy" width="416" height="496"></figure>
