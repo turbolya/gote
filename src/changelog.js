@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.2';
+export const APP_VERSION = '2.29.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.3',
+    date: '2026-07-25',
+    changes: [
+      'Removed the (unused) Sentry crash-reporting dependency. It was never '
+        + 'active, so nothing changes for you — the app is just a little lighter.',
+    ],
+  },
   {
     version: '2.29.2',
     date: '2026-07-25',

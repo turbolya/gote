@@ -68,12 +68,6 @@ device identifiers for advertising, or anything about you beyond the above.
 
 Sync is off unless you turn it on, and the app is fully usable without it.
 
-### Crash reports (if enabled in a future release)
-
-Some builds may include [Sentry](https://sentry.io) for crash reporting. When a
-crash happens it records the error, the app version, and the device model and OS
-version. It does not record your observations, statistics, or email address.
-
 ## Location
 
 **Nearby species** asks for your location so it can find species observed near
