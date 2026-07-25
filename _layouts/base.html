@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if page.title %}{{ page.title }} · gote{% else %}gote — learn the species you see{% endif %}</title>
+<meta name="description" content="{{ page.description | default: site.description }}">
+<link rel="icon" href="/assets/favicon.png">
+<meta property="og:title" content="{% if page.title %}{{ page.title }} · gote{% else %}gote{% endif %}">
+<meta property="og:description" content="{{ site.description }}">
+<meta property="og:image" content="/assets/app-icon.png">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#008AAC">
+<style>
+  /* gote design tokens — mirrors src/theme.js so the site reads as the app. */
+  :root {
+    --bg: #FAFAF8;
+    --card: #FFFFFF;
+    --text: #1A1D1A;
+    --muted: #667063;
+    --border: #E7E8E3;
+    --brand: #008AAC;
+    --brand-strong: #036178;
+    --brand-deep: #02485A;
+    --link: #036178;
+    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.05);
+    --radius: 16px;
+    --hero: linear-gradient(160deg, #17A7C6 0%, #008AAC 52%, #02485A 100%);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121412;
+      --card: #1C1F1B;
+      --text: #ECEEEA;
+      --muted: #9AA096;
+      --border: #30342C;
+      --brand: #34C2E0;
+      --brand-strong: #82D9EA;
+      --brand-deep: #02485A;
+      --link: #82D9EA;
+      --shadow: 0 1px 3px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  img { max-width: 100%; }
+
+  /* --- header ------------------------------------------------------------ */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 20px;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 19px;
+    letter-spacing: -.02em;
+    color: var(--text);
+  }
+  .brand:hover { text-decoration: none; }
+  .brand img { width: 30px; height: 30px; border-radius: 8px; }
+  .site-nav { display: flex; align-items: center; gap: 22px; font-size: 15px; font-weight: 600; }
+  .site-nav a { color: var(--muted); }
+  .site-nav a:hover { color: var(--text); text-decoration: none; }
+
+  /* --- generic content width -------------------------------------------- */
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+
+  /* --- footer ------------------------------------------------------------ */
+  .site-footer {
+    border-top: 1px solid var(--border);
+    margin-top: 72px;
+    padding: 40px 20px 56px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .site-footer .wrap { display: flex; flex-direction: column; gap: 14px; }
+  .footer-links { display: flex; flex-wrap: wrap; gap: 20px; }
+  .footer-links a { color: var(--muted); font-weight: 600; }
+  .footer-note { max-width: 640px; line-height: 1.5; }
+
+  /* --- article / prose (privacy) ---------------------------------------- */
+  .prose { max-width: 720px; margin: 0 auto; padding: 56px 20px 8px; }
+  .prose h1 { font-size: 2rem; line-height: 1.15; letter-spacing: -.02em; margin: 0 0 .4em; }
+  .prose h2 {
+    font-size: 1.3rem; letter-spacing: -.01em; margin: 2.2em 0 .5em;
+    padding-top: 1.2em; border-top: 1px solid var(--border);
+  }
+  .prose h2:first-of-type { border-top: 0; padding-top: 0; }
+  .prose h3 { font-size: 1.05rem; margin: 1.6em 0 .4em; }
+  .prose p, .prose li { color: var(--text); }
+  .prose strong { font-weight: 700; }
+  .prose ul { padding-left: 1.2em; }
+  .prose li { margin: .35em 0; }
+  .prose hr { border: 0; border-top: 1px solid var(--border); margin: 2.5em 0; }
+  .prose code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .88em;
+    background: color-mix(in srgb, var(--brand) 12%, transparent);
+    padding: .12em .4em; border-radius: 6px;
+  }
+  .prose em { color: var(--muted); }
+  .prose > p:last-child em { font-size: .9em; }
+
+  @media (max-width: 600px) {
+    .site-nav { gap: 16px; }
+    .prose h1 { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <img src="/assets/app-icon.png" alt="">
+      gote
+    </a>
+    <nav class="site-nav">
+      <a href="/PRIVACY.html">Privacy</a>
+      <a href="https://github.com/turbolya/gote">GitHub</a>
+    </nav>
+  </header>
+
+  {{ content }}
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-links">
+        <a href="/">Home</a>
+        <a href="/PRIVACY.html">Privacy</a>
+        <a href="https://github.com/turbolya/gote">Source</a>
+        <a href="https://www.inaturalist.org">iNaturalist</a>
+      </div>
+      <p class="footer-note">
+        Photos &amp; data from iNaturalist and its observers, used under each
+        observer’s license. gote is an independent, unofficial app — not created,
+        endorsed or supported by iNaturalist, the California Academy of Sciences,
+        or the National Geographic Society.
+      </p>
+      <p>© 2026 gote · AGPL-3.0</p>
+    </div>
+  </footer>
+</body>
+</html>

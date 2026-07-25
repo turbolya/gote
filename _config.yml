@@ -1,0 +1,47 @@
+# GitHub Pages / Jekyll config for the gote website (goteapp.com).
+#
+# Only the landing page (index.html) and the privacy policy (PRIVACY.md) are the
+# website; everything else in this repo is the app. The exclude list keeps the
+# app source, tooling and dev docs out of the published site — both to keep the
+# site clean and because some dev docs contain Liquid-looking text ({{ … }})
+# that Jekyll would try to interpret.
+
+title: gote
+description: >-
+  Learn the species you see. Quick flashcard rounds built from real nature
+  photos — birds, plants, insects, fungi and more.
+url: https://goteapp.com
+
+# Every page gets the article layout unless it opts out (index.html uses `base`).
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: page
+
+exclude:
+  - App.js
+  - index.js
+  - app.json
+  - eas.json
+  - package.json
+  - package-lock.json
+  - babel.config.js
+  - tsconfig.json
+  - .detoxrc.js
+  - .npmrc
+  - README.md
+  - CONTRIBUTING.md
+  - LICENSE
+  - LICENSE-EXCEPTION
+  - src
+  - scripts
+  - modules
+  - targets
+  - e2e
+  - screenshots-local
+  - supabase
+  - mockups
+  - docs
+  - node_modules
+  - vendor

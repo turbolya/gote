@@ -1,0 +1,176 @@
+---
+layout: base
+title: false
+---
+<style>
+  /* Page-specific styles for the landing hero + feature grid. Shared tokens
+     come from the base layout. */
+  .hero {
+    background: var(--hero);
+    color: #fff;
+    text-align: center;
+    padding: 72px 20px 84px;
+  }
+  .hero-newt {
+    width: 92px; height: 92px; object-fit: contain;
+    margin: 0 auto 22px;
+    filter: drop-shadow(0 6px 16px rgba(0,0,0,.25));
+  }
+  .hero h1 {
+    font-size: clamp(2.6rem, 8vw, 4rem);
+    line-height: 1;
+    letter-spacing: -.03em;
+    margin: 0 0 .2em;
+    font-weight: 800;
+  }
+  .hero .tagline {
+    font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+    font-weight: 600;
+    margin: 0 auto .8em;
+    max-width: 20ch;
+  }
+  .hero .sub {
+    font-size: 1.05rem;
+    opacity: .9;
+    max-width: 46ch;
+    margin: 0 auto 30px;
+    line-height: 1.5;
+  }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+  .cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 22px; border-radius: 999px;
+    font-weight: 700; font-size: 15px;
+  }
+  .cta-primary {
+    background: #fff; color: var(--brand-deep);
+  }
+  .cta-primary:hover { text-decoration: none; opacity: .92; }
+  .cta-ghost {
+    background: rgba(255,255,255,.14);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.4);
+  }
+  .cta-ghost:hover { text-decoration: none; background: rgba(255,255,255,.22); }
+  .hero .soon { display: block; margin-top: 18px; font-size: 13px; opacity: .82; }
+
+  .section { padding: 64px 0 8px; }
+  .section h2 {
+    text-align: center; font-size: 1.8rem; letter-spacing: -.02em;
+    margin: 0 0 8px;
+  }
+  .section .lead {
+    text-align: center; color: var(--muted); max-width: 44ch;
+    margin: 0 auto 40px; font-size: 1.05rem;
+  }
+  .features {
+    display: grid; gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+  .feature {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    box-shadow: var(--shadow);
+  }
+  .feature .glyph {
+    font-size: 26px; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 46px; height: 46px; border-radius: 12px;
+    background: color-mix(in srgb, var(--brand) 14%, transparent);
+    margin-bottom: 14px;
+  }
+  .feature h3 { margin: 0 0 6px; font-size: 1.1rem; letter-spacing: -.01em; }
+  .feature p { margin: 0; color: var(--muted); font-size: .96rem; line-height: 1.5; }
+
+  .closer {
+    text-align: center;
+    max-width: 620px; margin: 72px auto 0; padding: 0 20px;
+  }
+  .closer h2 { font-size: 1.6rem; letter-spacing: -.02em; margin: 0 0 10px; }
+  .closer p { color: var(--muted); font-size: 1.05rem; }
+</style>
+
+<section class="hero">
+  <img class="hero-newt" src="/assets/gote.png" alt="The gote newt">
+  <h1>gote</h1>
+  <p class="tagline">Learn the species you see.</p>
+  <p class="sub">
+    Quick flashcard rounds built from real nature photos — birds, plants,
+    insects, fungi and more. Free, no ads, no account needed.
+  </p>
+  <div class="cta-row">
+    <span class="cta cta-primary">Coming to the App&nbsp;Store</span>
+    <a class="cta cta-ghost" href="https://github.com/turbolya/gote">View the source</a>
+  </div>
+  <span class="soon">iPhone · iPad · Apple Watch</span>
+</section>
+
+<section class="section wrap">
+  <h2>Pick a mode and play</h2>
+  <p class="lead">Six ways to study the same photos, so recognition never gets stale.</p>
+  <div class="features">
+    <div class="feature">
+      <span class="glyph">🖼️</span>
+      <h3>By name</h3>
+      <p>See a photo, choose the right species from the options.</p>
+    </div>
+    <div class="feature">
+      <span class="glyph">🔤</span>
+      <h3>By picture</h3>
+      <p>See a name, pick the matching photo from real look-alikes.</p>
+    </div>
+    <div class="feature">
+      <span class="glyph">⚡</span>
+      <h3>Speedrun</h3>
+      <p>A photo flashes for a few seconds — then race the clock.</p>
+    </div>
+    <div class="feature">
+      <span class="glyph">🃏</span>
+      <h3>Flash cards</h3>
+      <p>Flip to reveal the answer, then grade yourself.</p>
+    </div>
+    <div class="feature">
+      <span class="glyph">📍</span>
+      <h3>Nearby species</h3>
+      <p>Drop a pin and learn what’s commonly seen there, from every observer around that spot.</p>
+    </div>
+    <div class="feature">
+      <span class="glyph">⌚</span>
+      <h3>On your wrist</h3>
+      <p>A quick quiz and your streak on Apple Watch, synced from your phone.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section wrap">
+  <h2>Track your progress</h2>
+  <p class="lead">The more you play, the more it learns what you already know.</p>
+  <div class="features">
+    <div class="feature">
+      <span class="glyph">📚</span>
+      <h3>Your lexicon</h3>
+      <p>A searchable list of every species you’ve seen, filtered by how well you know each.</p>
+    </div>
+    <div class="feature">
+      <span class="glyph">📈</span>
+      <h3>Statistics &amp; streak</h3>
+      <p>Per-species accuracy, a daily streak, and an accuracy chart that grows as you play.</p>
+    </div>
+    <div class="feature">
+      <span class="glyph">🌿</span>
+      <h3>Built for naturalists</h3>
+      <p>Start with a sample set, or study your own iNaturalist observations. Every photo credits its photographer.</p>
+    </div>
+  </div>
+</section>
+
+<section class="closer">
+  <h2>Turn your sightings into a game</h2>
+  <p>
+    Whether you’re a birder sharpening your IDs, a student learning local flora,
+    or just curious about your backyard — gote turns recognition into a few fun
+    minutes a day.
+  </p>
+</section>
