@@ -12,6 +12,17 @@
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#008AAC">
 <style>
+  /* The gote wordmark font — the exact TTF shipped in the app (src/theme.js
+     uses 'Fredoka' for the wordmark). Self-hosted so it renders identically
+     and needs no third-party request. */
+  @font-face {
+    font-family: 'Fredoka';
+    src: url('/assets/fonts/Fredoka-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+  }
+
   /* gote design tokens — mirrors src/theme.js so the site reads as the app. */
   :root {
     --bg: #FAFAF8;
@@ -76,9 +87,10 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    font-weight: 800;
-    font-size: 19px;
-    letter-spacing: -.02em;
+    font-family: 'Fredoka', var(--font);
+    font-weight: 600;
+    font-size: 21px;
+    letter-spacing: .01em;
     color: var(--text);
   }
   .brand:hover { text-decoration: none; }
