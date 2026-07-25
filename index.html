@@ -120,32 +120,38 @@ title: false
   .watch p { color: var(--muted); font-size: 1.08rem; line-height: 1.55; max-width: 34rem; margin: 0 auto 34px; }
   .watch-shots { display: flex; justify-content: center; gap: clamp(20px, 6vw, 52px); }
   .wshot { width: 176px; max-width: 42vw; }
-  /* Apple Watch frame — a case with a digital crown + side button */
+  /* Apple Watch — a black-glass squircle body with a thin titanium rim, so the
+     (black-edged) screenshot reads as the watch front rather than a grey border. */
   .wshot figure {
-    position: relative; margin: 0;
-    padding: 8% 7%;
+    position: relative; margin: 0 auto;
+    padding: 9.5% 8.5%;
     border-radius: 34% / 30%;
-    background: linear-gradient(150deg, #43464d, #191a1e 60%);
+    background: #0b0b0d;
     box-shadow:
-      0 12px 28px rgba(0,0,0,.28),
-      inset 0 0 0 1.5px rgba(255,255,255,.10);
-    aspect-ratio: 416 / 496;
+      0 16px 32px rgba(0,0,0,.36),
+      inset 0 0 0 1px rgba(255,255,255,.09),
+      0 0 0 2px #1b1d21,
+      0 0 0 3px rgba(255,255,255,.05);
+    aspect-ratio: 1 / 1.17;
   }
   .wshot figure img {
     display: block; width: 100%; height: 100%; object-fit: cover;
-    border-radius: 22% / 18%; background: #000;
+    border-radius: 26% / 22%; background: #000;
   }
   /* digital crown + side button on the right edge */
   .wshot figure::before {
-    content: ""; position: absolute; right: -4px; top: 33%; width: 6px; height: 15%;
-    border-radius: 3px; background: #34363b;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
+    content: ""; position: absolute; right: -4px; top: 30%; width: 6px; height: 15%;
+    border-radius: 3px;
+    background: linear-gradient(180deg, #56595f 0%, #313439 50%, #191b1e 100%);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.5);
   }
   .wshot figure::after {
-    content: ""; position: absolute; right: -2px; top: 53%; width: 4px; height: 15%;
-    border-radius: 3px; background: #26282c;
+    content: ""; position: absolute; right: -2px; top: 49%; width: 4px; height: 17%;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #3a3d42, #202226);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.4);
   }
-  .wshot figcaption { margin-top: 15px; font-size: .9rem; font-weight: 600; color: var(--muted); }
+  .wshot figcaption { margin-top: 16px; font-size: .9rem; font-weight: 600; color: var(--muted); }
 
   @media (max-width: 680px) {
     .frow, .frow:nth-child(even) { flex-direction: column; text-align: center; gap: 24px; }
