@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.5';
+export const APP_VERSION = '2.29.6';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.6',
+    date: '2026-07-26',
+    changes: [
+      'Settings now sync across devices: they upload when you first turn sync '
+        + 'on, save to the server as you change them, arrive on your other devices '
+        + 'on the next app start, and are adopted when you sign in on a new device.',
+    ],
+  },
   {
     version: '2.29.5',
     date: '2026-07-26',

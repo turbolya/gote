@@ -17,6 +17,9 @@ const K_STREAK = '@gote/streak';
 const K_DAYS = '@gote/activeDays';
 const K_WATCH_IDS = '@gote/watchResultIds';
 const K_WATCH_TIP = '@gote/watchTipDismissed';
+// When the local settings last changed (ms epoch). The one timestamp that makes
+// last-write-wins between this device and the server actually work.
+const K_SET_TS = '@gote/settingsStamp';
 
 // How many applied watch-result ids to remember (for dedup — see below). Bounds
 // storage; far more than the in-flight window between the two delivery channels.
@@ -83,6 +86,26 @@ export async function loadPrefs() {
 export async function savePrefs(prefs) {
   try {
     await kv.setItem(K_PREFS, JSON.stringify(prefs));
+  } catch {
+    /* ignore */
+  }
+}
+
+// When the local settings last changed, as a millisecond timestamp. Used only
+// by the sync layer to decide, on launch, whether the server's copy is newer.
+export async function loadSettingsStamp() {
+  try {
+    const raw = await kv.getItem(K_SET_TS);
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export async function saveSettingsStamp(ts) {
+  try {
+    await kv.setItem(K_SET_TS, String(ts));
   } catch {
     /* ignore */
   }

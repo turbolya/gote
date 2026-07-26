@@ -156,8 +156,9 @@ export default function SyncScreen({ onBack, onSynced }) {
       return;
     }
     // Reconciles the account switch (see afterAuthChange) and runs a sync, so
-    // the other device's history is already folded in when we hand back.
-    const merged = await afterAuthChange();
+    // the other device's history — and, when signing in, its settings — are
+    // already folded in when we hand back.
+    const result = await afterAuthChange(mode === LINK ? 'link' : 'signin');
     setBusy(false);
     resetLinkFlow();
     setNotice(
@@ -166,7 +167,7 @@ export default function SyncScreen({ onBack, onSynced }) {
         : 'Signed in. Your progress from both devices has been merged.'
     );
     await refresh();
-    if (merged && onSynced) onSynced(merged);
+    if (result && onSynced) onSynced(result);
   }, [code, email, mode, refresh, onSynced, resetLinkFlow]);
 
   const openConnect = useCallback((nextMode) => {

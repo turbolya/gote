@@ -173,9 +173,11 @@ export default function App() {
       setThemeMode(mode);
       const next = { perSpecies, locale, researchGrade, speciesOnly, themeMode: mode };
       savePrefs(next);
-      pushSettings(next);
+      // Pass the username too: the server settings row is one blob per user, so
+      // omitting it here would overwrite the stored username with null.
+      pushSettings(next, username);
     },
-    [perSpecies, locale, researchGrade, speciesOnly]
+    [perSpecies, locale, researchGrade, speciesOnly, username]
   );
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ loaded: 0, total: 0 });
@@ -466,6 +468,42 @@ export default function App() {
     [applyCurrentFilters, fullDownload, syncNow]
   );
 
+  // Adopt settings that arrived from another device — at launch (the pull below)
+  // or right after signing in. Updates the live UI immediately, and reloads the
+  // deck only when the identity-defining fields (account or language) actually
+  // moved (pullSettings tells us, comparing against local storage). The toggles
+  // are local filters, so those just re-derive the deck in place.
+  const applyRemoteSettings = useCallback(
+    (s) => {
+      if (!s || !s.prefs) return;
+      const p = s.prefs;
+      if (typeof p.perSpecies === 'boolean') setPerSpecies(p.perSpecies);
+      if (p.locale) setLocale(p.locale);
+      if (typeof p.researchGrade === 'boolean') setResearchGrade(p.researchGrade);
+      if (typeof p.speciesOnly === 'boolean') setSpeciesOnly(p.speciesOnly);
+      if (p.themeMode) setThemeMode(p.themeMode);
+      if (s.username) setUsername(s.username);
+      prefsRef.current = {
+        perSpecies: !!p.perSpecies,
+        researchGrade: !!p.researchGrade,
+        speciesOnly: !!p.speciesOnly,
+      };
+      const filterPrefs = {
+        perSpecies: !!p.perSpecies,
+        locale: p.locale || locale,
+        researchGrade: !!p.researchGrade,
+        speciesOnly: !!p.speciesOnly,
+      };
+      if (s.usernameChanged || s.localeChanged) {
+        if (s.localeChanged) clearTaxonCache();
+        loadAccount(s.username || usernameRef.current, filterPrefs);
+      } else {
+        applyCurrentFilters(filterPrefs);
+      }
+    },
+    [locale, loadAccount, applyCurrentFilters]
+  );
+
   // Restore saved state on first launch.
   useEffect(() => {
     (async () => {
@@ -516,7 +554,7 @@ export default function App() {
           setHistory(merged.history);
           setStreak(merged.streak);
         });
-        syncSettings();
+        syncSettings().then((s) => { if (s) applyRemoteSettings(s); });
       }
       // E2E: load the fixture deck offline and jump straight to the menu.
       if (IS_E2E) {
@@ -1301,14 +1339,20 @@ export default function App() {
         {screen === 'sync' && (
           <SyncScreen
             onBack={() => setScreen('settings')}
-            // Signing in can fold in a whole other device's history, so adopt
-            // the merged rollups immediately rather than waiting for a relaunch.
-            onSynced={(merged) => {
-              setLifetime(merged.lifetime);
-              speciesRef.current = merged.species;
-              setSpeciesStats({ ...merged.species });
-              setHistory(merged.history);
-              setStreak(merged.streak);
+            // Signing in can fold in a whole other device's history AND its
+            // settings, so adopt both immediately rather than waiting for a
+            // relaunch. afterAuthChange returns { merged, settings }.
+            onSynced={(res) => {
+              if (!res) return;
+              const merged = res.merged;
+              if (merged) {
+                setLifetime(merged.lifetime);
+                speciesRef.current = merged.species;
+                setSpeciesStats({ ...merged.species });
+                setHistory(merged.history);
+                setStreak(merged.streak);
+              }
+              if (res.settings) applyRemoteSettings(res.settings);
             }}
           />
         )}

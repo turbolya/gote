@@ -29,6 +29,10 @@ import {
   backfillActiveDays,
   loadPrefs,
   savePrefs,
+  loadUsername,
+  saveUsername,
+  loadSettingsStamp,
+  saveSettingsStamp,
 } from '../storage';
 import { getClient } from './client';
 import { SYNC_ENABLED } from './config';
@@ -60,7 +64,6 @@ import {
   localDay,
   applyEvents,
   streakFromDays,
-  mergeSettings,
   trimLedger,
 } from './merge';
 
@@ -139,24 +142,36 @@ export async function recordEvent({ answered = 0, correct = 0, pct = null, speci
   }
 }
 
-// Mirror a settings change. Cheap and idempotent — the row is one per user.
-export async function pushSettings(prefs, username) {
+// Mirror a settings change to the server. Cheap and idempotent — one row per
+// user. The `updatedAt` doubles as the last-write-wins clock: we stamp it here
+// AND remember it locally (only on a successful write), so the next launch can
+// tell whether the server's copy is newer than this device's.
+export async function pushSettings(prefs, username, updatedAt = Date.now()) {
   if (!(await syncOn())) return;
   try {
     const supabase = getClient();
     const userId = await ensureSession();
     if (!supabase || !userId) return;
-    await supabase.from('settings').upsert(
+    const { error } = await supabase.from('settings').upsert(
       {
         user_id: userId,
         data: { prefs: prefs || {}, username: username || null },
-        updated_at: new Date().toISOString(),
+        updated_at: new Date(updatedAt).toISOString(),
       },
       { onConflict: 'user_id' }
     );
+    if (!error) await saveSettingsStamp(updatedAt);
   } catch {
     /* best-effort */
   }
+}
+
+// Upload whatever settings this device currently holds. Used when sync is first
+// turned on (so the account starts with this device's settings) and after a
+// LINK (the account keeps this device's id, so its settings stay this device's).
+export async function pushLocalSettings() {
+  const [prefs, username] = await Promise.all([loadPrefs(), loadUsername()]);
+  await pushSettings(prefs, username, Date.now());
 }
 
 // --- syncing -----------------------------------------------------------------
@@ -370,6 +385,9 @@ export async function getSyncStatus() {
 export async function enableSync() {
   if (!SYNC_ENABLED) return null;
   await saveSyncOptIn(true);
+  // Upload this device's current settings, so the account starts with them
+  // rather than having no settings row until the next change.
+  await pushLocalSettings();
   return syncNow();
 }
 
@@ -394,7 +412,7 @@ export async function disableSync() {
 //   as one baseline event. The device skips its own rows on pull, so the
 //   baseline is never applied here and cannot double-count; the OTHER devices
 //   apply it once.
-export async function afterAuthChange() {
+export async function afterAuthChange(mode = 'link') {
   // Linking or signing in is itself the act of turning sync on, so make sure the
   // opt-in is recorded before syncing (a user can reach the email flow only from
   // the Sync screen, but recording it here keeps the invariant local).
@@ -402,7 +420,19 @@ export async function afterAuthChange() {
   // The reconcile itself lives in run() (see reconcileAccount), so it cannot be
   // missed by a caller that forgets to announce a sign-in. This is just "sync
   // now, please" with a name that says why.
-  return syncNow();
+  const merged = await syncNow();
+  // Settings follow the identity, not the stats:
+  //   signin — this device JOINS another account, so that account's settings
+  //            overwrite whatever was here (forced pull).
+  //   link   — same account id gains an email, so its settings stay this
+  //            device's; make sure the server has them.
+  let settings = null;
+  if (mode === 'signin') {
+    settings = await pullSettings({ force: true });
+  } else {
+    await pushLocalSettings();
+  }
+  return { merged, settings };
 }
 
 // One event carrying this device's lifetime totals, so joining an existing
@@ -529,10 +559,18 @@ export async function signOutAndReset() {
   }
 }
 
-// Pull settings from the server and adopt them if they're newer. Separate from
-// syncNow because settings are last-write-wins and stats are not — mixing the
-// two merge rules in one function is how you end up applying the wrong one.
-export async function syncSettings() {
+// Pull settings from the server and adopt them into local storage. Separate
+// from syncNow because settings are last-write-wins and stats are not — mixing
+// the two merge rules in one function is how you end up applying the wrong one.
+//
+//   force = false (launch): adopt only when the server's copy is strictly newer
+//           than this device's last change, so an offline local change is kept.
+//   force = true  (joining an existing account): the server's settings are the
+//           account's, so they overwrite whatever this device had.
+//
+// Returns the adopted { prefs, username } (so the caller can update live state),
+// or null when nothing changed. Writes local storage as a side effect.
+export async function pullSettings({ force = false } = {}) {
   if (!(await syncOn())) return null;
   try {
     const supabase = getClient();
@@ -543,18 +581,36 @@ export async function syncSettings() {
       .select('data, updated_at')
       .eq('user_id', userId)
       .maybeSingle();
-    if (error || !data) return null;
+    if (error || !data || !data.data) return null;
 
+    const serverTs = Date.parse(data.updated_at) || 0;
+    const localTs = await loadSettingsStamp();
+    if (!force && serverTs <= localTs) return null; // local is up to date
+
+    const serverPrefs =
+      data.data.prefs && typeof data.data.prefs === 'object' ? data.data.prefs : {};
+    const serverUsername = data.data.username || null;
+
+    // Compare against what's actually on disk BEFORE overwriting, so the caller
+    // is told exactly whether the deck-defining fields (account + language)
+    // moved — and can reload only when they did. Doing this here rather than in
+    // the React layer sidesteps a stale-closure trap.
     const localPrefs = await loadPrefs();
-    const winner = mergeSettings(
-      { data: { prefs: localPrefs }, updatedAt: 0 },
-      { data: data.data, updatedAt: Date.parse(data.updated_at) || 0 }
-    );
-    if (!winner || !winner.data || !winner.data.prefs) return null;
-    if (winner.updatedAt === 0) return null; // local already won
-    await savePrefs({ ...localPrefs, ...winner.data.prefs });
-    return winner.data;
+    const localUsername = await loadUsername();
+    const usernameChanged = !!serverUsername && serverUsername !== localUsername;
+    const localeChanged = !!serverPrefs.locale && serverPrefs.locale !== localPrefs.locale;
+
+    const mergedPrefs = { ...localPrefs, ...serverPrefs };
+    await savePrefs(mergedPrefs);
+    if (serverUsername) await saveUsername(serverUsername);
+    await saveSettingsStamp(serverTs || Date.now());
+    return { prefs: mergedPrefs, username: serverUsername, usernameChanged, localeChanged };
   } catch {
     return null;
   }
+}
+
+// Launch-time settings pull: adopt the server's copy only if it's newer.
+export function syncSettings() {
+  return pullSettings({ force: false });
 }
