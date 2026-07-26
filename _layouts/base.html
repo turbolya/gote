@@ -11,6 +11,7 @@
 <meta property="og:image" content="/assets/app-icon.png">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#008AAC">
+<script>document.documentElement.classList.add('has-js');</script>
 <style>
   /* The gote wordmark font — the exact TTF shipped in the app (src/theme.js
      uses 'Fredoka' for the wordmark). Self-hosted so it renders identically
@@ -142,6 +143,38 @@
     .site-nav { gap: 16px; }
     .prose h1 { font-size: 1.6rem; }
   }
+
+  /* --- motion: scroll reveals + header state --------------------------- */
+  /* Never establishes a vertical scroll container, so the sticky header
+     keeps working while stray horizontal overflow during slide-ins is clipped. */
+  body { overflow-x: clip; }
+
+  .site-header { transition: box-shadow .3s ease, background-color .3s ease; }
+  .site-header.scrolled {
+    box-shadow: 0 6px 22px rgba(0,0,0,.07);
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+  }
+
+  /* Reveal states only exist when JS is present, so a failed script never
+     leaves the page hidden. Each easing is an exponential ease-out. */
+  html.has-js .reveal { opacity: 0; transform: translateY(20px); will-change: transform, opacity; }
+  html.has-js .reveal.in {
+    opacity: 1; transform: none; will-change: auto;
+    transition: opacity .6s ease-out, transform .7s cubic-bezier(.16, 1, .3, 1);
+  }
+
+  /* Quiet, transform-free fade — reserved for text interstitials so they read
+     differently from the sections that actually move. */
+  html.has-js .qfade { opacity: 0; }
+  html.has-js .qfade.in { opacity: 1; transition: opacity .8s ease-out; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.has-js .reveal,
+    html.has-js .qfade {
+      opacity: 1 !important; transform: none !important;
+      transition: none !important; will-change: auto;
+    }
+  }
 </style>
 </head>
 <body>
@@ -176,5 +209,47 @@
       <p>© 2026 gote · AGPL-3.0</p>
     </div>
   </footer>
+
+  <script>
+  (function () {
+    var root = document.documentElement;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Reveal-on-scroll. Targets carry their own reveal class; the frow/list
+    // containers are toggled and animate their children via CSS.
+    var targets = document.querySelectorAll('.reveal, .qfade, .frow, .plan-grid, .watch-shots');
+    if (reduce || !('IntersectionObserver' in window)) {
+      for (var i = 0; i < targets.length; i++) targets[i].classList.add('in');
+    } else {
+      var io = new IntersectionObserver(function (entries, obs) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+      for (var j = 0; j < targets.length; j++) io.observe(targets[j]);
+    }
+
+    // Header gains a shadow once the page has scrolled.
+    var header = document.querySelector('.site-header');
+    if (header) {
+      var onScroll = function () { header.classList.toggle('scrolled', window.scrollY > 6); };
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+    }
+
+    // Pause the mascot's idle float when the hero leaves view or the tab hides.
+    var newt = document.querySelector('.hero-newt');
+    if (newt && !reduce) {
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          newt.classList.toggle('paused', !entries[0].isIntersecting);
+        }, { threshold: 0 }).observe(newt);
+      }
+      document.addEventListener('visibilitychange', function () {
+        newt.classList.toggle('paused', document.hidden);
+      });
+    }
+  })();
+  </script>
 </body>
 </html>

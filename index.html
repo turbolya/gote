@@ -11,9 +11,10 @@ title: false
     text-align: center;
     padding: 72px 20px 84px;
   }
+  .hero-newt-wrap { display: block; width: 92px; margin: 0 auto 22px; }
   .hero-newt {
+    display: block;
     width: 92px; height: 92px; object-fit: contain;
-    margin: 0 auto 22px;
     filter: drop-shadow(0 6px 16px rgba(0,0,0,.25));
   }
   .hero h1 {
@@ -257,10 +258,126 @@ title: false
   }
   .kofi-btn:hover { text-decoration: none; background: #ff4744; }
   .kofi-btn svg { width: 22px; height: 22px; display: block; }
+
+  /* ====================================================================
+     Motion. Hero = the one authored moment (a card dealt and turned).
+     Feature rows share a single "focus on the photo, then read it"
+     language. Lists get list motion. Text interstitials only fade.
+     Fill-mode is `backwards` so hover transforms aren't pinned after
+     the entrance, and every keyframe's end matches the static default.
+     ==================================================================== */
+  @keyframes gote-newt-drop {
+    from { opacity: 0; transform: translateY(-18px) scale(.9); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes gote-word-wipe {
+    from { opacity: 0; clip-path: inset(0 100% 0 0); transform: translateY(6px); }
+    to   { opacity: 1; clip-path: inset(0 0 0 0);   transform: none; }
+  }
+  @keyframes gote-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes gote-focus {
+    from { opacity: 0; filter: blur(8px); transform: translateY(12px); }
+    to   { opacity: 1; filter: blur(0);   transform: none; }
+  }
+  @keyframes gote-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-5px); }
+  }
+
+  html.has-js .hero-newt-wrap { animation: gote-newt-drop .7s cubic-bezier(.16,1,.3,1) backwards; }
+  html.has-js .hero-newt { animation: gote-float 5s ease-in-out 1.1s infinite; }
+  html.has-js .hero-newt.paused { animation-play-state: paused; }
+  html.has-js .hero h1 { animation: gote-word-wipe .8s cubic-bezier(.16,1,.3,1) .18s backwards; }
+  html.has-js .hero .tagline { animation: gote-rise .6s cubic-bezier(.16,1,.3,1) .42s backwards; }
+  html.has-js .hero .sub { animation: gote-focus .7s cubic-bezier(.16,1,.3,1) .56s backwards; }
+  html.has-js .store-row .store-badge:nth-child(1) { animation: gote-rise .6s cubic-bezier(.16,1,.3,1) .72s backwards; }
+  html.has-js .store-row .store-badge:nth-child(2) { animation: gote-rise .6s cubic-bezier(.16,1,.3,1) .82s backwards; }
+  html.has-js .hero-source { animation: gote-rise .6s cubic-bezier(.16,1,.3,1) .95s backwards; }
+  html.has-js .hero .soon { animation: gote-rise .6s cubic-bezier(.16,1,.3,1) 1.05s backwards; }
+
+  /* Feature rows: the screenshot rises and sharpens from blur as the device
+     "lands"; the caption converges from the side it occupies. */
+  html.has-js .frow .frow-media {
+    opacity: 0; transform: translateY(22px) scale(.97); will-change: transform, opacity;
+  }
+  html.has-js .frow .frow-media figure img { filter: blur(6px); }
+  html.has-js .frow .frow-text {
+    opacity: 0; transform: translateX(26px); will-change: transform, opacity;
+  }
+  html.has-js .frow:nth-child(even) .frow-text { transform: translateX(-26px); }
+  html.has-js .frow.in .frow-media {
+    opacity: 1; transform: none; will-change: auto;
+    transition: opacity .7s ease-out, transform .8s cubic-bezier(.16,1,.3,1);
+  }
+  html.has-js .frow.in .frow-media figure img { filter: none; transition: filter .8s ease-out; }
+  html.has-js .frow.in .frow-text {
+    opacity: 1; transform: none; will-change: auto;
+    transition: opacity .6s ease-out .1s, transform .7s cubic-bezier(.16,1,.3,1) .1s;
+  }
+  @media (max-width: 680px) {
+    html.has-js .frow .frow-text,
+    html.has-js .frow:nth-child(even) .frow-text { transform: translateY(18px); }
+  }
+
+  /* Watch frames pair in; roadmap cards stagger as the list they are. */
+  html.has-js .watch-shots .wshot {
+    opacity: 0; transform: translateY(20px) scale(.96); will-change: transform, opacity;
+  }
+  html.has-js .watch-shots.in .wshot {
+    opacity: 1; transform: none; will-change: auto;
+    transition: opacity .6s ease-out, transform .7s cubic-bezier(.16,1,.3,1);
+  }
+  html.has-js .watch-shots.in .wshot:nth-child(2) { transition-delay: .1s; }
+
+  html.has-js .plan-grid .plan {
+    opacity: 0; transform: translateY(20px); will-change: transform, opacity;
+  }
+  html.has-js .plan-grid.in .plan {
+    opacity: 1; transform: none; will-change: auto;
+    transition: opacity .55s ease-out, transform .6s cubic-bezier(.16,1,.3,1);
+  }
+  html.has-js .plan-grid.in .plan:nth-child(2) { transition-delay: .09s; }
+  html.has-js .plan-grid.in .plan:nth-child(3) { transition-delay: .18s; }
+
+  /* Hover feedback (pointer devices only). */
+  @media (hover: hover) {
+    .frow-media figure,
+    .wshot figure,
+    .store-badge, .kofi-btn { transition: transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s ease, background-color .2s ease, border-color .2s ease; }
+    .frow-media figure:hover { transform: translateY(-6px); }
+    .wshot figure:hover { transform: translateY(-5px) scale(1.02); }
+    a.store-badge:hover { transform: translateY(-2px); }
+    .kofi-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(255,94,91,.42); }
+    .plan { transition: transform .35s cubic-bezier(.16,1,.3,1), border-color .3s ease; }
+    html.has-js .plan-grid.in .plan:hover,
+    .plan:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.has-js .hero-newt-wrap,
+    html.has-js .hero-newt,
+    html.has-js .hero h1,
+    html.has-js .hero .tagline,
+    html.has-js .hero .sub,
+    html.has-js .store-row .store-badge,
+    html.has-js .hero-source,
+    html.has-js .hero .soon { animation: none !important; }
+    html.has-js .frow .frow-media,
+    html.has-js .frow .frow-text,
+    html.has-js .watch-shots .wshot,
+    html.has-js .plan-grid .plan {
+      opacity: 1 !important; transform: none !important;
+      filter: none !important; transition: none !important; will-change: auto;
+    }
+    html.has-js .frow .frow-media figure img { filter: none !important; }
+  }
 </style>
 
 <section class="hero">
-  <img class="hero-newt" src="/assets/gote.png" alt="The gote newt">
+  <span class="hero-newt-wrap"><img class="hero-newt" src="/assets/gote.png" alt="The gote newt"></span>
   <h1>gote</h1>
   <p class="tagline">Learn the species you see</p>
   <p class="sub">
@@ -325,17 +442,17 @@ title: false
       every iNaturalist observer around that spot, not just your own records.</p>
     </div>
   </div>
-  <p class="shot-note">Screens show a sample account — your stats and species will be your own.</p>
+  <p class="shot-note qfade">Screens show a sample account — your stats and species will be your own.</p>
 </section>
 
-<p class="modes">
+<p class="modes qfade">
   Play it your way — <strong>by name, by picture, speedrun, flash cards or a
   custom set</strong> — from a starter deck or your own iNaturalist observations.
 </p>
 
 <section class="watch">
-  <h2>Also on Apple&nbsp;Watch.</h2>
-  <p>Play a quick round on your wrist, and keep your lifetime accuracy and
+  <h2 class="qfade">Also on Apple&nbsp;Watch.</h2>
+  <p class="qfade">Play a quick round on your wrist, and keep your lifetime accuracy and
   streak right on your watch face.</p>
   <div class="watch-shots">
     <div class="wshot">
@@ -350,7 +467,7 @@ title: false
 </section>
 
 <section class="roadmap">
-  <div class="roadmap-inner">
+  <div class="roadmap-inner qfade">
     <span class="eyebrow">On the horizon</span>
     <h2>Where gote is headed</h2>
     <p class="lead">A few planned features</p>
@@ -377,13 +494,13 @@ title: false
   </div>
 </section>
 
-<section class="closer">
+<section class="closer qfade">
   <h2>For the perpetually curious.</h2>
   <p>The birders, the plant people, and anyone who’s ever crouched over something
   small and wondered what on earth it was.</p>
 </section>
 
-<section class="support">
+<section class="support qfade">
   <h2>Enjoying gote?</h2>
   <p>
     gote is free, open-source and has no ads. If it’s useful to you, a small
