@@ -6,19 +6,37 @@ title: false
   /* Page-specific styles for the landing hero + feature grid. Shared tokens
      come from the base layout. */
   .hero {
-    /* A teal-toned moss-and-fungi macro, dimmed under a brand-deep wash so the
-       white text keeps its contrast while the photograph still reads through. */
-    background-color: #036178;
-    background-image:
-      linear-gradient(180deg, rgba(3,72,90,.40) 0%, rgba(2,68,86,.55) 55%, rgba(2,54,68,.66) 100%),
-      url('/assets/hero-bg.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background-color: #02485A;   /* fallback while the photo loads */
     color: #fff;
     text-align: center;
     padding: 72px 20px 84px;
   }
+  /* A teal-toned moss-and-fungi macro on its own layer, so it can settle in
+     with the hero's entrance. The wash is center-weighted — heaviest behind the
+     text, easing off toward the sides so the coral fungus and mushroom read
+     through — over a gentle top-to-bottom floor for the header and the fade. */
+  .hero::before {
+    content: "";
+    position: absolute; inset: 0; z-index: -2;
+    background:
+      radial-gradient(125% 95% at 50% 43%, rgba(2,58,72,.56) 0%, rgba(2,58,72,.16) 52%, rgba(2,58,72,0) 78%),
+      linear-gradient(180deg, rgba(3,74,92,.34) 0%, rgba(2,60,76,.28) 58%, rgba(2,50,64,.50) 100%),
+      url('/assets/hero-bg.jpg') center / cover no-repeat;
+    transform-origin: center;
+  }
+  /* Soft landing: the photo dissolves into the page background instead of
+     cutting off. Kept inside the empty bottom padding so it never sits behind
+     text — matters in light mode, where --bg is near-white. */
+  .hero::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0; height: 72px; z-index: -1;
+    background: linear-gradient(to bottom, rgba(0,0,0,0), var(--bg));
+    pointer-events: none;
+  }
+  .hero > * { position: relative; }
   .hero h1, .hero .tagline, .hero .sub {
     text-shadow: 0 2px 16px rgba(0,26,36,.42);
   }
@@ -297,7 +315,14 @@ title: false
     0%, 100% { transform: translateY(0); }
     50%      { transform: translateY(-5px); }
   }
+  /* The photograph eases from a slight push-in as the page arrives — part of
+     the same entrance, one-time, never a running loop. */
+  @keyframes gote-hero-settle {
+    from { transform: scale(1.06); }
+    to   { transform: scale(1); }
+  }
 
+  html.has-js .hero::before { animation: gote-hero-settle 1.4s cubic-bezier(.16,1,.3,1) backwards; }
   html.has-js .hero-newt-wrap { animation: gote-newt-drop .7s cubic-bezier(.16,1,.3,1) backwards; }
   html.has-js .hero-newt { animation: gote-float 5s ease-in-out 1.1s infinite; }
   html.has-js .hero-newt.paused { animation-play-state: paused; }
@@ -368,6 +393,7 @@ title: false
   }
 
   @media (prefers-reduced-motion: reduce) {
+    html.has-js .hero::before,
     html.has-js .hero-newt-wrap,
     html.has-js .hero-newt,
     html.has-js .hero h1,
