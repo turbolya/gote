@@ -50,3 +50,4 @@ artifacts/
 # publish, but builds should get it from eas.json's env rather than a stray file.
 .env
 *.tmp
+/.impeccable
