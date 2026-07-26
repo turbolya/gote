@@ -114,6 +114,12 @@ title: false
   }
   .modes strong { color: var(--text); font-weight: 600; }
 
+  .shot-note {
+    text-align: center; color: var(--muted);
+    font-size: .82rem; opacity: .75;
+    max-width: 42ch; margin: 26px auto 0; padding: 0 20px;
+  }
+
   /* Apple Watch — a pair of watch frames, centred */
   .watch { max-width: 760px; margin: 8px auto 0; padding: 52px 20px 0; text-align: center; }
   .watch h2 { font-size: clamp(1.5rem, 3.4vw, 1.9rem); letter-spacing: -.025em; margin: 0 0 12px; }
@@ -153,6 +159,30 @@ title: false
     box-shadow: 0 0 0 1px rgba(0,0,0,.4);
   }
   .wshot figcaption { margin-top: 16px; font-size: .9rem; font-weight: 600; color: var(--muted); }
+
+  /* Dark mode: the near-black device bodies can merge with the dark page
+     background, so brighten each frame's rim to hold its silhouette. Handle
+     both the OS setting and the site's data-theme toggle. */
+  @media (prefers-color-scheme: dark) {
+    .frow-media figure {
+      box-shadow: 0 18px 40px rgba(0,0,0,.55), inset 0 0 0 1.5px rgba(255,255,255,.14), 0 0 0 1px rgba(255,255,255,.11);
+    }
+    .wshot figure {
+      box-shadow: 0 16px 32px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.12), 0 0 0 2px #2b2d33, 0 0 0 3px rgba(255,255,255,.13);
+    }
+  }
+  :root[data-theme="dark"] .frow-media figure {
+    box-shadow: 0 18px 40px rgba(0,0,0,.55), inset 0 0 0 1.5px rgba(255,255,255,.14), 0 0 0 1px rgba(255,255,255,.11);
+  }
+  :root[data-theme="dark"] .wshot figure {
+    box-shadow: 0 16px 32px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.12), 0 0 0 2px #2b2d33, 0 0 0 3px rgba(255,255,255,.13);
+  }
+  :root[data-theme="light"] .frow-media figure {
+    box-shadow: 0 16px 38px rgba(0,0,0,.24), inset 0 0 0 1.5px rgba(255,255,255,.10);
+  }
+  :root[data-theme="light"] .wshot figure {
+    box-shadow: 0 16px 32px rgba(0,0,0,.36), inset 0 0 0 1px rgba(255,255,255,.09), 0 0 0 2px #1b1d21, 0 0 0 3px rgba(255,255,255,.05);
+  }
 
   @media (max-width: 680px) {
     .frow, .frow:nth-child(even) { flex-direction: column; text-align: center; gap: 24px; }
@@ -295,6 +325,7 @@ title: false
       every iNaturalist observer around that spot, not just your own records.</p>
     </div>
   </div>
+  <p class="shot-note">Screens show a sample account — your stats and species will be your own.</p>
 </section>
 
 <p class="modes">
