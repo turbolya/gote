@@ -279,6 +279,28 @@ title: false
   .kofi-btn:hover { text-decoration: none; background: #ff4744; }
   .kofi-btn svg { width: 22px; height: 22px; display: block; }
 
+  /* contact — the address is never written in the page source; JS assembles
+     the mailto from an encoded value, with a [at]/[dot] no-JS fallback. */
+  .contact { text-align: center; max-width: 600px; margin: 40px auto 0; padding: 0 20px; }
+  .contact h2 { font-size: 1.4rem; letter-spacing: -.02em; margin: 0 0 8px; }
+  .contact p { color: var(--muted); font-size: 1.02rem; margin: 0 0 22px; }
+  .mail-btn {
+    display: none;               /* revealed only once JS can wire the address */
+    align-items: center; gap: 10px;
+    padding: 12px 22px; border-radius: 999px;
+    border: 1.5px solid color-mix(in srgb, var(--brand) 50%, var(--border));
+    color: var(--brand-strong); background: transparent;
+    font-weight: 700; font-size: 15px;
+    transition: transform .2s cubic-bezier(.16,1,.3,1), border-color .2s ease, background-color .2s ease;
+  }
+  html.has-js .mail-btn { display: inline-flex; }
+  .mail-btn:hover {
+    text-decoration: none; border-color: var(--brand);
+    background: color-mix(in srgb, var(--brand) 10%, transparent);
+  }
+  .mail-btn svg { width: 19px; height: 19px; display: block; }
+  .noscript-mail { color: var(--muted); font-size: 1rem; margin: 0; }
+
   /* ====================================================================
      Motion. Hero = the one authored moment (a card dealt and turned).
      Feature rows share a single "focus on the photo, then read it"
@@ -538,4 +560,16 @@ title: false
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="#fff" d="M3.2 6.5A1.5 1.5 0 0 1 4.7 5h11.6a1.5 1.5 0 0 1 1.5 1.5V8h2.1a3.1 3.1 0 0 1 0 6.2h-.7A5.6 5.6 0 0 1 14 18.9v.1a3 3 0 0 1-3 3H6.2a3 3 0 0 1-3-3V6.5Zm14.6 3v3.2h.4a1.6 1.6 0 0 0 0-3.2h-.4Z"/><path fill="#FF5E5B" d="M8.9 8.2c1-.9 2.4-.6 3 .3.6-.9 2-1.2 3-.3.9.8.8 2 .1 2.8-.7.8-2.3 1.9-3.1 2.4-.8-.5-2.4-1.6-3.1-2.4-.7-.8-.8-2 .1-2.8Z"/></svg>
     Support gote on Ko-fi
   </a>
+</section>
+
+<section class="contact qfade">
+  <h2>Get in touch</h2>
+  <p>Found a bug, want a species added, or just want to say hello? Drop a line.</p>
+  <a class="mail-btn" id="contact-mail" href="#" data-c="bWlsZGVyLnNwaWxsZWQuOWRAaWNsb3VkLmNvbQ==" rel="nofollow">
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+    <span class="mail-label">Email us</span>
+  </a>
+  <noscript>
+    <p class="noscript-mail">Email us at milder.spilled.9d <b>[at]</b> icloud <b>[dot]</b> com</p>
+  </noscript>
 </section>

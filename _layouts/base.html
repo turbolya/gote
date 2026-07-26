@@ -237,6 +237,18 @@
       window.addEventListener('scroll', onScroll, { passive: true });
     }
 
+    // Contact address: assembled at runtime from an encoded value so the
+    // plain email never sits in the page source for harvesters.
+    var mail = document.getElementById('contact-mail');
+    if (mail && mail.dataset.c) {
+      try {
+        var addr = atob(mail.dataset.c);
+        mail.href = 'mailto:' + addr;
+        var label = mail.querySelector('.mail-label');
+        if (label) label.textContent = addr;
+      } catch (e) { /* leave the button inert if decoding fails */ }
+    }
+
     // Pause the mascot's idle float when the hero leaves view or the tab hides.
     var newt = document.querySelector('.hero-newt');
     if (newt && !reduce) {
