@@ -30,7 +30,7 @@ import {
 } from 'react-native';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
-import { useColors, useThemedStyles } from '../theme';
+import { useColors, useAccents, useThemedStyles } from '../theme';
 import {
   getSyncStatus,
   enableSync,
@@ -54,6 +54,7 @@ const RESEND_COOLDOWN = 30;
 
 export default function SyncScreen({ onBack, onSynced }) {
   const colors = useColors();
+  const accents = useAccents();
   const styles = useThemedStyles(makeStyles);
 
   const [status, setStatus] = useState(null);
@@ -138,7 +139,7 @@ export default function SyncScreen({ onBack, onSynced }) {
     await send();
   }, [cooldown, busy, send]);
 
-  const confirm = useCallback(async () => {
+  const doConfirm = useCallback(async () => {
     const addr = email.trim().toLowerCase();
     const token = code.trim();
     // The code length is a Supabase project setting (6–10), so don't hard-code
@@ -169,6 +170,32 @@ export default function SyncScreen({ onBack, onSynced }) {
     await refresh();
     if (result && onSynced) onSynced(result);
   }, [code, email, mode, refresh, onSynced, resetLinkFlow]);
+
+  // The submit handler for the code step. LINK goes straight through — it keeps
+  // this device's data. SIGNIN joins another account, which REPLACES this
+  // device's settings with that account's, so make the user acknowledge that
+  // first. (Play history is merged, not lost; settings are not.)
+  const onConfirmPress = useCallback(() => {
+    if (code.trim().length < 6) {
+      setError('Enter the code from the email.');
+      return;
+    }
+    if (mode !== SIGNIN) {
+      doConfirm();
+      return;
+    }
+    Alert.alert(
+      'Sign in and replace this device’s settings?',
+      'Your play history on this device will be merged into that account and '
+        + 'kept.\n\nBut this device’s settings — theme, display filters, language '
+        + 'and the iNaturalist account you’re studying — will be replaced by the '
+        + 'ones saved to that account.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign in', style: 'destructive', onPress: doConfirm },
+      ]
+    );
+  }, [code, mode, doConfirm]);
 
   const openConnect = useCallback((nextMode) => {
     setMode(nextMode);
@@ -347,6 +374,16 @@ export default function SyncScreen({ onBack, onSynced }) {
                 </View>
 
                 <View style={styles.card}>
+                  {mode === SIGNIN && (
+                    <View style={styles.warnBox}>
+                      <Icon name="alert-triangle" size={16} color={accents.amber.fg} />
+                      <Text style={styles.warnText}>
+                        Signing in replaces this device’s settings — theme,
+                        filters, language and the account you study — with that
+                        account’s. Your play history is merged in, not lost.
+                      </Text>
+                    </View>
+                  )}
                   <Text style={styles.label}>Email address</Text>
                   <TextInput
                     testID="sync-email"
@@ -386,7 +423,7 @@ export default function SyncScreen({ onBack, onSynced }) {
                   <Pressable
                     testID="sync-submit"
                     style={[styles.primaryBtn, busy && styles.btnBusy]}
-                    onPress={stage === 'code' ? confirm : send}
+                    onPress={stage === 'code' ? onConfirmPress : send}
                     disabled={busy}
                   >
                     {busy ? (
@@ -427,7 +464,7 @@ export default function SyncScreen({ onBack, onSynced }) {
                 <Text style={styles.footnote}>
                   {mode === LINK
                     ? 'Everything you have played on this device stays with you — connecting keeps it and adds a backup.'
-                    : 'Your progress on this device is merged into that account, not replaced.'}
+                    : 'Your play history is merged into that account and kept — but this device’s settings (theme, filters, language and the account you study) are replaced by that account’s.'}
                 </Text>
 
                 <Pressable style={styles.cancelWrap} onPress={resetLinkFlow} hitSlop={8}>
@@ -509,7 +546,7 @@ function friendlyError(message, mode) {
   return message || 'Something went wrong. Try again.';
 }
 
-const makeStyles = (colors) =>
+const makeStyles = (colors, accents) =>
   StyleSheet.create({
     flex: { flex: 1, backgroundColor: colors.bg },
     container: { padding: 20, paddingBottom: 40 },
@@ -627,6 +664,18 @@ const makeStyles = (colors) =>
     secondaryText: { color: colors.text, fontSize: 15, fontWeight: '700' },
 
     footnote: { fontSize: 12, lineHeight: 18, color: colors.muted, marginTop: 14 },
+
+    // Warning that signing in overwrites this device's settings.
+    warnBox: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+      backgroundColor: accents.amber.bg,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 16,
+    },
+    warnText: { flex: 1, fontSize: 13, lineHeight: 18, color: accents.amber.fg },
 
     // Set apart from the rest, so an irreversible action is never one stray tap
     // away from the ordinary controls above it.

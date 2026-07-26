@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.6';
+export const APP_VERSION = '2.29.7';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.7',
+    date: '2026-07-26',
+    changes: [
+      'Sync: signing in on a device that already has a gote account now warns '
+        + 'you first — and asks you to confirm — that this device’s settings '
+        + '(theme, filters, language and the account you study) will be replaced '
+        + 'by that account’s. Your play history is still merged in, not lost.',
+    ],
+  },
   {
     version: '2.29.6',
     date: '2026-07-26',
