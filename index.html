@@ -27,15 +27,6 @@ title: false
       url('/assets/hero-bg.jpg') center / cover no-repeat;
     transform-origin: center;
   }
-  /* Soft landing: the photo dissolves into the page background instead of
-     cutting off. Kept inside the empty bottom padding so it never sits behind
-     text — matters in light mode, where --bg is near-white. */
-  .hero::after {
-    content: "";
-    position: absolute; left: 0; right: 0; bottom: 0; height: 72px; z-index: -1;
-    background: linear-gradient(to bottom, rgba(0,0,0,0), var(--bg));
-    pointer-events: none;
-  }
   .hero > * { position: relative; }
   .hero h1, .hero .tagline, .hero .sub {
     text-shadow: 0 2px 16px rgba(0,26,36,.42);
