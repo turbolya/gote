@@ -6,9 +6,12 @@
 // account lives on ONE device. Two phones signing in anonymously are two
 // unrelated users. Attaching an email is what makes them the same person.
 //
-// Three states:
-//   anonymous      → offer to connect (link) or to join an existing account
-//   awaiting code  → six digits from the email
+// States:
+//   off            → offer to turn sync on
+//   on, anonymous  → backing up; linking an email is tucked behind an opt-in
+//                    "Connect another device" so the default view stays simple
+//   awaiting code  → the verification code from the email (length set by the
+//                    Supabase project, so we don't assume six digits)
 //   linked         → show the address, offer to sign out
 //
 // Deliberately plain: no password to forget, no account to create up front, and
@@ -45,6 +48,10 @@ import {
 const LINK = 'link';
 const SIGNIN = 'signin';
 
+// Seconds to wait before another code can be requested. Supabase rate-limits
+// server-side too; this just stops the button inviting a request that would bounce.
+const RESEND_COOLDOWN = 30;
+
 export default function SyncScreen({ onBack, onSynced }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -54,6 +61,8 @@ export default function SyncScreen({ onBack, onSynced }) {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [stage, setStage] = useState('idle'); // idle | code
+  const [connecting, setConnecting] = useState(false); // is the link form open?
+  const [cooldown, setCooldown] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -67,6 +76,21 @@ export default function SyncScreen({ onBack, onSynced }) {
     // screen must not itself start syncing, or "off by default" would be a lie.
     refresh();
   }, [refresh]);
+
+  // Tick the resend cooldown down to zero.
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const resetLinkFlow = useCallback(() => {
+    setConnecting(false);
+    setStage('idle');
+    setCode('');
+    setCooldown(0);
+    setError(null);
+  }, []);
 
   const turnOn = useCallback(async () => {
     setBusy(true);
@@ -82,10 +106,10 @@ export default function SyncScreen({ onBack, onSynced }) {
     await disableSync();
     setBusy(false);
     setEmail('');
-    setStage('idle');
+    resetLinkFlow();
     setNotice('Sync is off. Everything stays on this device.');
     await refresh();
-  }, [refresh]);
+  }, [refresh, resetLinkFlow]);
 
   const send = useCallback(async () => {
     const addr = email.trim().toLowerCase();
@@ -102,14 +126,25 @@ export default function SyncScreen({ onBack, onSynced }) {
       return;
     }
     setStage('code');
-    setNotice(`We sent a 6-digit code to ${addr}.`);
+    setCode('');
+    setCooldown(RESEND_COOLDOWN);
+    setNotice(`We sent a code to ${addr}. Enter it below.`);
   }, [email, mode]);
+
+  // Bug fix: request a fresh code. Same call as the first send; disabled while
+  // the cooldown is running so we don't invite a rate-limited request.
+  const resend = useCallback(async () => {
+    if (cooldown > 0 || busy) return;
+    await send();
+  }, [cooldown, busy, send]);
 
   const confirm = useCallback(async () => {
     const addr = email.trim().toLowerCase();
     const token = code.trim();
+    // The code length is a Supabase project setting (6–10), so don't hard-code
+    // six here — just require a plausible minimum and let verifyOtp be the judge.
     if (token.length < 6) {
-      setError('Enter the 6-digit code from the email.');
+      setError('Enter the code from the email.');
       return;
     }
     setBusy(true);
@@ -124,8 +159,7 @@ export default function SyncScreen({ onBack, onSynced }) {
     // the other device's history is already folded in when we hand back.
     const merged = await afterAuthChange();
     setBusy(false);
-    setStage('idle');
-    setCode('');
+    resetLinkFlow();
     setNotice(
       mode === LINK
         ? 'This device is connected. Sign in with the same address on your other devices.'
@@ -133,7 +167,15 @@ export default function SyncScreen({ onBack, onSynced }) {
     );
     await refresh();
     if (merged && onSynced) onSynced(merged);
-  }, [code, email, mode, refresh, onSynced]);
+  }, [code, email, mode, refresh, onSynced, resetLinkFlow]);
+
+  const openConnect = useCallback((nextMode) => {
+    setMode(nextMode);
+    setConnecting(true);
+    setStage('idle');
+    setError(null);
+    setNotice(null);
+  }, []);
 
   // Delete the account and everything synced to it. Two-step by design: it is
   // irreversible, and the confirmation spells out exactly what goes and what
@@ -165,7 +207,7 @@ export default function SyncScreen({ onBack, onSynced }) {
               return;
             }
             setEmail('');
-            setStage('idle');
+            resetLinkFlow();
             setNotice(
               'Your account and all synced data have been deleted. This device '
                 + 'keeps its own statistics.'
@@ -175,9 +217,11 @@ export default function SyncScreen({ onBack, onSynced }) {
         },
       ]
     );
-  }, [refresh]);
+  }, [refresh, resetLinkFlow]);
 
   const linked = status && status.signedIn && !status.anonymous && status.email;
+
+  const resendLabel = cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code';
 
   return (
     <View style={styles.flex}>
@@ -255,6 +299,9 @@ export default function SyncScreen({ onBack, onSynced }) {
             </Text>
           </>
         ) : (
+          // ON, not yet linked to an email. Default view is deliberately just the
+          // status + turn off + delete; linking a second device is opt-in, tucked
+          // behind "Connect another device" so this screen isn't a form by default.
           <>
             <View style={styles.card}>
               <View style={styles.linkedRow}>
@@ -265,95 +312,128 @@ export default function SyncScreen({ onBack, onSynced }) {
                 </View>
               </View>
               <Text style={styles.hint}>
-                Add an email address to bring the same statistics, streak and
-                species list to your other devices. No password, no account to
-                create — the address only lets us recognise your devices.
+                Your progress is being backed up. To share it with another phone,
+                tablet or watch, connect them with an email address — no password,
+                no account to create.
               </Text>
             </View>
 
-            <View style={styles.tabs}>
-              <Tab
-                label="This is my first device"
-                active={mode === LINK}
-                onPress={() => { setMode(LINK); setStage('idle'); setError(null); setNotice(null); }}
-                styles={styles}
-              />
-              <Tab
-                label="I already have gote elsewhere"
-                active={mode === SIGNIN}
-                onPress={() => { setMode(SIGNIN); setStage('idle'); setError(null); setNotice(null); }}
-                styles={styles}
-              />
-            </View>
-
-            <View style={styles.card}>
-              <Text style={styles.label}>Email address</Text>
-              <TextInput
-                testID="sync-email"
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="you@example.com"
-                placeholderTextColor={colors.muted}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                textContentType="emailAddress"
-                editable={stage === 'idle' && !busy}
-              />
-
-              {stage === 'code' && (
-                <>
-                  <Text style={[styles.label, styles.labelSpaced]}>6-digit code</Text>
-                  <TextInput
-                    testID="sync-code"
-                    style={[styles.input, styles.codeInput]}
-                    value={code}
-                    onChangeText={setCode}
-                    placeholder="123456"
-                    placeholderTextColor={colors.muted}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    textContentType="oneTimeCode"
-                    editable={!busy}
-                  />
-                </>
-              )}
-
-              {!!notice && <Text style={styles.notice}>{notice}</Text>}
-              {!!error && <Text style={styles.error}>{error}</Text>}
-
+            {!connecting ? (
               <Pressable
-                testID="sync-submit"
-                style={[styles.primaryBtn, busy && styles.btnBusy]}
-                onPress={stage === 'code' ? confirm : send}
+                testID="sync-connect"
+                style={styles.connectBtn}
+                onPress={() => openConnect(LINK)}
                 disabled={busy}
               >
-                {busy ? (
-                  <ActivityIndicator color={colors.onPrimary} />
-                ) : (
-                  <Text style={styles.primaryText}>
-                    {stage === 'code'
-                      ? 'Confirm'
-                      : mode === LINK
-                        ? 'Connect this device'
-                        : 'Send me a code'}
-                  </Text>
-                )}
+                <Icon name="link-outline" size={16} color={colors.primaryDark} />
+                <Text style={styles.connectText}>Connect another device</Text>
               </Pressable>
+            ) : (
+              <>
+                <View style={styles.tabs}>
+                  <Tab
+                    label="This is my first device"
+                    active={mode === LINK}
+                    onPress={() => { setMode(LINK); setStage('idle'); setError(null); setNotice(null); }}
+                    styles={styles}
+                  />
+                  <Tab
+                    label="I already have gote elsewhere"
+                    active={mode === SIGNIN}
+                    onPress={() => { setMode(SIGNIN); setStage('idle'); setError(null); setNotice(null); }}
+                    styles={styles}
+                  />
+                </View>
 
-              {stage === 'code' && !busy && (
-                <Pressable onPress={() => { setStage('idle'); setCode(''); setError(null); }}>
-                  <Text style={styles.link}>Use a different address</Text>
+                <View style={styles.card}>
+                  <Text style={styles.label}>Email address</Text>
+                  <TextInput
+                    testID="sync-email"
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="you@example.com"
+                    placeholderTextColor={colors.muted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    textContentType="emailAddress"
+                    editable={stage === 'idle' && !busy}
+                  />
+
+                  {stage === 'code' && (
+                    <>
+                      <Text style={[styles.label, styles.labelSpaced]}>Verification code</Text>
+                      <TextInput
+                        testID="sync-code"
+                        style={[styles.input, styles.codeInput]}
+                        value={code}
+                        onChangeText={setCode}
+                        placeholder="Code from the email"
+                        placeholderTextColor={colors.muted}
+                        keyboardType="number-pad"
+                        maxLength={10}
+                        textContentType="oneTimeCode"
+                        editable={!busy}
+                      />
+                    </>
+                  )}
+
+                  {!!notice && <Text style={styles.notice}>{notice}</Text>}
+                  {!!error && <Text style={styles.error}>{error}</Text>}
+
+                  <Pressable
+                    testID="sync-submit"
+                    style={[styles.primaryBtn, busy && styles.btnBusy]}
+                    onPress={stage === 'code' ? confirm : send}
+                    disabled={busy}
+                  >
+                    {busy ? (
+                      <ActivityIndicator color={colors.onPrimary} />
+                    ) : (
+                      <Text style={styles.primaryText}>
+                        {stage === 'code'
+                          ? 'Confirm'
+                          : mode === LINK
+                            ? 'Connect this device'
+                            : 'Send me a code'}
+                      </Text>
+                    )}
+                  </Pressable>
+
+                  {stage === 'code' && !busy && (
+                    <View style={styles.codeActions}>
+                      <Pressable
+                        testID="sync-resend"
+                        onPress={resend}
+                        disabled={cooldown > 0}
+                        hitSlop={8}
+                      >
+                        <Text style={[styles.link, cooldown > 0 && styles.linkMuted]}>
+                          {resendLabel}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => { setStage('idle'); setCode(''); setCooldown(0); setError(null); }}
+                        hitSlop={8}
+                      >
+                        <Text style={styles.link}>Use a different address</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+
+                <Text style={styles.footnote}>
+                  {mode === LINK
+                    ? 'Everything you have played on this device stays with you — connecting keeps it and adds a backup.'
+                    : 'Your progress on this device is merged into that account, not replaced.'}
+                </Text>
+
+                <Pressable style={styles.cancelWrap} onPress={resetLinkFlow} hitSlop={8}>
+                  <Text style={styles.link}>Cancel</Text>
                 </Pressable>
-              )}
-            </View>
-
-            <Text style={styles.footnote}>
-              {mode === LINK
-                ? 'Everything you have played on this device stays with you — connecting keeps it and adds a backup.'
-                : 'Your progress on this device is merged into that account, not replaced.'}
-            </Text>
+              </>
+            )}
 
             <Pressable
               testID="sync-turnoff"
@@ -416,7 +496,7 @@ function friendlyError(message, mode) {
       : message;
   }
   if (m.includes('token has expired') || m.includes('expired')) {
-    return 'That code has expired. Request a new one.';
+    return 'That code has expired. Tap “Resend code” for a new one.';
   }
   if (m.includes('invalid') && m.includes('token')) {
     return "That code doesn't match. Check the email and try again.";
@@ -434,16 +514,16 @@ const makeStyles = (colors) =>
     container: { padding: 20, paddingBottom: 40 },
     spinner: { marginTop: 40 },
 
-    intro: { fontSize: 15, lineHeight: 21, color: colors.text },
+    intro: { fontSize: 15, lineHeight: 21, color: colors.text, marginBottom: 10 },
     introSmall: {
       fontSize: 13,
       lineHeight: 19,
       color: colors.muted,
-      marginTop: 8,
-      marginBottom: 18,
+      marginTop: 2,
+      marginBottom: 20,
     },
 
-    tabs: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+    tabs: { flexDirection: 'row', gap: 8, marginTop: 20, marginBottom: 16 },
     tab: {
       flex: 1,
       paddingVertical: 10,
@@ -483,7 +563,7 @@ const makeStyles = (colors) =>
       fontSize: 16,
       color: colors.text,
     },
-    codeInput: { letterSpacing: 6, fontSize: 20, fontWeight: '700', textAlign: 'center' },
+    codeInput: { letterSpacing: 4, fontSize: 20, fontWeight: '700', textAlign: 'center' },
 
     notice: { fontSize: 13, lineHeight: 19, color: colors.muted, marginTop: 12 },
     error: { fontSize: 13, lineHeight: 19, color: colors.wrong, marginTop: 12 },
@@ -504,8 +584,29 @@ const makeStyles = (colors) =>
       fontSize: 13,
       fontWeight: '600',
       textAlign: 'center',
-      marginTop: 14,
     },
+    linkMuted: { color: colors.muted },
+    cancelWrap: { marginTop: 16, alignItems: 'center' },
+    codeActions: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 16,
+    },
+
+    // Opt-in reveal for the email-linking form, so the on-but-anonymous screen
+    // is not a form by default.
+    connectBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: colors.faint,
+      borderRadius: 14,
+      paddingVertical: 13,
+      marginTop: 16,
+    },
+    connectText: { color: colors.primaryDark, fontSize: 15, fontWeight: '700' },
 
     linkedRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     linkedText: { flex: 1 },

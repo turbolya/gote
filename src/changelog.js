@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.4';
+export const APP_VERSION = '2.29.5';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.5',
+    date: '2026-07-26',
+    changes: [
+      'Sync across devices: tidied the layout, kept the “connect another '
+        + 'device” step out of the way until you need it, fixed the code entry '
+        + 'so it accepts the emailed verification code, and added a Resend code button.',
+    ],
+  },
   {
     version: '2.29.4',
     date: '2026-07-25',
