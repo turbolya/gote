@@ -82,7 +82,12 @@ import {
 } from './src/sync';
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME } from './src/constants';
 import { buildPickRound } from './src/quiz';
-import { prefetchImages } from './src/prefetch';
+import {
+  prefetchImages,
+  prefetchDeck,
+  initDownloadedImages,
+  isImageDownloaded,
+} from './src/prefetch';
 import { groupKey, ThemeProvider, themeFor, resolveScheme } from './src/theme';
 import { IS_E2E, IS_SHOTS } from './src/e2e/testMode';
 import { useIsOffline } from './src/net';
@@ -207,6 +212,23 @@ export default function App() {
   const rawCardsRef = useRef([]);
   const watermarkRef = useRef(null);
   const [fullDeck, setFullDeck] = useState([]);
+  // Flips true once the downloaded-photo manifest has been read from storage, so
+  // the offline deck filter (playableDeck below) recomputes with real data.
+  const [dlReady, setDlReady] = useState(false);
+  // The deck the deck-local modes actually play from. Online it's the full
+  // filtered deck; OFFLINE it's narrowed to cards whose photos are downloaded,
+  // so a round never shows blank cards. (By picture / Nearby are online-only and
+  // gated in the menu, so they don't read this.)
+  const playableDeck = useMemo(
+    () => (offline ? fullDeck.filter((c) => isImageDownloaded(c.image)) : fullDeck),
+    [fullDeck, offline, dlReady]
+  );
+  // Proactively warm an offline pack once a deck is loaded and we're online, so
+  // the deck-local modes stay playable without a connection later. No-op offline
+  // (nothing to download) and cheap when repeated (prefetch dedupes per URL).
+  useEffect(() => {
+    if (!offline && fullDeck.length > 0) prefetchDeck(fullDeck);
+  }, [fullDeck, offline]);
   // The current display-filter prefs, mirrored in a ref so async callbacks (the
   // background sync) read the user's REAL settings — not a stale closure from
   // the first render, when these were still at their useState defaults. Without
@@ -516,6 +538,9 @@ export default function App() {
       // Bring this device's stored data up to the current shape before anything
       // reads it. Forward-only, best-effort, no-op when already current.
       await runDataMigrations();
+      // Seed the downloaded-photo manifest so an offline first screen can filter
+      // the deck to cards that will actually render. Non-blocking for the rest.
+      initDownloadedImages().then(() => setDlReady(true));
       const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedHistory, savedStreak, savedWatchTip] =
         await Promise.all([
           loadUsername(),
@@ -654,13 +679,13 @@ export default function App() {
   // --- mode launchers (each records how to replay itself) ---
   const startAll = useCallback(() => {
     replayRef.current = startAll;
-    startRound(fullDeck, 'all', '');
-  }, [fullDeck, startRound]);
+    startRound(playableDeck, 'all', '');
+  }, [playableDeck, startRound]);
 
   const startSpeedrun = useCallback(() => {
     replayRef.current = startSpeedrun;
-    startRound(fullDeck, 'speedrun', '');
-  }, [fullDeck, startRound]);
+    startRound(playableDeck, 'speedrun', '');
+  }, [playableDeck, startRound]);
 
   // Shared by Custom (multiple-choice) and Flash cards (self-grade): both pick a
   // count of cards from the chosen groups; only the play `mode` differs.
@@ -669,18 +694,18 @@ export default function App() {
     (groups, count, mode, label, flaggedOnly) => {
       let pool =
         groups && groups.length
-          ? fullDeck.filter((c) => groups.includes(groupKey(c.iconic)))
-          : fullDeck;
+          ? playableDeck.filter((c) => groups.includes(groupKey(c.iconic)))
+          : playableDeck;
       if (flaggedOnly) {
         const set = flagsRef.current;
         pool = pool.filter((c) => set.has(String(c.taxonId)));
       }
-      // Distractors come from the whole deck, not just the picked subset.
-      const run = () => startRound(pickRandom(pool, count), mode, label, fullDeck);
+      // Distractors come from the whole (playable) deck, not just the picked subset.
+      const run = () => startRound(pickRandom(pool, count), mode, label, playableDeck);
       replayRef.current = run;
       run();
     },
-    [fullDeck, startRound]
+    [playableDeck, startRound]
   );
 
   const startCustom = useCallback(
@@ -1144,7 +1169,7 @@ export default function App() {
             <StatusBar style="light" />
             <MenuScreen
               username={username}
-              deckCount={fullDeck.length}
+              deckCount={playableDeck.length}
               lifetime={lifetime}
               history={history}
               streak={streakStatus(streak)}

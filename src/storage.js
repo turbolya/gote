@@ -22,6 +22,13 @@ const K_WATCH_TIP = '@gote/watchTipDismissed';
 const K_SET_TS = '@gote/settingsStamp';
 // The on-device data-shape version. See runDataMigrations below.
 const K_DATA_VERSION = '@gote/dataVersion';
+// A manifest of photo URLs we've successfully prefetched into the image cache —
+// the queryable "which photos are downloaded" set the OS cache can't give us.
+// Used to build a playable deck when offline. See src/prefetch.js.
+const K_DL_IMAGES = '@gote/downloadedImages';
+// Cap so the manifest can't grow without bound across many decks. Keeps the
+// most-recently-added, which are the ones most likely still in the OS cache.
+const MAX_DL_IMAGES = 1500;
 
 // How many applied watch-result ids to remember (for dedup — see below). Bounds
 // storage; far more than the in-flight window between the two delivery channels.
@@ -541,6 +548,45 @@ export async function saveCache({ username, locale, cards, watermark, syncedAt }
 export async function clearCacheData() {
   try {
     await kv.removeItem(K_CACHE);
+  } catch {
+    /* ignore */
+  }
+}
+
+// --- downloaded-image manifest ----------------------------------------------
+// The set of photo URLs known to be in the on-device image cache, so an offline
+// session can be limited to cards whose photos will actually render. Best-effort
+// and approximate: the OS may evict an entry we still list (worst case a card
+// shows a placeholder), which is why it is a play-time hint, not a guarantee.
+
+export async function loadDownloadedImages() {
+  try {
+    const raw = await kv.getItem(K_DL_IMAGES);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+// Merge `urls` into the manifest (deduped, capped to the newest MAX_DL_IMAGES)
+// and persist. Returns the new size.
+export async function addDownloadedImages(urls) {
+  try {
+    const set = new Set(await loadDownloadedImages());
+    for (const u of urls || []) if (u) set.add(u);
+    let arr = [...set];
+    if (arr.length > MAX_DL_IMAGES) arr = arr.slice(arr.length - MAX_DL_IMAGES);
+    await kv.setItem(K_DL_IMAGES, JSON.stringify(arr));
+    return arr.length;
+  } catch {
+    return 0;
+  }
+}
+
+export async function clearDownloadedImages() {
+  try {
+    await kv.removeItem(K_DL_IMAGES);
   } catch {
     /* ignore */
   }

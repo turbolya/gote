@@ -25,6 +25,7 @@ import { APP_VERSION } from '../changelog';
 import { useTheme, useColors, useThemedStyles } from '../theme';
 import { DEFAULT_LOCALE } from '../constants';
 import { getCacheSize, clearCache, formatBytes } from '../cache';
+import { clearDownloadedManifest } from '../prefetch';
 import Icon from '../components/Icon';
 import LanguageDropdown from '../components/LanguageDropdown';
 import WatchTip from '../components/WatchTip';
@@ -189,6 +190,9 @@ export default function SettingsScreen({
   const onClearCache = async () => {
     setClearing(true);
     await clearCache();
+    // Forget the downloaded-photo manifest too — those bytes are gone now, so
+    // the offline deck must not keep claiming them.
+    await clearDownloadedManifest();
     await refreshCache();
     setClearing(false);
   };

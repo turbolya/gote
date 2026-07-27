@@ -20,6 +20,11 @@ import { Appear } from '../components/anim';
 import { SPEEDRUN_LIVES, KOFI_URL } from '../constants';
 import { IS_E2E } from '../e2e/testMode';
 
+// Modes that need a live network call to build a round, so they can't run
+// offline at all: Nearby (a place query) and By picture (curated photos per
+// round). The rest play from the already-loaded deck.
+const ONLINE_ONLY = new Set(['nearby', 'pick']);
+
 // The hero gradient is the brand teal in both themes (white text reads well on
 // it either way), so it's intentionally not theme-dependent. Three stops give it
 // a clearly non-uniform, diagonal shade.
@@ -225,6 +230,11 @@ export default function MenuScreen({
     extrapolate: 'clamp',
   });
 
+  // Offline with an empty playable deck: the deck-local modes have no cards
+  // whose photos are downloaded, so there's nothing to play. (deckCount is the
+  // playable count — already narrowed to downloaded cards when offline.)
+  const noOfflineCards = offline && deckCount === 0;
+
   const playModes = [
     { key: 'all', icon: 'albums-outline', accent: accents.green, title: 'By name', sub: 'See a photo, choose its name' },
     { key: 'pick', icon: 'apps-outline', accent: accents.blue, title: 'By picture', sub: 'See a name, choose its photo' },
@@ -255,19 +265,32 @@ export default function MenuScreen({
             (self-hides on iPad/Android and once hidden). */}
         <WatchTip dismissed={watchTipDismissed} onDismiss={onDismissWatchTip} />
 
-        {offline && <OfflineBanner />}
+        {offline && (
+          <OfflineBanner
+            message={
+              noOfflineCards
+                ? 'You’re offline and no photos are downloaded yet. Connect once to load your deck.'
+                : undefined
+            }
+          />
+        )}
 
         <Text style={styles.section}>Play</Text>
         <View style={styles.group}>
           {playModes.map(({ key, sub, ...rest }, i) => {
-            // Nearby needs a live query for a place's species, so it can't run
-            // offline — disable it (the other modes play from the loaded deck).
-            const off = offline && key === 'nearby';
+            // Two reasons a mode is unavailable offline:
+            //  • Nearby / By picture need live API calls (a place query, or
+            //    curated photos per round), so they can't run at all.
+            //  • The deck-local modes CAN run offline, but only from cards whose
+            //    photos are downloaded — if none are, there's nothing to play.
+            const onlineOnly = offline && ONLINE_ONLY.has(key);
+            const off = onlineOnly || (noOfflineCards && !onlineOnly);
+            const offSub = onlineOnly ? 'Needs a connection' : 'No downloaded photos yet';
             return (
               <Row
                 key={key}
                 {...rest}
-                sub={off ? 'Needs a connection' : sub}
+                sub={off ? offSub : sub}
                 disabled={off}
                 first={i === 0}
                 index={i}
@@ -280,7 +303,7 @@ export default function MenuScreen({
 
         <Text style={styles.section}>Learn</Text>
         <View style={styles.group}>
-          <Row first index={0} testID="mode-flash" icon="documents-outline" accent={accents.indigo} title="Flash cards" sub="Reveal the answer, then grade yourself" onPress={() => onSelectMode('flash')} />
+          <Row first index={0} testID="mode-flash" icon="documents-outline" accent={accents.indigo} title="Flash cards" sub={noOfflineCards ? 'No downloaded photos yet' : 'Reveal the answer, then grade yourself'} disabled={noOfflineCards} onPress={() => onSelectMode('flash')} />
           <Row index={1} testID="open-lexicon" icon="library-outline" accent={accents.teal} title="Lexicon" sub="Browse all your species" onPress={onLexicon} />
         </View>
 

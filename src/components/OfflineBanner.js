@@ -7,14 +7,14 @@ import { View, Text, StyleSheet } from 'react-native';
 import Icon from './Icon';
 import { useTheme, useThemedStyles } from '../theme';
 
-export default function OfflineBanner({ style }) {
+export default function OfflineBanner({ style, message }) {
   const { accents } = useTheme();
   const styles = useThemedStyles(makeStyles);
   return (
     <View style={[styles.bar, style]}>
       <Icon name="cloud-offline-outline" size={15} color={accents.amber.fg} />
       <Text style={styles.text}>
-        You’re offline — Nearby and observation updates are paused.
+        {message || 'You’re offline — modes that need a connection are paused.'}
       </Text>
     </View>
   );

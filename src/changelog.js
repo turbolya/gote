@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.10';
+export const APP_VERSION = '2.29.11';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.11',
+    date: '2026-07-27',
+    changes: [
+      'Offline play: gote now downloads a pack of your deck’s photos in the '
+        + 'background, so By name, Speedrun, Custom and Flash cards keep working '
+        + 'with no connection — using only cards whose photos are ready. Modes '
+        + 'that need the internet (Nearby, By picture) are paused offline, and if '
+        + 'nothing is downloaded yet the app tells you to connect once first.',
+    ],
+  },
   {
     version: '2.29.10',
     date: '2026-07-27',

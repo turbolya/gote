@@ -307,6 +307,33 @@ async function asyncTests() {
     const s = load('src/storage.js', kvImpl);
     assert.equal(await s.runDataMigrations(), s.DATA_VERSION);
   });
+
+  // --- downloaded-image manifest (offline deck filter) ---
+  await tAsync('downloaded manifest is empty on a fresh store', async () => {
+    const s = load('src/storage.js', memKv());
+    assert.deepEqual(await s.loadDownloadedImages(), []);
+  });
+  await tAsync('addDownloadedImages persists + dedupes', async () => {
+    const s = load('src/storage.js', memKv());
+    await s.addDownloadedImages(['a', 'b']);
+    await s.addDownloadedImages(['b', 'c', '', null]); // dupe + blanks ignored
+    assert.deepEqual((await s.loadDownloadedImages()).sort(), ['a', 'b', 'c']);
+  });
+  await tAsync('addDownloadedImages caps to the newest entries', async () => {
+    const s = load('src/storage.js', memKv());
+    const many = Array.from({ length: 1600 }, (_, i) => 'u' + i);
+    await s.addDownloadedImages(many);
+    const kept = await s.loadDownloadedImages();
+    assert.equal(kept.length, 1500);
+    assert.ok(kept.includes('u1599')); // the newest survives
+    assert.ok(!kept.includes('u0')); // the oldest is dropped
+  });
+  await tAsync('clearDownloadedImages empties the manifest', async () => {
+    const s = load('src/storage.js', memKv());
+    await s.addDownloadedImages(['a', 'b']);
+    await s.clearDownloadedImages();
+    assert.deepEqual(await s.loadDownloadedImages(), []);
+  });
 }
 
 asyncTests().then(() => {
