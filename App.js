@@ -43,6 +43,7 @@ import {
   shuffle,
 } from './src/api';
 import {
+  runDataMigrations,
   loadUsername,
   saveUsername,
   loadStats,
@@ -507,6 +508,9 @@ export default function App() {
   // Restore saved state on first launch.
   useEffect(() => {
     (async () => {
+      // Bring this device's stored data up to the current shape before anything
+      // reads it. Forward-only, best-effort, no-op when already current.
+      await runDataMigrations();
       const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedHistory, savedStreak, savedWatchTip] =
         await Promise.all([
           loadUsername(),

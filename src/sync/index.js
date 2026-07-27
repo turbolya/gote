@@ -65,6 +65,8 @@ import {
   applyEvents,
   streakFromDays,
   trimLedger,
+  buildSettingsPayload,
+  upgradeSettingsPayload,
 } from './merge';
 
 export { SYNC_ENABLED } from './config';
@@ -155,7 +157,9 @@ export async function pushSettings(prefs, username, updatedAt = Date.now()) {
     const { error } = await supabase.from('settings').upsert(
       {
         user_id: userId,
-        data: { prefs: prefs || {}, username: username || null },
+        // Versioned payload; only the keys this client owns. The DB shallow-
+        // merges on write, so newer keys added by a later client survive.
+        data: buildSettingsPayload(prefs, username),
         updated_at: new Date(updatedAt).toISOString(),
       },
       { onConflict: 'user_id' }
@@ -587,9 +591,12 @@ export async function pullSettings({ force = false } = {}) {
     const localTs = await loadSettingsStamp();
     if (!force && serverTs <= localTs) return null; // local is up to date
 
+    // Upcast whatever shape the server holds to the current one before reading,
+    // so a blob written by an older (or newer) client is understood, not misread.
+    const payload = upgradeSettingsPayload(data.data);
     const serverPrefs =
-      data.data.prefs && typeof data.data.prefs === 'object' ? data.data.prefs : {};
-    const serverUsername = data.data.username || null;
+      payload.prefs && typeof payload.prefs === 'object' ? payload.prefs : {};
+    const serverUsername = payload.username || null;
 
     // Compare against what's actually on disk BEFORE overwriting, so the caller
     // is told exactly whether the deck-defining fields (account + language)

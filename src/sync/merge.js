@@ -145,6 +145,48 @@ export function streakFromDays(days, now = Date.now()) {
   return { current, longest: Math.max(longest, current), lastActiveDay: last };
 }
 
+// --- settings payload versioning -------------------------------------------
+//
+// `settings.data` is a single jsonb blob synced last-write-wins. As the app
+// grows (custom decks, deck-sharing prefs, …) new top-level keys join it, and
+// two things have to stay true no matter how old the client on the other end
+// is. See docs/SCHEMA-CHANGELOG.md for the running record.
+//
+//  1. A NEW reader must understand an OLD blob. That is what `v` and the
+//     upcaster below are for: `v` is a version HINT, never a gate — an older
+//     client that predates `v` just omits it, and the reader treats that as v0.
+//  2. An OLD writer must not erase a NEW key it has never heard of. That is not
+//     solved here — it is solved in the database: the settings table shallow-
+//     merges `data` on write (migration 20260727…_settings_merge.sql), so a
+//     client only ever contributes the keys it knows and leaves the rest intact.
+//     Because the merge is shallow, every independently-evolving concern must be
+//     its OWN top-level key (don't bury a new toggle inside `prefs`).
+export const SETTINGS_PAYLOAD_VERSION = 1;
+
+// Wrap the fields this client owns into the current payload shape. Only the
+// known keys are written; the server merge preserves any newer keys already
+// there. Keep this in lock-step with SETTINGS_PAYLOAD_VERSION.
+export function buildSettingsPayload(prefs, username) {
+  return { v: SETTINGS_PAYLOAD_VERSION, prefs: prefs || {}, username: username || null };
+}
+
+// Bring a stored payload up to the current shape before it is read. A missing
+// `v` is the original unversioned blob ({ prefs, username }) and counts as v0.
+// Unknown keys are always preserved, so a downgrade-then-upgrade round trip
+// never drops a field. Add a step per version bump; never rewrite history.
+export function upgradeSettingsPayload(data) {
+  let d = data && typeof data === 'object' ? { ...data } : {};
+  let v = num(d.v); // 0 when absent — the pre-versioning blob
+  if (v < 1) {
+    // v0 -> v1: no field changed; the version marker itself is the change.
+    // Kept as an explicit branch so the next migration has a template.
+    d.v = 1;
+    v = 1;
+  }
+  // Future: if (v < 2) { d.deckPrefs = d.deckPrefs || {}; d.v = 2; v = 2; }
+  return d;
+}
+
 // Merge two settings blobs by timestamp. Settings are the one place where
 // last-write-wins is right: losing a stale theme preference costs nothing,
 // whereas losing a round costs real history.

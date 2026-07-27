@@ -21,6 +21,7 @@ const script = `
 import {
   localDay, emptyRollups, applyEvent, applyEvents, sortEvents,
   streakFromDays, mergeSettings, trimLedger,
+  SETTINGS_PAYLOAD_VERSION, buildSettingsPayload, upgradeSettingsPayload,
 } from ${JSON.stringify(src)};
 
 let passed = 0;
@@ -161,6 +162,35 @@ console.log('\\nmergeSettings');
   eq('newer local wins', mergeSettings(remote, local).data.prefs.locale, 'hu');
   eq('missing remote keeps local', mergeSettings(local, null), local);
   eq('missing local takes remote', mergeSettings(null, remote), remote);
+}
+
+console.log('\\nsettings payload versioning');
+{
+  eq('build stamps the current version', buildSettingsPayload({ locale: 'hu' }, 'ada').v, SETTINGS_PAYLOAD_VERSION);
+  eq('build carries prefs + username', buildSettingsPayload({ locale: 'hu' }, 'ada'), { v: 1, prefs: { locale: 'hu' }, username: 'ada' });
+  eq('build normalises missing fields', buildSettingsPayload(null, null), { v: 1, prefs: {}, username: null });
+
+  // Reading the OLD unversioned blob: a missing v is v0 and upcasts to v1
+  // without losing the fields it did carry.
+  const legacy = upgradeSettingsPayload({ prefs: { locale: 'en' }, username: 'leo' });
+  eq('unversioned blob upcasts to v1', legacy.v, 1);
+  eq('unversioned blob keeps its fields', { prefs: legacy.prefs, username: legacy.username }, { prefs: { locale: 'en' }, username: 'leo' });
+
+  // The whole reason the DB merges rather than replaces: an unknown (newer) key
+  // must survive being read by this (older) client, never be silently dropped.
+  const withFuture = upgradeSettingsPayload({ v: 1, prefs: {}, username: 'x', deckPrefs: { sort: 'az' } });
+  eq('unknown future keys are preserved on read', withFuture.deckPrefs, { sort: 'az' });
+
+  // A payload already at the current version is returned unchanged.
+  const current = buildSettingsPayload({ locale: 'de' }, 'mia');
+  eq('current payload is unchanged by upcast', upgradeSettingsPayload(current), current);
+
+  // A blob from a FUTURE version is passed through, not downgraded.
+  eq('a newer version is left alone', upgradeSettingsPayload({ v: 5, prefs: {} }).v, 5);
+
+  // Junk in, safe baseline out — never throws.
+  eq('junk upcasts to a v1 baseline', upgradeSettingsPayload(null), { v: 1 });
+  eq('a non-object upcasts to a v1 baseline', upgradeSettingsPayload('nope'), { v: 1 });
 }
 
 console.log('\\ntrimLedger');

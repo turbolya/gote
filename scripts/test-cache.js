@@ -5,7 +5,19 @@ const babel = require('@babel/core');
 const assert = require('assert');
 const path = require('path');
 
-function load(rel) {
+// A stateful in-memory kv backend, for tests that actually read back what they
+// wrote (e.g. the data-version migration runner).
+function memKv() {
+  const store = new Map();
+  return {
+    getItem: async (k) => (store.has(k) ? store.get(k) : null),
+    setItem: async (k, v) => { store.set(k, String(v)); },
+    removeItem: async (k) => { store.delete(k); },
+    multiRemove: async (ks) => { (ks || []).forEach((k) => store.delete(k)); },
+  };
+}
+
+function load(rel, kvImpl) {
   const file = path.join(__dirname, '..', rel);
   const code = babel.transformFileSync(file, {
     plugins: ['@babel/plugin-transform-modules-commonjs'],
@@ -22,12 +34,14 @@ function load(rel) {
       return { default: {} };
     }
     if (id === './kv' || id === '../kv') {
-      return {
-        getItem: async () => null,
-        setItem: async () => {},
-        removeItem: async () => {},
-        multiRemove: async () => {},
-      };
+      return (
+        kvImpl || {
+          getItem: async () => null,
+          setItem: async () => {},
+          removeItem: async () => {},
+          multiRemove: async () => {},
+        }
+      );
     }
     // E2E-only modules (ESM); api.js only touches them when IS_E2E is true.
     if (id === './e2e/testMode') return { IS_E2E: false };
@@ -257,5 +271,45 @@ t('cacheMatches: false for null cache', () => {
   assert.equal(cacheMatches(null, 'kueda', 'en'), false);
 });
 
-console.log('\n' + pass + ' passed, ' + fail + ' failed');
-process.exit(fail ? 1 : 0);
+// --- runDataMigrations (local data versioning) ---
+// Needs a stateful kv so the stamped version can be read back.
+async function tAsync(name, fn) {
+  try {
+    await fn();
+    pass++;
+    console.log('  ok   ' + name);
+  } catch (e) {
+    fail++;
+    console.log('  FAIL ' + name + '  =>  ' + e.message);
+  }
+}
+
+async function asyncTests() {
+  await tAsync('loadDataVersion is 0 on a fresh store', async () => {
+    const s = load('src/storage.js', memKv());
+    assert.equal(await s.loadDataVersion(), 0);
+  });
+  await tAsync('runDataMigrations stamps DATA_VERSION and reports it', async () => {
+    const s = load('src/storage.js', memKv());
+    const v = await s.runDataMigrations();
+    assert.equal(v, s.DATA_VERSION);
+    assert.equal(await s.loadDataVersion(), s.DATA_VERSION);
+  });
+  await tAsync('runDataMigrations is idempotent', async () => {
+    const s = load('src/storage.js', memKv());
+    await s.runDataMigrations();
+    await s.runDataMigrations();
+    assert.equal(await s.loadDataVersion(), s.DATA_VERSION);
+  });
+  await tAsync('a device already at the current version is left at it', async () => {
+    const kvImpl = memKv();
+    await kvImpl.setItem('@gote/dataVersion', String(load('src/storage.js', kvImpl).DATA_VERSION));
+    const s = load('src/storage.js', kvImpl);
+    assert.equal(await s.runDataMigrations(), s.DATA_VERSION);
+  });
+}
+
+asyncTests().then(() => {
+  console.log('\n' + pass + ' passed, ' + fail + ' failed');
+  process.exit(fail ? 1 : 0);
+});

@@ -20,6 +20,8 @@ const K_WATCH_TIP = '@gote/watchTipDismissed';
 // When the local settings last changed (ms epoch). The one timestamp that makes
 // last-write-wins between this device and the server actually work.
 const K_SET_TS = '@gote/settingsStamp';
+// The on-device data-shape version. See runDataMigrations below.
+const K_DATA_VERSION = '@gote/dataVersion';
 
 // How many applied watch-result ids to remember (for dedup — see below). Bounds
 // storage; far more than the in-flight window between the two delivery channels.
@@ -37,6 +39,47 @@ const MAX_HISTORY = 120;
 // v4: cards carry `attribution`/`licenseCode` for the on-card photo credit.
 // v5: cards carry `lat`/`lng`/`placeGuess` for the observation-location map pin.
 const CACHE_VERSION = 5;
+
+// The version of the LOCAL data shapes on this device. Bump when a stored blob
+// changes shape incompatibly, and add a matching step to runDataMigrations().
+//
+// Three separate version numbers, deliberately, because they govern three
+// different things and move at different times (see docs/SCHEMA-CHANGELOG.md):
+//   • DATA_VERSION (here)      — the on-device AsyncStorage shapes.
+//   • CACHE_VERSION (below)    — only the disposable observation cache.
+//   • SETTINGS_PAYLOAD_VERSION — what crosses the network (src/sync/merge.js).
+export const DATA_VERSION = 1;
+
+export async function loadDataVersion() {
+  try {
+    const n = Number(await kv.getItem(K_DATA_VERSION));
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+// Forward-only local migrations, run once at startup before anything reads
+// storage. Each step upgrades the stored shapes from one version to the next.
+// A fresh install and an already-current device both no-op. Best-effort: a
+// failed step must never block launch, so the reached version is still stamped.
+export async function runDataMigrations() {
+  let from = await loadDataVersion();
+  if (from === 0) {
+    // No marker: a brand-new install, or a device from before data versioning.
+    // Both are the v1 baseline — the shapes the app has always written — so
+    // nothing is rewritten. (Pre-launch there is no older shape in the wild.)
+    from = DATA_VERSION;
+  }
+  // Add steps as the shapes evolve, e.g.:
+  //   if (from < 2) { await migratePrefsToV2(); from = 2; }
+  try {
+    await kv.setItem(K_DATA_VERSION, String(DATA_VERSION));
+  } catch {
+    /* best-effort — a write failure just means we retry next launch */
+  }
+  return DATA_VERSION;
+}
 
 export async function loadUsername() {
   try {

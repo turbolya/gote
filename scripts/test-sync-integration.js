@@ -3,7 +3,7 @@
 //
 //   npm run test:sync            (starts nothing; see below)
 //
-// Why this exists: scripts/test-sync.js covers merge.js with 40 cases and
+// Why this exists: scripts/test-sync.js covers merge.js's pure functions and
 // passed the whole time two bugs were shipping. Both lived in the wiring around
 // the merge — a queued event that was never flushed, and a stale pull watermark
 // after switching accounts — and neither is reachable without a database. This
@@ -498,6 +498,41 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
 
     await a.sync.syncNow();
     eq(await a.storage.loadStats(), { answered: 9, correct: 5 }, "A after B's baseline");
+  });
+
+  // --- settings ------------------------------------------------------------
+  console.log('\nsettings');
+
+  await test('an older client write preserves a newer key (data merge)', async () => {
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const userId = await a.sync.ensureSession();
+
+    // A NEWER client seeds the row with a key this build predates. This is the
+    // insert, so the row is stored verbatim (the merge trigger is update-only).
+    const seed = await a.client.from('settings').upsert(
+      {
+        user_id: userId,
+        data: { v: 1, prefs: { locale: 'hu' }, username: 'ada', deckPrefs: { sort: 'az' } },
+        updated_at: new Date(1000).toISOString(),
+      },
+      { onConflict: 'user_id' }
+    );
+    eq(seed.error, null, 'seed insert ok');
+
+    // This OLDER client then saves its settings, knowing nothing of deckPrefs.
+    await a.storage.savePrefs({ locale: 'en' });
+    await a.storage.saveUsername('ada');
+    await a.sync.pushLocalSettings();
+
+    // The BEFORE UPDATE trigger shallow-merged old||new: the unknown key
+    // survives, the keys the old client did send are updated.
+    const { data } = await a.client
+      .from('settings')
+      .select('data')
+      .eq('user_id', userId)
+      .maybeSingle();
+    eq(data.data.deckPrefs, { sort: 'az' }, 'newer key preserved by the merge');
+    eq(data.data.prefs.locale, 'en', 'the key the old client owns is updated');
   });
 
   // --- deletion ------------------------------------------------------------

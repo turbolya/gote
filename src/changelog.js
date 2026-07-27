@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.7';
+export const APP_VERSION = '2.29.8';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.8',
+    date: '2026-07-27',
+    changes: [
+      'Under the hood: made cross-device sync forward-compatible, so your '
+        + 'settings and stats keep syncing cleanly as new features (like custom '
+        + 'decks) arrive — even between devices running different app versions.',
+    ],
+  },
   {
     version: '2.29.7',
     date: '2026-07-26',
