@@ -27,6 +27,10 @@ well you know them, tap through to a detail page) and a **Statistics** page
    what changed.
 3. Common names can be shown in any of iNaturalist's languages (the app UI
    stays in English).
+4. **Works offline.** A pack of your deck's photos is downloaded in the
+   background, so **By name, Speedrun, Custom** and **Flash cards** keep playing
+   with no connection (from cards whose photos are ready). **Nearby** and **By
+   picture** need a live connection, so they're paused offline.
 
 ## Running it on your phone
 
@@ -58,14 +62,17 @@ App.js                       # screen state machine + data orchestration
 index.js                     # Expo entry point
 src/
   api.js                     # iNaturalist v2 API client + helpers
-  storage.js                 # AsyncStorage: username, stats, prefs, obs cache
+  storage.js                 # AsyncStorage: username, stats, prefs, obs cache,
+                             #   image manifest, data-version migrations
   cache.js                   # local photo-cache size / clear (expo-file-system)
-  prefetch.js                # preloads upcoming card images
+  prefetch.js                # image preloading + downloaded-photo manifest (offline pack)
+  net.js                     # connectivity (useIsOffline, NetInfo)
   quiz.js                    # multiple-choice distractor logic (pure, tested)
   lexicon.js                 # Lexicon filtering/status logic (pure, tested)
   gestures.js                # gesture decision helpers (pure, tested)
   theme.js                   # colors + monotone icon mapping
-  components/                # Icon, ScreenHeader, PhotoViewer
+  sync/                      # optional cross-device sync (versioned events/settings)
+  components/                # Icon, ScreenHeader, PhotoViewer, OfflineBanner
   screens/                   # Menu, Study, PickImage, Custom, Settings,
                              #   Results, Stats, Lexicon, Detail
   hooks/                     # (none currently)

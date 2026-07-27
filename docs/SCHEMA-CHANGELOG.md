@@ -81,7 +81,9 @@ The append-only `events` log needs neither rule bent: every client only ever
   startup) and the `@gote/dataVersion` marker. No shapes changed; existing
   devices and fresh installs are both the v1 baseline.
 - Keys: `username`, `stats`, `prefs`, `species`, `obscache`, `flags`, `history`,
-  `streak`, `activeDays`, `watchResultIds`, `watchTipDismissed`, `settingsStamp`.
+  `streak`, `activeDays`, `watchResultIds`, `watchTipDismissed`, `settingsStamp`,
+  `downloadedImages` (offline photo manifest — added additively 2026-07-27, no
+  version bump; it self-heals if absent).
 
 ---
 

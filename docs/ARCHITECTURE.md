@@ -177,19 +177,31 @@ The core entity is a **card** (one observation, or one place-typical species):
 
 ### On-device persistence (AsyncStorage, `storage.js`)
 
-| Key               | Shape                                                        | Purpose |
-|-------------------|-------------------------------------------------------------|---------|
-| `@gote/username`  | string                                                      | Last account |
-| `@gote/prefs`     | `{ perSpecies, locale, researchGrade, speciesOnly }`        | Study options |
-| `@gote/stats`     | `{ answered, correct }`                                     | Lifetime totals |
-| `@gote/species`   | `{ [taxonId]: { name, sci, known, missed } }`              | Per-species tallies (Stats, Lexicon status) |
-| `@gote/history`   | `number[]` (accuracy %, oldest→newest, cap 120)            | Menu accuracy chart |
-| `@gote/flags`     | `{ [username]: [taxonId, …] }`                             | Flagged species, **per account** |
-| `@gote/obscache`  | `{ version, username, locale, cards[], watermark, syncedAt }` | Offline deck cache |
+| Key                       | Shape                                                          | Purpose |
+|---------------------------|----------------------------------------------------------------|---------|
+| `@gote/username`          | string                                                         | Last account |
+| `@gote/prefs`             | `{ perSpecies, locale, researchGrade, speciesOnly, themeMode }`| Study options + theme |
+| `@gote/stats`             | `{ answered, correct }`                                        | Lifetime totals |
+| `@gote/species`           | `{ [taxonId]: { name, sci, known, missed } }`                 | Per-species tallies (Stats, Lexicon status) |
+| `@gote/history`           | `number[]` (accuracy %, oldest→newest, cap 120)               | Menu accuracy chart |
+| `@gote/streak`            | `{ count, longest, … }`                                       | Daily streak |
+| `@gote/activeDays`        | `string[]` (YYYY-MM-DD)                                        | Days played — the streak's source of truth |
+| `@gote/flags`             | `{ [username]: [taxonId, …] }`                                | Flagged species, **per account** |
+| `@gote/obscache`          | `{ version, username, locale, cards[], watermark, syncedAt }`  | Offline deck cache |
+| `@gote/downloadedImages`  | `string[]` (photo URLs, capped 1500)                          | Downloaded-photo manifest → offline deck filter (§7) |
+| `@gote/settingsStamp`     | number (ms epoch)                                             | Last local settings change — cross-device sync LWW |
+| `@gote/dataVersion`       | number                                                        | Local data-shape version — forward migrations |
+| `@gote/watchResultIds`    | `string[]` (dedup ledger, cap 500)                           | Applied watch-result ids |
+| `@gote/watchTipDismissed` | boolean                                                       | Watch tip dismissed |
 
-`CACHE_VERSION` (currently **4**) guards `@gote/obscache`: a card-shape change
+`CACHE_VERSION` (currently **5**) guards `@gote/obscache`: a card-shape change
 bumps it and forces a fresh full download. Flags/history/stats live under
 separate keys, so they survive cache-version bumps and "Empty cache".
+
+`DATA_VERSION` (currently **1**) versions the on-device shapes as a whole;
+`runDataMigrations()` upgrades them forward once at launch. It is distinct from
+`CACHE_VERSION` (the disposable deck cache) and from the network payload versions
+— all three are tracked in [`SCHEMA-CHANGELOG.md`](SCHEMA-CHANGELOG.md).
 
 ---
 
@@ -292,21 +304,32 @@ flowchart TB
     p[expo-file-system cache dir\ndownloaded JPEGs - via RN Image]
   end
   subgraph warm[Proactive]
-    pf[prefetch.js\nImage.prefetch next N cards]
+    pf[prefetch.js\nupcoming cards + offline pack]
+  end
+  subgraph disk2[On-disk - persistent]
+    dm[AsyncStorage @gote/downloadedImages\ndownloaded-photo manifest]
   end
 
   api -->|memoize| t
   app -->|persist deck| o
   rnimg[RN Image] -->|store bytes| p
   pf --> p
+  pf -->|record resolved URLs| dm
 ```
 
 | Cache | Module | Lifetime | Cleared by |
 |-------|--------|----------|------------|
 | Taxon lookups | `api.js` (`taxonCache`) | App session | Language change (`clearTaxonCache`) |
 | Observation deck | `storage.js` (`@gote/obscache`) | Persistent | New account/locale, `CACHE_VERSION` bump |
-| Photo bytes | OS / RN Image (`expo-file-system`) | Persistent | Settings → "Empty cache" (`cache.js`) |
-| Upcoming images | `prefetch.js` | App session | — (fire-and-forget) |
+| Photo bytes | OS / RN Image (`expo-file-system`) | Persistent | Settings → "Empty" (`cache.js`) |
+| Upcoming images + offline pack | `prefetch.js` | App session (requests) | — (fire-and-forget) |
+| Downloaded-photo manifest | `prefetch.js` → `storage.js` (`@gote/downloadedImages`) | Persistent | Settings → "Empty" (`clearDownloadedManifest`) |
+
+**Offline pack.** `prefetch.js` records the URL of every photo whose
+`Image.prefetch` resolves into the persistent manifest, and `prefetchDeck()`
+proactively warms a capped, throttled slice (~120 cards) after each **online**
+deck load. Offline, `isImageDownloaded()` lets the app play only cards whose
+photos will actually render (see §8).
 
 ---
 
@@ -321,6 +344,23 @@ flowchart TB
 - **Localization:** only the *species names* are localized (per the iNaturalist
   `locale`); the app UI is English. Supported locales mirror iNaturalist's
   (`constants.js → LANGUAGES`).
+- **Connectivity & offline** (`net.js` → `useIsOffline`): a conservative,
+  NetInfo-backed flag (offline only on an explicit `isConnected === false`;
+  forced off in the E2E/SHOTS modes). It gates the features that genuinely need
+  a live API call — **Nearby** (a place query) and **By picture** (curated
+  photos per round) are disabled offline. The deck-local modes (By name,
+  Speedrun, Custom, Flash) keep working: `App.js` derives a `playableDeck` by
+  filtering the deck to downloaded photos (the §7 manifest), so no round shows a
+  blank card. An `OfflineBanner` explains the state, and an empty state ("connect
+  once to load your deck") shows when nothing is downloaded yet.
+- **Cross-device sync & data versioning** (`src/sync/*`): optional, strictly
+  opt-in Supabase sync — an **append-only `events` log** for stats (union-merged,
+  so concurrent devices can't clobber each other) and a **last-write-wins
+  settings blob**. Payloads carry a version marker and are upcast on read; the
+  database shallow-merges the settings blob so an older client can't erase a key
+  it doesn't know. Off by default and absent from credential-less builds. Full
+  record in [`SCHEMA-CHANGELOG.md`](SCHEMA-CHANGELOG.md) and
+  [`SUPABASE.md`](SUPABASE.md).
 - **Monitoring:** none. The app ships without any crash/error-reporting SDK, so
   no telemetry leaves the device. (A no-op Sentry wrapper was removed; it can be
   re-added behind a DSN later if wanted.)
@@ -378,17 +418,19 @@ flowchart LR
 
 | File | Responsibility |
 |------|----------------|
-| `App.js` | State machine, account load/sync, game orchestration |
+| `App.js` | State machine, account load/sync, game orchestration, offline gating |
 | `src/api.js` | iNaturalist client, `apiFetch` (429 backoff), taxon cache |
-| `src/storage.js` | AsyncStorage: prefs, stats, species, obs cache, flags, history |
+| `src/storage.js` | AsyncStorage: prefs, stats, species, obs cache, flags, history, streak, image manifest, data version |
 | `src/cache.js` | Photo file-cache size / clear |
-| `src/prefetch.js` | Image preloading |
+| `src/prefetch.js` | Image preloading + downloaded-photo manifest (offline pack) |
+| `src/net.js` | Connectivity (`useIsOffline`, NetInfo) |
+| `src/sync/*` | Optional cross-device sync — versioned events/settings (see `SCHEMA-CHANGELOG.md`) |
 | `src/quiz.js` | Distractor selection, pick-round building (pure) |
 | `src/lexicon.js` | Lexicon filter/sort/status (pure) |
 | `src/theme.js` | Palette, accents, group-icon mapping |
 | `src/constants.js` | Speedrun lives, language list, defaults |
 | `src/screens/*` | One file per screen |
-| `src/components/*` | Shared UI: icons, header, photo viewer, splash, dropdown |
+| `src/components/*` | Shared UI: icons, header, photo viewer, splash, dropdown, offline banner |
 | `src/e2e/*` | E2E fixture mode (offline) |
 | `e2e/*`, `.detoxrc.js` | Detox specs + config |
 ```
