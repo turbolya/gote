@@ -47,6 +47,7 @@
   "submit": {
     "production": {
       "ios": {
+        "ascAppId": "6792750976",
         "bundleIdentifier": "com.gote.app"
       },
       "android": {
