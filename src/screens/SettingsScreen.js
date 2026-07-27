@@ -285,30 +285,43 @@ export default function SettingsScreen({
           <Text style={styles.buttonText}>Save</Text>
         </Pressable>
 
-        {/* Appearance */}
-        <Text style={styles.section}>Appearance</Text>
-        <View style={styles.themeRow}>
-          {[
-            ['light', 'Light', 'sunny-outline'],
-            ['dark', 'Dark', 'moon-outline'],
-            ['system', 'System', 'phone-portrait-outline'],
-          ].map(([mode, label, icon]) => {
-            const on = themeMode === mode;
-            return (
+        {/* Keeping this account's observations fresh — grouped with the account
+            it belongs to rather than off in its own section. */}
+        {onUpdateNow && (
+          <View style={[styles.card, styles.cardSpaced]}>
+            <View style={styles.row}>
+              <Tile icon="sync-outline" accent={accents.indigo} />
+              <View style={styles.flex}>
+                <Text style={styles.rowLabel}>Observations</Text>
+                <Text style={styles.rowHint}>
+                  {sync && sync.state === 'syncing'
+                    ? 'Checking for updates…'
+                    : sync && sync.state === 'error'
+                    ? sync.message || 'Last update failed.'
+                    : `Last updated ${timeAgo(sync && sync.syncedAt)}` +
+                      (sync && sync.message ? ` · ${sync.message}` : '')}
+                </Text>
+              </View>
               <Pressable
-                key={mode}
-                testID={`theme-${mode}`}
-                onPress={() => onThemeModeChange && onThemeModeChange(mode)}
-                style={[styles.themeOption, on && styles.themeOptionOn]}
+                style={[
+                  styles.pillButton,
+                  styles.pillPrimary,
+                  sync && sync.state === 'syncing' && styles.pillDisabled,
+                ]}
+                disabled={sync && sync.state === 'syncing'}
+                onPress={onUpdateNow}
               >
-                <Icon name={icon} size={22} color={on ? colors.primaryDark : colors.muted} />
-                <Text style={[styles.themeLabel, on && styles.themeLabelOn]}>{label}</Text>
+                {sync && sync.state === 'syncing' ? (
+                  <ActivityIndicator size="small" color={colors.primaryDark} />
+                ) : (
+                  <Text style={styles.pillPrimaryText}>Update</Text>
+                )}
               </Pressable>
-            );
-          })}
-        </View>
+            </View>
+          </View>
+        )}
 
-        {/* Study options */}
+        {/* Study options — how the deck is built from those observations. */}
         <Text style={styles.section}>Study options</Text>
         <View style={styles.card}>
           <SwitchRow
@@ -352,47 +365,47 @@ export default function SettingsScreen({
         </Text>
         <LanguageDropdown value={locale} onChange={setLocale} />
 
-        {/* Observations sync */}
-        {onUpdateNow && (
-          <>
-            <Text style={styles.section}>Observations</Text>
-            <View style={styles.card}>
-              <View style={styles.row}>
-                <Tile icon="sync-outline" accent={accents.indigo} />
-                <View style={styles.flex}>
-                  <Text style={styles.rowLabel}>Synced data</Text>
-                  <Text style={styles.rowHint}>
-                    {sync && sync.state === 'syncing'
-                      ? 'Checking for updates…'
-                      : sync && sync.state === 'error'
-                      ? sync.message || 'Last update failed.'
-                      : `Last updated ${timeAgo(sync && sync.syncedAt)}` +
-                        (sync && sync.message ? ` · ${sync.message}` : '')}
-                  </Text>
-                </View>
-                <Pressable
-                  style={[
-                    styles.pillButton,
-                    styles.pillPrimary,
-                    sync && sync.state === 'syncing' && styles.pillDisabled,
-                  ]}
-                  disabled={sync && sync.state === 'syncing'}
-                  onPress={onUpdateNow}
-                >
-                  {sync && sync.state === 'syncing' ? (
-                    <ActivityIndicator size="small" color={colors.primaryDark} />
-                  ) : (
-                    <Text style={styles.pillPrimaryText}>Update</Text>
-                  )}
-                </Pressable>
-              </View>
-            </View>
-          </>
-        )}
+        {/* Appearance — an app-wide preference, kept out of the deck-setup flow
+            above rather than wedged into the middle of it. */}
+        <Text style={styles.section}>Appearance</Text>
+        <View style={styles.themeRow}>
+          {[
+            ['light', 'Light', 'sunny-outline'],
+            ['dark', 'Dark', 'moon-outline'],
+            ['system', 'System', 'phone-portrait-outline'],
+          ].map(([mode, label, icon]) => {
+            const on = themeMode === mode;
+            return (
+              <Pressable
+                key={mode}
+                testID={`theme-${mode}`}
+                onPress={() => onThemeModeChange && onThemeModeChange(mode)}
+                style={[styles.themeOption, on && styles.themeOptionOn]}
+              >
+                <Icon name={icon} size={22} color={on ? colors.primaryDark : colors.muted} />
+                <Text style={[styles.themeLabel, on && styles.themeLabelOn]}>{label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
-        {/* Storage */}
-        <Text style={styles.section}>Storage</Text>
+        {/* Data & storage — cross-device sync and the on-device photo cache: the
+            two data-management controls, in one section instead of two. The sync
+            row only appears when the build carries Supabase credentials. */}
+        <Text style={styles.section}>Data &amp; storage</Text>
         <View style={styles.card}>
+          {onSync && (
+            <>
+              <NavRow
+                testID="settings-sync"
+                icon="refresh-cw"
+                accent={accents.teal}
+                label="Sync across devices"
+                onPress={onSync}
+              />
+              <View style={styles.sep} />
+            </>
+          )}
           <View style={styles.row}>
             <Tile icon="images-outline" accent={accents.slate} />
             <View style={styles.flex}>
@@ -427,23 +440,6 @@ export default function SettingsScreen({
           <>
             <Text style={styles.section}>Apple Watch</Text>
             <WatchTip />
-          </>
-        )}
-
-        {/* Sync — only when the build carries Supabase credentials, so an
-            unconfigured build shows no trace of a feature it cannot offer. */}
-        {onSync && (
-          <>
-            <Text style={styles.section}>Devices</Text>
-            <View style={styles.card}>
-              <NavRow
-                testID="settings-sync"
-                icon="refresh-cw"
-                accent={accents.teal}
-                label="Sync across devices"
-                onPress={onSync}
-              />
-            </View>
           </>
         )}
 
@@ -580,6 +576,9 @@ const makeStyles = (colors) => StyleSheet.create({
 
   // Minimal: a flat group — no container, rows divided by hairlines.
   card: {},
+  // A flat group that needs breathing room from a control above it (e.g. the
+  // observations row sitting under the Save button).
+  cardSpaced: { marginTop: 10 },
   sep: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,

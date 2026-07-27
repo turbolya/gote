@@ -386,9 +386,12 @@ export default function StatsScreen({ species, cards = [], lifetime, history = [
     <>
       {summaryBlock}
       {chartsBlock}
-      <View style={styles.boardHeader}>
-        <Text style={styles.boardTitle}>By species</Text>
-        {/* Filter: my observations (default) ↔ all species ever seen. */}
+      <Text style={styles.boardTitle}>By species</Text>
+
+      {/* Filter — a labelled "Show" row so it reads clearly as a filter (which
+          species appear), distinct from the "Sort by" row below. */}
+      <View style={styles.controlRow}>
+        <Text style={styles.controlLabel}>Show</Text>
         <Pressable
           testID="stats-filter"
           onPress={() => {
@@ -408,26 +411,30 @@ export default function StatsScreen({ species, cards = [], lifetime, history = [
         </Pressable>
       </View>
 
-      {/* Sort options */}
-      <View style={styles.sortRow}>
-        {SORTS.map((s) => {
-          const on = sort === s.key;
-          return (
-            <Pressable
-              key={s.key}
-              testID={`stats-sort-${s.key}`}
-              onPress={() => {
-                animateNextLayout();
-                setSort(s.key);
-              }}
-              style={[styles.sortChip, on && styles.sortChipOn]}
-            >
-              <Text style={[styles.sortText, on && styles.sortTextOn]}>
-                {s.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+      {/* Sort — a labelled "Sort by" row; the chips only reorder the list, they
+          don't filter it. */}
+      <View style={styles.controlRow}>
+        <Text style={styles.controlLabel}>Sort by</Text>
+        <View style={styles.sortChips}>
+          {SORTS.map((s) => {
+            const on = sort === s.key;
+            return (
+              <Pressable
+                key={s.key}
+                testID={`stats-sort-${s.key}`}
+                onPress={() => {
+                  animateNextLayout();
+                  setSort(s.key);
+                }}
+                style={[styles.sortChip, on && styles.sortChipOn]}
+              >
+                <Text style={[styles.sortText, on && styles.sortTextOn]}>
+                  {s.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     </>
   );
@@ -552,18 +559,28 @@ const makeStyles = (colors) => StyleSheet.create({
     paddingHorizontal: 20,
   },
 
-  boardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
   boardTitle: {
     fontSize: 13,
     fontWeight: '800',
     color: colors.primaryDark,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+    marginBottom: 12,
+  },
+
+  // A labelled control row: a fixed-width "Show" / "Sort by" tag, then the
+  // control, so it's obvious which buttons filter and which sort.
+  controlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  controlLabel: {
+    width: 54,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.muted,
   },
 
   // "My observations" / "All species" filter toggle
@@ -590,8 +607,8 @@ const makeStyles = (colors) => StyleSheet.create({
     paddingHorizontal: 16,
   },
 
-  // Sort segmented chips
-  sortRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  // Sort segmented chips (wrap under the "Sort by" label on narrow screens).
+  sortChips: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   sortChip: {
     paddingVertical: 7,
     paddingHorizontal: 14,

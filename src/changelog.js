@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.8';
+export const APP_VERSION = '2.29.9';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.9',
+    date: '2026-07-27',
+    changes: [
+      'Tidied Settings: related options are now grouped into clearer sections — '
+        + 'your account and its observations together, appearance on its own, and '
+        + 'cross-device sync and photo storage combined under Data & storage.',
+      'Statistics: the “By species” controls are now labelled “Show” and '
+        + '“Sort by”, so it’s clear which buttons filter the list and which sort it.',
+    ],
+  },
   {
     version: '2.29.8',
     date: '2026-07-27',
