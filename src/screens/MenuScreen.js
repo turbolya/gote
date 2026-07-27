@@ -14,6 +14,7 @@ import Svg, { Path } from 'react-native-svg';
 import { smoothPath, cumulativeAverage, downsampleMean, sampleBucketEnds } from '../components/charts';
 import Icon from '../components/Icon';
 import WatchTip from '../components/WatchTip';
+import OfflineBanner from '../components/OfflineBanner';
 import { useTheme, useThemedStyles } from '../theme';
 import { Appear } from '../components/anim';
 import { SPEEDRUN_LIVES, KOFI_URL } from '../constants';
@@ -142,7 +143,7 @@ function AccuracyBars({ data = [] }) {
 // One tappable list row (game mode / Lexicon / Settings). Top-level (stable
 // identity) so incidental re-renders don't replay the entrance animation.
 // Staggers in via `index`, and springs down slightly while pressed.
-function Row({ icon, accent, title, sub, onPress, testID, first, index = 0 }) {
+function Row({ icon, accent, title, sub, onPress, testID, first, index = 0, disabled }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const scale = useRef(new Animated.Value(1)).current;
@@ -153,17 +154,23 @@ function Row({ icon, accent, title, sub, onPress, testID, first, index = 0 }) {
       <Animated.View style={{ transform: [{ scale }] }}>
         <Pressable
           testID={testID}
-          onPress={onPress}
-          onPressIn={() => to(0.97)}
-          onPressOut={() => to(1)}
-          style={({ pressed }) => [styles.row, !first && styles.rowDivider, pressed && styles.rowPressed]}
+          disabled={disabled}
+          onPress={disabled ? undefined : onPress}
+          onPressIn={() => !disabled && to(0.97)}
+          onPressOut={() => !disabled && to(1)}
+          style={({ pressed }) => [
+            styles.row,
+            !first && styles.rowDivider,
+            pressed && styles.rowPressed,
+            disabled && styles.rowDisabled,
+          ]}
         >
-          <Icon name={icon} size={24} color={accent.fg} style={styles.rowIcon} />
+          <Icon name={icon} size={24} color={disabled ? colors.muted : accent.fg} style={styles.rowIcon} />
           <View style={styles.flex}>
             <Text style={styles.rowTitle}>{title}</Text>
             <Text style={styles.rowSub}>{sub}</Text>
           </View>
-          <Icon name="chevron-right" size={20} color={colors.muted} />
+          <Icon name={disabled ? 'cloud-offline-outline' : 'chevron-right'} size={disabled ? 18 : 20} color={colors.muted} />
         </Pressable>
       </Animated.View>
     </Appear>
@@ -182,6 +189,7 @@ export default function MenuScreen({
   onLexicon,
   onStats,
   onSettings,
+  offline,
 }) {
   const { colors, accents } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -247,11 +255,27 @@ export default function MenuScreen({
             (self-hides on iPad/Android and once hidden). */}
         <WatchTip dismissed={watchTipDismissed} onDismiss={onDismissWatchTip} />
 
+        {offline && <OfflineBanner />}
+
         <Text style={styles.section}>Play</Text>
         <View style={styles.group}>
-          {playModes.map(({ key, ...rest }, i) => (
-            <Row key={key} {...rest} first={i === 0} index={i} testID={`mode-${key}`} onPress={() => onSelectMode(key)} />
-          ))}
+          {playModes.map(({ key, sub, ...rest }, i) => {
+            // Nearby needs a live query for a place's species, so it can't run
+            // offline — disable it (the other modes play from the loaded deck).
+            const off = offline && key === 'nearby';
+            return (
+              <Row
+                key={key}
+                {...rest}
+                sub={off ? 'Needs a connection' : sub}
+                disabled={off}
+                first={i === 0}
+                index={i}
+                testID={`mode-${key}`}
+                onPress={() => onSelectMode(key)}
+              />
+            );
+          })}
         </View>
 
         <Text style={styles.section}>Learn</Text>
@@ -428,6 +452,7 @@ const makeStyles = (colors) => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 15 },
   rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   rowPressed: { opacity: 0.5 },
+  rowDisabled: { opacity: 0.45 },
   rowIcon: { width: 28, textAlign: 'center' },
   rowTitle: { fontSize: 16.5, fontWeight: '700', color: colors.text },
   rowSub: { fontSize: 13, color: colors.muted, marginTop: 1 },

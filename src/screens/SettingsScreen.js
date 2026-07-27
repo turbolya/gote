@@ -156,6 +156,7 @@ export default function SettingsScreen({
   onThemeModeChange,
   error,
   sync,
+  offline,
   onUpdateNow,
   onChangelog,
   onLegal,
@@ -294,7 +295,9 @@ export default function SettingsScreen({
               <View style={styles.flex}>
                 <Text style={styles.rowLabel}>Observations</Text>
                 <Text style={styles.rowHint}>
-                  {sync && sync.state === 'syncing'
+                  {offline
+                    ? 'Offline — reconnect to update.'
+                    : sync && sync.state === 'syncing'
                     ? 'Checking for updates…'
                     : sync && sync.state === 'error'
                     ? sync.message || 'Last update failed.'
@@ -306,9 +309,9 @@ export default function SettingsScreen({
                 style={[
                   styles.pillButton,
                   styles.pillPrimary,
-                  sync && sync.state === 'syncing' && styles.pillDisabled,
+                  (offline || (sync && sync.state === 'syncing')) && styles.pillDisabled,
                 ]}
-                disabled={sync && sync.state === 'syncing'}
+                disabled={offline || (sync && sync.state === 'syncing')}
                 onPress={onUpdateNow}
               >
                 {sync && sync.state === 'syncing' ? (

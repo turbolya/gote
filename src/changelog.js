@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.9';
+export const APP_VERSION = '2.29.10';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.10',
+    date: '2026-07-27',
+    changes: [
+      'Offline: when you have no connection, the app now says so and pauses the '
+        + 'features that need the internet — Nearby species and refreshing your '
+        + 'observations — instead of letting them fail quietly.',
+    ],
+  },
   {
     version: '2.29.9',
     date: '2026-07-27',

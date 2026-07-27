@@ -85,6 +85,7 @@ import { buildPickRound } from './src/quiz';
 import { prefetchImages } from './src/prefetch';
 import { groupKey, ThemeProvider, themeFor, resolveScheme } from './src/theme';
 import { IS_E2E, IS_SHOTS } from './src/e2e/testMode';
+import { useIsOffline } from './src/net';
 import { E2E_CARDS } from './src/e2e/fixtures';
 import { seedScreenshotStats } from './src/e2e/shotsSeed';
 import { pushWatchSnapshot, subscribeWatchResults } from './src/watch';
@@ -124,6 +125,10 @@ ExpoSplashScreen.preventAutoHideAsync().catch(() => {});
 export default function App() {
   // loading | settings | menu | custom | study | results
   const [screen, setScreen] = useState('loading');
+  // Live "no connection" flag, used to pause the online-only features (Nearby,
+  // observation updates). Forced off in the synthetic modes, which run against
+  // fixtures and must never see a network-dependent affordance disabled.
+  const offline = useIsOffline() && !IS_E2E && !IS_SHOTS;
   // Branded launch splash overlay; dismissed (faded out) after a moment.
   // Skipped entirely in E2E so it never covers the UI under test.
   const [showSplash, setShowSplash] = useState(!IS_E2E);
@@ -1155,6 +1160,7 @@ export default function App() {
                 setError(null);
                 setScreen('settings');
               }}
+              offline={offline}
             />
           </Appear>
           {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
@@ -1231,6 +1237,7 @@ export default function App() {
             onThemeModeChange={onThemeModeChange}
             error={error}
             sync={sync}
+            offline={offline}
             onUpdateNow={
               username ? () => syncNow(username, locale) : null
             }
