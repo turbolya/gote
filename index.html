@@ -214,56 +214,25 @@ title: false
     .wshot figure { border-radius: 26px; }
   }
 
-  /* roadmap — upcoming features, in a brand-tinted panel */
+  /* roadmap — a spare panel of planned features, set apart from the live ones */
   .roadmap { max-width: 1000px; margin: 80px auto 0; padding: 0 20px; }
   .roadmap-inner {
     border-radius: 26px;
     padding: clamp(34px, 5vw, 60px);
-    background:
-      radial-gradient(130% 150% at 100% 0%, color-mix(in srgb, var(--brand) 16%, transparent) 0%, transparent 55%),
-      var(--card);
+    background: var(--card);
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
     text-align: center;
   }
-  .roadmap .eyebrow {
-    display: inline-block; font-size: 12px; font-weight: 700;
-    letter-spacing: .14em; text-transform: uppercase;
-    color: var(--brand-strong); margin: 0 0 12px;
-  }
   .roadmap h2 { font-size: clamp(1.6rem, 3.6vw, 2.1rem); letter-spacing: -.025em; margin: 0 0 10px; }
-  .roadmap .lead { color: var(--muted); font-size: 1.06rem; max-width: 46ch; margin: 0 auto 26px; line-height: 1.5; }
-  /* An editorial list, not a grid of sub-cards: each item is a hairline-ruled
-     row with the feature on the left and its description on the right. */
+  .roadmap .lead { color: var(--muted); font-size: 1.05rem; max-width: 40ch; margin: 0 auto 40px; line-height: 1.5; }
   .plan-grid {
     list-style: none; padding: 0;
-    text-align: left; max-width: 760px; margin: 0 auto;
+    max-width: 540px; margin: 0 auto;
+    display: grid; gap: 34px;
   }
-  .plan {
-    display: grid;
-    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
-    gap: clamp(14px, 4vw, 44px);
-    align-items: start;
-    padding: 26px 2px;
-    border-top: 1px solid var(--border);
-  }
-  .plan:first-child { border-top: 0; padding-top: 4px; }
-  .plan h3 { margin: 0 0 10px; font-size: 1.16rem; letter-spacing: -.01em; line-height: 1.2; }
-  .plan p { margin: 0; color: var(--muted); font-size: 1rem; line-height: 1.55; }
-  .plan-tag {
-    display: inline-flex; align-items: center; gap: 7px;
-    font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-    color: var(--brand-strong);
-  }
-  .plan-tag::before {
-    content: ""; flex: none; width: 6px; height: 6px;
-    border-radius: 50%; background: var(--brand);
-  }
-  @media (max-width: 640px) {
-    .plan { grid-template-columns: 1fr; gap: 10px; padding: 22px 2px; }
-    .plan:first-child { padding-top: 0; }
-    .plan h3 { margin-bottom: 8px; }
-  }
+  .plan h3 { margin: 0 0 8px; font-size: 1.16rem; letter-spacing: -.01em; }
+  .plan p { margin: 0 auto; max-width: 42ch; color: var(--muted); font-size: 1rem; line-height: 1.55; }
 
   .closer {
     text-align: center;
@@ -524,29 +493,19 @@ title: false
 
 <section class="roadmap">
   <div class="roadmap-inner qfade">
-    <span class="eyebrow">On the horizon</span>
-    <h2>Where gote is headed</h2>
-    <p class="lead">A few planned features</p>
+    <h2>On the horizon</h2>
+    <p class="lead">A few features we’re planning — not in the app yet.</p>
     <ul class="plan-grid">
       <li class="plan">
-        <div class="plan-title">
-          <h3>Shareable custom decks</h3>
-          <span class="plan-tag">Planned</span>
-        </div>
+        <h3>Shareable custom decks</h3>
         <p>Build your own set — a local patch, a field trip, a class syllabus — and share it with anyone through a single link.</p>
       </li>
       <li class="plan">
-        <div class="plan-title">
-          <h3>Spaced repetition</h3>
-          <span class="plan-tag">Planned</span>
-        </div>
+        <h3>Spaced repetition</h3>
         <p>Smarter practice that resurfaces each species right before you’d forget it, so the names stick for good.</p>
       </li>
       <li class="plan">
-        <div class="plan-title">
-          <h3>Adaptive sessions</h3>
-          <span class="plan-tag">Planned</span>
-        </div>
+        <h3>Adaptive sessions</h3>
         <p>Rounds that quietly lean into your weak spots and ease off on the ones you’ve already mastered.</p>
       </li>
     </ul>
