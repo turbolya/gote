@@ -35,7 +35,7 @@ export default function PickImageScreen({
   error,
   flagged = false,
   onToggleFlag,
-  onPick, // (wasCorrect) => void
+  onPick, // (wasCorrect, chosenOption) => void
   onNext,
   onQuit,
 }) {
@@ -57,7 +57,9 @@ export default function PickImageScreen({
   const pick = (opt) => {
     if (answered) return;
     setPicked(opt.taxonId);
-    onPick(opt.correct);
+    // Pass the tapped tile too, so a wrong pick can be logged as a confusion
+    // (the round's species vs. the look-alike the player chose).
+    onPick(opt.correct, opt);
   };
 
   // Corner button: zoom just this tile's photo.

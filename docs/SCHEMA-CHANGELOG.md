@@ -83,7 +83,9 @@ The append-only `events` log needs neither rule bent: every client only ever
 - Keys: `username`, `stats`, `prefs`, `species`, `obscache`, `flags`, `history`,
   `streak`, `activeDays`, `watchResultIds`, `watchTipDismissed`, `settingsStamp`,
   `downloadedImages` (offline photo manifest — added additively 2026-07-27, no
-  version bump; it self-heals if absent).
+  version bump; it self-heals if absent),
+  `confusions` (confusion matrix `{ [correctKey]: { [chosenKey]: count } }` —
+  added additively 2026-07-27, device-local for now; not yet in the sync payload).
 
 ---
 

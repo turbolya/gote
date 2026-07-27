@@ -200,6 +200,42 @@ export function mergeSettings(local, remote) {
   return rt > lt ? r : l;
 }
 
+// --- confusion matrix -------------------------------------------------------
+//
+// Which species the player systematically mixes up: `{ [correctKey]: { [chosenKey]:
+// count } }`, keyed by taxon id. `addConfusion` records one wrong pick (correct
+// was A, they chose B); `mergeConfusions` deep-adds two maps, so the same
+// structure will fold across devices when confusions join the sync payload.
+// Pure so scripts/test-sync.js can exercise them.
+
+// Record one confusion into a map, returning a NEW map (never mutates input).
+// A self-pair (A→A) or a missing key is a no-op — you can't be "confused" with
+// the right answer, and there's nothing to learn from it.
+export function addConfusion(map, correctKey, chosenKey, n = 1) {
+  const m = map && typeof map === 'object' ? map : {};
+  if (!correctKey || !chosenKey || correctKey === chosenKey) return m;
+  const out = { ...m };
+  const row = { ...(out[correctKey] || {}) };
+  row[chosenKey] = num(row[chosenKey]) + num(n);
+  out[correctKey] = row;
+  return out;
+}
+
+// Deep-add two confusion maps (union of correct→chosen pairs, counts summed).
+export function mergeConfusions(a, b) {
+  const out = {};
+  for (const src of [a, b]) {
+    if (!src || typeof src !== 'object') continue;
+    for (const ck of Object.keys(src)) {
+      const row = src[ck];
+      if (!row || typeof row !== 'object') continue;
+      const dst = out[ck] || (out[ck] = {});
+      for (const chk of Object.keys(row)) dst[chk] = num(dst[chk]) + num(row[chk]);
+    }
+  }
+  return out;
+}
+
 // Trim an applied-id ledger. Unbounded growth would eventually make every
 // launch slower; the ledger only has to cover ids that could still be
 // redelivered, and the pull is watermarked by time as well.

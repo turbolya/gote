@@ -183,6 +183,7 @@ The core entity is a **card** (one observation, or one place-typical species):
 | `@gote/prefs`             | `{ perSpecies, locale, researchGrade, speciesOnly, themeMode }`| Study options + theme |
 | `@gote/stats`             | `{ answered, correct }`                                        | Lifetime totals |
 | `@gote/species`           | `{ [taxonId]: { name, sci, known, missed } }`                 | Per-species tallies (Stats, Lexicon status) |
+| `@gote/confusions`        | `{ [correctKey]: { [chosenKey]: count } }`                    | Confusion matrix — species the player mixes up (device-local) |
 | `@gote/history`           | `number[]` (accuracy %, oldest→newest, cap 120)               | Menu accuracy chart |
 | `@gote/streak`            | `{ count, longest, … }`                                       | Daily streak |
 | `@gote/activeDays`        | `string[]` (YYYY-MM-DD)                                        | Days played — the streak's source of truth |

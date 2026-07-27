@@ -10,6 +10,10 @@ const K_USER = '@gote/username';
 const K_STATS = '@gote/stats';
 const K_PREFS = '@gote/prefs';
 const K_SPECIES = '@gote/species';
+// Confusion matrix: which species the player systematically mixes up. Keyed by
+// the correct species → the wrongly-chosen species → count. See src/sync/merge.js
+// (addConfusion / mergeConfusions) for the shape and the (future) sync fold.
+const K_CONFUSIONS = '@gote/confusions';
 const K_CACHE = '@gote/obscache';
 const K_FLAGS = '@gote/flags';
 const K_HISTORY = '@gote/history';
@@ -201,6 +205,27 @@ export async function loadSpeciesStats() {
 export async function saveSpeciesStats(map) {
   try {
     await kv.setItem(K_SPECIES, JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
+
+// The confusion matrix: `{ [correctKey]: { [chosenKey]: count } }`, keyed by
+// species taxon id (scientific name as a fallback). Counts only — display names
+// are joined from `@gote/species` when the nemesis UI needs them.
+export async function loadConfusions() {
+  try {
+    const raw = await kv.getItem(K_CONFUSIONS);
+    const obj = raw ? JSON.parse(raw) : {};
+    return obj && typeof obj === 'object' ? obj : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function saveConfusions(map) {
+  try {
+    await kv.setItem(K_CONFUSIONS, JSON.stringify(map || {}));
   } catch {
     /* ignore */
   }

@@ -52,6 +52,8 @@ import {
   savePrefs,
   loadSpeciesStats,
   saveSpeciesStats,
+  loadConfusions,
+  saveConfusions,
   resetStatistics,
   loadCache,
   saveCache,
@@ -82,6 +84,7 @@ import {
 } from './src/sync';
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME } from './src/constants';
 import { buildPickRound } from './src/quiz';
+import { addConfusion } from './src/sync/merge';
 import {
   prefetchImages,
   prefetchDeck,
@@ -317,6 +320,11 @@ export default function App() {
   // a running lifetime total and can't be uploaded as a delta without
   // double-counting everything the player has ever answered.
   const roundDeltaRef = useRef({});
+  // Confusion matrix: `{ [correctKey]: { [chosenKey]: count } }` — which species
+  // the player systematically mixes up. Accumulated live and persisted with the
+  // round's tallies (see finishRound). Device-local for now; the merge helpers
+  // are already shaped to fold it across devices when it joins the sync payload.
+  const confusionRef = useRef({});
 
   // How to restart the current mode (used by the "Play again" button).
   const replayRef = useRef(() => {});
@@ -541,6 +549,10 @@ export default function App() {
       // Seed the downloaded-photo manifest so an offline first screen can filter
       // the deck to cards that will actually render. Non-blocking for the rest.
       initDownloadedImages().then(() => setDlReady(true));
+      // Restore the confusion matrix so this session accumulates onto it.
+      loadConfusions().then((c) => {
+        confusionRef.current = c || {};
+      });
       const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedHistory, savedStreak, savedWatchTip] =
         await Promise.all([
           loadUsername(),
@@ -858,6 +870,8 @@ export default function App() {
     // Persist the per-species tallies accumulated during the round.
     saveSpeciesStats(speciesRef.current);
     setSpeciesStats({ ...speciesRef.current });
+    // Persist any confusions recorded during the round (mixed-up look-alikes).
+    saveConfusions(confusionRef.current);
     // Record this game's accuracy for the menu chart, and count today toward
     // the daily streak (both skip empty rounds).
     if (total > 0) {
@@ -918,6 +932,20 @@ export default function App() {
       };
     }
     return key;
+  }, []);
+
+  // Record one wrong pick into the confusion matrix: the round's card was
+  // `correctCard`, the player instead chose `chosenCard`. Only the multiple-
+  // choice modes supply a chosen option (self-graded Flash cards don't), and a
+  // self-pair is ignored by addConfusion. Persisted with the round (finishRound).
+  const keyForCard = (c) => (c && c.taxonId != null ? String(c.taxonId) : c && c.scientific);
+  const recordConfusion = useCallback((correctCard, chosenCard) => {
+    if (!correctCard || !chosenCard) return;
+    confusionRef.current = addConfusion(
+      confusionRef.current,
+      keyForCard(correctCard),
+      keyForCard(chosenCard)
+    );
   }, []);
 
   // Results played on the Apple Watch: fold each answered card into the
@@ -1014,9 +1042,12 @@ export default function App() {
   }, [recordResult]);
 
   const handleGrade = useCallback(
-    (correct) => {
+    (correct, chosen) => {
       const card = deck[index];
       recordResult(card, correct);
+      // A wrong multiple-choice pick is a confusion signal (correct card vs. the
+      // option they chose). `chosen` is absent for self-graded Flash cards.
+      if (!correct && chosen) recordConfusion(card, chosen);
       const nextCorrect = correct ? correctCount + 1 : correctCount;
       const nextMissed = correct ? missed : [...missed, card];
       setCorrectCount(nextCorrect);
@@ -1048,18 +1079,19 @@ export default function App() {
         setIndex(index + 1);
       }
     },
-    [deck, index, correctCount, missed, mode, lives, finishRound, recordResult]
+    [deck, index, correctCount, missed, mode, lives, finishRound, recordResult, recordConfusion]
   );
 
   // Grade a tap in "Pick the right one" (tally only; advancing waits for Next).
   const handlePickGrade = useCallback(
-    (correct) => {
+    (correct, chosen) => {
       const card = deck[index];
       recordResult(card, correct);
+      if (!correct && chosen) recordConfusion(card, chosen);
       if (correct) setCorrectCount((c) => c + 1);
       else setMissed((m) => [...m, card]);
     },
-    [deck, index, recordResult]
+    [deck, index, recordResult, recordConfusion]
   );
 
   // Advance to the next pick round (or finish when the deck is done).

@@ -98,23 +98,29 @@ export default function StudyScreen({
   // Build the multiple-choice options: the correct name plus taxonomically
   // similar distractors (same genus → family → order → …, widening only as
   // needed). De-duplicated by display name so two options never read alike.
+  // Returns { list, byName }: the shuffled option names, plus a name → card map
+  // so a wrong pick can be reported to the parent as a confusion (correct card
+  // vs. the species the player actually chose). Both come from ONE distractor
+  // draw — pickSimilarDistractors is random, so drawing twice would disagree.
   const choices = useMemo(() => {
-    if (!choiceMode || !card) return [];
+    if (!choiceMode || !card) return { list: [], byName: {} };
     const distractorCards = pickSimilarDistractors(
       card,
       choicePool,
       NUM_CHOICES * 3 // over-fetch, then trim after de-duping by name
     );
     const names = [];
+    const byName = { [answer]: card }; // the correct name maps to the shown card
     const usedNames = new Set([answer]);
     for (const c of distractorCards) {
       const n = cardName(c);
       if (usedNames.has(n)) continue;
       usedNames.add(n);
+      byName[n] = c;
       names.push(n);
       if (names.length >= NUM_CHOICES - 1) break;
     }
-    return shuffle([answer, ...names]);
+    return { list: shuffle([answer, ...names]), byName };
   }, [choiceMode, card, choicePool, answer]);
 
   const progress = (index + 1) / deck.length;
@@ -443,7 +449,7 @@ export default function StudyScreen({
                   </View>
                 </Pop>
 
-                {choices.map((name, i) => {
+                {choices.list.map((name, i) => {
                   const isAnswer = name === answer;
                   const isPicked = name === picked;
                   const showCorrect = answered && isAnswer;
@@ -477,7 +483,7 @@ export default function StudyScreen({
 
                 {answered && (
                   <Appear offset={6} duration={240}>
-                    <Pressable testID="study-next" style={styles.nextBtn} onPress={() => onGrade(gotIt)}>
+                    <Pressable testID="study-next" style={styles.nextBtn} onPress={() => onGrade(gotIt, gotIt ? null : choices.byName[picked])}>
                       <Text style={styles.nextText}>Next card</Text>
                       <Icon name="arrow-right" size={18} color={colors.onPrimary} />
                     </Pressable>

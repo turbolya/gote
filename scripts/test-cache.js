@@ -334,6 +334,17 @@ async function asyncTests() {
     await s.clearDownloadedImages();
     assert.deepEqual(await s.loadDownloadedImages(), []);
   });
+
+  // --- confusion matrix ---
+  await tAsync('confusions are empty on a fresh store', async () => {
+    const s = load('src/storage.js', memKv());
+    assert.deepEqual(await s.loadConfusions(), {});
+  });
+  await tAsync('confusions round-trip through storage', async () => {
+    const s = load('src/storage.js', memKv());
+    await s.saveConfusions({ A: { B: 2 }, C: { D: 1 } });
+    assert.deepEqual(await s.loadConfusions(), { A: { B: 2 }, C: { D: 1 } });
+  });
 }
 
 asyncTests().then(() => {

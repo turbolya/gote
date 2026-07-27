@@ -22,6 +22,7 @@ import {
   localDay, emptyRollups, applyEvent, applyEvents, sortEvents,
   streakFromDays, mergeSettings, trimLedger,
   SETTINGS_PAYLOAD_VERSION, buildSettingsPayload, upgradeSettingsPayload,
+  addConfusion, mergeConfusions,
 } from ${JSON.stringify(src)};
 
 let passed = 0;
@@ -191,6 +192,26 @@ console.log('\\nsettings payload versioning');
   // Junk in, safe baseline out — never throws.
   eq('junk upcasts to a v1 baseline', upgradeSettingsPayload(null), { v: 1 });
   eq('a non-object upcasts to a v1 baseline', upgradeSettingsPayload('nope'), { v: 1 });
+}
+
+console.log('\\nconfusion matrix');
+{
+  eq('records a new pair', addConfusion({}, 'A', 'B'), { A: { B: 1 } });
+  eq('increments an existing pair', addConfusion({ A: { B: 1 } }, 'A', 'B'), { A: { B: 2 } });
+  eq('adds a second chosen species', addConfusion({ A: { B: 1 } }, 'A', 'C'), { A: { B: 1, C: 1 } });
+  eq('a self-pair is ignored', addConfusion({}, 'A', 'A'), {});
+  eq('a missing key is ignored', addConfusion({ X: { Y: 1 } }, '', 'B'), { X: { Y: 1 } });
+  {
+    const base = { A: { B: 1 } };
+    addConfusion(base, 'A', 'B');
+    eq('does not mutate its input', base, { A: { B: 1 } });
+  }
+
+  eq('merge deep-adds counts',
+    mergeConfusions({ A: { B: 1, C: 2 } }, { A: { B: 3 }, D: { E: 1 } }),
+    { A: { B: 4, C: 2 }, D: { E: 1 } });
+  eq('merge with a missing side keeps the other', mergeConfusions(null, { A: { B: 1 } }), { A: { B: 1 } });
+  eq('merge survives junk', mergeConfusions('x', { A: { B: 1 } }), { A: { B: 1 } });
 }
 
 console.log('\\ntrimLedger');
