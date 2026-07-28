@@ -23,6 +23,7 @@ import Icon from '../components/Icon';
 import PhotoViewer from '../components/PhotoViewer';
 import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonPhotos } from '../api';
+import { pairKey, CONFUSION_HINT_MIN } from '../confusions';
 import { IS_E2E } from '../e2e/testMode';
 
 
@@ -38,6 +39,8 @@ export default function PickImageScreen({
   onPick, // (wasCorrect, chosenOption) => void
   onNext,
   onQuit,
+  onConfusionCount, // (correctKey, chosenKey) => count, for the callout
+  onCompare, // open the side-by-side comparison for a pair
 }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -84,6 +87,26 @@ export default function PickImageScreen({
 
   const gotIt =
     answered && round && round.options.find((o) => o.taxonId === picked)?.correct;
+
+  // Just-in-time callout on a wrong pick for a pair the player keeps mixing up.
+  // The pick is already recorded (onPick fires on tap, before this render), so
+  // the count includes it — no +1, unlike the choice-mode screen.
+  const chosenOpt = answered && !gotIt && round ? round.options.find((o) => o.taxonId === picked) : null;
+  const correctOpt = answered && !gotIt && round ? round.options.find((o) => o.correct) : null;
+  const confusionHint =
+    chosenOpt && correctOpt && onConfusionCount
+      ? (() => {
+          const ck = String(correctOpt.taxonId);
+          const chk = String(chosenOpt.taxonId);
+          if ((onConfusionCount(ck, chk) || 0) < CONFUSION_HINT_MIN) return null;
+          return {
+            pairKey: pairKey(ck, chk),
+            count: onConfusionCount(ck, chk),
+            a: { name: correctOpt.name, sci: null, image: correctOpt.photo },
+            b: { name: chosenOpt.name, sci: null, image: chosenOpt.photo },
+          };
+        })()
+      : null;
 
   return (
     <View
@@ -250,6 +273,19 @@ export default function PickImageScreen({
                     {gotIt ? 'Correct!' : 'Not quite'}
                   </Text>
                 </View>
+                {confusionHint && onCompare && (
+                  <Pressable
+                    testID="pick-confusion-hint"
+                    style={styles.confusionHint}
+                    onPress={() => onCompare(confusionHint)}
+                  >
+                    <Icon name="repeat" size={15} color={colors.wrong} />
+                    <Text style={styles.confusionHintText} numberOfLines={2}>
+                      You keep mixing these up — see them side by side
+                    </Text>
+                    <Icon name="chevron-right" size={16} color={colors.wrong} />
+                  </Pressable>
+                )}
                 <Pressable testID="pick-next" style={styles.nextBtn} onPress={onNext}>
                   <Text style={styles.nextText}>Next</Text>
                   <Icon name="arrow-right" size={18} color={colors.onPrimary} />
@@ -369,6 +405,18 @@ const makeStyles = (colors) => StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 16,
   },
+  confusionHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: colors.wrong,
+    borderRadius: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+  },
+  confusionHintText: { flex: 1, color: colors.text, fontSize: 13, fontWeight: '700', lineHeight: 17 },
   nextText: { color: colors.onPrimary, fontSize: 17, fontWeight: '800' },
   skipBtn: { paddingVertical: 10, paddingHorizontal: 24, borderRadius: 12, backgroundColor: colors.faint },
   skipText: { color: colors.text, fontSize: 15, fontWeight: '700' },

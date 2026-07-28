@@ -29,6 +29,10 @@ import { Appear, Pop } from '../components/anim';
 import { shuffle, fetchTaxonPhotos, toLargePhoto } from '../api';
 import { prefetchUpcoming } from '../prefetch';
 import { pickSimilarDistractors } from '../quiz';
+import { pairKey, pairCount, CONFUSION_HINT_MIN } from '../confusions';
+
+const keyOf = (c) => (c && c.taxonId != null ? String(c.taxonId) : c && c.scientific);
+const infoOf = (c) => ({ name: c.common || c.scientific, sci: c.scientific, image: c.image || null });
 import { colors } from '../theme';
 import { SPEEDRUN_LIVES, SPEEDRUN_VIEW_MS } from '../constants';
 import { IS_E2E } from '../e2e/testMode';
@@ -72,6 +76,8 @@ export default function StudyScreen({
   onToggleFlag,
   onGrade,
   onQuit,
+  onConfusionCount, // (correctKey, chosenKey) => prior count, for the callout
+  onCompare, // open the side-by-side comparison for a pair
 }) {
   const insets = useSafeAreaInsets();
   const [flipped, setFlipped] = useState(false);
@@ -252,6 +258,25 @@ export default function StudyScreen({
   // exit/progress/score chrome. Bottom content differs per mode.
   const answered = phase === 'answered';
   const gotIt = picked === answer;
+
+  // Just-in-time callout: on a wrong multiple-choice pick, if this is a pair the
+  // player keeps mixing up, offer the side-by-side then and there. The current
+  // pick isn't recorded until onGrade fires (on "Next"), so add 1 to the prior
+  // count — the callout appears on the CONFUSION_HINT_MIN-th time, not one later.
+  const chosenCard = answered && !gotIt && choiceMode ? choices.byName[picked] : null;
+  const confusionHint =
+    chosenCard && onConfusionCount && card
+      ? (() => {
+          const count = (onConfusionCount(keyOf(card), keyOf(chosenCard)) || 0) + 1;
+          if (count < CONFUSION_HINT_MIN) return null;
+          return {
+            pairKey: pairKey(keyOf(card), keyOf(chosenCard)),
+            count,
+            a: infoOf(card),
+            b: infoOf(chosenCard),
+          };
+        })()
+      : null;
 
   return (
     <View style={styles.fsRoot} testID="study-screen">
@@ -480,6 +505,22 @@ export default function StudyScreen({
                     </Appear>
                   );
                 })}
+
+                {confusionHint && onCompare && (
+                  <Appear offset={6} duration={240}>
+                    <Pressable
+                      testID="study-confusion-hint"
+                      style={styles.confusionHint}
+                      onPress={() => onCompare(confusionHint)}
+                    >
+                      <Icon name="repeat" size={15} color={colors.wrong} />
+                      <Text style={styles.confusionHintText} numberOfLines={2}>
+                        You keep mixing these up — see them side by side
+                      </Text>
+                      <Icon name="chevron-right" size={16} color={colors.wrong} />
+                    </Pressable>
+                  </Appear>
+                )}
 
                 {answered && (
                   <Appear offset={6} duration={240}>
@@ -814,4 +855,20 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   nextText: { color: colors.onPrimary, fontSize: 17, fontWeight: '800' },
+  // Just-in-time confusion callout — same over-photo language as the choices,
+  // tinted with the wrong-answer red so it reads as "you did this again".
+  confusionHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderWidth: 1.5,
+    borderColor: colors.wrong,
+    borderRadius: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  confusionHintText: { flex: 1, color: ON_DARK, fontSize: 13, fontWeight: '700', lineHeight: 17 },
 });

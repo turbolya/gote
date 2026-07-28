@@ -87,6 +87,7 @@ import {
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME } from './src/constants';
 import { buildPickRound } from './src/quiz';
 import { addConfusion } from './src/sync/merge';
+import { pairCount } from './src/confusions';
 import {
   prefetchImages,
   prefetchDeck,
@@ -964,6 +965,10 @@ export default function App() {
     confusionDeltaRef.current = addConfusion(confusionDeltaRef.current, ck, chk);
   }, []);
 
+  // Live symmetric confusion count for a pair, for the just-in-time play callout.
+  // Reads the ref so it's always current within a round (state props can be stale).
+  const confusionCount = useCallback((a, b) => pairCount(confusionRef.current, a, b), []);
+
   // Results played on the Apple Watch: fold each answered card into the
   // per-species tallies + lifetime totals + daily streak, and each finished
   // wrist round into the accuracy history — wrist play counts exactly like
@@ -1122,6 +1127,33 @@ export default function App() {
     );
   }, [deck, index, correctCount, missed, finishRound, prepPickRound]);
 
+  // The side-by-side comparison overlay. Rendered on top of whatever screen is
+  // showing (Stats, or mid-round from the just-in-time callout), so it lives in
+  // a helper reused by every return branch below.
+  const renderCompareOverlay = () => (
+    <SafeAreaView style={styles.detailOverlay} edges={['top', 'bottom']}>
+      <SwipeBackView style={styles.flex} onBack={() => setComparePair(null)}>
+        <Appear style={styles.flex} offset={40} duration={300}>
+          <CompareScreen
+            pair={comparePair}
+            initialNote={confusionNotes[comparePair.pairKey] || ''}
+            onSaveNote={(pairKey, text) => {
+              saveConfusionNote(pairKey, text);
+              setConfusionNotes((prev) => {
+                const next = { ...prev };
+                const t = (text || '').trim();
+                if (t) next[pairKey] = t;
+                else delete next[pairKey];
+                return next;
+              });
+            }}
+            onClose={() => setComparePair(null)}
+          />
+        </Appear>
+      </SwipeBackView>
+    </SafeAreaView>
+  );
+
   // --- render ---
   // Hold the UI until the icon fonts are loaded, so icons never render as "?"
   // boxes. Proceed anyway if loading errored (better a missing icon than a hang).
@@ -1162,11 +1194,14 @@ export default function App() {
             flags={flags}
             onToggleFlag={toggleFlag}
             onGrade={handleGrade}
+            onConfusionCount={confusionCount}
+            onCompare={(item) => setComparePair(item)}
             onQuit={() =>
               finishRound(correctCount, missed, correctCount + missed.length)
             }
           />
         </Appear>
+        {comparePair && renderCompareOverlay()}
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
       </SafeAreaProvider>
       </ThemeProvider>
@@ -1195,11 +1230,14 @@ export default function App() {
             }
             onPick={handlePickGrade}
             onNext={handlePickNext}
+            onConfusionCount={confusionCount}
+            onCompare={(item) => setComparePair(item)}
             onQuit={() =>
               finishRound(correctCount, missed, correctCount + missed.length)
             }
           />
         </Appear>
+        {comparePair && renderCompareOverlay()}
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
       </SafeAreaProvider>
       </ThemeProvider>
@@ -1488,31 +1526,9 @@ export default function App() {
           </SafeAreaView>
         )}
 
-        {/* Side-by-side comparison for a confused pair — same overlay pattern as
-            the detail page, opened from the "Species you mix up" list. */}
-        {comparePair && (
-          <SafeAreaView style={styles.detailOverlay} edges={['top', 'bottom']}>
-            <SwipeBackView style={styles.flex} onBack={() => setComparePair(null)}>
-              <Appear style={styles.flex} offset={40} duration={300}>
-                <CompareScreen
-                  pair={comparePair}
-                  initialNote={confusionNotes[comparePair.pairKey] || ''}
-                  onSaveNote={(pairKey, text) => {
-                    saveConfusionNote(pairKey, text);
-                    setConfusionNotes((prev) => {
-                      const next = { ...prev };
-                      const t = (text || '').trim();
-                      if (t) next[pairKey] = t;
-                      else delete next[pairKey];
-                      return next;
-                    });
-                  }}
-                  onClose={() => setComparePair(null)}
-                />
-              </Appear>
-            </SwipeBackView>
-          </SafeAreaView>
-        )}
+        {/* Side-by-side comparison for a confused pair — opened from the
+            "Species you mix up" list (and the in-round callout). */}
+        {comparePair && renderCompareOverlay()}
       </SafeAreaView>
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
       <SupportModal visible={showSupport} onClose={() => setShowSupport(false)} />

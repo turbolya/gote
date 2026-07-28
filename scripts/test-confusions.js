@@ -7,7 +7,7 @@ const { execFileSync } = require('child_process');
 const src = path.join(__dirname, '..', 'src', 'confusions.js');
 
 const script = `
-import { topConfusionPairs, pairKey } from ${JSON.stringify(src)};
+import { topConfusionPairs, pairKey, pairCount, CONFUSION_HINT_MIN } from ${JSON.stringify(src)};
 
 let passed = 0, failed = 0;
 function eq(name, actual, expected) {
@@ -55,6 +55,17 @@ console.log('\\npairKey');
   eq('is order-independent', pairKey('A', 'B'), pairKey('B', 'A'));
   eq('sorts its parts', pairKey('B', 'A'), 'A B');
   eq('coerces numbers to strings', pairKey(20, 3), pairKey(3, 20));
+}
+
+console.log('\\npairCount');
+{
+  eq('sums both directions', pairCount({ A: { B: 2 }, B: { A: 1 } }, 'A', 'B'), 3);
+  eq('is order-independent', pairCount({ A: { B: 2 }, B: { A: 1 } }, 'B', 'A'), 3);
+  eq('one direction only', pairCount({ A: { B: 4 } }, 'A', 'B'), 4);
+  eq('missing pair is zero', pairCount({ A: { C: 2 } }, 'A', 'B'), 0);
+  eq('a self-pair is zero', pairCount({ A: { A: 9 } }, 'A', 'A'), 0);
+  eq('junk is zero', pairCount(null, 'A', 'B'), 0);
+  eq('the hint floor is a positive integer', Number.isInteger(CONFUSION_HINT_MIN) && CONFUSION_HINT_MIN > 0, true);
 }
 
 console.log('\\n' + passed + ' passed, ' + failed + ' failed');

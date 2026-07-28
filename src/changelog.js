@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.15';
+export const APP_VERSION = '2.29.16';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.16',
+    date: '2026-07-28',
+    changes: [
+      'When you pick a species you keep mixing up with another, gote now flags '
+        + 'it right there in the round — with a one-tap shortcut to see the two '
+        + 'side by side and jot down what tells them apart.',
+    ],
+  },
   {
     version: '2.29.15',
     date: '2026-07-28',
