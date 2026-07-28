@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.31.0';
+export const APP_VERSION = '2.32.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.32.0',
+    date: '2026-07-28',
+    changes: [
+      'Your mix-ups now come back on their own: Custom and Flash-card rounds '
+        + 'quietly resurface the species you confuse — and their look-alike '
+        + 'partner alongside — so you get to re-test the pair without hunting for '
+        + 'it. It eases off once you’ve told a pair apart a few times running.',
+    ],
+  },
   {
     version: '2.31.0',
     date: '2026-07-28',

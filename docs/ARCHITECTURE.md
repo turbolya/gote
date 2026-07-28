@@ -433,6 +433,7 @@ flowchart LR
 | `src/confusions.js` | Confusion-pair ranking + the just-in-time callout threshold/pair-count (pure) |
 | `src/duel.js` | A/B duel-drill sequencing + mastery logic — which look-alike to show next, when the pair is "split reliably" (pure) |
 | `src/verify.js` | "Verify the fix" recovery-streak reducers — count correct answers on a former-nemesis pair, reset on relapse (pure; nemesis detection is `confusions.js` nemesisPartners) |
+| `src/schedule.js` | Spaced-repetition input — `scheduleDeck` biases sampled rounds (Custom/Flash) so unresolved mix-ups + their partner resurface, damped by the recovery streak (pure) |
 | `src/theme.js` | Palette, accents, group-icon mapping |
 | `src/constants.js` | Speedrun lives, language list, defaults |
 | `src/screens/*` | One file per screen |

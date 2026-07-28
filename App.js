@@ -91,6 +91,7 @@ import { buildPickRound } from './src/quiz';
 import { addConfusion } from './src/sync/merge';
 import { pairCount, pairKey, nemesisPartners } from './src/confusions';
 import { verifyStreak, recordVerifyWin, recordVerifyMiss } from './src/verify';
+import { scheduleDeck } from './src/schedule';
 import {
   prefetchImages,
   prefetchDeck,
@@ -122,8 +123,6 @@ import SplashScreen from './src/components/SplashScreen';
 import SupportModal from './src/components/SupportModal';
 import SwipeBackView from './src/components/SwipeBackView';
 import { Appear } from './src/components/anim';
-
-const pickRandom = (cards, n) => shuffle(cards).slice(0, n);
 
 // After this long, re-download an account's deck from scratch on load instead of
 // an incremental sync. Incremental sync only adds/updates, so observations
@@ -740,8 +739,16 @@ export default function App() {
         const set = flagsRef.current;
         pool = pool.filter((c) => set.has(String(c.taxonId)));
       }
+      // Spaced-repetition input: bias the sample so unresolved mix-ups (and their
+      // look-alike partner) resurface, interleaved among fresh cards — instead of
+      // a plain random draw. Degrades to random when there are no due pairs.
+      const cards = scheduleDeck(pool, {
+        confusions: confusionRef.current,
+        wins: confusionWinsRef.current,
+        size: count,
+      });
       // Distractors come from the whole (playable) deck, not just the picked subset.
-      const run = () => startRound(pickRandom(pool, count), mode, label, playableDeck);
+      const run = () => startRound(cards, mode, label, playableDeck);
       replayRef.current = run;
       run();
     },
