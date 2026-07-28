@@ -88,7 +88,7 @@ import {
 } from './src/sync';
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME } from './src/constants';
 import { buildPickRound } from './src/quiz';
-import { addConfusion } from './src/sync/merge';
+import { addConfusion, displayNotes } from './src/sync/merge';
 import { pairCount, pairKey, nemesisPartners } from './src/confusions';
 import { verifyStreak, recordVerifyWin, recordVerifyMiss } from './src/verify';
 import { scheduleDeck } from './src/schedule';
@@ -531,7 +531,11 @@ export default function App() {
   // are local filters, so those just re-derive the deck in place.
   const applyRemoteSettings = useCallback(
     (s) => {
-      if (!s || !s.prefs) return;
+      if (!s) return;
+      // Notes merge independently of the prefs last-write-wins, so adopt them
+      // even when only they changed (pullSettings may return notes alone).
+      if (s.notes) setConfusionNotes(s.notes);
+      if (!s.prefs) return;
       const p = s.prefs;
       if (typeof p.perSpecies === 'boolean') setPerSpecies(p.perSpecies);
       if (p.locale) setLocale(p.locale);
@@ -574,7 +578,7 @@ export default function App() {
       loadConfusions().then((c) => {
         confusionRef.current = c || {};
       });
-      loadConfusionNotes().then((n) => setConfusionNotes(n || {}));
+      loadConfusionNotes().then((n) => setConfusionNotes(displayNotes(n)));
       loadConfusionWins().then((w) => {
         confusionWinsRef.current = w || {};
       });
@@ -1180,7 +1184,11 @@ export default function App() {
             pair={comparePair}
             initialNote={confusionNotes[comparePair.pairKey] || ''}
             onSaveNote={(pairKey, text) => {
-              saveConfusionNote(pairKey, text);
+              // Persist (stamped now) then mirror to the settings row so the note
+              // syncs across devices. pushSettings is a no-op when sync is off.
+              saveConfusionNote(pairKey, text).then(() =>
+                pushSettings({ perSpecies, locale, researchGrade, speciesOnly, themeMode }, username)
+              );
               setConfusionNotes((prev) => {
                 const next = { ...prev };
                 const t = (text || '').trim();

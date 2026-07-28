@@ -22,6 +22,7 @@ import {
   localDay, emptyRollups, applyEvent, applyEvents, sortEvents,
   streakFromDays, mergeSettings, trimLedger,
   SETTINGS_PAYLOAD_VERSION, buildSettingsPayload, upgradeSettingsPayload,
+  notesFromPayload, mergeNotes, displayNotes,
   addConfusion, mergeConfusions, subtractConfusions,
 } from ${JSON.stringify(src)};
 
@@ -168,18 +169,18 @@ console.log('\\nmergeSettings');
 console.log('\\nsettings payload versioning');
 {
   eq('build stamps the current version', buildSettingsPayload({ locale: 'hu' }, 'ada').v, SETTINGS_PAYLOAD_VERSION);
-  eq('build carries prefs + username', buildSettingsPayload({ locale: 'hu' }, 'ada'), { v: 1, prefs: { locale: 'hu' }, username: 'ada' });
-  eq('build normalises missing fields', buildSettingsPayload(null, null), { v: 1, prefs: {}, username: null });
+  eq('build carries prefs + username', buildSettingsPayload({ locale: 'hu' }, 'ada'), { v: 2, prefs: { locale: 'hu' }, username: 'ada' });
+  eq('build normalises missing fields', buildSettingsPayload(null, null), { v: 2, prefs: {}, username: null });
 
-  // Reading the OLD unversioned blob: a missing v is v0 and upcasts to v1
-  // without losing the fields it did carry.
+  // Reading the OLD unversioned blob: a missing v is v0 and upcasts to the
+  // current version without losing the fields it did carry.
   const legacy = upgradeSettingsPayload({ prefs: { locale: 'en' }, username: 'leo' });
-  eq('unversioned blob upcasts to v1', legacy.v, 1);
+  eq('unversioned blob upcasts to v2', legacy.v, 2);
   eq('unversioned blob keeps its fields', { prefs: legacy.prefs, username: legacy.username }, { prefs: { locale: 'en' }, username: 'leo' });
 
   // The whole reason the DB merges rather than replaces: an unknown (newer) key
   // must survive being read by this (older) client, never be silently dropped.
-  const withFuture = upgradeSettingsPayload({ v: 1, prefs: {}, username: 'x', deckPrefs: { sort: 'az' } });
+  const withFuture = upgradeSettingsPayload({ v: 2, prefs: {}, username: 'x', deckPrefs: { sort: 'az' } });
   eq('unknown future keys are preserved on read', withFuture.deckPrefs, { sort: 'az' });
 
   // A payload already at the current version is returned unchanged.
@@ -190,8 +191,47 @@ console.log('\\nsettings payload versioning');
   eq('a newer version is left alone', upgradeSettingsPayload({ v: 5, prefs: {} }).v, 5);
 
   // Junk in, safe baseline out — never throws.
-  eq('junk upcasts to a v1 baseline', upgradeSettingsPayload(null), { v: 1 });
-  eq('a non-object upcasts to a v1 baseline', upgradeSettingsPayload('nope'), { v: 1 });
+  eq('junk upcasts to a v2 baseline', upgradeSettingsPayload(null), { v: 2 });
+  eq('a non-object upcasts to a v2 baseline', upgradeSettingsPayload('nope'), { v: 2 });
+}
+
+console.log('\\nnotes payload (v2) + per-note merge');
+{
+  // Notes ride the payload as n:<pairKey> top-level keys, so the DB shallow-
+  // merge keeps each one independent. buildSettingsPayload spreads them out and
+  // notesFromPayload reads them back.
+  const notes = { 'A B': { text: 'toothed', t: 5 }, 'C D': { text: 'grey bill', t: 9 } };
+  const payload = buildSettingsPayload({ locale: 'de' }, 'mia', notes);
+  eq('build spreads notes as n:<pairKey> keys',
+    { ['n:A B']: payload['n:A B'], ['n:C D']: payload['n:C D'] },
+    { 'n:A B': { text: 'toothed', t: 5 }, 'n:C D': { text: 'grey bill', t: 9 } });
+  eq('notesFromPayload reads them back', notesFromPayload(payload), notes);
+  eq('a payload with no notes yields none', notesFromPayload(buildSettingsPayload({}, 'x')), {});
+  // A legacy bare-string note upcasts (t 0) so it still round-trips.
+  eq('a bare-string note upcasts', notesFromPayload(buildSettingsPayload({}, 'x', { 'A B': 'legacy' })),
+    { 'A B': { text: 'legacy', t: 0 } });
+
+  // mergeNotes: newer edit wins per note; notes on different pairs both survive.
+  eq('newer edit wins per note',
+    mergeNotes({ 'A B': { text: 'old', t: 1 } }, { 'A B': { text: 'new', t: 2 } }),
+    { 'A B': { text: 'new', t: 2 } });
+  eq('a stale edit loses',
+    mergeNotes({ 'A B': { text: 'keep', t: 5 } }, { 'A B': { text: 'stale', t: 3 } }),
+    { 'A B': { text: 'keep', t: 5 } });
+  eq('edits on different pairs both survive',
+    mergeNotes({ 'A B': { text: 'x', t: 1 } }, { 'C D': { text: 'y', t: 1 } }),
+    { 'A B': { text: 'x', t: 1 }, 'C D': { text: 'y', t: 1 } });
+  eq('a newer delete (tombstone) wins',
+    mergeNotes({ 'A B': { text: 'note', t: 1 } }, { 'A B': { text: '', t: 4 } }),
+    { 'A B': { text: '', t: 4 } });
+  eq('merge is order-independent',
+    mergeNotes({ 'A B': { text: 'a', t: 2 } }, { 'A B': { text: 'b', t: 2 } }),
+    mergeNotes({ 'A B': { text: 'b', t: 2 } }, { 'A B': { text: 'a', t: 2 } }));
+
+  // displayNotes: the UI shape — real text only, tombstones dropped.
+  eq('displayNotes drops tombstones',
+    displayNotes({ 'A B': { text: 'keep', t: 2 }, 'C D': { text: '', t: 3 } }),
+    { 'A B': 'keep' });
 }
 
 console.log('\\nconfusion matrix');

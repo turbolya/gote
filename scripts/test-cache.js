@@ -346,21 +346,32 @@ async function asyncTests() {
     assert.deepEqual(await s.loadConfusions(), { A: { B: 2 }, C: { D: 1 } });
   });
 
-  // --- confusion notes ("my tell") ---
+  // --- confusion notes ("my tell") — canonical { text, t } shape for sync ---
   await tAsync('confusion notes are empty on a fresh store', async () => {
     const s = load('src/storage.js', memKv());
     assert.deepEqual(await s.loadConfusionNotes(), {});
   });
-  await tAsync('saveConfusionNote stores a trimmed note', async () => {
+  await tAsync('saveConfusionNote stores a trimmed, timestamped note', async () => {
     const s = load('src/storage.js', memKv());
-    await s.saveConfusionNote('A B', '  toothed leaves  ');
-    assert.deepEqual(await s.loadConfusionNotes(), { 'A B': 'toothed leaves' });
+    await s.saveConfusionNote('A B', '  toothed leaves  ', 1234);
+    assert.deepEqual(await s.loadConfusionNotes(), { 'A B': { text: 'toothed leaves', t: 1234 } });
   });
-  await tAsync('a blank note removes the entry', async () => {
+  await tAsync('a blank note becomes a tombstone (kept so the delete syncs)', async () => {
     const s = load('src/storage.js', memKv());
-    await s.saveConfusionNote('A B', 'note');
-    await s.saveConfusionNote('A B', '   ');
-    assert.deepEqual(await s.loadConfusionNotes(), {});
+    await s.saveConfusionNote('A B', 'note', 1);
+    await s.saveConfusionNote('A B', '   ', 2);
+    assert.deepEqual(await s.loadConfusionNotes(), { 'A B': { text: '', t: 2 } });
+  });
+  await tAsync('a legacy bare-string note upcasts to { text, t: 0 }', async () => {
+    const kv = memKv();
+    await kv.setItem('@gote/confusionNotes', JSON.stringify({ 'A B': 'old note' }));
+    const s = load('src/storage.js', kv);
+    assert.deepEqual(await s.loadConfusionNotes(), { 'A B': { text: 'old note', t: 0 } });
+  });
+  await tAsync('saveConfusionNotes overwrites the whole map', async () => {
+    const s = load('src/storage.js', memKv());
+    await s.saveConfusionNotes({ 'C D': { text: 'grey bill', t: 7 } });
+    assert.deepEqual(await s.loadConfusionNotes(), { 'C D': { text: 'grey bill', t: 7 } });
   });
 
   // --- confusion wins ("verify the fix" recovery streaks) ---

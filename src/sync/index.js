@@ -22,6 +22,8 @@ import {
   saveSpeciesStats,
   loadConfusions,
   saveConfusions,
+  loadConfusionNotes,
+  saveConfusionNotes,
   loadHistory,
   saveHistory,
   loadStreak,
@@ -69,6 +71,9 @@ import {
   trimLedger,
   buildSettingsPayload,
   upgradeSettingsPayload,
+  notesFromPayload,
+  mergeNotes,
+  displayNotes,
   subtractConfusions,
 } from './merge';
 
@@ -158,12 +163,16 @@ export async function pushSettings(prefs, username, updatedAt = Date.now()) {
     const supabase = getClient();
     const userId = await ensureSession();
     if (!supabase || !userId) return;
+    // The "my tell" notes ride along as `n:<pairKey>` keys. Loaded here so every
+    // settings write carries the latest notes; the DB shallow-merge keeps each
+    // note key independent, so this never erases a note edited on another device.
+    const notes = await loadConfusionNotes();
     const { error } = await supabase.from('settings').upsert(
       {
         user_id: userId,
         // Versioned payload; only the keys this client owns. The DB shallow-
         // merges on write, so newer keys added by a later client survive.
-        data: buildSettingsPayload(prefs, username),
+        data: buildSettingsPayload(prefs, username, notes),
         updated_at: new Date(updatedAt).toISOString(),
       },
       { onConflict: 'user_id' }
@@ -599,9 +608,21 @@ export async function pullSettings({ force = false } = {}) {
       .maybeSingle();
     if (error || !data || !data.data) return null;
 
+    // Notes merge per note by their own timestamp, independent of the prefs
+    // last-write-wins clock — so a note edited on another device is adopted even
+    // when this device's *settings* are newer. Done first, before the prefs gate.
+    const remoteNotes = notesFromPayload(data.data);
+    let noteDisplay = null;
+    if (Object.keys(remoteNotes).length) {
+      const merged = mergeNotes(await loadConfusionNotes(), remoteNotes);
+      await saveConfusionNotes(merged);
+      noteDisplay = displayNotes(merged);
+    }
+
     const serverTs = Date.parse(data.updated_at) || 0;
     const localTs = await loadSettingsStamp();
-    if (!force && serverTs <= localTs) return null; // local is up to date
+    // Prefs aren't newer: still surface any merged notes so the UI updates.
+    if (!force && serverTs <= localTs) return noteDisplay ? { notes: noteDisplay } : null;
 
     // Upcast whatever shape the server holds to the current one before reading,
     // so a blob written by an older (or newer) client is understood, not misread.
@@ -623,7 +644,7 @@ export async function pullSettings({ force = false } = {}) {
     await savePrefs(mergedPrefs);
     if (serverUsername) await saveUsername(serverUsername);
     await saveSettingsStamp(serverTs || Date.now());
-    return { prefs: mergedPrefs, username: serverUsername, usernameChanged, localeChanged };
+    return { prefs: mergedPrefs, username: serverUsername, usernameChanged, localeChanged, notes: noteDisplay };
   } catch {
     return null;
   }

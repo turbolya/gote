@@ -184,7 +184,7 @@ The core entity is a **card** (one observation, or one place-typical species):
 | `@gote/stats`             | `{ answered, correct }`                                        | Lifetime totals |
 | `@gote/species`           | `{ [taxonId]: { name, sci, known, missed } }`                 | Per-species tallies (Stats, Lexicon status) |
 | `@gote/confusions`        | `{ [correctKey]: { [chosenKey]: count } }`                    | Confusion matrix — species the player mixes up (synced via the events `confusions` delta) |
-| `@gote/confusionNotes`    | `{ [pairKey]: text }`                                         | Player's "my tell" notes for confused pairs (device-local) |
+| `@gote/confusionNotes`    | `{ [pairKey]: { text, t } }`                                 | Player's "my tell" notes for confused pairs. Synced via the settings payload as `n:<pairKey>` keys, merged per note by `t` (last edit wins; empty text = tombstone). `displayNotes` gives the UI's `{ pairKey: text }` |
 | `@gote/confusionWins`     | `{ [pairKey]: streak }`                                       | "Verify the fix" recovery streaks — consecutive correct answers on a former-nemesis pair, reset on relapse (device-local) |
 | `@gote/history`           | `number[]` (accuracy %, oldest→newest, cap 120)               | Menu accuracy chart |
 | `@gote/streak`            | `{ count, longest, … }`                                       | Daily streak |

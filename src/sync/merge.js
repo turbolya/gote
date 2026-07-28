@@ -170,13 +170,51 @@ export function streakFromDays(days, now = Date.now()) {
 //     client only ever contributes the keys it knows and leaves the rest intact.
 //     Because the merge is shallow, every independently-evolving concern must be
 //     its OWN top-level key (don't bury a new toggle inside `prefs`).
-export const SETTINGS_PAYLOAD_VERSION = 1;
+export const SETTINGS_PAYLOAD_VERSION = 2;
+
+// v2: the player's "my tell" notes join the payload — each as its OWN top-level
+// key `n:<pairKey>`, so the database shallow-merge protects them independently
+// (a single `notes` object would let a device that edited one note clobber a
+// note another device edited). Per-note `{ text, t }` (t = updatedAt ms; an
+// empty text is a tombstone so a delete propagates); merged by mergeNotes, not
+// by the whole-blob mergeSettings.
+const NOTE_PREFIX = 'n:';
+
+// Normalise a stored note to `{ text, t }` — accepts the current shape, the
+// legacy bare string (pre-sync, no timestamp → t 0), or junk (→ null).
+function normNote(v) {
+  if (v == null) return null;
+  if (typeof v === 'string') return { text: v, t: 0 };
+  if (typeof v === 'object') return { text: typeof v.text === 'string' ? v.text : '', t: num(v.t) };
+  return null;
+}
 
 // Wrap the fields this client owns into the current payload shape. Only the
 // known keys are written; the server merge preserves any newer keys already
-// there. Keep this in lock-step with SETTINGS_PAYLOAD_VERSION.
-export function buildSettingsPayload(prefs, username) {
-  return { v: SETTINGS_PAYLOAD_VERSION, prefs: prefs || {}, username: username || null };
+// there. Notes are spread out as `n:<pairKey>` top-level keys (see above). Keep
+// this in lock-step with SETTINGS_PAYLOAD_VERSION.
+export function buildSettingsPayload(prefs, username, notes) {
+  const payload = { v: SETTINGS_PAYLOAD_VERSION, prefs: prefs || {}, username: username || null };
+  const m = notes && typeof notes === 'object' ? notes : {};
+  for (const k of Object.keys(m)) {
+    const n = normNote(m[k]);
+    if (n) payload[NOTE_PREFIX + k] = { text: n.text, t: n.t };
+  }
+  return payload;
+}
+
+// Pull the notes back out of a settings blob (the inverse of the spread above):
+// a canonical `{ [pairKey]: { text, t } }` map from every `n:` top-level key.
+export function notesFromPayload(data) {
+  const d = data && typeof data === 'object' ? data : {};
+  const out = {};
+  for (const k of Object.keys(d)) {
+    if (k.startsWith(NOTE_PREFIX)) {
+      const n = normNote(d[k]);
+      if (n) out[k.slice(NOTE_PREFIX.length)] = n;
+    }
+  }
+  return out;
 }
 
 // Bring a stored payload up to the current shape before it is read. A missing
@@ -188,11 +226,15 @@ export function upgradeSettingsPayload(data) {
   let v = num(d.v); // 0 when absent — the pre-versioning blob
   if (v < 1) {
     // v0 -> v1: no field changed; the version marker itself is the change.
-    // Kept as an explicit branch so the next migration has a template.
     d.v = 1;
     v = 1;
   }
-  // Future: if (v < 2) { d.deckPrefs = d.deckPrefs || {}; d.v = 2; v = 2; }
+  if (v < 2) {
+    // v1 -> v2: notes join as `n:<pairKey>` top-level keys. Additive — an older
+    // blob simply has none, and any that are present are preserved as-is.
+    d.v = 2;
+    v = 2;
+  }
   return d;
 }
 
@@ -207,6 +249,38 @@ export function mergeSettings(local, remote) {
   if (!r.data) return l;
   if (!l.data) return r;
   return rt > lt ? r : l;
+}
+
+// Merge two "my tell" note maps per note by timestamp (last edit wins), so
+// notes edited on different devices both survive and a delete (empty text,
+// carried as a tombstone) propagates by its own timestamp. Deterministic
+// regardless of argument order, so every device converges to the same result.
+export function mergeNotes(local, remote) {
+  const l = local && typeof local === 'object' ? local : {};
+  const r = remote && typeof remote === 'object' ? remote : {};
+  const out = {};
+  for (const k of new Set([...Object.keys(l), ...Object.keys(r)])) {
+    const a = normNote(l[k]);
+    const b = normNote(r[k]);
+    if (!a) { if (b) out[k] = b; continue; }
+    if (!b) { out[k] = a; continue; }
+    if (a.t > b.t) out[k] = a;
+    else if (b.t > a.t) out[k] = b;
+    else out[k] = a.text >= b.text ? a : b; // equal t: order-independent tiebreak
+  }
+  return out;
+}
+
+// The display shape the UI reads: `{ [pairKey]: text }` for notes with real
+// text (tombstones and blanks are dropped).
+export function displayNotes(map) {
+  const m = map && typeof map === 'object' ? map : {};
+  const out = {};
+  for (const k of Object.keys(m)) {
+    const n = normNote(m[k]);
+    if (n && n.text) out[k] = n.text;
+  }
+  return out;
 }
 
 // --- confusion matrix -------------------------------------------------------

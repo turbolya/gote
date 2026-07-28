@@ -543,6 +543,41 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     eq(data.data.prefs.locale, 'en', 'the key the old client owns is updated');
   });
 
+  await test("a my-tell note rides the settings row and merges per note", async () => {
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const userId = await a.sync.ensureSession();
+
+    // Another device's note is already on the row (its own `n:` top-level key).
+    const seed = await a.client.from('settings').upsert(
+      {
+        user_id: userId,
+        data: { v: 2, prefs: {}, username: 'ada', 'n:C D': { text: 'grey bill', t: 5 } },
+        updated_at: new Date(1000).toISOString(),
+      },
+      { onConflict: 'user_id' }
+    );
+    eq(seed.error, null, 'seed insert ok');
+
+    // This device writes its OWN note for a different pair, then pushes.
+    await a.storage.saveConfusionNote('A B', 'toothed leaves', 2000);
+    await a.sync.pushLocalSettings();
+
+    // The shallow-merge keeps each note independent: both `n:` keys survive.
+    const { data } = await a.client
+      .from('settings')
+      .select('data')
+      .eq('user_id', userId)
+      .maybeSingle();
+    eq(data.data['n:C D'], { text: 'grey bill', t: 5 }, "the other device's note is preserved");
+    eq(data.data['n:A B'].text, 'toothed leaves', "this device's note is written");
+
+    // Pulling folds the row's notes back into local storage (per-note merge).
+    await a.sync.pullSettings({ force: true });
+    const local = await a.storage.loadConfusionNotes();
+    eq(local['C D'] && local['C D'].text, 'grey bill', 'pulled the other note into local storage');
+    eq(local['A B'] && local['A B'].text, 'toothed leaves', 'kept this device note in local storage');
+  });
+
   // --- confusions ----------------------------------------------------------
   console.log('\nconfusions');
 

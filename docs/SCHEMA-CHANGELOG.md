@@ -63,6 +63,20 @@ The append-only `events` log needs neither rule bent: every client only ever
 
 ## Settings payload (`settings.data`)
 
+### v2 — 2026-07-28
+- The player's "my tell" notes join the blob. Each note is its **own top-level
+  key** `n:<pairKey>` = `{ text, t }` (t = last-edit ms; empty `text` is a
+  tombstone so a delete propagates) — top-level so the DB v2 shallow-merge keeps
+  each note independent (a single `notes` object would let one device's edit
+  clobber another's). Notes merge **per note by `t`** (`mergeNotes`), NOT by the
+  whole-blob last-write-wins that governs `prefs` — so a note edited on another
+  device is adopted even when this device's prefs are newer.
+- Spread by `buildSettingsPayload(prefs, username, notes)`, read back by
+  `notesFromPayload()`; `displayNotes()` gives the `{ pairKey: text }` the UI reads.
+- No DB migration: notes are additive top-level keys on the existing row.
+- Legacy bare-string notes (`{ pairKey: "text" }`, pre-sync) upcast to
+  `{ text, t: 0 }`, so any real edit elsewhere wins over them.
+
 ### v1 — 2026-07-27
 - Introduced the `v` version marker. Shape: `{ v: 1, prefs: {...}, username }`.
 - `prefs` = `{ perSpecies, locale, researchGrade, speciesOnly, themeMode }`.

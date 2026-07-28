@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.32.0';
+export const APP_VERSION = '2.33.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.33.0',
+    date: '2026-07-28',
+    changes: [
+      'Your “Your tell” notes now sync: with sync on, the reminders you write on '
+        + 'the “Species you mix up” comparison screen are backed up and kept in '
+        + 'step across your devices (the most recent edit of each note wins). '
+        + 'Without sync, they stay on your device as before.',
+    ],
+  },
   {
     version: '2.32.0',
     date: '2026-07-28',

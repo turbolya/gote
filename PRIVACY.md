@@ -101,8 +101,12 @@ up). Individual answers played on the Apple Watch are stored the same way.
 Nothing is aggregated away — the history is kept round by round, because your
 statistics, accuracy chart and streak are calculated from it.
 
-The private notes you write on the "Species you mix up" comparison screen stay
-on your device only; they are not synced or sent anywhere.
+The short notes you write on the "Species you mix up" comparison screen (your
+own reminder of how to tell two look-alikes apart) are stored with the same
+account data. If you turn on sync, they are backed up and kept in step across
+your devices, alongside your other settings; the most recent edit of each note
+wins. If you don't use sync, they stay on your device only. Either way they are
+free text you chose to write and are never shared with anyone else.
 
 Taken together that is a detailed picture of what you studied and when: which
 species you struggle with, and every day you played. It is tied to your account

@@ -237,26 +237,50 @@ export async function saveConfusions(map) {
   }
 }
 
-// The player's "my tell" notes: `{ [pairKey]: text }`. Empty/blank notes are
-// dropped so the map only holds real entries.
+// The player's "my tell" notes. Canonical shape: `{ [pairKey]: { text, t } }`
+// (t = last-edit ms; an empty text is a tombstone, kept so a delete propagates
+// through sync). Legacy bare-string entries (written before notes synced) upcast
+// to `{ text, t: 0 }` — a real edit anywhere, with a real timestamp, wins over
+// them. Notes ride the settings payload as `n:<pairKey>` keys and merge per note
+// (src/sync/merge.js mergeNotes); displayNotes gives the `{ pairKey: text }` the
+// UI reads.
 export async function loadConfusionNotes() {
   try {
     const raw = await kv.getItem(K_CONFUSION_NOTES);
     const obj = raw ? JSON.parse(raw) : {};
-    return obj && typeof obj === 'object' ? obj : {};
+    if (!obj || typeof obj !== 'object') return {};
+    const out = {};
+    for (const k of Object.keys(obj)) {
+      const v = obj[k];
+      if (typeof v === 'string') out[k] = { text: v, t: 0 };
+      else if (v && typeof v === 'object')
+        out[k] = { text: typeof v.text === 'string' ? v.text : '', t: Number(v.t) || 0 };
+    }
+    return out;
   } catch {
     return {};
   }
 }
 
-export async function saveConfusionNote(key, text) {
-  if (!key) return;
+// Save one note, stamped `now`. A blank clears it — kept as an empty-text
+// tombstone so the deletion syncs rather than silently reappearing from another
+// device. Returns the new canonical map (so the caller can push it).
+export async function saveConfusionNote(key, text, now = Date.now()) {
+  if (!key) return null;
   try {
     const map = await loadConfusionNotes();
-    const t = (text || '').trim();
-    if (t) map[key] = t;
-    else delete map[key];
+    map[key] = { text: (text || '').trim(), t: now };
     await kv.setItem(K_CONFUSION_NOTES, JSON.stringify(map));
+    return map;
+  } catch {
+    return null;
+  }
+}
+
+// Overwrite the whole note map (used after a sync merge).
+export async function saveConfusionNotes(map) {
+  try {
+    await kv.setItem(K_CONFUSION_NOTES, JSON.stringify(map || {}));
   } catch {
     /* ignore */
   }
