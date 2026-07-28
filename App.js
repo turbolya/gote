@@ -56,6 +56,8 @@ import {
   saveConfusions,
   loadConfusionNotes,
   saveConfusionNote,
+  loadConfusionWins,
+  saveConfusionWins,
   resetStatistics,
   loadCache,
   saveCache,
@@ -87,7 +89,8 @@ import {
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME } from './src/constants';
 import { buildPickRound } from './src/quiz';
 import { addConfusion } from './src/sync/merge';
-import { pairCount } from './src/confusions';
+import { pairCount, pairKey, nemesisPartners } from './src/confusions';
+import { verifyStreak, recordVerifyWin, recordVerifyMiss } from './src/verify';
 import {
   prefetchImages,
   prefetchDeck,
@@ -339,6 +342,10 @@ export default function App() {
   // lifetime-vs-delta split as speciesRef / roundDeltaRef.
   const confusionRef = useRef({});
   const confusionDeltaRef = useRef({});
+  // "Verify the fix" recovery streaks: pairKey → consecutive correct answers on
+  // a former-nemesis pair. Device-local (like the "my tell" notes), so it rides
+  // a ref + its own storage rather than the synced events log.
+  const confusionWinsRef = useRef({});
 
   // How to restart the current mode (used by the "Play again" button).
   const replayRef = useRef(() => {});
@@ -569,6 +576,9 @@ export default function App() {
         confusionRef.current = c || {};
       });
       loadConfusionNotes().then((n) => setConfusionNotes(n || {}));
+      loadConfusionWins().then((w) => {
+        confusionWinsRef.current = w || {};
+      });
       const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedHistory, savedStreak, savedWatchTip] =
         await Promise.all([
           loadUsername(),
@@ -967,11 +977,30 @@ export default function App() {
     const chk = keyForCard(chosenCard);
     confusionRef.current = addConfusion(confusionRef.current, ck, chk);
     confusionDeltaRef.current = addConfusion(confusionDeltaRef.current, ck, chk);
+    // Relapse on this pair — the fix isn't holding, so drop any recovery run.
+    confusionWinsRef.current = recordVerifyMiss(confusionWinsRef.current, pairKey(ck, chk));
+    saveConfusionWins(confusionWinsRef.current);
   }, []);
 
   // Live symmetric confusion count for a pair, for the just-in-time play callout.
   // Reads the ref so it's always current within a round (state props can be stale).
   const confusionCount = useCallback((a, b) => pairCount(confusionRef.current, a, b), []);
+
+  // "Verify the fix" helpers, read from the refs so they stay current mid-round.
+  // - partners: the former-nemesis keys for a species, so StudyScreen can seed
+  //   the old look-alike back in as a distractor.
+  // - streak: the current recovery run for a pair, for the celebratory callout.
+  // - win: a correct answer over a seeded old look-alike extends the run.
+  const nemesisPartnersFor = useCallback(
+    (key) => nemesisPartners(confusionRef.current, key).map((p) => p.partner),
+    []
+  );
+  const verifyStreakFor = useCallback((pk) => verifyStreak(confusionWinsRef.current, pk), []);
+  const recordVerifyWinFor = useCallback((pk) => {
+    if (!pk) return;
+    confusionWinsRef.current = recordVerifyWin(confusionWinsRef.current, pk);
+    saveConfusionWins(confusionWinsRef.current);
+  }, []);
 
   // Results played on the Apple Watch: fold each answered card into the
   // per-species tallies + lifetime totals + daily streak, and each finished
@@ -1067,12 +1096,14 @@ export default function App() {
   }, [recordResult]);
 
   const handleGrade = useCallback(
-    (correct, chosen) => {
+    (correct, chosen, verifyPairKey) => {
       const card = deck[index];
       recordResult(card, correct);
       // A wrong multiple-choice pick is a confusion signal (correct card vs. the
       // option they chose). `chosen` is absent for self-graded Flash cards.
       if (!correct && chosen) recordConfusion(card, chosen);
+      // A correct answer over a re-seeded old look-alike extends the recovery run.
+      if (correct && verifyPairKey) recordVerifyWinFor(verifyPairKey);
       const nextCorrect = correct ? correctCount + 1 : correctCount;
       const nextMissed = correct ? missed : [...missed, card];
       setCorrectCount(nextCorrect);
@@ -1104,7 +1135,7 @@ export default function App() {
         setIndex(index + 1);
       }
     },
-    [deck, index, correctCount, missed, mode, lives, finishRound, recordResult, recordConfusion]
+    [deck, index, correctCount, missed, mode, lives, finishRound, recordResult, recordConfusion, recordVerifyWinFor]
   );
 
   // Grade a tap in "Pick the right one" (tally only; advancing waits for Next).
@@ -1220,6 +1251,8 @@ export default function App() {
             onToggleFlag={toggleFlag}
             onGrade={handleGrade}
             onConfusionCount={confusionCount}
+            onNemesisPartners={nemesisPartnersFor}
+            onVerifyStreak={verifyStreakFor}
             onCompare={(item) => setComparePair(item)}
             onQuit={() =>
               finishRound(correctCount, missed, correctCount + missed.length)
@@ -1462,9 +1495,12 @@ export default function App() {
               await resetStatistics();
               speciesRef.current = {};
               setSpeciesStats({});
-              // Confusions are derived from play, so reset clears them too.
+              // Confusions are derived from play, so reset clears them too —
+              // and with them the "verify the fix" recovery streaks.
               confusionRef.current = {};
               saveConfusions({});
+              confusionWinsRef.current = {};
+              saveConfusionWins({});
               setLifetime({ answered: 0, correct: 0 });
               setHistory([]);
               setStreak({ current: 0, longest: 0, lastActiveDay: null });

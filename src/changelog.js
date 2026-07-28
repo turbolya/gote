@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.30.0';
+export const APP_VERSION = '2.31.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.31.0',
+    date: '2026-07-28',
+    changes: [
+      'Closing the loop on look-alikes: when a species you used to mix up comes '
+        + 'back in By-name rounds, gote quietly slips the old look-alike in as an '
+        + 'option — and once you’ve told them apart a few times running, it says '
+        + 'so ("you used to mix these up — now 3 in a row").',
+    ],
+  },
   {
     version: '2.30.0',
     date: '2026-07-28',

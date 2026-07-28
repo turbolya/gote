@@ -17,6 +17,9 @@ const K_CONFUSIONS = '@gote/confusions';
 // Per-pair "my tell" notes the player writes to distinguish two look-alikes,
 // keyed by src/confusions.js pairKey → free text.
 const K_CONFUSION_NOTES = '@gote/confusionNotes';
+// "Verify the fix" recovery streaks: pairKey → consecutive correct answers on a
+// former-nemesis pair (reset on relapse). Device-local, like the notes.
+const K_CONFUSION_WINS = '@gote/confusionWins';
 const K_CACHE = '@gote/obscache';
 const K_FLAGS = '@gote/flags';
 const K_HISTORY = '@gote/history';
@@ -254,6 +257,26 @@ export async function saveConfusionNote(key, text) {
     if (t) map[key] = t;
     else delete map[key];
     await kv.setItem(K_CONFUSION_NOTES, JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
+
+// The "verify the fix" recovery streaks: `{ [pairKey]: streak }`. Whole map is
+// saved at once (App keeps the running copy in a ref).
+export async function loadConfusionWins() {
+  try {
+    const raw = await kv.getItem(K_CONFUSION_WINS);
+    const obj = raw ? JSON.parse(raw) : {};
+    return obj && typeof obj === 'object' ? obj : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function saveConfusionWins(map) {
+  try {
+    await kv.setItem(K_CONFUSION_WINS, JSON.stringify(map || {}));
   } catch {
     /* ignore */
   }

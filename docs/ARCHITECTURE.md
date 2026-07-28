@@ -185,6 +185,7 @@ The core entity is a **card** (one observation, or one place-typical species):
 | `@gote/species`           | `{ [taxonId]: { name, sci, known, missed } }`                 | Per-species tallies (Stats, Lexicon status) |
 | `@gote/confusions`        | `{ [correctKey]: { [chosenKey]: count } }`                    | Confusion matrix — species the player mixes up (synced via the events `confusions` delta) |
 | `@gote/confusionNotes`    | `{ [pairKey]: text }`                                         | Player's "my tell" notes for confused pairs (device-local) |
+| `@gote/confusionWins`     | `{ [pairKey]: streak }`                                       | "Verify the fix" recovery streaks — consecutive correct answers on a former-nemesis pair, reset on relapse (device-local) |
 | `@gote/history`           | `number[]` (accuracy %, oldest→newest, cap 120)               | Menu accuracy chart |
 | `@gote/streak`            | `{ count, longest, … }`                                       | Daily streak |
 | `@gote/activeDays`        | `string[]` (YYYY-MM-DD)                                        | Days played — the streak's source of truth |
@@ -431,6 +432,7 @@ flowchart LR
 | `src/lexicon.js` | Lexicon filter/sort/status (pure) |
 | `src/confusions.js` | Confusion-pair ranking + the just-in-time callout threshold/pair-count (pure) |
 | `src/duel.js` | A/B duel-drill sequencing + mastery logic — which look-alike to show next, when the pair is "split reliably" (pure) |
+| `src/verify.js` | "Verify the fix" recovery-streak reducers — count correct answers on a former-nemesis pair, reset on relapse (pure; nemesis detection is `confusions.js` nemesisPartners) |
 | `src/theme.js` | Palette, accents, group-icon mapping |
 | `src/constants.js` | Speedrun lives, language list, defaults |
 | `src/screens/*` | One file per screen |

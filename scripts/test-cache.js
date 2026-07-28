@@ -362,6 +362,17 @@ async function asyncTests() {
     await s.saveConfusionNote('A B', '   ');
     assert.deepEqual(await s.loadConfusionNotes(), {});
   });
+
+  // --- confusion wins ("verify the fix" recovery streaks) ---
+  await tAsync('confusion wins are empty on a fresh store', async () => {
+    const s = load('src/storage.js', memKv());
+    assert.deepEqual(await s.loadConfusionWins(), {});
+  });
+  await tAsync('confusion wins round-trip through storage', async () => {
+    const s = load('src/storage.js', memKv());
+    await s.saveConfusionWins({ 'A B': 4, 'C D': 1 });
+    assert.deepEqual(await s.loadConfusionWins(), { 'A B': 4, 'C D': 1 });
+  });
 }
 
 asyncTests().then(() => {

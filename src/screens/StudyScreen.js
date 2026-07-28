@@ -30,6 +30,7 @@ import { shuffle, fetchTaxonPhotos, toLargePhoto } from '../api';
 import { prefetchUpcoming } from '../prefetch';
 import { pickSimilarDistractors } from '../quiz';
 import { pairKey, pairCount, CONFUSION_HINT_MIN } from '../confusions';
+import { VERIFY_STREAK_MIN } from '../verify';
 
 const keyOf = (c) => (c && c.taxonId != null ? String(c.taxonId) : c && c.scientific);
 const infoOf = (c) => ({ name: c.common || c.scientific, sci: c.scientific, image: c.image || null });
@@ -78,6 +79,8 @@ export default function StudyScreen({
   onQuit,
   onConfusionCount, // (correctKey, chosenKey) => prior count, for the callout
   onCompare, // open the side-by-side comparison for a pair
+  onNemesisPartners, // (key) => [partnerKey] — former mix-ups, to re-seed as distractors
+  onVerifyStreak, // (pairKey) => current recovery streak, for the "verify the fix" callout
 }) {
   const insets = useSafeAreaInsets();
   const [flipped, setFlipped] = useState(false);
@@ -126,8 +129,32 @@ export default function StudyScreen({
       names.push(n);
       if (names.length >= NUM_CHOICES - 1) break;
     }
+
+    // Verify the fix: if this species is a former nemesis, make sure the old
+    // look-alike is one of the options — re-seeding it turns the round into a
+    // deliberate re-test of the pair (and, on a correct pick, a recovery win).
+    if (onNemesisPartners) {
+      const partners = new Set((onNemesisPartners(keyOf(card)) || []).map(String));
+      const present = names.some((n) => partners.has(keyOf(byName[n])));
+      if (partners.size && !present) {
+        const partnerCard = choicePool.find(
+          (c) => partners.has(keyOf(c)) && keyOf(c) !== keyOf(card)
+        );
+        const pn = partnerCard && cardName(partnerCard);
+        if (partnerCard && pn && !usedNames.has(pn)) {
+          if (names.length >= NUM_CHOICES - 1) {
+            // Drop the weakest (last-ranked) distractor to make room.
+            const dropped = names.pop();
+            delete byName[dropped];
+          }
+          byName[pn] = partnerCard;
+          names.push(pn);
+        }
+      }
+    }
+
     return { list: shuffle([answer, ...names]), byName };
-  }, [choiceMode, card, choicePool, answer]);
+  }, [choiceMode, card, choicePool, answer, onNemesisPartners]);
 
   const progress = (index + 1) / deck.length;
 
@@ -279,6 +306,27 @@ export default function StudyScreen({
           };
         })()
       : null;
+
+  // Verify the fix: a CORRECT answer on a former-nemesis species with the old
+  // look-alike among the options is a recovery win. `verifyPair` is recorded on
+  // "Next" (so onVerifyStreak's count trails by one — add 1 for the callout, as
+  // with the confusion hint). The callout only appears once the run is a real
+  // pattern (VERIFY_STREAK_MIN in a row).
+  const verifyPair =
+    answered && gotIt && choiceMode && card && onNemesisPartners
+      ? (() => {
+          const partners = new Set((onNemesisPartners(keyOf(card)) || []).map(String));
+          if (!partners.size) return null;
+          const shown = choices.list
+            .map((n) => choices.byName[n])
+            .find((c) => c && partners.has(keyOf(c)));
+          if (!shown) return null;
+          return { pairKey: pairKey(keyOf(card), keyOf(shown)) };
+        })()
+      : null;
+  const verifyStreakNow =
+    verifyPair && onVerifyStreak ? (onVerifyStreak(verifyPair.pairKey) || 0) + 1 : 0;
+  const showVerify = !!verifyPair && verifyStreakNow >= VERIFY_STREAK_MIN;
 
   return (
     <View style={styles.fsRoot} testID="study-screen">
@@ -524,9 +572,30 @@ export default function StudyScreen({
                   </Appear>
                 )}
 
+                {showVerify && (
+                  <Appear offset={6} duration={240}>
+                    <View style={styles.verifyHint} testID="study-verify-hint">
+                      <Icon name="check-circle" size={15} color={colors.correct} />
+                      <Text style={styles.verifyHintText} numberOfLines={2}>
+                        You used to mix these up — now {verifyStreakNow} in a row
+                      </Text>
+                    </View>
+                  </Appear>
+                )}
+
                 {answered && (
                   <Appear offset={6} duration={240}>
-                    <Pressable testID="study-next" style={styles.nextBtn} onPress={() => onGrade(gotIt, gotIt ? null : choices.byName[picked])}>
+                    <Pressable
+                      testID="study-next"
+                      style={styles.nextBtn}
+                      onPress={() =>
+                        onGrade(
+                          gotIt,
+                          gotIt ? null : choices.byName[picked],
+                          verifyPair ? verifyPair.pairKey : null
+                        )
+                      }
+                    >
                       <Text style={styles.nextText}>Next card</Text>
                       <Icon name="arrow-right" size={18} color={colors.onPrimary} />
                     </Pressable>
@@ -873,4 +942,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   confusionHintText: { flex: 1, color: ON_DARK, fontSize: 13, fontWeight: '700', lineHeight: 17 },
+  verifyHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderWidth: 1.5,
+    borderColor: colors.correct,
+    borderRadius: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  verifyHintText: { flex: 1, color: ON_DARK, fontSize: 13, fontWeight: '700', lineHeight: 17 },
 });
