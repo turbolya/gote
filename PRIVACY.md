@@ -1,6 +1,6 @@
 # Privacy Policy for gote
 
-**Last updated: 24 July 2026**
+**Last updated: 28 July 2026**
 
 gote is a species-identification flashcard game for iPhone, iPad and Apple
 Watch, built on the public [iNaturalist](https://www.inaturalist.org) API. This
@@ -55,9 +55,10 @@ What is stored there:
 
 - An account identifier — a random ID, not linked to your name
 - Your gameplay history, round by round: for each round the number of cards
-  answered and got right, the date in your local calendar, and which species you
-  got right or wrong. This is detailed — see "What your synced play history
-  actually contains" below
+  answered and got right, the date in your local calendar, which species you
+  got right or wrong, and — when you pick the wrong option in a multiple-choice
+  round — which look-alike species you confused for which. This is detailed —
+  see "What your synced play history actually contains" below
 - Your preferences, and the iNaturalist username you entered
 - **Your email address, only if you choose to link devices.** It is used solely
   to recognise your devices as belonging to the same person. There is no
@@ -93,10 +94,15 @@ If you enable sync, it is worth understanding what is being stored, because
 "gameplay statistics" is vaguer than the reality.
 
 Every round you finish is stored as its own row: how many cards you answered,
-how many you got right, the calendar date, and which species you got right or
-wrong. Individual answers played on the Apple Watch are stored the same way.
+how many you got right, the calendar date, which species you got right or
+wrong, and — for wrong multiple-choice answers — which look-alike species you
+picked instead of the right one (so the app can point out pairs you tend to mix
+up). Individual answers played on the Apple Watch are stored the same way.
 Nothing is aggregated away — the history is kept round by round, because your
 statistics, accuracy chart and streak are calculated from it.
+
+The private notes you write on the "Species you mix up" comparison screen stay
+on your device only; they are not synced or sent anywhere.
 
 Taken together that is a detailed picture of what you studied and when: which
 species you struggle with, and every day you played. It is tied to your account

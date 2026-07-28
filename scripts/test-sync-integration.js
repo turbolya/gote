@@ -535,6 +535,36 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     eq(data.data.prefs.locale, 'en', 'the key the old client owns is updated');
   });
 
+  // --- confusions ----------------------------------------------------------
+  console.log('\nconfusions');
+
+  await test("a confusion event syncs to another device", async () => {
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const email = `conf-${Date.now()}@example.com`;
+
+    // Device A records a round that includes a confusion delta, then pushes.
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.sync.recordEvent({
+      answered: 5,
+      correct: 4,
+      pct: 80,
+      confusions: { 10: { 20: 2 } }, // mixed up taxon 10 for 20, twice
+    });
+    await a.sync.syncNow();
+    await attachEmail(admin, idA, email);
+
+    // Device B signs into the same account and pulls.
+    const b = makeDevice({ createClient, url, anon, name: 'B' });
+    await b.sync.ensureSession();
+    ok((await b.sync.signInWithEmail(email)).ok, 'signin');
+    ok((await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok, 'confirm');
+    await b.sync.afterAuthChange();
+    await b.sync.syncNow();
+
+    eq(await b.storage.loadConfusions(), { 10: { 20: 2 } }, "B folded in A's confusion");
+  });
+
   // --- deletion ------------------------------------------------------------
   console.log('\naccount deletion');
 

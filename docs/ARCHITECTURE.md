@@ -183,7 +183,7 @@ The core entity is a **card** (one observation, or one place-typical species):
 | `@gote/prefs`             | `{ perSpecies, locale, researchGrade, speciesOnly, themeMode }`| Study options + theme |
 | `@gote/stats`             | `{ answered, correct }`                                        | Lifetime totals |
 | `@gote/species`           | `{ [taxonId]: { name, sci, known, missed } }`                 | Per-species tallies (Stats, Lexicon status) |
-| `@gote/confusions`        | `{ [correctKey]: { [chosenKey]: count } }`                    | Confusion matrix — species the player mixes up (device-local) |
+| `@gote/confusions`        | `{ [correctKey]: { [chosenKey]: count } }`                    | Confusion matrix — species the player mixes up (synced via the events `confusions` delta) |
 | `@gote/confusionNotes`    | `{ [pairKey]: text }`                                         | Player's "my tell" notes for confused pairs (device-local) |
 | `@gote/history`           | `number[]` (accuracy %, oldest→newest, cap 120)               | Menu accuracy chart |
 | `@gote/streak`            | `{ count, longest, … }`                                       | Daily streak |
@@ -356,8 +356,8 @@ photos will actually render (see §8).
   blank card. An `OfflineBanner` explains the state, and an empty state ("connect
   once to load your deck") shows when nothing is downloaded yet.
 - **Cross-device sync & data versioning** (`src/sync/*`): optional, strictly
-  opt-in Supabase sync — an **append-only `events` log** for stats (union-merged,
-  so concurrent devices can't clobber each other) and a **last-write-wins
+  opt-in Supabase sync — an **append-only `events` log** for stats and confusions
+  (union-merged, so concurrent devices can't clobber each other) and a **last-write-wins
   settings blob**. Payloads carry a version marker and are upcast on read; the
   database shallow-merges the settings blob so an older client can't erase a key
   it doesn't know. Off by default and absent from credential-less builds. Full

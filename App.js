@@ -328,10 +328,12 @@ export default function App() {
   // double-counting everything the player has ever answered.
   const roundDeltaRef = useRef({});
   // Confusion matrix: `{ [correctKey]: { [chosenKey]: count } }` — which species
-  // the player systematically mixes up. Accumulated live and persisted with the
-  // round's tallies (see finishRound). Device-local for now; the merge helpers
-  // are already shaped to fold it across devices when it joins the sync payload.
+  // the player systematically mixes up. `confusionRef` is the running lifetime
+  // copy (persisted with the round); `confusionDeltaRef` is JUST this round's
+  // confusions, uploaded with the round's sync event and then cleared — the same
+  // lifetime-vs-delta split as speciesRef / roundDeltaRef.
   const confusionRef = useRef({});
+  const confusionDeltaRef = useRef({});
 
   // How to restart the current mode (used by the "Play again" button).
   const replayRef = useRef(() => {});
@@ -608,6 +610,7 @@ export default function App() {
           setSpeciesStats({ ...merged.species });
           setHistory(merged.history);
           setStreak(merged.streak);
+          if (merged.confusions) confusionRef.current = merged.confusions;
         });
         syncSettings().then((s) => { if (s) applyRemoteSettings(s); });
       }
@@ -685,6 +688,7 @@ export default function App() {
     // carrying them into the next round would sync answers the phone itself
     // doesn't have.
     roundDeltaRef.current = {};
+    confusionDeltaRef.current = {};
     setMode(m);
     setRoundLabel(label);
     setDeck(shuffle(cards));
@@ -844,6 +848,7 @@ export default function App() {
     replayRef.current = startPick;
     finishedRef.current = false;
     roundDeltaRef.current = {}; // see startRound
+    confusionDeltaRef.current = {};
 
     const roundDeck = shuffle(fullDeck);
     setMode('pick');
@@ -893,6 +898,8 @@ export default function App() {
     // still counts here and uploads whenever the network returns.
     const delta = roundDeltaRef.current;
     roundDeltaRef.current = {};
+    const confDelta = confusionDeltaRef.current;
+    confusionDeltaRef.current = {};
     if (total > 0) {
       // Queue, then flush. recordEvent only writes to the outbox; without this
       // the round would sit there until the next cold launch, which looks
@@ -903,6 +910,7 @@ export default function App() {
         correct: finalCorrect,
         pct: (finalCorrect / total) * 100,
         species: delta,
+        confusions: confDelta,
       }).then(() => syncCloud());
     }
     setMissed(finalMissed);
@@ -950,11 +958,10 @@ export default function App() {
   const keyForCard = (c) => (c && c.taxonId != null ? String(c.taxonId) : c && c.scientific);
   const recordConfusion = useCallback((correctCard, chosenCard) => {
     if (!correctCard || !chosenCard) return;
-    confusionRef.current = addConfusion(
-      confusionRef.current,
-      keyForCard(correctCard),
-      keyForCard(chosenCard)
-    );
+    const ck = keyForCard(correctCard);
+    const chk = keyForCard(chosenCard);
+    confusionRef.current = addConfusion(confusionRef.current, ck, chk);
+    confusionDeltaRef.current = addConfusion(confusionDeltaRef.current, ck, chk);
   }, []);
 
   // Results played on the Apple Watch: fold each answered card into the
@@ -1434,6 +1441,7 @@ export default function App() {
                 setSpeciesStats({ ...merged.species });
                 setHistory(merged.history);
                 setStreak(merged.streak);
+                if (merged.confusions) confusionRef.current = merged.confusions;
               }
               if (res.settings) applyRemoteSettings(res.settings);
             }}

@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.14';
+export const APP_VERSION = '2.29.15';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.15',
+    date: '2026-07-28',
+    changes: [
+      'With sync on, the “Species you mix up” list now follows you across '
+        + 'devices — the pairs you confuse are backed up and merged like the rest '
+        + 'of your stats. (The private notes you write stay on each device.)',
+    ],
+  },
   {
     version: '2.29.14',
     date: '2026-07-28',

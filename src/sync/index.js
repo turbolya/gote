@@ -20,6 +20,8 @@ import {
   saveStats,
   loadSpeciesStats,
   saveSpeciesStats,
+  loadConfusions,
+  saveConfusions,
   loadHistory,
   saveHistory,
   loadStreak,
@@ -67,6 +69,7 @@ import {
   trimLedger,
   buildSettingsPayload,
   upgradeSettingsPayload,
+  subtractConfusions,
 } from './merge';
 
 export { SYNC_ENABLED } from './config';
@@ -121,7 +124,7 @@ function debug(...args) {
 //   pct               0-100 for a FINISHED round; omit for a single answer,
 //                     which is not a round and must not become a chart point
 //   species           { [taxonId]: { name, sci, image, known, missed } }
-export async function recordEvent({ answered = 0, correct = 0, pct = null, species = {}, ts = Date.now() } = {}) {
+export async function recordEvent({ answered = 0, correct = 0, pct = null, species = {}, confusions = {}, ts = Date.now() } = {}) {
   // Nothing is even queued while sync is off — no sync-related data touches disk
   // until the user opts in. Their existing history is captured wholesale by the
   // baseline at that point (see uploadBaseline), so nothing is lost.
@@ -136,6 +139,7 @@ export async function recordEvent({ answered = 0, correct = 0, pct = null, speci
       correct,
       pct,
       species: species || {},
+      confusions: confusions || {},
     };
     await pushToOutbox(event);
     return event.id;
@@ -282,7 +286,7 @@ async function pull(supabase, userId) {
 
   let query = supabase
     .from('events')
-    .select('id, device_id, ts, local_day, answered, correct, pct, species, created_at')
+    .select('id, device_id, ts, local_day, answered, correct, pct, species, confusions, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
     .limit(PULL_LIMIT);
@@ -309,17 +313,18 @@ async function pull(supabase, userId) {
 // Fold remote events into the local rollups. The ONLY place sync writes to the
 // app's own state, and it only ever adds.
 async function applyRemote(events) {
-  const [stats, species, history, streak, appliedIds] = await Promise.all([
+  const [stats, species, history, streak, confusions, appliedIds] = await Promise.all([
     loadStats(),
     loadSpeciesStats(),
     loadHistory(),
     loadStreak(),
+    loadConfusions(),
     loadAppliedIds(),
   ]);
   const days = await backfillActiveDays(streak);
 
   const { rollups, applied } = applyEvents(
-    { stats, species, history, days },
+    { stats, species, history, days, confusions },
     events,
     appliedIds
   );
@@ -332,6 +337,7 @@ async function applyRemote(events) {
     saveSpeciesStats(rollups.species),
     saveHistory(rollups.history),
     saveActiveDays(rollups.days),
+    saveConfusions(rollups.confusions),
     // Never let a recomputed streak shrink `longest`: players who predate the
     // day-set only have one remembered day, so recomputing alone would look
     // like their record was erased.
@@ -348,6 +354,7 @@ async function applyRemote(events) {
     species: rollups.species,
     history: rollups.history,
     streak: await loadStreak(),
+    confusions: rollups.confusions,
     count: applied.length,
   };
 }
@@ -448,9 +455,10 @@ export async function afterAuthChange(mode = 'link') {
 // active day would preserve it, at the cost of hundreds of rows for a
 // long-standing player. Revisit if streaks turn out to matter more than that.
 async function uploadBaseline() {
-  const [stats, species, queued] = await Promise.all([
+  const [stats, species, confusions, queued] = await Promise.all([
     loadStats(),
     loadSpeciesStats(),
+    loadConfusions(),
     loadOutbox(),
   ]);
 
@@ -470,6 +478,8 @@ async function uploadBaseline() {
       missed: num(v.missed),
     };
   }
+  // Confusions get the same "minus what's queued" treatment as the totals above.
+  let conf = confusions || {};
   for (const e of queued) {
     answered -= num(e.answered);
     correct -= num(e.correct);
@@ -478,6 +488,7 @@ async function uploadBaseline() {
       sp[key].known -= num(d.known);
       sp[key].missed -= num(d.missed);
     }
+    if (e.confusions) conf = subtractConfusions(conf, e.confusions);
   }
 
   answered = Math.max(0, answered);
@@ -489,13 +500,14 @@ async function uploadBaseline() {
     if (known || missed) species2[key] = { ...v, known, missed };
   }
 
-  if (!answered && !correct && !Object.keys(species2).length) return;
+  if (!answered && !correct && !Object.keys(species2).length && !Object.keys(conf).length) return;
 
   await recordEvent({
     answered,
     correct,
     pct: null, // not a round — must not land on the accuracy chart
     species: species2,
+    confusions: conf,
   });
   debug('baseline queued:', answered, 'answers');
 }

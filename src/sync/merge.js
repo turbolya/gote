@@ -31,6 +31,7 @@ export function emptyRollups() {
     species: {},
     history: [],
     days: [],
+    confusions: {},
   };
 }
 
@@ -77,6 +78,13 @@ export function applyEvent(rollups, event) {
   const day = event.localDay || event.local_day;
   const days = day && !r.days.includes(day) ? [...r.days, day] : r.days;
 
+  // Confusions are counters too, so they fold exactly like species/stats: sum
+  // this event's delta into the running matrix. Absent on older events.
+  const confusions =
+    event.confusions && typeof event.confusions === 'object'
+      ? mergeConfusions(r.confusions || {}, event.confusions)
+      : r.confusions || {};
+
   return {
     stats: {
       answered: r.stats.answered + answered,
@@ -85,6 +93,7 @@ export function applyEvent(rollups, event) {
     species,
     history,
     days,
+    confusions,
   };
 }
 
@@ -232,6 +241,26 @@ export function mergeConfusions(a, b) {
       const dst = out[ck] || (out[ck] = {});
       for (const chk of Object.keys(row)) dst[chk] = num(dst[chk]) + num(row[chk]);
     }
+  }
+  return out;
+}
+
+// Subtract `delta` from a confusion map (used to build the sync baseline: raw
+// lifetime totals minus what's still queued, so a pair isn't counted twice).
+// Counts clamp at 0 and pairs that reach 0 are dropped. Pure.
+export function subtractConfusions(base, delta) {
+  const out = {};
+  const b = base && typeof base === 'object' ? base : {};
+  const d = delta && typeof delta === 'object' ? delta : {};
+  for (const ck of Object.keys(b)) {
+    const row = b[ck] || {};
+    const drow = d[ck] || {};
+    const kept = {};
+    for (const chk of Object.keys(row)) {
+      const n = Math.max(0, num(row[chk]) - num(drow[chk]));
+      if (n > 0) kept[chk] = n;
+    }
+    if (Object.keys(kept).length) out[ck] = kept;
   }
   return out;
 }

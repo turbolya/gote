@@ -38,6 +38,14 @@ The append-only `events` log needs neither rule bent: every client only ever
 
 ## DB schema
 
+### v3 — 2026-07-28 — `20260728120000_events_confusions.sql`
+- Added a nullable `confusions jsonb not null default '{}'` column to
+  `public.events`. Confusion counts (which look-alikes the player mixes up) are
+  counters, so they ride the append-only log like `species`: each round carries a
+  delta, every device sums the union. Additive/expand-only — old clients insert
+  without it and get `{}`, old readers ignore it; no RLS or grant change (the
+  table-level grants already cover new columns).
+
 ### v2 — 2026-07-27 — `20260727120000_settings_merge.sql`
 - Added a `before update` trigger on `public.settings` that **shallow-merges**
   `data` (`old.data || new.data`) instead of replacing it. An older client that
@@ -66,6 +74,12 @@ The append-only `events` log needs neither rule bent: every client only ever
 
 ## Events payload (`events` row)
 
+### v2 — 2026-07-28
+- Added the `confusions` jsonb delta (`{ [correctKey]: { [chosenKey]: count } }`)
+  — which look-alikes were mixed up this round. Folded via `mergeConfusions`;
+  the baseline nets it against still-queued deltas via `subtractConfusions`.
+  Additive; older events simply omit it.
+
 ### v1 — 2026-07-24 (baseline)
 - Fixed columns: `id` (client-generated, idempotency key), `user_id`,
   `device_id`, `ts`, `local_day`, `answered`, `correct`, `pct`
@@ -85,9 +99,11 @@ The append-only `events` log needs neither rule bent: every client only ever
   `downloadedImages` (offline photo manifest — added additively 2026-07-27, no
   version bump; it self-heals if absent),
   `confusions` (confusion matrix `{ [correctKey]: { [chosenKey]: count } }` —
-  added additively 2026-07-27, device-local for now; not yet in the sync payload),
+  added additively 2026-07-27; **now synced** via the events `confusions` delta,
+  DB v3 / events payload v2, 2026-07-28),
   `confusionNotes` (`{ [pairKey]: text }` — the player's "my tell" notes, added
-  additively 2026-07-28, device-local).
+  additively 2026-07-28, **device-local** — deliberately not synced; per-note
+  timestamped LWW is a future task).
 
 ---
 

@@ -22,7 +22,7 @@ import {
   localDay, emptyRollups, applyEvent, applyEvents, sortEvents,
   streakFromDays, mergeSettings, trimLedger,
   SETTINGS_PAYLOAD_VERSION, buildSettingsPayload, upgradeSettingsPayload,
-  addConfusion, mergeConfusions,
+  addConfusion, mergeConfusions, subtractConfusions,
 } from ${JSON.stringify(src)};
 
 let passed = 0;
@@ -212,6 +212,31 @@ console.log('\\nconfusion matrix');
     { A: { B: 4, C: 2 }, D: { E: 1 } });
   eq('merge with a missing side keeps the other', mergeConfusions(null, { A: { B: 1 } }), { A: { B: 1 } });
   eq('merge survives junk', mergeConfusions('x', { A: { B: 1 } }), { A: { B: 1 } });
+
+  // Confusions ride the append-only event log, so applyEvent must fold them just
+  // like species/stats.
+  {
+    const r = applyEvent(emptyRollups(), { id: 'a', localDay: day(1), confusions: { A: { B: 1 } } });
+    eq('applyEvent folds a confusion delta', r.confusions, { A: { B: 1 } });
+  }
+  {
+    const events = [
+      { id: 'a', localDay: day(1), confusions: { A: { B: 1 } } },
+      { id: 'b', localDay: day(1), confusions: { A: { B: 2 }, C: { D: 1 } } },
+    ];
+    const { rollups } = applyEvents(emptyRollups(), events, []);
+    eq('applyEvents sums confusion deltas across events', rollups.confusions, { A: { B: 3 }, C: { D: 1 } });
+  }
+  {
+    const r = applyEvent({ ...emptyRollups(), confusions: { A: { B: 1 } } }, { id: 'a', localDay: day(1), answered: 1, correct: 1 });
+    eq('an event without confusions leaves them untouched', r.confusions, { A: { B: 1 } });
+  }
+
+  // subtractConfusions (baseline = raw totals minus what's still queued).
+  eq('subtract removes queued counts', subtractConfusions({ A: { B: 3, C: 1 } }, { A: { B: 1 } }), { A: { B: 2, C: 1 } });
+  eq('subtract drops a pair that reaches zero', subtractConfusions({ A: { B: 1 } }, { A: { B: 1 } }), {});
+  eq('subtract clamps at zero', subtractConfusions({ A: { B: 1 } }, { A: { B: 5 } }), {});
+  eq('subtract with a missing delta returns the base', subtractConfusions({ A: { B: 2 } }, null), { A: { B: 2 } });
 }
 
 console.log('\\ntrimLedger');
