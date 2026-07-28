@@ -22,6 +22,14 @@
 //   npm run test:sync
 //   npx supabase stop
 //
+// AFTER ADDING OR CHANGING A MIGRATION, reset first — `supabase start` only
+// applies migrations when it first creates the DB, so an already-running stack
+// keeps the OLD schema and most tests fail with "row count: expected 1, got 0"
+// (the event insert silently fails on the missing column, so nothing lands):
+//
+//   npx supabase db reset       # re-applies ALL migrations to the local db
+//   npm run test:sync
+//
 // It reads SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY from
 // the environment, falling back to `supabase status`. If no instance is
 // reachable it SKIPS with exit code 0 rather than failing, so `npm test` still
