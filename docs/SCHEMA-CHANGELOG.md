@@ -85,7 +85,9 @@ The append-only `events` log needs neither rule bent: every client only ever
   `downloadedImages` (offline photo manifest — added additively 2026-07-27, no
   version bump; it self-heals if absent),
   `confusions` (confusion matrix `{ [correctKey]: { [chosenKey]: count } }` —
-  added additively 2026-07-27, device-local for now; not yet in the sync payload).
+  added additively 2026-07-27, device-local for now; not yet in the sync payload),
+  `confusionNotes` (`{ [pairKey]: text }` — the player's "my tell" notes, added
+  additively 2026-07-28, device-local).
 
 ---
 

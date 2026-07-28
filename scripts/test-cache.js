@@ -345,6 +345,23 @@ async function asyncTests() {
     await s.saveConfusions({ A: { B: 2 }, C: { D: 1 } });
     assert.deepEqual(await s.loadConfusions(), { A: { B: 2 }, C: { D: 1 } });
   });
+
+  // --- confusion notes ("my tell") ---
+  await tAsync('confusion notes are empty on a fresh store', async () => {
+    const s = load('src/storage.js', memKv());
+    assert.deepEqual(await s.loadConfusionNotes(), {});
+  });
+  await tAsync('saveConfusionNote stores a trimmed note', async () => {
+    const s = load('src/storage.js', memKv());
+    await s.saveConfusionNote('A B', '  toothed leaves  ');
+    assert.deepEqual(await s.loadConfusionNotes(), { 'A B': 'toothed leaves' });
+  });
+  await tAsync('a blank note removes the entry', async () => {
+    const s = load('src/storage.js', memKv());
+    await s.saveConfusionNote('A B', 'note');
+    await s.saveConfusionNote('A B', '   ');
+    assert.deepEqual(await s.loadConfusionNotes(), {});
+  });
 }
 
 asyncTests().then(() => {

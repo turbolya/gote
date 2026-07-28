@@ -19,7 +19,7 @@ import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonThumbs } from '../api';
 import { AnimatedBar, animateNextLayout } from '../components/anim';
 import { RecentGamesChart, AccuracyTrendChart } from '../components/charts';
-import { topConfusionPairs } from '../confusions';
+import { topConfusionPairs, pairKey } from '../confusions';
 
 
 // Row background tint endpoints: dark red for the lowest net score (correct −
@@ -146,7 +146,7 @@ function NemesisCell({ info }) {
   );
 }
 
-export default function StatsScreen({ species, cards = [], confusions = {}, lifetime, history = [], streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
+export default function StatsScreen({ species, cards = [], confusions = {}, confusionNotes = {}, onCompare, lifetime, history = [], streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const [sort, setSort] = useState('pct');
@@ -240,7 +240,7 @@ export default function StatsScreen({ species, cards = [], confusions = {}, life
     for (const p of topConfusionPairs(confusions, { min: 3, limit: 8 })) {
       const a = info(p.a);
       const b = info(p.b);
-      if (a && b) out.push({ key: p.a + ' ' + p.b, count: p.count, a, b });
+      if (a && b) out.push({ pairKey: pairKey(p.a, p.b), count: p.count, a, b });
     }
     return out;
   }, [confusions, cardByKey, species]);
@@ -427,21 +427,37 @@ export default function StatsScreen({ species, cards = [], confusions = {}, life
   const nemesisBlock = nemesis.length > 0 && (
     <View style={styles.chartCard}>
       <Text style={styles.chartTitle}>Species you mix up</Text>
-      {nemesis.map((p) => (
-        <View key={p.key} style={styles.nemesisRow}>
-          <View style={styles.nemesisPair}>
-            <NemesisCell info={p.a} />
-            <Text style={styles.nemesisVs}>vs</Text>
-            <NemesisCell info={p.b} />
-          </View>
-          <Text style={styles.nemesisCount}>
-            Mixed up {p.count} {p.count === 1 ? 'time' : 'times'}
-          </Text>
-        </View>
-      ))}
+      {nemesis.map((p) => {
+        const hasNote = !!confusionNotes[p.pairKey];
+        return (
+          <Pressable
+            key={p.pairKey}
+            testID={`stats-confusion-${p.pairKey}`}
+            onPress={() => onCompare && onCompare(p)}
+            style={({ pressed }) => [styles.nemesisRow, pressed && styles.cardRowPressed]}
+          >
+            <View style={styles.nemesisPair}>
+              <NemesisCell info={p.a} />
+              <Text style={styles.nemesisVs}>vs</Text>
+              <NemesisCell info={p.b} />
+            </View>
+            <View style={styles.nemesisFoot}>
+              <Text style={styles.nemesisCount}>
+                Mixed up {p.count} {p.count === 1 ? 'time' : 'times'}
+              </Text>
+              <View style={styles.nemesisFootRight}>
+                <Text style={[styles.nemesisCompare, hasNote && styles.nemesisCompareNote]}>
+                  {hasNote ? 'Your tell ✓' : 'Compare'}
+                </Text>
+                <Icon name="chevron-right" size={16} color={colors.muted} />
+              </View>
+            </View>
+          </Pressable>
+        );
+      })}
       <Text style={styles.chartCaption}>
-        Look-alikes you’ve picked for each other. Studying them side by side is the
-        fastest way to tell them apart.
+        Look-alikes you’ve picked for each other. Tap a pair to see them side by
+        side and jot down what tells them apart.
       </Text>
     </View>
   );
@@ -644,13 +660,16 @@ const makeStyles = (colors) => StyleSheet.create({
     color: colors.muted,
     textTransform: 'uppercase',
   },
-  nemesisCount: {
-    marginTop: 10,
-    textAlign: 'center',
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.primaryDark,
+  nemesisFoot: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
+  nemesisFootRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  nemesisCount: { fontSize: 13, fontWeight: '700', color: colors.primaryDark },
+  nemesisCompare: { fontSize: 13, fontWeight: '700', color: colors.muted },
+  nemesisCompareNote: { color: colors.primaryDark },
   emptyText: {
     textAlign: 'center',
     color: colors.muted,

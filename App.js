@@ -54,6 +54,8 @@ import {
   saveSpeciesStats,
   loadConfusions,
   saveConfusions,
+  loadConfusionNotes,
+  saveConfusionNote,
   resetStatistics,
   loadCache,
   saveCache,
@@ -102,6 +104,7 @@ import CustomScreen from './src/screens/CustomScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import StudyScreen from './src/screens/StudyScreen';
 import PickImageScreen from './src/screens/PickImageScreen';
+import CompareScreen from './src/screens/CompareScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
 import StatsScreen from './src/screens/StatsScreen';
 import LexiconScreen from './src/screens/LexiconScreen';
@@ -248,6 +251,10 @@ export default function App() {
   // so that screen stays mounted and its scroll position and filters are
   // preserved when the detail page is dismissed. null = no detail open.
   const [detailCard, setDetailCard] = useState(null);
+  // The confused pair currently open in the side-by-side comparison overlay, and
+  // the player's "my tell" notes (keyed by confusions.js pairKey).
+  const [comparePair, setComparePair] = useState(null);
+  const [confusionNotes, setConfusionNotes] = useState({});
 
   // Species the user has flagged, as a Set of taxon-id strings, scoped to the
   // current account. Mirrored in a ref so the game launchers (which filter by
@@ -549,10 +556,12 @@ export default function App() {
       // Seed the downloaded-photo manifest so an offline first screen can filter
       // the deck to cards that will actually render. Non-blocking for the rest.
       initDownloadedImages().then(() => setDlReady(true));
-      // Restore the confusion matrix so this session accumulates onto it.
+      // Restore the confusion matrix so this session accumulates onto it, and
+      // the "my tell" notes for the comparison view.
       loadConfusions().then((c) => {
         confusionRef.current = c || {};
       });
+      loadConfusionNotes().then((n) => setConfusionNotes(n || {}));
       const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedHistory, savedStreak, savedWatchTip] =
         await Promise.all([
           loadUsername(),
@@ -1368,6 +1377,8 @@ export default function App() {
             species={speciesStats}
             cards={fullDeck}
             confusions={confusionRef.current}
+            confusionNotes={confusionNotes}
+            onCompare={(item) => setComparePair(item)}
             lifetime={lifetime}
             history={history}
             streak={streakStatus(streak)}
@@ -1463,6 +1474,32 @@ export default function App() {
                   flags={flags}
                   onToggleFlag={toggleFlag}
                   onBack={() => setDetailCard(null)}
+                />
+              </Appear>
+            </SwipeBackView>
+          </SafeAreaView>
+        )}
+
+        {/* Side-by-side comparison for a confused pair — same overlay pattern as
+            the detail page, opened from the "Species you mix up" list. */}
+        {comparePair && (
+          <SafeAreaView style={styles.detailOverlay} edges={['top', 'bottom']}>
+            <SwipeBackView style={styles.flex} onBack={() => setComparePair(null)}>
+              <Appear style={styles.flex} offset={40} duration={300}>
+                <CompareScreen
+                  pair={comparePair}
+                  initialNote={confusionNotes[comparePair.pairKey] || ''}
+                  onSaveNote={(pairKey, text) => {
+                    saveConfusionNote(pairKey, text);
+                    setConfusionNotes((prev) => {
+                      const next = { ...prev };
+                      const t = (text || '').trim();
+                      if (t) next[pairKey] = t;
+                      else delete next[pairKey];
+                      return next;
+                    });
+                  }}
+                  onClose={() => setComparePair(null)}
                 />
               </Appear>
             </SwipeBackView>

@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.13';
+export const APP_VERSION = '2.29.14';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.14',
+    date: '2026-07-28',
+    changes: [
+      'Tap a pair in “Species you mix up” to see the two look-alikes side by '
+        + 'side and write your own note on what tells them apart — gote saves it '
+        + 'and shows it back to you next time.',
+    ],
+  },
   {
     version: '2.29.13',
     date: '2026-07-28',

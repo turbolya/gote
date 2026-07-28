@@ -7,7 +7,7 @@ const { execFileSync } = require('child_process');
 const src = path.join(__dirname, '..', 'src', 'confusions.js');
 
 const script = `
-import { topConfusionPairs } from ${JSON.stringify(src)};
+import { topConfusionPairs, pairKey } from ${JSON.stringify(src)};
 
 let passed = 0, failed = 0;
 function eq(name, actual, expected) {
@@ -48,6 +48,13 @@ console.log('\\ntopConfusionPairs');
   // Junk in, empty out.
   eq('survives junk', topConfusionPairs(null), []);
   eq('survives a junk row', topConfusionPairs({ A: 5, B: { C: 3 } }), [{ a: 'B', b: 'C', count: 3, aToB: 3, bToA: 0 }]);
+}
+
+console.log('\\npairKey');
+{
+  eq('is order-independent', pairKey('A', 'B'), pairKey('B', 'A'));
+  eq('sorts its parts', pairKey('B', 'A'), 'A B');
+  eq('coerces numbers to strings', pairKey(20, 3), pairKey(3, 20));
 }
 
 console.log('\\n' + passed + ' passed, ' + failed + ' failed');

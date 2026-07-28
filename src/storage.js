@@ -14,6 +14,9 @@ const K_SPECIES = '@gote/species';
 // the correct species → the wrongly-chosen species → count. See src/sync/merge.js
 // (addConfusion / mergeConfusions) for the shape and the (future) sync fold.
 const K_CONFUSIONS = '@gote/confusions';
+// Per-pair "my tell" notes the player writes to distinguish two look-alikes,
+// keyed by src/confusions.js pairKey → free text.
+const K_CONFUSION_NOTES = '@gote/confusionNotes';
 const K_CACHE = '@gote/obscache';
 const K_FLAGS = '@gote/flags';
 const K_HISTORY = '@gote/history';
@@ -226,6 +229,31 @@ export async function loadConfusions() {
 export async function saveConfusions(map) {
   try {
     await kv.setItem(K_CONFUSIONS, JSON.stringify(map || {}));
+  } catch {
+    /* ignore */
+  }
+}
+
+// The player's "my tell" notes: `{ [pairKey]: text }`. Empty/blank notes are
+// dropped so the map only holds real entries.
+export async function loadConfusionNotes() {
+  try {
+    const raw = await kv.getItem(K_CONFUSION_NOTES);
+    const obj = raw ? JSON.parse(raw) : {};
+    return obj && typeof obj === 'object' ? obj : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function saveConfusionNote(key, text) {
+  if (!key) return;
+  try {
+    const map = await loadConfusionNotes();
+    const t = (text || '').trim();
+    if (t) map[key] = t;
+    else delete map[key];
+    await kv.setItem(K_CONFUSION_NOTES, JSON.stringify(map));
   } catch {
     /* ignore */
   }
