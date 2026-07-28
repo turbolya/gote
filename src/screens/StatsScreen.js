@@ -19,6 +19,7 @@ import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonThumbs } from '../api';
 import { AnimatedBar, animateNextLayout } from '../components/anim';
 import { RecentGamesChart, AccuracyTrendChart } from '../components/charts';
+import { topConfusionPairs } from '../confusions';
 
 
 // Row background tint endpoints: dark red for the lowest net score (correct −
@@ -126,7 +127,26 @@ const CardStatRow = React.memo(function CardStatRow({ item, image, maxCount, tin
   a.tint === b.tint &&
   a.flagged === b.flagged);
 
-export default function StatsScreen({ species, cards = [], lifetime, history = [], streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
+// One species in a "you mix these up" pair: thumbnail + name.
+function NemesisCell({ info }) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <View style={styles.nemesisCell}>
+      {info.image ? (
+        <Image source={{ uri: info.image }} style={styles.nemesisThumb} resizeMode="cover" />
+      ) : (
+        <View style={[styles.nemesisThumb, styles.nemesisThumbPlaceholder]}>
+          <Icon name="image" size={16} color={colors.muted} />
+        </View>
+      )}
+      <Text style={styles.nemesisName} numberOfLines={2}>{info.name}</Text>
+      {!!info.sci && <Text style={styles.nemesisSci} numberOfLines={1}>{info.sci}</Text>}
+    </View>
+  );
+}
+
+export default function StatsScreen({ species, cards = [], confusions = {}, lifetime, history = [], streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const [sort, setSort] = useState('pct');
@@ -203,6 +223,27 @@ export default function StatsScreen({ species, cards = [], lifetime, history = [
       })),
     [species, cardByKey]
   );
+
+  // Top "you mix these up" pairs, with each species resolved to a name + thumb
+  // from the deck or the per-species tallies. Pairs we can't name locally (e.g. a
+  // By-picture distractor never seen as a card) are dropped for now — they'll
+  // resolve once confusions carry names / sync. Direction is folded together.
+  const nemesis = useMemo(() => {
+    const info = (key) => {
+      const dc = cardByKey[key];
+      if (dc) return { name: dc.common || dc.scientific, sci: dc.scientific, image: dc.image || null };
+      const s = species && species[key];
+      if (s && (s.name || s.sci)) return { name: s.name || s.sci, sci: s.sci || '', image: s.image || null };
+      return null;
+    };
+    const out = [];
+    for (const p of topConfusionPairs(confusions, { min: 3, limit: 8 })) {
+      const a = info(p.a);
+      const b = info(p.b);
+      if (a && b) out.push({ key: p.a + ' ' + p.b, count: p.count, a, b });
+    }
+    return out;
+  }, [confusions, cardByKey, species]);
 
   // Apply the "my observations" filter (default on).
   const filtered = useMemo(
@@ -381,11 +422,36 @@ export default function StatsScreen({ species, cards = [], lifetime, history = [
     </>
   );
 
+  // The look-alikes this player systematically swaps — surfaced so they can be
+  // studied as a pair. Shown only once there's a real pattern to act on.
+  const nemesisBlock = nemesis.length > 0 && (
+    <View style={styles.chartCard}>
+      <Text style={styles.chartTitle}>Species you mix up</Text>
+      {nemesis.map((p) => (
+        <View key={p.key} style={styles.nemesisRow}>
+          <View style={styles.nemesisPair}>
+            <NemesisCell info={p.a} />
+            <Text style={styles.nemesisVs}>vs</Text>
+            <NemesisCell info={p.b} />
+          </View>
+          <Text style={styles.nemesisCount}>
+            Mixed up {p.count} {p.count === 1 ? 'time' : 'times'}
+          </Text>
+        </View>
+      ))}
+      <Text style={styles.chartCaption}>
+        Look-alikes you’ve picked for each other. Studying them side by side is the
+        fastest way to tell them apart.
+      </Text>
+    </View>
+  );
+
   // List header: summary + the "By species" board controls (filter + sort).
   const listHeader = (
     <>
       {summaryBlock}
       {chartsBlock}
+      {nemesisBlock}
       <Text style={styles.boardTitle}>By species</Text>
 
       {/* Filter — a labelled "Show" row so it reads clearly as a filter (which
@@ -550,6 +616,41 @@ const makeStyles = (colors) => StyleSheet.create({
     marginBottom: 12,
   },
   chartCaption: { fontSize: 13, lineHeight: 18, color: colors.muted, marginTop: 12 },
+
+  // "Species you mix up" — one row per confused pair.
+  nemesisRow: {
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  // Two species cells with a centred "vs" between them.
+  nemesisPair: { flexDirection: 'row', alignItems: 'flex-start' },
+  nemesisCell: { flex: 1, alignItems: 'center' },
+  nemesisThumb: { width: 52, height: 52, borderRadius: 10, backgroundColor: colors.border },
+  nemesisThumbPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  nemesisName: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  nemesisSci: { fontSize: 11, fontStyle: 'italic', color: colors.muted, textAlign: 'center', marginTop: 1 },
+  nemesisVs: {
+    alignSelf: 'center',
+    marginHorizontal: 10,
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.muted,
+    textTransform: 'uppercase',
+  },
+  nemesisCount: {
+    marginTop: 10,
+    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primaryDark,
+  },
   emptyText: {
     textAlign: 'center',
     color: colors.muted,

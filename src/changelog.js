@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.12';
+export const APP_VERSION = '2.29.13';
 
 export const CHANGELOG = [
+  {
+    version: '2.29.13',
+    date: '2026-07-28',
+    changes: [
+      'Statistics has a new “Species you mix up” section: the look-alikes you '
+        + 'keep picking for each other, side by side, so you can spot the ones to '
+        + 'study together. It appears once a pattern shows up.',
+    ],
+  },
   {
     version: '2.29.12',
     date: '2026-07-27',

@@ -1367,6 +1367,7 @@ export default function App() {
           <StatsScreen
             species={speciesStats}
             cards={fullDeck}
+            confusions={confusionRef.current}
             lifetime={lifetime}
             history={history}
             streak={streakStatus(streak)}
@@ -1378,6 +1379,9 @@ export default function App() {
               await resetStatistics();
               speciesRef.current = {};
               setSpeciesStats({});
+              // Confusions are derived from play, so reset clears them too.
+              confusionRef.current = {};
+              saveConfusions({});
               setLifetime({ answered: 0, correct: 0 });
               setHistory([]);
               setStreak({ current: 0, longest: 0, lastActiveDay: null });

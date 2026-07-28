@@ -428,6 +428,7 @@ flowchart LR
 | `src/sync/*` | Optional cross-device sync — versioned events/settings (see `SCHEMA-CHANGELOG.md`) |
 | `src/quiz.js` | Distractor selection, pick-round building (pure) |
 | `src/lexicon.js` | Lexicon filter/sort/status (pure) |
+| `src/confusions.js` | Confusion-pair ranking for the "Species you mix up" view (pure) |
 | `src/theme.js` | Palette, accents, group-icon mapping |
 | `src/constants.js` | Speedrun lives, language list, defaults |
 | `src/screens/*` | One file per screen |
