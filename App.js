@@ -106,6 +106,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import StudyScreen from './src/screens/StudyScreen';
 import PickImageScreen from './src/screens/PickImageScreen';
 import CompareScreen from './src/screens/CompareScreen';
+import DuelScreen from './src/screens/DuelScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
 import StatsScreen from './src/screens/StatsScreen';
 import LexiconScreen from './src/screens/LexiconScreen';
@@ -255,6 +256,9 @@ export default function App() {
   // The confused pair currently open in the side-by-side comparison overlay, and
   // the player's "my tell" notes (keyed by confusions.js pairKey).
   const [comparePair, setComparePair] = useState(null);
+  // The confused pair currently open in the A/B duel drill (from the comparison's
+  // "Drill this pair"). null = no drill open.
+  const [duelPair, setDuelPair] = useState(null);
   const [confusionNotes, setConfusionNotes] = useState({});
 
   // Species the user has flagged, as a Set of taxon-id strings, scoped to the
@@ -1147,7 +1151,28 @@ export default function App() {
                 return next;
               });
             }}
+            onDrill={(p) => {
+              setComparePair(null);
+              setDuelPair(p);
+            }}
             onClose={() => setComparePair(null)}
+          />
+        </Appear>
+      </SwipeBackView>
+    </SafeAreaView>
+  );
+
+  // The A/B duel drill, opened from the comparison's "Drill this pair". Same
+  // overlay-on-top-of-any-screen pattern as the comparison, so it's reachable
+  // both from Stats and mid-round.
+  const renderDuelOverlay = () => (
+    <SafeAreaView style={styles.detailOverlay} edges={['top', 'bottom']}>
+      <SwipeBackView style={styles.flex} onBack={() => setDuelPair(null)}>
+        <Appear style={styles.flex} offset={40} duration={300}>
+          <DuelScreen
+            pair={duelPair}
+            note={confusionNotes[duelPair.pairKey] || ''}
+            onClose={() => setDuelPair(null)}
           />
         </Appear>
       </SwipeBackView>
@@ -1202,6 +1227,7 @@ export default function App() {
           />
         </Appear>
         {comparePair && renderCompareOverlay()}
+        {duelPair && renderDuelOverlay()}
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
       </SafeAreaProvider>
       </ThemeProvider>
@@ -1238,6 +1264,7 @@ export default function App() {
           />
         </Appear>
         {comparePair && renderCompareOverlay()}
+        {duelPair && renderDuelOverlay()}
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
       </SafeAreaProvider>
       </ThemeProvider>
@@ -1529,6 +1556,7 @@ export default function App() {
         {/* Side-by-side comparison for a confused pair — opened from the
             "Species you mix up" list (and the in-round callout). */}
         {comparePair && renderCompareOverlay()}
+        {duelPair && renderDuelOverlay()}
       </SafeAreaView>
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
       <SupportModal visible={showSupport} onClose={() => setShowSupport(false)} />

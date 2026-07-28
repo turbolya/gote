@@ -240,7 +240,7 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
     for (const p of topConfusionPairs(confusions, { min: 3, limit: 8 })) {
       const a = info(p.a);
       const b = info(p.b);
-      if (a && b) out.push({ pairKey: pairKey(p.a, p.b), count: p.count, a, b });
+      if (a && b) out.push({ pairKey: pairKey(p.a, p.b), count: p.count, a, b, aKey: String(p.a), bKey: String(p.b) });
     }
     return out;
   }, [confusions, cardByKey, species]);

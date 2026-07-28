@@ -9,6 +9,7 @@ import {
   Text,
   Image,
   TextInput,
+  Pressable,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -36,7 +37,7 @@ function SpeciesColumn({ info }) {
   );
 }
 
-export default function CompareScreen({ pair, initialNote = '', onSaveNote, onClose }) {
+export default function CompareScreen({ pair, initialNote = '', onSaveNote, onDrill, onClose }) {
   const styles = useThemedStyles(makeStyles);
   const colors = useColors();
   const [text, setText] = useState(initialNote || '');
@@ -51,6 +52,11 @@ export default function CompareScreen({ pair, initialNote = '', onSaveNote, onCl
   const close = () => {
     commit();
     onClose && onClose();
+  };
+  // Straight into the drill — save the note first so it can resurface there.
+  const drill = () => {
+    commit();
+    onDrill && onDrill(pair);
   };
 
   return (
@@ -96,6 +102,18 @@ export default function CompareScreen({ pair, initialNote = '', onSaveNote, onCl
             multiline
             textAlignVertical="top"
           />
+
+          {onDrill && (
+            <Pressable testID="compare-drill" style={styles.drillBtn} onPress={drill}>
+              <Icon name="repeat" size={18} color={colors.onPrimary} />
+              <Text style={styles.drillText}>Drill this pair</Text>
+            </Pressable>
+          )}
+          {onDrill && (
+            <Text style={styles.drillHint}>
+              A quick two-way drill — just these two, until you can call them apart.
+            </Text>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -164,5 +182,24 @@ const makeStyles = (colors) =>
       fontSize: 16,
       lineHeight: 22,
       padding: 14,
+    },
+
+    drillBtn: {
+      marginTop: 24,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      minHeight: 54,
+      borderRadius: 16,
+      backgroundColor: colors.primary,
+    },
+    drillText: { color: colors.onPrimary, fontSize: 17, fontWeight: '800' },
+    drillHint: {
+      marginTop: 10,
+      color: colors.muted,
+      fontSize: 13,
+      lineHeight: 18,
+      textAlign: 'center',
     },
   });

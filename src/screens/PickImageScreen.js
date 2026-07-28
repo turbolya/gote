@@ -104,6 +104,8 @@ export default function PickImageScreen({
             count: onConfusionCount(ck, chk),
             a: { name: correctOpt.name, sci: null, image: correctOpt.photo },
             b: { name: chosenOpt.name, sci: null, image: chosenOpt.photo },
+            aKey: ck,
+            bKey: chk,
           };
         })()
       : null;

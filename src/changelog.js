@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.29.16';
+export const APP_VERSION = '2.30.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.30.0',
+    date: '2026-07-28',
+    changes: [
+      'New “Drill this pair” — a quick two-way workout on the look-alikes you '
+        + 'keep swapping. Open a pair from “Species you mix up” (or the in-round '
+        + 'flag), tap Drill, and it shows one at a time until you can call them '
+        + 'apart six in a row. Your own tell resurfaces whenever you slip.',
+    ],
+  },
   {
     version: '2.29.16',
     date: '2026-07-28',

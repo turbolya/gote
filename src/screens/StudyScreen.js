@@ -274,6 +274,8 @@ export default function StudyScreen({
             count,
             a: infoOf(card),
             b: infoOf(chosenCard),
+            aKey: keyOf(card),
+            bKey: keyOf(chosenCard),
           };
         })()
       : null;
