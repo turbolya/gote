@@ -568,7 +568,9 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
       .select('data')
       .eq('user_id', userId)
       .maybeSingle();
-    eq(data.data['n:C D'], { text: 'grey bill', t: 5 }, "the other device's note is preserved");
+    // Field-by-field, not whole-object: jsonb returns keys in its own order.
+    eq(data.data['n:C D'].text, 'grey bill', "the other device's note is preserved");
+    eq(data.data['n:C D'].t, 5, "the other device's note keeps its timestamp");
     eq(data.data['n:A B'].text, 'toothed leaves', "this device's note is written");
 
     // Pulling folds the row's notes back into local storage (per-note merge).
@@ -601,7 +603,9 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     // Both flag keys survive the shallow-merge (independent top-level keys).
     const { data } = await a.client
       .from('settings').select('data').eq('user_id', userId).maybeSingle();
-    eq(data.data['f:leo:99'], { on: true, t: 5 }, "the other device's flag is preserved");
+    // Field-by-field, not whole-object: jsonb returns keys in its own order.
+    eq(data.data['f:leo:99'].on, true, "the other device's flag is preserved");
+    eq(data.data['f:leo:99'].t, 5, "the other device's flag keeps its timestamp");
     eq(data.data['f:leo:10'].on, true, "this device's flag is written");
 
     // Pull folds both into this account's local flags.
