@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.35.1';
+export const APP_VERSION = '2.35.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.35.2',
+    date: '2026-07-29',
+    changes: [
+      'The confusion “duel” drill now starts instantly — it opens straight on the '
+        + 'photos it already has instead of pausing on a “Setting up the drill…” '
+        + 'spinner while it fetches the rest.',
+    ],
+  },
   {
     version: '2.35.1',
     date: '2026-07-29',

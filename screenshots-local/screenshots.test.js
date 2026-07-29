@@ -232,16 +232,26 @@ describe('App Store screenshots', () => {
     await element(by.id('stats-confusion-0')).tap();
     await visible('compare-scroll');
     await shot('10-compare', 3500); // both curated photos load
-    // From the comparison, start the A/B duel drill.
+    // From the comparison, start the A/B duel drill. Wait on an answer button,
+    // not the "duel-screen" container: Detox's visibility check is unreliable on
+    // a full-screen view whose centre is fully covered by a child (here the
+    // photo), so toBeVisible() on the container can time out even though the
+    // screen is rendered. The choice button is a leaf Detox detects reliably.
     await step('duel', async () => {
       await tap('compare-drill');
-      await visible('duel-screen');
-      await shot('11-duel', 4000); // the duel fetches a fresh photo per side
+      await visible('duel-choice-a');
+      await shot('11-duel', 3000);
     });
   });
 
   it('12 — settings (fresh photo once mastered)', async () => {
-    await tap('open-settings');
+    // "Settings" sits below the fold on the menu — scroll it into view first.
+    await visible('menu-scroll');
+    await waitFor(element(by.id('open-settings')))
+      .toBeVisible()
+      .whileElement(by.id('menu-scroll'))
+      .scroll(320, 'down');
+    await element(by.id('open-settings')).tap();
     await visible('settings-scroll');
     // Bring the "Fresh photo once mastered" study option into view.
     await waitFor(element(by.id('setting-fresh-photos')))

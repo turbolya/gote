@@ -61,7 +61,11 @@ export default function DuelScreen({ pair, note = '', onClose }) {
   const fallbackA = pair && pair.a && pair.a.image ? [pair.a.image] : [];
   const fallbackB = pair && pair.b && pair.b.image ? [pair.b.image] : [];
   const [photos, setPhotos] = useState({ a: fallbackA, b: fallbackB });
-  const [loading, setLoading] = useState(true);
+  // Start the drill the instant we already have a thumbnail for each side — we
+  // always do, coming from the confusion list — so it's immediate and works
+  // offline; the fuller curated set swaps in when the background fetch resolves.
+  // Only show the spinner if a side has no photo to show yet.
+  const [loading, setLoading] = useState(!(fallbackA.length && fallbackB.length));
 
   const targetsRef = useRef([]); // history for nextTarget (not rendered)
   const timer = useRef(null);
