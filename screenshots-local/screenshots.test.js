@@ -42,6 +42,19 @@ const tap = async (id) => {
   await visible(id);
   await element(by.id(id)).tap();
 };
+// Tap a menu row that can sit below the fold on shorter screens (e.g. iPhone 17
+// vs Pro Max): scroll the menu until the row is visible, then tap. Deliberately
+// avoids toBeVisible on the "menu-scroll" container itself — Detox's visibility
+// check is unreliable on a scroll view whose centre is covered by its rows, and
+// that unreliability is layout-dependent (passes on tall screens, times out on
+// short ones). whileElement only needs to find the container to scroll it.
+const tapMenuRow = async (id) => {
+  await waitFor(element(by.id(id)))
+    .toBeVisible()
+    .whileElement(by.id('menu-scroll'))
+    .scroll(300, 'down');
+  await element(by.id(id)).tap();
+};
 const present = async (id, timeout = 6000) => {
   try {
     await waitFor(element(by.id(id))).toBeVisible().withTimeout(timeout * SETTLE);
@@ -161,7 +174,7 @@ describe('App Store screenshots', () => {
   });
 
   it('03 — lexicon, 04 — species detail', async () => {
-    await tap('open-lexicon');
+    await tapMenuRow('open-lexicon'); // below the fold on shorter screens
     await visible('lexicon-search');
     await shot('03-lexicon', 3000); // wait for row thumbnails
     if (TAXON_ID && TAXON_NAME) {
@@ -246,12 +259,7 @@ describe('App Store screenshots', () => {
 
   it('12 — settings (fresh photo once mastered)', async () => {
     // "Settings" sits below the fold on the menu — scroll it into view first.
-    await visible('menu-scroll');
-    await waitFor(element(by.id('open-settings')))
-      .toBeVisible()
-      .whileElement(by.id('menu-scroll'))
-      .scroll(320, 'down');
-    await element(by.id('open-settings')).tap();
+    await tapMenuRow('open-settings');
     await visible('settings-scroll');
     // Bring the "Fresh photo once mastered" study option into view.
     await waitFor(element(by.id('setting-fresh-photos')))
