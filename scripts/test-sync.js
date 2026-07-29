@@ -23,6 +23,7 @@ import {
   streakFromDays, mergeSettings, trimLedger,
   SETTINGS_PAYLOAD_VERSION, buildSettingsPayload, upgradeSettingsPayload,
   notesFromPayload, mergeNotes, displayNotes,
+  flagsFromPayload, mergeFlags, flaggedIds,
   addConfusion, mergeConfusions, subtractConfusions,
 } from ${JSON.stringify(src)};
 
@@ -232,6 +233,46 @@ console.log('\\nnotes payload (v2) + per-note merge');
   eq('displayNotes drops tombstones',
     displayNotes({ 'A B': { text: 'keep', t: 2 }, 'C D': { text: '', t: 3 } }),
     { 'A B': 'keep' });
+}
+
+console.log('\\nflags payload (v2, per-username) + per-flag merge');
+{
+  // Flags ride as f:<username>:<taxonId> keys, so switching accounts on a device
+  // never cross-contaminates. build spreads them; flagsFromPayload reads back the
+  // requested username only.
+  const flags = { 10: { on: true, t: 3 }, 20: { on: false, t: 7 } };
+  const payload = buildSettingsPayload({}, 'leo', null, flags);
+  eq('build spreads flags as f:<user>:<id> keys',
+    { a: payload['f:leo:10'], b: payload['f:leo:20'] },
+    { a: { on: true, t: 3 }, b: { on: false, t: 7 } });
+  eq('flagsFromPayload reads back this user only', flagsFromPayload(payload, 'leo'), flags);
+  eq('another user sees none of them', flagsFromPayload(payload, 'ada'), {});
+  eq('no flags ride without a username', buildSettingsPayload({}, null, null, { 10: { on: true, t: 1 } })['f::10'], undefined);
+
+  // Two accounts' flags coexist as separate keys (what protects the DB merge).
+  const both = { ...buildSettingsPayload({}, 'leo', null, { 10: { on: true, t: 1 } }),
+                 'f:ada:99': { on: true, t: 1 } };
+  eq('per-user keys keep accounts separate', flagsFromPayload(both, 'ada'), { 99: { on: true, t: 1 } });
+
+  // mergeFlags: latest toggle wins; a set on one device and clear on another
+  // resolve by time; a tie keeps the flag.
+  eq('a later toggle wins',
+    mergeFlags({ 10: { on: true, t: 1 } }, { 10: { on: false, t: 2 } }),
+    { 10: { on: false, t: 2 } });
+  eq('flags on different species both survive',
+    mergeFlags({ 10: { on: true, t: 1 } }, { 20: { on: true, t: 1 } }),
+    { 10: { on: true, t: 1 }, 20: { on: true, t: 1 } });
+  eq('an equal-time tie keeps the flag',
+    mergeFlags({ 10: { on: false, t: 5 } }, { 10: { on: true, t: 5 } }),
+    { 10: { on: true, t: 5 } });
+  eq('merge is order-independent',
+    mergeFlags({ 10: { on: false, t: 5 } }, { 10: { on: true, t: 5 } }),
+    mergeFlags({ 10: { on: true, t: 5 } }, { 10: { on: false, t: 5 } }));
+
+  // flaggedIds: the display shape — on:true only.
+  eq('flaggedIds lists the flagged, drops tombstones',
+    flaggedIds({ 10: { on: true, t: 2 }, 20: { on: false, t: 3 } }).sort(),
+    ['10']);
 }
 
 console.log('\\nconfusion matrix');

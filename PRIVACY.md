@@ -22,6 +22,7 @@ turn on Sync across devices.
 - Your gameplay statistics: rounds played, answers right and wrong, per-species
   tallies, accuracy history, and your daily streak
 - Your preferences: language for species names, theme, and the game filters
+- The species you've flagged (marked to revisit), per account
 - A cache of photo files, so cards work offline
 
 Deleting the app deletes all of it. You can also clear statistics at any time in
@@ -59,7 +60,8 @@ What is stored there:
   got right or wrong, and — when you pick the wrong option in a multiple-choice
   round — which look-alike species you confused for which. This is detailed —
   see "What your synced play history actually contains" below
-- Your preferences, and the iNaturalist username you entered
+- Your preferences, the iNaturalist username you entered, and the species you've
+  flagged to revisit (kept in step across your devices; the most recent change wins)
 - **Your email address, only if you choose to link devices.** It is used solely
   to recognise your devices as belonging to the same person. There is no
   password, and we do not email you anything other than your sign-in codes.

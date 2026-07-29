@@ -189,16 +189,40 @@ function normNote(v) {
   return null;
 }
 
+// Flags ride the same payload as `f:<username>:<taxonId>` keys, scoped by
+// username so switching accounts on a device never cross-contaminates. Each is
+// `{ on, t }` (t = last toggle ms; on:false is a tombstone so an *un*flag
+// propagates). Merged per flag by t (mergeFlags), like notes.
+const FLAG_PREFIX = 'f:';
+
+// Normalise a stored flag to `{ on, t }` — accepts the current shape, a legacy
+// bare boolean (t 0), or junk (→ null).
+function normFlag(v) {
+  if (v == null) return null;
+  if (typeof v === 'boolean') return { on: v, t: 0 };
+  if (typeof v === 'object') return { on: !!v.on, t: num(v.t) };
+  return null;
+}
+
 // Wrap the fields this client owns into the current payload shape. Only the
 // known keys are written; the server merge preserves any newer keys already
 // there. Notes are spread out as `n:<pairKey>` top-level keys (see above). Keep
 // this in lock-step with SETTINGS_PAYLOAD_VERSION.
-export function buildSettingsPayload(prefs, username, notes) {
-  const payload = { v: SETTINGS_PAYLOAD_VERSION, prefs: prefs || {}, username: username || null };
+export function buildSettingsPayload(prefs, username, notes, flags) {
+  const uname = username || null;
+  const payload = { v: SETTINGS_PAYLOAD_VERSION, prefs: prefs || {}, username: uname };
   const m = notes && typeof notes === 'object' ? notes : {};
   for (const k of Object.keys(m)) {
     const n = normNote(m[k]);
     if (n) payload[NOTE_PREFIX + k] = { text: n.text, t: n.t };
+  }
+  // Flags are per-username, so they only ride when we know the account name.
+  const f = flags && typeof flags === 'object' ? flags : {};
+  if (uname) {
+    for (const k of Object.keys(f)) {
+      const n = normFlag(f[k]);
+      if (n) payload[FLAG_PREFIX + uname + ':' + k] = { on: n.on, t: n.t };
+    }
   }
   return payload;
 }
@@ -281,6 +305,50 @@ export function displayNotes(map) {
     if (n && n.text) out[k] = n.text;
   }
   return out;
+}
+
+// Pull one username's flags back out of a settings blob (the inverse of the
+// spread in buildSettingsPayload): a canonical `{ [taxonId]: { on, t } }` map
+// from every `f:<username>:` key. A taxonId never contains a colon, so the
+// remainder after the prefix is exactly the id.
+export function flagsFromPayload(data, username) {
+  const d = data && typeof data === 'object' ? data : {};
+  const uname = username || '';
+  const out = {};
+  if (!uname) return out;
+  const pre = FLAG_PREFIX + uname + ':';
+  for (const k of Object.keys(d)) {
+    if (k.startsWith(pre)) {
+      const n = normFlag(d[k]);
+      if (n) out[k.slice(pre.length)] = n;
+    }
+  }
+  return out;
+}
+
+// Merge two flag maps per flag by timestamp (last toggle wins), so a flag set on
+// one device and cleared on another resolve by which happened later. On an exact
+// tie, "flagged" wins — order-independent, and it errs toward keeping a flag.
+export function mergeFlags(local, remote) {
+  const l = local && typeof local === 'object' ? local : {};
+  const r = remote && typeof remote === 'object' ? remote : {};
+  const out = {};
+  for (const k of new Set([...Object.keys(l), ...Object.keys(r)])) {
+    const a = normFlag(l[k]);
+    const b = normFlag(r[k]);
+    if (!a) { if (b) out[k] = b; continue; }
+    if (!b) { out[k] = a; continue; }
+    if (a.t > b.t) out[k] = a;
+    else if (b.t > a.t) out[k] = b;
+    else out[k] = a.on ? a : b; // equal t: keep the flag
+  }
+  return out;
+}
+
+// The display shape: the taxon ids currently flagged (on:true; tombstones drop).
+export function flaggedIds(map) {
+  const m = map && typeof map === 'object' ? map : {};
+  return Object.keys(m).filter((k) => { const n = normFlag(m[k]); return n && n.on; });
 }
 
 // --- confusion matrix -------------------------------------------------------

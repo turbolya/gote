@@ -63,7 +63,7 @@ import {
   saveCache,
   cacheMatches,
   loadFlags,
-  saveFlags,
+  saveFlag,
   loadHistory,
   addGameResult,
   loadStreak,
@@ -299,12 +299,20 @@ export default function App() {
     const key = String(taxonId);
     setFlags((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      saveFlags(usernameRef.current, [...next]);
+      const on = !next.has(key);
+      if (on) next.add(key);
+      else next.delete(key);
+      // Persist (stamped) then mirror to the settings row so the flag syncs.
+      // pushSettings is a no-op when sync is off.
+      saveFlag(usernameRef.current, key, on).then(() =>
+        pushSettings(
+          { perSpecies, locale, researchGrade, speciesOnly, themeMode },
+          usernameRef.current
+        )
+      );
       return next;
     });
-  }, []);
+  }, [perSpecies, locale, researchGrade, speciesOnly, themeMode]);
   const [deck, setDeck] = useState([]);
   const [index, setIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -532,9 +540,12 @@ export default function App() {
   const applyRemoteSettings = useCallback(
     (s) => {
       if (!s) return;
-      // Notes merge independently of the prefs last-write-wins, so adopt them
-      // even when only they changed (pullSettings may return notes alone).
+      // Notes and flags merge independently of the prefs last-write-wins, so
+      // adopt them even when only they changed (pullSettings may return them
+      // without prefs). On a username change, loadAccount below reloads the new
+      // account's flags from the just-merged storage, so skip the live set here.
       if (s.notes) setConfusionNotes(s.notes);
+      if (s.flags && !s.usernameChanged) setFlags(new Set(s.flags));
       if (!s.prefs) return;
       const p = s.prefs;
       if (typeof p.perSpecies === 'boolean') setPerSpecies(p.perSpecies);

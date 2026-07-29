@@ -64,18 +64,22 @@ The append-only `events` log needs neither rule bent: every client only ever
 ## Settings payload (`settings.data`)
 
 ### v2 — 2026-07-28
-- The player's "my tell" notes join the blob. Each note is its **own top-level
-  key** `n:<pairKey>` = `{ text, t }` (t = last-edit ms; empty `text` is a
-  tombstone so a delete propagates) — top-level so the DB v2 shallow-merge keeps
-  each note independent (a single `notes` object would let one device's edit
-  clobber another's). Notes merge **per note by `t`** (`mergeNotes`), NOT by the
-  whole-blob last-write-wins that governs `prefs` — so a note edited on another
-  device is adopted even when this device's prefs are newer.
-- Spread by `buildSettingsPayload(prefs, username, notes)`, read back by
-  `notesFromPayload()`; `displayNotes()` gives the `{ pairKey: text }` the UI reads.
-- No DB migration: notes are additive top-level keys on the existing row.
-- Legacy bare-string notes (`{ pairKey: "text" }`, pre-sync) upcast to
-  `{ text, t: 0 }`, so any real edit elsewhere wins over them.
+Two device-local concerns join the blob, each as its **own top-level key family**
+so the DB v2 shallow-merge keeps every entry independent (a single `notes`/`flags`
+object would let one device's edit clobber another's). Both merge **per entry by
+`t`** — NOT by the whole-blob last-write-wins that governs `prefs` — so an edit on
+another device is adopted even when this device's prefs are newer. No DB migration
+(additive top-level keys on the existing row).
+
+- **"My tell" notes** — key `n:<pairKey>` = `{ text, t }` (t = last-edit ms; empty
+  `text` is a tombstone so a delete propagates). Spread by `buildSettingsPayload`,
+  read by `notesFromPayload`, merged by `mergeNotes`; `displayNotes` gives the
+  `{ pairKey: text }` the UI reads. Legacy bare-string notes upcast to `{ text, t: 0 }`.
+- **Flags** — key `f:<username>:<taxonId>` = `{ on, t }` (t = last-toggle ms;
+  on:false is a tombstone so an *un*flag propagates). Scoped by username (flags are
+  per-account) so switching accounts on a device never cross-contaminates. Read by
+  `flagsFromPayload(data, username)`, merged by `mergeFlags` (tie → keep the flag);
+  `flaggedIds` gives the id list. Legacy array/boolean forms upcast to `{ on, t: 0 }`.
 
 ### v1 — 2026-07-27
 - Introduced the `v` version marker. Shape: `{ v: 1, prefs: {...}, username }`.

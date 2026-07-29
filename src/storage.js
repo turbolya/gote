@@ -574,28 +574,70 @@ async function loadFlagsMap() {
   return { map: {}, legacy: null };
 }
 
-export async function loadFlags(username) {
-  if (!username) return [];
-  const { map, legacy } = await loadFlagsMap();
-  if (Array.isArray(map[username])) return map[username].map(String);
-  // One-time migration of the old global flag list: adopt it into the FIRST
-  // account that loads and persist immediately (which rewrites storage into the
-  // per-account map form), so later accounts don't also inherit the old flags.
-  if (legacy && legacy.length) {
-    await saveFlags(username, legacy);
-    return legacy.map(String);
+// One username's flags, canonical: `{ [taxonId]: { on, t } }` (t = last toggle
+// ms; on:false is a tombstone kept so an *un*flag syncs). Accepts the legacy
+// array form `[id,…]` (all flagged, t 0) so old stores upcast. Notes-style, so
+// flags can ride the settings payload and merge per flag (src/sync/merge.js).
+function flagRecordOf(v) {
+  const out = {};
+  if (Array.isArray(v)) {
+    for (const id of v) out[String(id)] = { on: true, t: 0 };
+    return out;
   }
-  return [];
+  if (v && typeof v === 'object') {
+    for (const k of Object.keys(v)) {
+      const e = v[k];
+      if (typeof e === 'boolean') out[k] = { on: e, t: 0 };
+      else if (e && typeof e === 'object') out[k] = { on: !!e.on, t: Number(e.t) || 0 };
+    }
+  }
+  return out;
 }
 
-export async function saveFlags(username, taxonIds) {
+// The canonical record for a username (for sync). Upcasts the legacy array form
+// and folds in the pre-1.8.1 global flat list the first time an account loads.
+export async function loadFlagsRecord(username) {
+  if (!username) return {};
+  const { map, legacy } = await loadFlagsMap();
+  if (map[username] != null) return flagRecordOf(map[username]);
+  if (legacy && legacy.length) {
+    const rec = flagRecordOf(legacy);
+    await saveFlagsRecord(username, rec); // adopt into the per-account form once
+    return rec;
+  }
+  return {};
+}
+
+// The display shape the app reads: the taxon ids currently flagged (on:true).
+export async function loadFlags(username) {
+  const rec = await loadFlagsRecord(username);
+  return Object.keys(rec).filter((k) => rec[k] && rec[k].on);
+}
+
+// Overwrite one username's whole flag record (used after a sync merge).
+export async function saveFlagsRecord(username, record) {
   if (!username) return;
   try {
     const { map } = await loadFlagsMap();
-    map[username] = [...new Set((taxonIds || []).map(String))];
+    map[username] = record && typeof record === 'object' ? record : {};
     await kv.setItem(K_FLAGS, JSON.stringify(map));
   } catch {
     /* ignore — best-effort */
+  }
+}
+
+// Toggle one flag, stamped `now`. on:false is kept as a tombstone so the change
+// propagates through sync. Returns the new canonical record (so the caller can
+// push it).
+export async function saveFlag(username, taxonId, on, now = Date.now()) {
+  if (!username || taxonId == null) return null;
+  try {
+    const rec = await loadFlagsRecord(username);
+    rec[String(taxonId)] = { on: !!on, t: now };
+    await saveFlagsRecord(username, rec);
+    return rec;
+  } catch {
+    return null;
   }
 }
 

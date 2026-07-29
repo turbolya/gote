@@ -189,7 +189,7 @@ The core entity is a **card** (one observation, or one place-typical species):
 | `@gote/history`           | `number[]` (accuracy %, oldest→newest, cap 120)               | Menu accuracy chart |
 | `@gote/streak`            | `{ count, longest, … }`                                       | Daily streak |
 | `@gote/activeDays`        | `string[]` (YYYY-MM-DD)                                        | Days played — the streak's source of truth |
-| `@gote/flags`             | `{ [username]: [taxonId, …] }`                                | Flagged species, **per account** |
+| `@gote/flags`             | `{ [username]: { [taxonId]: { on, t } } }`                    | Flagged species, **per account**. Synced via the settings payload as `f:<username>:<taxonId>` keys, merged per flag by `t` (last toggle wins; on:false = tombstone). `loadFlags` gives the flagged-id list the UI reads |
 | `@gote/obscache`          | `{ version, username, locale, cards[], watermark, syncedAt }`  | Offline deck cache |
 | `@gote/downloadedImages`  | `string[]` (photo URLs, capped 1500)                          | Downloaded-photo manifest → offline deck filter (§7) |
 | `@gote/settingsStamp`     | number (ms epoch)                                             | Last local settings change — cross-device sync LWW |

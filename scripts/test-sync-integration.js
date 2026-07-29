@@ -578,6 +578,37 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     eq(local['A B'] && local['A B'].text, 'toothed leaves', 'kept this device note in local storage');
   });
 
+  await test("a flag rides the settings row (per username) and merges per flag", async () => {
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const userId = await a.sync.ensureSession();
+    await a.storage.saveUsername('leo');
+
+    // Another device already flagged species 99 for this account.
+    const seed = await a.client.from('settings').upsert(
+      {
+        user_id: userId,
+        data: { v: 2, prefs: {}, username: 'leo', 'f:leo:99': { on: true, t: 5 } },
+        updated_at: new Date(1000).toISOString(),
+      },
+      { onConflict: 'user_id' }
+    );
+    eq(seed.error, null, 'seed insert ok');
+
+    // This device flags a different species, then pushes.
+    await a.storage.saveFlag('leo', 10, true, 2000);
+    await a.sync.pushLocalSettings();
+
+    // Both flag keys survive the shallow-merge (independent top-level keys).
+    const { data } = await a.client
+      .from('settings').select('data').eq('user_id', userId).maybeSingle();
+    eq(data.data['f:leo:99'], { on: true, t: 5 }, "the other device's flag is preserved");
+    eq(data.data['f:leo:10'].on, true, "this device's flag is written");
+
+    // Pull folds both into this account's local flags.
+    await a.sync.pullSettings({ force: true });
+    eq((await a.storage.loadFlags('leo')).sort(), ['10', '99'], 'both flags land in local storage');
+  });
+
   // --- confusions ----------------------------------------------------------
   console.log('\nconfusions');
 

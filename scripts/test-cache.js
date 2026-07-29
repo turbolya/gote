@@ -384,6 +384,41 @@ async function asyncTests() {
     await s.saveConfusionWins({ 'A B': 4, 'C D': 1 });
     assert.deepEqual(await s.loadConfusionWins(), { 'A B': 4, 'C D': 1 });
   });
+
+  // --- flags — canonical { [taxonId]: { on, t } } per username, for sync ---
+  await tAsync('saveFlag stores a timestamped, per-account flag', async () => {
+    const s = load('src/storage.js', memKv());
+    await s.saveFlag('leo', 10, true, 1234);
+    assert.deepEqual(await s.loadFlagsRecord('leo'), { 10: { on: true, t: 1234 } });
+    assert.deepEqual(await s.loadFlags('leo'), ['10']);
+  });
+  await tAsync('unflagging keeps a tombstone (so the change syncs)', async () => {
+    const s = load('src/storage.js', memKv());
+    await s.saveFlag('leo', 10, true, 1);
+    await s.saveFlag('leo', 10, false, 2);
+    assert.deepEqual(await s.loadFlagsRecord('leo'), { 10: { on: false, t: 2 } });
+    assert.deepEqual(await s.loadFlags('leo'), []); // display drops tombstones
+  });
+  await tAsync('flags are scoped per username', async () => {
+    const s = load('src/storage.js', memKv());
+    await s.saveFlag('leo', 10, true, 1);
+    await s.saveFlag('ada', 20, true, 1);
+    assert.deepEqual(await s.loadFlags('leo'), ['10']);
+    assert.deepEqual(await s.loadFlags('ada'), ['20']);
+  });
+  await tAsync('a legacy array of ids upcasts to { on, t: 0 }', async () => {
+    const kv = memKv();
+    await kv.setItem('@gote/flags', JSON.stringify({ leo: ['10', '20'] }));
+    const s = load('src/storage.js', kv);
+    assert.deepEqual(await s.loadFlagsRecord('leo'), { 10: { on: true, t: 0 }, 20: { on: true, t: 0 } });
+    assert.deepEqual((await s.loadFlags('leo')).sort(), ['10', '20']);
+  });
+  await tAsync('the pre-1.8.1 global flat list folds into the first account', async () => {
+    const kv = memKv();
+    await kv.setItem('@gote/flags', JSON.stringify(['10', '20']));
+    const s = load('src/storage.js', kv);
+    assert.deepEqual((await s.loadFlags('leo')).sort(), ['10', '20']);
+  });
 }
 
 asyncTests().then(() => {

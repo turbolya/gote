@@ -24,6 +24,8 @@ import {
   saveConfusions,
   loadConfusionNotes,
   saveConfusionNotes,
+  loadFlagsRecord,
+  saveFlagsRecord,
   loadHistory,
   saveHistory,
   loadStreak,
@@ -74,6 +76,9 @@ import {
   notesFromPayload,
   mergeNotes,
   displayNotes,
+  flagsFromPayload,
+  mergeFlags,
+  flaggedIds,
   subtractConfusions,
 } from './merge';
 
@@ -163,16 +168,18 @@ export async function pushSettings(prefs, username, updatedAt = Date.now()) {
     const supabase = getClient();
     const userId = await ensureSession();
     if (!supabase || !userId) return;
-    // The "my tell" notes ride along as `n:<pairKey>` keys. Loaded here so every
-    // settings write carries the latest notes; the DB shallow-merge keeps each
-    // note key independent, so this never erases a note edited on another device.
+    // The "my tell" notes and flags ride along as `n:<pairKey>` / `f:<user>:<id>`
+    // keys. Loaded here so every settings write carries the latest; the DB
+    // shallow-merge keeps each key independent, so this never erases a note or
+    // flag changed on another device. Flags are per-username.
     const notes = await loadConfusionNotes();
+    const flags = username ? await loadFlagsRecord(username) : {};
     const { error } = await supabase.from('settings').upsert(
       {
         user_id: userId,
         // Versioned payload; only the keys this client owns. The DB shallow-
         // merges on write, so newer keys added by a later client survive.
-        data: buildSettingsPayload(prefs, username, notes),
+        data: buildSettingsPayload(prefs, username, notes, flags),
         updated_at: new Date(updatedAt).toISOString(),
       },
       { onConflict: 'user_id' }
@@ -619,10 +626,22 @@ export async function pullSettings({ force = false } = {}) {
       noteDisplay = displayNotes(merged);
     }
 
+    // Flags merge the same way, per flag, scoped to the account name in the blob.
+    const blobUsername = (data.data && data.data.username) || null;
+    const remoteFlags = flagsFromPayload(data.data, blobUsername);
+    let flagIds = null;
+    if (blobUsername && Object.keys(remoteFlags).length) {
+      const merged = mergeFlags(await loadFlagsRecord(blobUsername), remoteFlags);
+      await saveFlagsRecord(blobUsername, merged);
+      flagIds = flaggedIds(merged);
+    }
+
     const serverTs = Date.parse(data.updated_at) || 0;
     const localTs = await loadSettingsStamp();
-    // Prefs aren't newer: still surface any merged notes so the UI updates.
-    if (!force && serverTs <= localTs) return noteDisplay ? { notes: noteDisplay } : null;
+    // Prefs aren't newer: still surface any merged notes/flags so the UI updates.
+    if (!force && serverTs <= localTs) {
+      return noteDisplay || flagIds ? { notes: noteDisplay, flags: flagIds } : null;
+    }
 
     // Upcast whatever shape the server holds to the current one before reading,
     // so a blob written by an older (or newer) client is understood, not misread.
@@ -644,7 +663,7 @@ export async function pullSettings({ force = false } = {}) {
     await savePrefs(mergedPrefs);
     if (serverUsername) await saveUsername(serverUsername);
     await saveSettingsStamp(serverTs || Date.now());
-    return { prefs: mergedPrefs, username: serverUsername, usernameChanged, localeChanged, notes: noteDisplay };
+    return { prefs: mergedPrefs, username: serverUsername, usernameChanged, localeChanged, notes: noteDisplay, flags: flagIds };
   } catch {
     return null;
   }

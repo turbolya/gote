@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.33.0';
+export const APP_VERSION = '2.34.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.34.0',
+    date: '2026-07-28',
+    changes: [
+      'Flagged species now sync too: with sync on, the species you’ve flagged to '
+        + 'revisit are kept in step across your devices (flag on one, it’s flagged '
+        + 'on the others; unflag and it clears everywhere). Without sync, they stay '
+        + 'on each device as before.',
+    ],
+  },
   {
     version: '2.33.0',
     date: '2026-07-28',
