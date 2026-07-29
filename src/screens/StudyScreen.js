@@ -81,6 +81,8 @@ export default function StudyScreen({
   onCompare, // open the side-by-side comparison for a pair
   onNemesisPartners, // (key) => [partnerKey] — former mix-ups, to re-seed as distractors
   onVerifyStreak, // (pairKey) => current recovery streak, for the "verify the fix" callout
+  freshPhotos = false, // show a random official photo once a species is mastered
+  onIsMastered, // (key) => bool — whether this species is mastered (drives freshPhotos)
 }) {
   const insets = useSafeAreaInsets();
   const [flipped, setFlipped] = useState(false);
@@ -183,6 +185,16 @@ export default function StudyScreen({
   const [mapOpen, setMapOpen] = useState(false); // observation-location map modal
   const lastTapRef = useRef(0);
 
+  // Fresh-photo swap: once a species is mastered, show a random OFFICIAL photo
+  // instead of the player's own observation shot (so recognition is tested on the
+  // species, not one memorised picture). Fetched per appearance so it varies.
+  // `wantsFresh` gates it; `freshUri` is the chosen photo (null once resolved =
+  // fall back to the own photo, e.g. offline); `freshResolved` false = still
+  // fetching (we hide the own photo meanwhile so it isn't leaked).
+  const wantsFresh = !!(freshPhotos && card && onIsMastered && onIsMastered(keyOf(card)));
+  const [freshUri, setFreshUri] = useState(null);
+  const [freshResolved, setFreshResolved] = useState(() => !wantsFresh);
+
   // Press-and-hold the bare photo to "peek": the answer overlay (choices /
   // species name / grade buttons) slides up and out while held, then slides back
   // on release — so the panel never permanently hides the picture behind it.
@@ -209,7 +221,42 @@ export default function StudyScreen({
     setImgLoaded(false);
     setViewer(null);
     setMapOpen(false);
+    setFreshUri(null);
+    setFreshResolved(!wantsFresh); // pending a fetch only when a fresh photo is wanted
   }
+
+  // Fetch the official photos for a mastered species and pick one at random.
+  // Best-effort: on failure/none, freshUri stays null and we fall back to the
+  // player's own photo. Keyed on card identity so it re-picks each appearance.
+  useEffect(() => {
+    if (!wantsFresh || !card) return undefined;
+    let alive = true;
+    (async () => {
+      let uri = null;
+      try {
+        const photos = await fetchTaxonPhotos(card.taxonId, 8);
+        if (Array.isArray(photos) && photos.length) {
+          uri = photos[Math.floor(Math.random() * photos.length)];
+        }
+      } catch {
+        /* offline / no photos → fall back to the own photo */
+      }
+      if (!alive) return;
+      setFreshUri(uri);
+      setFreshResolved(true);
+      if (uri) setGallery([uri]);
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shownKey, wantsFresh]);
+
+  // The photo actually shown: the fresh official one when resolved (falling back
+  // to the own photo), the own photo when fresh isn't wanted, or null while a
+  // fresh photo is still loading (so the own photo isn't briefly leaked).
+  const photoUri = wantsFresh ? (freshResolved ? freshUri || card.image : null) : card && card.image;
+  const photoLoading = wantsFresh && !freshResolved;
 
   // Speedrun: once the photo is ready, count down SPEEDRUN_VIEW_MS, then reveal
   // the choices automatically. A broken image (imgError) counts as "ready" so a
@@ -361,20 +408,30 @@ export default function StudyScreen({
             duration={300}
             pointerEvents="none"
           >
-            <Image
-              source={{ uri: card.image }}
-              style={StyleSheet.absoluteFill}
-              resizeMode="cover"
-              blurRadius={30}
-            />
-            <View style={styles.fsBackdropScrim} />
-            <Image
-              source={{ uri: card.image }}
-              style={StyleSheet.absoluteFill}
-              resizeMode="contain"
-              onLoad={() => setImgLoaded(true)}
-              onError={() => setImgError(true)}
-            />
+            {photoLoading ? (
+              // Fetching a mastered species' fresh photo — hold on a neutral
+              // backdrop rather than flashing the player's own (memorised) shot.
+              <View style={[StyleSheet.absoluteFill, styles.freshLoading]}>
+                <ActivityIndicator size="large" color={ON_DARK} />
+              </View>
+            ) : (
+              <>
+                <Image
+                  source={{ uri: photoUri }}
+                  style={StyleSheet.absoluteFill}
+                  resizeMode="cover"
+                  blurRadius={30}
+                />
+                <View style={styles.fsBackdropScrim} />
+                <Image
+                  source={{ uri: photoUri }}
+                  style={StyleSheet.absoluteFill}
+                  resizeMode="contain"
+                  onLoad={() => setImgLoaded(true)}
+                  onError={() => setImgError(true)}
+                />
+              </>
+            )}
             {/* Speedrun: cover the photo while guessing so it only "flashed". */}
             {hidePhoto && (
               <View style={[StyleSheet.absoluteFill, styles.hiddenPhoto]}>
@@ -749,6 +806,7 @@ const styles = StyleSheet.create({
   fsFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1A1D1A' },
   // Speedrun: opaque cover over the photo while guessing (the photo only flashed).
   hiddenPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#13160F' },
+  freshLoading: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#13160F' },
   // Speedrun countdown pie, floated in the top-right corner.
   pieCorner: { position: 'absolute', right: 18, zIndex: 6 },
 

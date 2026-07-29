@@ -12,6 +12,17 @@ export const APP_VERSION = '2.34.0';
 
 export const CHANGELOG = [
   {
+    version: '2.35.0',
+    date: '2026-07-29',
+    changes: [
+      'New optional setting, “Fresh photo once mastered”: once you reliably know '
+        + 'a species (5+ correct and 80%+ right), gote studies it on a random '
+        + 'official photo instead of your own observation — so you’re recognising '
+        + 'the species, not memorising one picture. Off by default; turn it on '
+        + 'under Settings → Study options.',
+    ],
+  },
+  {
     version: '2.34.0',
     date: '2026-07-28',
     changes: [

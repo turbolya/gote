@@ -92,6 +92,7 @@ import { addConfusion, displayNotes } from './src/sync/merge';
 import { pairCount, pairKey, nemesisPartners } from './src/confusions';
 import { verifyStreak, recordVerifyWin, recordVerifyMiss } from './src/verify';
 import { scheduleDeck } from './src/schedule';
+import { isMastered } from './src/mastery';
 import {
   prefetchImages,
   prefetchDeck,
@@ -175,6 +176,10 @@ export default function App() {
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
   const [researchGrade, setResearchGrade] = useState(false);
   const [speciesOnly, setSpeciesOnly] = useState(false);
+  // Optional: once you've mastered a species (src/mastery.js), show a random
+  // official photo instead of your own observation shot — so recognition is
+  // tested on the species, not one memorised picture. Off by default.
+  const [freshPhotos, setFreshPhotos] = useState(false);
 
   // Theme: 'light' | 'dark' | 'system'. The active palette is provided to the
   // whole tree via ThemeProvider; styles read it through useThemedStyles.
@@ -192,13 +197,13 @@ export default function App() {
   const onThemeModeChange = useCallback(
     (mode) => {
       setThemeMode(mode);
-      const next = { perSpecies, locale, researchGrade, speciesOnly, themeMode: mode };
+      const next = { perSpecies, locale, researchGrade, speciesOnly, freshPhotos, themeMode: mode };
       savePrefs(next);
       // Pass the username too: the server settings row is one blob per user, so
       // omitting it here would overwrite the stored username with null.
       pushSettings(next, username);
     },
-    [perSpecies, locale, researchGrade, speciesOnly, username]
+    [perSpecies, locale, researchGrade, speciesOnly, freshPhotos, username]
   );
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ loaded: 0, total: 0 });
@@ -306,13 +311,13 @@ export default function App() {
       // pushSettings is a no-op when sync is off.
       saveFlag(usernameRef.current, key, on).then(() =>
         pushSettings(
-          { perSpecies, locale, researchGrade, speciesOnly, themeMode },
+          { perSpecies, locale, researchGrade, speciesOnly, freshPhotos, themeMode },
           usernameRef.current
         )
       );
       return next;
     });
-  }, [perSpecies, locale, researchGrade, speciesOnly, themeMode]);
+  }, [perSpecies, locale, researchGrade, speciesOnly, freshPhotos, themeMode]);
   const [deck, setDeck] = useState([]);
   const [index, setIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -552,6 +557,7 @@ export default function App() {
       if (p.locale) setLocale(p.locale);
       if (typeof p.researchGrade === 'boolean') setResearchGrade(p.researchGrade);
       if (typeof p.speciesOnly === 'boolean') setSpeciesOnly(p.speciesOnly);
+      if (typeof p.freshPhotos === 'boolean') setFreshPhotos(p.freshPhotos);
       if (p.themeMode) setThemeMode(p.themeMode);
       if (s.username) setUsername(s.username);
       prefsRef.current = {
@@ -617,11 +623,13 @@ export default function App() {
       const loc = (savedPrefs && savedPrefs.locale) || DEFAULT_LOCALE;
       const rg = !!(savedPrefs && savedPrefs.researchGrade);
       const so = !!(savedPrefs && savedPrefs.speciesOnly);
+      const fp = !!(savedPrefs && savedPrefs.freshPhotos);
       const tm = (savedPrefs && savedPrefs.themeMode) || 'system';
       setPerSpecies(ps);
       setLocale(loc);
       setResearchGrade(rg);
       setSpeciesOnly(so);
+      setFreshPhotos(fp);
       setThemeMode(tm);
       // Seed the ref now: the startup background sync fires before React re-renders
       // with these values, and must filter by the saved prefs, not the defaults.
@@ -1008,6 +1016,11 @@ export default function App() {
   // Reads the ref so it's always current within a round (state props can be stale).
   const confusionCount = useCallback((a, b) => pairCount(confusionRef.current, a, b), []);
 
+  // Whether a species is mastered (src/mastery.js). Reads the live per-species
+  // ref so a card mastered earlier this round already counts. Drives the optional
+  // fresh-photo swap on the study screen.
+  const isSpeciesMastered = useCallback((key) => isMastered(speciesRef.current[key]), []);
+
   // "Verify the fix" helpers, read from the refs so they stay current mid-round.
   // - partners: the former-nemesis keys for a species, so StudyScreen can seed
   //   the old look-alike back in as a distractor.
@@ -1198,7 +1211,7 @@ export default function App() {
               // Persist (stamped now) then mirror to the settings row so the note
               // syncs across devices. pushSettings is a no-op when sync is off.
               saveConfusionNote(pairKey, text).then(() =>
-                pushSettings({ perSpecies, locale, researchGrade, speciesOnly, themeMode }, username)
+                pushSettings({ perSpecies, locale, researchGrade, speciesOnly, freshPhotos, themeMode }, username)
               );
               setConfusionNotes((prev) => {
                 const next = { ...prev };
@@ -1280,6 +1293,8 @@ export default function App() {
             onNemesisPartners={nemesisPartnersFor}
             onVerifyStreak={verifyStreakFor}
             onCompare={(item) => setComparePair(item)}
+            freshPhotos={freshPhotos}
+            onIsMastered={isSpeciesMastered}
             onQuit={() =>
               finishRound(correctCount, missed, correctCount + missed.length)
             }
@@ -1430,6 +1445,7 @@ export default function App() {
             locale={locale}
             researchGrade={researchGrade}
             speciesOnly={speciesOnly}
+            freshPhotos={freshPhotos}
             themeMode={themeMode}
             onThemeModeChange={onThemeModeChange}
             error={error}
@@ -1448,6 +1464,7 @@ export default function App() {
               setLocale(prefs.locale);
               setResearchGrade(prefs.researchGrade);
               setSpeciesOnly(prefs.speciesOnly);
+              setFreshPhotos(!!prefs.freshPhotos);
               // Keep the ref current immediately (a re-download triggers a sync
               // that filters via prefsRef before this render's state commits).
               prefsRef.current = {

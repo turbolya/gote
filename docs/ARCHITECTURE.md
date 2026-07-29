@@ -180,7 +180,7 @@ The core entity is a **card** (one observation, or one place-typical species):
 | Key                       | Shape                                                          | Purpose |
 |---------------------------|----------------------------------------------------------------|---------|
 | `@gote/username`          | string                                                         | Last account |
-| `@gote/prefs`             | `{ perSpecies, locale, researchGrade, speciesOnly, themeMode }`| Study options + theme |
+| `@gote/prefs`             | `{ perSpecies, locale, researchGrade, speciesOnly, freshPhotos, themeMode }`| Study options + theme |
 | `@gote/stats`             | `{ answered, correct }`                                        | Lifetime totals |
 | `@gote/species`           | `{ [taxonId]: { name, sci, known, missed } }`                 | Per-species tallies (Stats, Lexicon status) |
 | `@gote/confusions`        | `{ [correctKey]: { [chosenKey]: count } }`                    | Confusion matrix — species the player mixes up (synced via the events `confusions` delta) |
@@ -434,6 +434,7 @@ flowchart LR
 | `src/duel.js` | A/B duel-drill sequencing + mastery logic — which look-alike to show next, when the pair is "split reliably" (pure) |
 | `src/verify.js` | "Verify the fix" recovery-streak reducers — count correct answers on a former-nemesis pair, reset on relapse (pure; nemesis detection is `confusions.js` nemesisPartners) |
 | `src/schedule.js` | Spaced-repetition input — `scheduleDeck` biases sampled rounds (Custom/Flash) so unresolved mix-ups + their partner resurface, damped by the recovery streak (pure) |
+| `src/mastery.js` | `isMastered(entry)` — a species is mastered at ≥5 correct and ≥80% accuracy; drives the optional fresh-photo swap on the study screen (pure) |
 | `src/theme.js` | Palette, accents, group-icon mapping |
 | `src/constants.js` | Speedrun lives, language list, defaults |
 | `src/screens/*` | One file per screen |

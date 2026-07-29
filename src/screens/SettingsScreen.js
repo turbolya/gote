@@ -153,6 +153,7 @@ export default function SettingsScreen({
   locale: initialLocale,
   researchGrade: initialResearchGrade,
   speciesOnly: initialSpeciesOnly,
+  freshPhotos: initialFreshPhotos,
   themeMode,
   onThemeModeChange,
   error,
@@ -173,6 +174,7 @@ export default function SettingsScreen({
   const [locale, setLocale] = useState(initialLocale || DEFAULT_LOCALE);
   const [researchGrade, setResearchGrade] = useState(!!initialResearchGrade);
   const [speciesOnly, setSpeciesOnly] = useState(!!initialSpeciesOnly);
+  const [freshPhotos, setFreshPhotos] = useState(!!initialFreshPhotos);
 
   // Local photo-cache size; null while measuring.
   const [cacheBytes, setCacheBytes] = useState(null);
@@ -200,7 +202,7 @@ export default function SettingsScreen({
   const canSave = username.trim().length > 0;
   const submit = () =>
     canSave &&
-    onSave(username.trim(), { perSpecies, locale, researchGrade, speciesOnly });
+    onSave(username.trim(), { perSpecies, locale, researchGrade, speciesOnly, freshPhotos });
 
   // Leaving Settings applies the current settings too — otherwise language /
   // filter changes made without pressing "Load observations" would be silently
@@ -362,6 +364,15 @@ export default function SettingsScreen({
             onValueChange={setSpeciesOnly}
             disabled={researchGrade}
             dim={researchGrade}
+          />
+          <View style={styles.sep} />
+          <SwitchRow
+            icon="sparkles-outline"
+            accent={accents.violet}
+            label="Fresh photo once mastered"
+            hint="When you know a species well (5+ correct, 80%+), study it on a random official photo instead of your own — so you learn the species, not the picture."
+            value={freshPhotos}
+            onValueChange={setFreshPhotos}
           />
         </View>
 
