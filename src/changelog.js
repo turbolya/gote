@@ -8,9 +8,24 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.34.0';
+export const APP_VERSION = '2.35.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.35.1',
+    date: '2026-07-29',
+    changes: [
+      'Fixed “Research grade only”: research grade is a community-verification '
+        + 'signal, not a taxonomic rank — an observation can be research grade at '
+        + 'genus level when the community agrees it can’t be narrowed any further. '
+        + 'gote no longer treats “Research grade only” as if it also meant '
+        + '“identified to species”. The two are now independent toggles you can '
+        + 'combine: switch on both to get community-verified observations that are '
+        + 'also identified to an exact species. If you use “Research grade only” on '
+        + 'its own, your deck may now include some research-grade genus-level cards '
+        + 'it was quietly leaving out before.',
+    ],
+  },
   {
     version: '2.35.0',
     date: '2026-07-29',

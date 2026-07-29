@@ -96,15 +96,16 @@ t('applyFilters: perSpecies keeps one per taxon', () => {
   assert.equal(out.length, 2);
   assert.deepEqual(out.map((c) => c.taxonId), [10, 20]);
 });
-t('applyFilters: researchGrade drops non-research / non-species', () => {
+t('applyFilters: researchGrade keeps community-verified at any rank', () => {
+  // Research grade is a quality signal, not a rank one: a research-grade genus
+  // (community agreed it can't be improved) must be kept, not dropped.
   const cards = [
     card({ id: 'a', qualityGrade: 'research', rank: 'species' }),
     card({ id: 'b', qualityGrade: 'needs_id', rank: 'species', taxonId: 11 }),
     card({ id: 'c', qualityGrade: 'research', rank: 'genus', taxonId: 12 }),
   ];
   const out = applyFilters(cards, { researchGrade: true });
-  assert.equal(out.length, 1);
-  assert.equal(out[0].id, 'a');
+  assert.deepEqual(out.map((c) => c.id).sort(), ['a', 'c']); // both research-grade
 });
 t('applyFilters: combined research + perSpecies', () => {
   const cards = [
@@ -143,12 +144,14 @@ t('applyFilters: speciesOnly falls back to rank string when rankLevel missing', 
   const out = applyFilters(cards, { perSpecies: false, speciesOnly: true });
   assert.deepEqual(out.map((c) => c.id), ['a']);
 });
-t('applyFilters: researchGrade takes precedence over speciesOnly', () => {
+t('applyFilters: researchGrade + speciesOnly compose (research AND species)', () => {
+  // The two filters are orthogonal; together they keep only cards that are both
+  // community-verified AND identified to an exact species.
   const cards = [
-    card({ id: 'a', rank: 'species', qualityGrade: 'research' }),
-    card({ id: 'b', rank: 'species', taxonId: 11, qualityGrade: 'needs_id' }),
+    card({ id: 'a', rank: 'species', qualityGrade: 'research' }),               // both → kept
+    card({ id: 'b', rank: 'species', taxonId: 11, qualityGrade: 'needs_id' }),  // not research → dropped
+    card({ id: 'c', rank: 'genus', taxonId: 12, qualityGrade: 'research' }),    // not species → dropped
   ];
-  // Both flags on → research-grade is the stricter one and wins.
   const out = applyFilters(cards, { researchGrade: true, speciesOnly: true });
   assert.equal(out.length, 1);
   assert.equal(out[0].id, 'a');

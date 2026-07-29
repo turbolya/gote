@@ -317,20 +317,25 @@ function isSpeciesOrFiner(card) {
 
 // Apply the local display filters to cached cards. These used to be query
 // params; making them local means toggling them never re-downloads.
-//   - researchGrade:  keep only research-grade cards identified to species
-//   - speciesOnly:    keep only cards identified to species (any grade)
+//   - researchGrade:  keep only community-verified (research-grade) cards.
+//                     This is a quality signal, INDEPENDENT of taxonomic rank:
+//                     an observation can be research grade at genus level when
+//                     the community agrees it can't be identified any further.
+//                     So research grade does NOT imply "identified to species".
+//   - speciesOnly:    keep only cards identified to an exact species (or finer),
+//                     regardless of quality grade.
 //   - perSpecies:     keep one card per taxon (first wins)
+// researchGrade and speciesOnly are orthogonal — when both are on they compose
+// (community-verified AND identified to an exact species).
 export function applyFilters(
   cards,
   { perSpecies = true, researchGrade = false, speciesOnly = false } = {},
 ) {
   let out = cards;
   if (researchGrade) {
-    out = out.filter(
-      (c) => c.qualityGrade === "research" && isSpeciesOrFiner(c),
-    );
-  } else if (speciesOnly) {
-    // Looser than research-grade: exact species identification, any quality.
+    out = out.filter((c) => c.qualityGrade === "research");
+  }
+  if (speciesOnly) {
     out = out.filter(isSpeciesOrFiner);
   }
   if (perSpecies) {

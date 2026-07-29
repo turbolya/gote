@@ -346,7 +346,7 @@ export default function SettingsScreen({
             icon="ribbon-outline"
             accent={accents.amber}
             label="Research grade only"
-            hint="Only community-verified observations identified to an exact species."
+            hint="Only community-verified observations. These can still be identified to a genus — research grade doesn’t always mean an exact species."
             value={researchGrade}
             onValueChange={setResearchGrade}
           />
@@ -355,15 +355,9 @@ export default function SettingsScreen({
             icon="pricetag-outline"
             accent={accents.teal}
             label="Identified to species"
-            hint={
-              researchGrade
-                ? 'Already included by “Research grade only”.'
-                : 'Only observations identified to an exact species (any grade).'
-            }
-            value={researchGrade || speciesOnly}
+            hint="Only observations identified to an exact species, at any grade. Combine with “Research grade only” for community-verified species."
+            value={speciesOnly}
             onValueChange={setSpeciesOnly}
-            disabled={researchGrade}
-            dim={researchGrade}
           />
           <View style={styles.sep} />
           <SwitchRow
