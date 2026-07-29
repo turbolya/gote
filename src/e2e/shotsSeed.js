@@ -19,7 +19,15 @@
 // it from regenerating (and from clobbering the real round the test then plays).
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { saveSpeciesStats, saveStats, saveHistory, saveStreak } from '../storage';
+import {
+  saveSpeciesStats,
+  saveStats,
+  saveHistory,
+  saveStreak,
+  saveConfusions,
+  saveConfusionNote,
+} from '../storage';
+import { pairKey } from '../confusions';
 
 // Marker is per-username: the capture run briefly loads the default account
 // before switching to the real one, and the per-species stats must key to the
@@ -89,6 +97,32 @@ function buildSpecies(deckCards) {
   return { species, sumKnown, sumAttempts };
 }
 
+// A handful of "you mix these up" pairs from the real deck's taxon ids, so the
+// Statistics "Species you mix up" list, the side-by-side comparison and the A/B
+// duel drill all have real content (thumbnails + names) in the screenshots.
+// Pairs are consecutive deck cards; counts are all >= the floor (3) so every
+// pair surfaces, split across both directions so they read as mutual mix-ups.
+function buildConfusions(deckCards) {
+  const cards = (deckCards || []).filter((c) => c && c.taxonId != null).slice(0, 12);
+  const counts = [6, 5, 4, 4, 3, 3];
+  const confusions = {};
+  const add = (from, to, n) => {
+    if (n <= 0) return;
+    confusions[from] = { ...(confusions[from] || {}), [to]: n };
+  };
+  const pairs = [];
+  for (let i = 0; i + 1 < cards.length && i / 2 < counts.length; i += 2) {
+    const a = String(cards[i].taxonId);
+    const b = String(cards[i + 1].taxonId);
+    const n = counts[i / 2];
+    const ab = Math.ceil(n / 2);
+    add(a, b, ab); // shown a, chose b
+    add(b, a, n - ab); // shown b, chose a
+    pairs.push([a, b]);
+  }
+  return { confusions, pairs };
+}
+
 // A believable accuracy history: overall improvement, but genuinely uneven.
 // A plain rising line + small independent noise reads as synthetic, and worse,
 // independent noise AVERAGES OUT — so the trend line (a running average) comes
@@ -139,6 +173,7 @@ export async function seedScreenshotStats(deckCards, username) {
 
   const { species, sumKnown, sumAttempts } = buildSpecies(deckCards);
   const history = buildHistory();
+  const { confusions, pairs } = buildConfusions(deckCards);
 
   // Lifetime totals: the per-species attempts plus a chunk of extra volume for
   // "past decks / Nearby rounds" (species not in the current deck), so the hero
@@ -164,11 +199,17 @@ export async function seedScreenshotStats(deckCards, username) {
   await saveStats(lifetime);
   await saveHistory(history);
   await saveStreak(streak);
+  await saveConfusions(confusions);
+  // A "your tell" note on the top pair, so the comparison shows a real note and
+  // the Statistics row reads "Your tell ✓".
+  if (pairs.length) {
+    await saveConfusionNote(pairKey(pairs[0][0], pairs[0][1]), 'Bill is longer and all-dark — the other one shows an orange base.');
+  }
   try {
     await AsyncStorage.setItem(marker, '1');
   } catch {
     /* best-effort */
   }
 
-  return { species, lifetime, history, streak };
+  return { species, lifetime, history, streak, confusions };
 }

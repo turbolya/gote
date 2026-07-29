@@ -427,12 +427,12 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
   const nemesisBlock = nemesis.length > 0 && (
     <View style={styles.chartCard}>
       <Text style={styles.chartTitle}>Species you mix up</Text>
-      {nemesis.map((p) => {
+      {nemesis.map((p, idx) => {
         const hasNote = !!confusionNotes[p.pairKey];
         return (
           <Pressable
             key={p.pairKey}
-            testID={`stats-confusion-${p.pairKey}`}
+            testID={`stats-confusion-${idx}`}
             onPress={() => onCompare && onCompare(p)}
             style={({ pressed }) => [styles.nemesisRow, pressed && styles.cardRowPressed]}
           >

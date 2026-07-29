@@ -206,4 +206,48 @@ describe('App Store screenshots', () => {
     await visible('study-screen');
     await shot('07-speedrun', 1600);
   });
+
+  // Confusion lessons: the "Species you mix up" list on Statistics, the
+  // side-by-side comparison, and the A/B duel drill — all fed by the seeded
+  // confusion pairs (src/e2e/shotsSeed.js).
+  it('09 — species you mix up', async () => {
+    await tap('menu-stats');
+    await visible('stats-scroll');
+    // Scroll the confusion section into view (it sits below the per-species board).
+    await waitFor(element(by.id('stats-confusion-0')))
+      .toBeVisible()
+      .whileElement(by.id('stats-scroll'))
+      .scroll(350, 'down');
+    await shot('09-mixups', 2500); // let the pair thumbnails resolve
+  });
+
+  it('10 — compare, 11 — duel drill', async () => {
+    await tap('menu-stats');
+    await visible('stats-scroll');
+    await waitFor(element(by.id('stats-confusion-0')))
+      .toBeVisible()
+      .whileElement(by.id('stats-scroll'))
+      .scroll(350, 'down');
+    // Open the side-by-side comparison for the top mix-up pair.
+    await element(by.id('stats-confusion-0')).tap();
+    await visible('compare-scroll');
+    await shot('10-compare', 3500); // both curated photos load
+    // From the comparison, start the A/B duel drill.
+    await step('duel', async () => {
+      await tap('compare-drill');
+      await visible('duel-screen');
+      await shot('11-duel', 4000); // the duel fetches a fresh photo per side
+    });
+  });
+
+  it('12 — settings (fresh photo once mastered)', async () => {
+    await tap('open-settings');
+    await visible('settings-scroll');
+    // Bring the "Fresh photo once mastered" study option into view.
+    await waitFor(element(by.id('setting-fresh-photos')))
+      .toBeVisible()
+      .whileElement(by.id('settings-scroll'))
+      .scroll(300, 'down');
+    await shot('12-settings', 1500);
+  });
 });

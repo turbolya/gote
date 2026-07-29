@@ -109,11 +109,11 @@ function Tile({ icon, accent, dim }) {
 }
 
 // A labelled switch row inside a section card.
-function SwitchRow({ icon, accent, label, hint, value, onValueChange, disabled, dim }) {
+function SwitchRow({ icon, accent, label, hint, value, onValueChange, disabled, dim, testID }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   return (
-    <View style={styles.row}>
+    <View style={styles.row} testID={testID}>
       <Tile icon={icon} accent={accent} dim={dim} />
       <View style={styles.flex}>
         <Text style={[styles.rowLabel, dim && styles.rowLabelDim]}>{label}</Text>
@@ -367,6 +367,7 @@ export default function SettingsScreen({
           />
           <View style={styles.sep} />
           <SwitchRow
+            testID="setting-fresh-photos"
             icon="sparkles-outline"
             accent={accents.violet}
             label="Fresh photo once mastered"

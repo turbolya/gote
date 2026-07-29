@@ -701,6 +701,8 @@ export default function App() {
       setLifetime(seed.lifetime);
       setHistory(seed.history);
       setStreak(seed.streak);
+      if (seed.confusions) confusionRef.current = seed.confusions;
+      loadConfusionNotes().then((n) => setConfusionNotes(displayNotes(n)));
     });
   }, [fullDeck, username]);
 
