@@ -214,34 +214,6 @@ title: false
     .wshot figure { border-radius: 26px; }
   }
 
-  /* what's new — the two latest shipped features, as a compact pair of cards.
-     Deliberately set just above the roadmap so the page reads shipped-now,
-     then planned-next. Cards (not bare rows) since these have no screenshot. */
-  .whatsnew { max-width: 940px; margin: 64px auto 0; padding: 0 20px; }
-  .whatsnew > h2 { text-align: center; font-size: clamp(1.6rem, 3.6vw, 2.1rem); letter-spacing: -.025em; margin: 0 0 8px; }
-  .whatsnew > .lead { text-align: center; color: var(--muted); font-size: 1.05rem; max-width: 40ch; margin: 0 auto 38px; line-height: 1.5; }
-  .new-grid {
-    list-style: none; padding: 0; margin: 0;
-    display: grid; gap: 22px; grid-template-columns: repeat(2, 1fr);
-  }
-  .new-card {
-    border-radius: 22px;
-    padding: clamp(24px, 3.4vw, 34px);
-    background: var(--card);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-  }
-  .new-card .tag {
-    display: inline-flex; align-items: center;
-    font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
-    color: var(--brand-strong);
-    background: color-mix(in srgb, var(--brand) 13%, transparent);
-    padding: 5px 11px; border-radius: 999px; margin: 0 0 16px;
-  }
-  .new-card h3 { margin: 0 0 9px; font-size: 1.24rem; letter-spacing: -.015em; }
-  .new-card p { margin: 0; color: var(--muted); font-size: 1.04rem; line-height: 1.56; }
-  @media (max-width: 680px) { .new-grid { grid-template-columns: 1fr; } }
-
   /* roadmap — a spare panel of planned features, set apart from the live ones */
   .roadmap { max-width: 1000px; margin: 80px auto 0; padding: 0 20px; }
   .roadmap-inner {
@@ -465,12 +437,25 @@ title: false
 
   <div class="frow">
     <div class="frow-media">
-      <figure><img src="/assets/screenshots/stats.jpg" alt="gote statistics — accuracy, a daily streak, and an accuracy trend line" loading="lazy" width="640" height="1390"></figure>
+      <figure><img src="/assets/screenshots/confusion.jpg" alt="gote statistics — an accuracy trend line above a “Species you mix up” list of look-alike pairs" loading="lazy" width="640" height="1390"></figure>
     </div>
     <div class="frow-text">
       <h2>Feel yourself getting sharper</h2>
-      <p>A daily streak to keep, a line that climbs as you play, and your own
-      accuracy for every species you’ve met.</p>
+      <p>An accuracy line that climbs as you play — and, right below it, the exact
+      species pairs you keep mixing up, spotted from your own answers.</p>
+    </div>
+  </div>
+
+  <div class="frow">
+    <div class="frow-media">
+      <figure><img src="/assets/screenshots/duel.jpg" alt="gote duel drill — one photo with two look-alike species names to choose between" loading="lazy" width="640" height="1390"></figure>
+    </div>
+    <div class="frow-text">
+      <h2>Advanced learning features</h2>
+      <p>Turn your weak spots into practice. gote drills the species you keep
+      confusing two-up — one photo, two names — until you can call them apart. And
+      once you know a species cold, it can swap in a fresh official photo, so
+      you’re learning the species itself, not memorising one picture.</p>
     </div>
   </div>
 
@@ -495,27 +480,6 @@ title: false
       every iNaturalist observer around that spot, not just your own records.</p>
     </div>
   </div>
-</section>
-
-<section class="whatsnew qfade">
-  <h2>New in gote</h2>
-  <p class="lead">Two fresh ways to learn — already in the app.</p>
-  <ul class="new-grid">
-    <li class="new-card">
-      <span class="tag">New</span>
-      <h3>Master the species you mix up</h3>
-      <p>gote finds the pairs you keep confusing and turns them into a lesson —
-      study them side by side, drill them head-to-head, and jot down your own
-      tell so the difference finally sticks.</p>
-    </li>
-    <li class="new-card">
-      <span class="tag">New</span>
-      <h3>A fresh photo once it clicks</h3>
-      <p>Name a species reliably and gote quietly swaps in a different official
-      photo — so you’re learning the species itself, not memorising one picture.
-      Optional, with a single toggle in Settings.</p>
-    </li>
-  </ul>
 </section>
 
 <p class="modes qfade">
