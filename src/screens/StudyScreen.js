@@ -38,6 +38,10 @@ import { colors } from '../theme';
 import { SPEEDRUN_LIVES, SPEEDRUN_VIEW_MS } from '../constants';
 import { IS_E2E } from '../e2e/testMode';
 
+// Generic loading spinner shown over a card while its photo downloads. Placeholder
+// art — intended to be swapped for a newt-themed animation later.
+const SPINNER_GIF = require('../../assets/spinner.gif');
+
 const NUM_CHOICES = 5;
 const ON_DARK = '#FFFFFF';
 const ON_DARK_DIM = 'rgba(255,255,255,0.78)';
@@ -412,7 +416,7 @@ export default function StudyScreen({
               // Fetching a mastered species' fresh photo — hold on a neutral
               // backdrop rather than flashing the player's own (memorised) shot.
               <View style={[StyleSheet.absoluteFill, styles.freshLoading]}>
-                <ActivityIndicator size="large" color={ON_DARK} />
+                <Image source={SPINNER_GIF} style={styles.spinnerImg} resizeMode="contain" />
               </View>
             ) : (
               <>
@@ -430,6 +434,15 @@ export default function StudyScreen({
                   onLoad={() => setImgLoaded(true)}
                   onError={() => setImgError(true)}
                 />
+                {/* Spinner over the card until its photo has finished loading. */}
+                {!imgLoaded && !imgError && (
+                  <View
+                    style={[StyleSheet.absoluteFill, styles.photoSpinnerWrap]}
+                    pointerEvents="none"
+                  >
+                    <Image source={SPINNER_GIF} style={styles.spinnerImg} resizeMode="contain" />
+                  </View>
+                )}
               </>
             )}
             {/* Speedrun: cover the photo while guessing so it only "flashed". */}
@@ -807,6 +820,10 @@ const styles = StyleSheet.create({
   // Speedrun: opaque cover over the photo while guessing (the photo only flashed).
   hiddenPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#13160F' },
   freshLoading: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#13160F' },
+  // Loading-spinner overlay + its sizing (used for both the normal photo load
+  // and the fresh-photo fetch).
+  photoSpinnerWrap: { alignItems: 'center', justifyContent: 'center' },
+  spinnerImg: { width: 56, height: 56 },
   // Speedrun countdown pie, floated in the top-right corner.
   pieCorner: { position: 'absolute', right: 18, zIndex: 6 },
 
