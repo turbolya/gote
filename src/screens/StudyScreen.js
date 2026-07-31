@@ -40,7 +40,7 @@ import { IS_E2E } from '../e2e/testMode';
 
 // Generic loading spinner shown over a card while its photo downloads. Placeholder
 // art — intended to be swapped for a newt-themed animation later.
-const SPINNER_GIF = require('../../assets/spinner.gif');
+const SPINNER_GIF = require('../../assets/gote-spinner.gif');
 
 const NUM_CHOICES = 5;
 const ON_DARK = '#FFFFFF';
