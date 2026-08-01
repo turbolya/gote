@@ -147,3 +147,29 @@ features):
 No formal standard was set, but color contrast is a demonstrated commitment (the
 app ships a contrast test), and the website is theme-aware for light and dark.
 Future web work should keep text and interactive contrast legible in both themes.
+
+## Parking Lot
+
+Ideas noted but not scheduled — no commitment, revisit when the trigger below hits.
+
+### Supabase free-tier storage headroom
+Context (measured 2026-08-01): the append-only `events` log costs **~1.2 KB per
+finished round** (12 species with names + iNat photo URLs, indexes + TOAST
+included; no vacuum bloat since the table has no UPDATE/DELETE). The free tier's
+500 MB holds **~350k rounds ever** (cumulative — rounds are never deleted), which
+is 1–3+ years for a small engaged base but only weeks-to-months past ~500–1,000
+regularly-active users. Levers, cheapest first:
+
+- **Anonymous-user cleanup.** Every install that turns on sync mints an anonymous
+  `auth.users` row; signing in on a second device orphans one, and Supabase never
+  deletes them. A scheduled job removing anonymous users with no email and no
+  recent activity keeps the auth schema from quietly dominating the 500 MB.
+- **Event compaction — the real scaling lever.** The accuracy chart only shows the
+  last 120 bars, and totals/species/confusions/days are all cumulative, so a
+  trusted server-side job (`pg_cron`) can fold each user's *old* rounds into their
+  baseline (sum totals, keep the last 120 bars + all days) and delete the folded
+  rows — turning unbounded growth into bounded per-user storage. The history/days
+  baseline (events payload v3, 2026-08-01) is the vehicle for this.
+- **Store photo IDs, not full URLs**, in the `species` delta and rebuild the URL
+  client-side: ~40% smaller blobs (~0.7 KB/round).
+- Fallback: Pro tier ($25/mo) → 8 GB, ~16× the headroom.
