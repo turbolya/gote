@@ -324,12 +324,16 @@ function isSpeciesOrFiner(card) {
 //                     So research grade does NOT imply "identified to species".
 //   - speciesOnly:    keep only cards identified to an exact species (or finer),
 //                     regardless of quality grade.
+//   - namedOnly:      keep only cards that have a common name in the deck's
+//                     language. A card's `common` is null when iNaturalist has no
+//                     name for that taxon in the selected locale, so the card
+//                     would otherwise show only its scientific (Latin) name.
 //   - perSpecies:     keep one card per taxon (first wins)
-// researchGrade and speciesOnly are orthogonal — when both are on they compose
-// (community-verified AND identified to an exact species).
+// researchGrade, speciesOnly and namedOnly are orthogonal — when several are on
+// they compose (all conditions must hold).
 export function applyFilters(
   cards,
-  { perSpecies = true, researchGrade = false, speciesOnly = false } = {},
+  { perSpecies = true, researchGrade = false, speciesOnly = false, namedOnly = false } = {},
 ) {
   let out = cards;
   if (researchGrade) {
@@ -337,6 +341,9 @@ export function applyFilters(
   }
   if (speciesOnly) {
     out = out.filter(isSpeciesOrFiner);
+  }
+  if (namedOnly) {
+    out = out.filter((c) => typeof c.common === "string" && c.common.length > 0);
   }
   if (perSpecies) {
     const seen = new Set();

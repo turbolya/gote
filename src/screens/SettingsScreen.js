@@ -23,7 +23,7 @@ import {
 } from 'react-native';
 import { APP_VERSION } from '../changelog';
 import { useTheme, useColors, useThemedStyles } from '../theme';
-import { DEFAULT_LOCALE } from '../constants';
+import { DEFAULT_LOCALE, languageByCode } from '../constants';
 import { getCacheSize, clearCache, formatBytes } from '../cache';
 import { clearDownloadedManifest } from '../prefetch';
 import Icon from '../components/Icon';
@@ -153,6 +153,7 @@ export default function SettingsScreen({
   locale: initialLocale,
   researchGrade: initialResearchGrade,
   speciesOnly: initialSpeciesOnly,
+  namedOnly: initialNamedOnly,
   freshPhotos: initialFreshPhotos,
   themeMode,
   onThemeModeChange,
@@ -174,6 +175,7 @@ export default function SettingsScreen({
   const [locale, setLocale] = useState(initialLocale || DEFAULT_LOCALE);
   const [researchGrade, setResearchGrade] = useState(!!initialResearchGrade);
   const [speciesOnly, setSpeciesOnly] = useState(!!initialSpeciesOnly);
+  const [namedOnly, setNamedOnly] = useState(!!initialNamedOnly);
   const [freshPhotos, setFreshPhotos] = useState(!!initialFreshPhotos);
 
   // Local photo-cache size; null while measuring.
@@ -202,7 +204,7 @@ export default function SettingsScreen({
   const canSave = username.trim().length > 0;
   const submit = () =>
     canSave &&
-    onSave(username.trim(), { perSpecies, locale, researchGrade, speciesOnly, freshPhotos });
+    onSave(username.trim(), { perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos });
 
   // Leaving Settings applies the current settings too — otherwise language /
   // filter changes made without pressing "Load observations" would be silently
@@ -377,6 +379,17 @@ export default function SettingsScreen({
           stays in English).
         </Text>
         <LanguageDropdown value={locale} onChange={setLocale} />
+        <View style={[styles.card, styles.cardSpaced]}>
+          <SwitchRow
+            testID="setting-named-only"
+            icon="language-outline"
+            accent={accents.rose}
+            label={`Only species named in ${languageByCode(locale).name}`}
+            hint={`Hides cards with no ${languageByCode(locale).name} name, so you never study a species shown only by its scientific (Latin) name.`}
+            value={namedOnly}
+            onValueChange={setNamedOnly}
+          />
+        </View>
 
         {/* Appearance — an app-wide preference, kept out of the deck-setup flow
             above rather than wedged into the middle of it. */}

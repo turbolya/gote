@@ -176,6 +176,10 @@ export default function App() {
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
   const [researchGrade, setResearchGrade] = useState(false);
   const [speciesOnly, setSpeciesOnly] = useState(false);
+  // Optional: keep only cards that have a common name in the selected language,
+  // hiding taxa iNaturalist has no localized name for (which would otherwise show
+  // only their scientific name). Off by default.
+  const [namedOnly, setNamedOnly] = useState(false);
   // Optional: once you've mastered a species (src/mastery.js), show a random
   // official photo instead of your own observation shot — so recognition is
   // tested on the species, not one memorised picture. Off by default.
@@ -197,13 +201,13 @@ export default function App() {
   const onThemeModeChange = useCallback(
     (mode) => {
       setThemeMode(mode);
-      const next = { perSpecies, locale, researchGrade, speciesOnly, freshPhotos, themeMode: mode };
+      const next = { perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode: mode };
       savePrefs(next);
       // Pass the username too: the server settings row is one blob per user, so
       // omitting it here would overwrite the stored username with null.
       pushSettings(next, username);
     },
-    [perSpecies, locale, researchGrade, speciesOnly, freshPhotos, username]
+    [perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, username]
   );
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ loaded: 0, total: 0 });
@@ -249,10 +253,10 @@ export default function App() {
   // the first render, when these were still at their useState defaults. Without
   // this, the startup sync re-derived the deck with default filters and clobbered
   // the correctly-filtered count (e.g. showed 171 instead of 107 research-grade).
-  const prefsRef = useRef({ perSpecies, researchGrade, speciesOnly });
+  const prefsRef = useRef({ perSpecies, researchGrade, speciesOnly, namedOnly });
   useEffect(() => {
-    prefsRef.current = { perSpecies, researchGrade, speciesOnly };
-  }, [perSpecies, researchGrade, speciesOnly]);
+    prefsRef.current = { perSpecies, researchGrade, speciesOnly, namedOnly };
+  }, [perSpecies, researchGrade, speciesOnly, namedOnly]);
   // Sync status for the Settings UI: { state: idle|syncing|done|error, syncedAt, message }
   const [sync, setSync] = useState({ state: 'idle', syncedAt: null, message: null });
   // The card whose detail page is open, rendered as an overlay ON TOP of the
@@ -311,13 +315,13 @@ export default function App() {
       // pushSettings is a no-op when sync is off.
       saveFlag(usernameRef.current, key, on).then(() =>
         pushSettings(
-          { perSpecies, locale, researchGrade, speciesOnly, freshPhotos, themeMode },
+          { perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode },
           usernameRef.current
         )
       );
       return next;
     });
-  }, [perSpecies, locale, researchGrade, speciesOnly, freshPhotos, themeMode]);
+  }, [perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode]);
   const [deck, setDeck] = useState([]);
   const [index, setIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -394,6 +398,7 @@ export default function App() {
       perSpecies: prefs.perSpecies,
       researchGrade: prefs.researchGrade,
       speciesOnly: prefs.speciesOnly,
+      namedOnly: prefs.namedOnly,
     });
     setFullDeck(filtered);
     return filtered;
@@ -557,6 +562,7 @@ export default function App() {
       if (p.locale) setLocale(p.locale);
       if (typeof p.researchGrade === 'boolean') setResearchGrade(p.researchGrade);
       if (typeof p.speciesOnly === 'boolean') setSpeciesOnly(p.speciesOnly);
+      if (typeof p.namedOnly === 'boolean') setNamedOnly(p.namedOnly);
       if (typeof p.freshPhotos === 'boolean') setFreshPhotos(p.freshPhotos);
       if (p.themeMode) setThemeMode(p.themeMode);
       if (s.username) setUsername(s.username);
@@ -564,12 +570,14 @@ export default function App() {
         perSpecies: !!p.perSpecies,
         researchGrade: !!p.researchGrade,
         speciesOnly: !!p.speciesOnly,
+        namedOnly: !!p.namedOnly,
       };
       const filterPrefs = {
         perSpecies: !!p.perSpecies,
         locale: p.locale || locale,
         researchGrade: !!p.researchGrade,
         speciesOnly: !!p.speciesOnly,
+        namedOnly: !!p.namedOnly,
       };
       if (s.usernameChanged || s.localeChanged) {
         if (s.localeChanged) clearTaxonCache();
@@ -623,17 +631,19 @@ export default function App() {
       const loc = (savedPrefs && savedPrefs.locale) || DEFAULT_LOCALE;
       const rg = !!(savedPrefs && savedPrefs.researchGrade);
       const so = !!(savedPrefs && savedPrefs.speciesOnly);
+      const no = !!(savedPrefs && savedPrefs.namedOnly);
       const fp = !!(savedPrefs && savedPrefs.freshPhotos);
       const tm = (savedPrefs && savedPrefs.themeMode) || 'system';
       setPerSpecies(ps);
       setLocale(loc);
       setResearchGrade(rg);
       setSpeciesOnly(so);
+      setNamedOnly(no);
       setFreshPhotos(fp);
       setThemeMode(tm);
       // Seed the ref now: the startup background sync fires before React re-renders
       // with these values, and must filter by the saved prefs, not the defaults.
-      prefsRef.current = { perSpecies: ps, researchGrade: rg, speciesOnly: so };
+      prefsRef.current = { perSpecies: ps, researchGrade: rg, speciesOnly: so, namedOnly: no };
       // Cross-device sync. A no-op unless the build carries Supabase
       // credentials (src/sync/config.js). Fired here, once local state is
       // seeded, so anything folded in from another device isn't clobbered by
@@ -656,7 +666,7 @@ export default function App() {
         setUsername('e2e-tester');
         rawCardsRef.current = E2E_CARDS;
         watermarkRef.current = null;
-        applyCurrentFilters({ perSpecies: ps, researchGrade: rg, speciesOnly: so });
+        applyCurrentFilters({ perSpecies: ps, researchGrade: rg, speciesOnly: so, namedOnly: no });
         setScreen('menu');
         return;
       }
@@ -664,7 +674,7 @@ export default function App() {
         setUsername(savedUser);
         loadAccount(
           savedUser,
-          { perSpecies: ps, locale: loc, researchGrade: rg, speciesOnly: so },
+          { perSpecies: ps, locale: loc, researchGrade: rg, speciesOnly: so, namedOnly: no },
           savedCache
         );
       } else {
@@ -676,7 +686,7 @@ export default function App() {
         setUsername(DEFAULT_USERNAME);
         fullDownload(
           DEFAULT_USERNAME,
-          { perSpecies: ps, locale: loc, researchGrade: rg, speciesOnly: so },
+          { perSpecies: ps, locale: loc, researchGrade: rg, speciesOnly: so, namedOnly: no },
           { landOn: 'settings' }
         );
       }
@@ -1213,7 +1223,7 @@ export default function App() {
               // Persist (stamped now) then mirror to the settings row so the note
               // syncs across devices. pushSettings is a no-op when sync is off.
               saveConfusionNote(pairKey, text).then(() =>
-                pushSettings({ perSpecies, locale, researchGrade, speciesOnly, freshPhotos, themeMode }, username)
+                pushSettings({ perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode }, username)
               );
               setConfusionNotes((prev) => {
                 const next = { ...prev };
@@ -1447,6 +1457,7 @@ export default function App() {
             locale={locale}
             researchGrade={researchGrade}
             speciesOnly={speciesOnly}
+            namedOnly={namedOnly}
             freshPhotos={freshPhotos}
             themeMode={themeMode}
             onThemeModeChange={onThemeModeChange}
@@ -1466,6 +1477,7 @@ export default function App() {
               setLocale(prefs.locale);
               setResearchGrade(prefs.researchGrade);
               setSpeciesOnly(prefs.speciesOnly);
+              setNamedOnly(!!prefs.namedOnly);
               setFreshPhotos(!!prefs.freshPhotos);
               // Keep the ref current immediately (a re-download triggers a sync
               // that filters via prefsRef before this render's state commits).
@@ -1473,6 +1485,7 @@ export default function App() {
                 perSpecies: prefs.perSpecies,
                 researchGrade: prefs.researchGrade,
                 speciesOnly: prefs.speciesOnly,
+                namedOnly: !!prefs.namedOnly,
               };
               savePrefs({ ...prefs, themeMode });
               // The username is the first arg, not a field on `prefs`

@@ -156,6 +156,27 @@ t('applyFilters: researchGrade + speciesOnly compose (research AND species)', ()
   assert.equal(out.length, 1);
   assert.equal(out[0].id, 'a');
 });
+t('applyFilters: namedOnly keeps cards with a localized common name', () => {
+  // A card's `common` is null when iNaturalist has no name for that taxon in the
+  // selected language, so it would show only its scientific name. namedOnly drops
+  // exactly those.
+  const cards = [
+    card({ id: 'a', taxonId: 10, common: 'Gőte' }),  // has a Hungarian name → kept
+    card({ id: 'b', taxonId: 11, common: null }),     // no localized name → dropped
+    card({ id: 'c', taxonId: 12, common: '' }),       // empty is not a name → dropped
+  ];
+  const out = applyFilters(cards, { namedOnly: true });
+  assert.deepEqual(out.map((c) => c.id), ['a']);
+});
+t('applyFilters: namedOnly composes with the other filters', () => {
+  const cards = [
+    card({ id: 'a', taxonId: 10, rank: 'species', qualityGrade: 'research', common: 'Named' }), // all → kept
+    card({ id: 'b', taxonId: 11, rank: 'species', qualityGrade: 'research', common: null }),    // unnamed → dropped
+    card({ id: 'c', taxonId: 12, rank: 'genus', qualityGrade: 'research', common: 'Named' }),   // not species → dropped
+  ];
+  const out = applyFilters(cards, { researchGrade: true, speciesOnly: true, namedOnly: true });
+  assert.deepEqual(out.map((c) => c.id), ['a']);
+});
 t('applyFilters: does not mutate input', () => {
   const cards = [card({ id: 'a', taxonId: 10 }), card({ id: 'b', taxonId: 10 })];
   const copy = JSON.parse(JSON.stringify(cards));

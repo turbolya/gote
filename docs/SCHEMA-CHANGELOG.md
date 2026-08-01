@@ -94,10 +94,10 @@ another device is adopted even when this device's prefs are newer. No DB migrati
 
 ### v1 — 2026-07-27
 - Introduced the `v` version marker. Shape: `{ v: 1, prefs: {...}, username }`.
-- `prefs` = `{ perSpecies, locale, researchGrade, speciesOnly, freshPhotos, themeMode }`.
-  (`freshPhotos` added 2026-07-29 — an additive prefs key, no payload-version bump:
-  the whole `prefs` object is one top-level key and syncs last-write-wins, and an
-  older client omitting `freshPhotos` just leaves the default.)
+- `prefs` = `{ perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode }`.
+  (`freshPhotos` added 2026-07-29, `namedOnly` added 2026-08-01 — additive prefs
+  keys, no payload-version bump: the whole `prefs` object is one top-level key and
+  syncs last-write-wins, and an older client omitting a key just leaves the default.)
 - Built by `buildSettingsPayload()`, read through `upgradeSettingsPayload()`.
 
 ### v0 — before 2026-07-27 (implicit)

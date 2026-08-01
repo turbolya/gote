@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.35.3';
+export const APP_VERSION = '2.36.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.36.0',
+    date: '2026-08-01',
+    changes: [
+      'New study option, “Only species named in <your language>”: hides cards for '
+        + 'species that have no common name in the language you’ve chosen, so you '
+        + 'never study one shown only by its scientific (Latin) name. Off by '
+        + 'default; find it under Settings → Species name language.',
+    ],
+  },
   {
     version: '2.35.3',
     date: '2026-08-01',

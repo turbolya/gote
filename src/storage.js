@@ -130,6 +130,7 @@ const DEFAULT_PREFS = {
   locale: 'en',
   researchGrade: false,
   speciesOnly: false,
+  namedOnly: false,
   themeMode: 'system', // 'light' | 'dark' | 'system'
 };
 
