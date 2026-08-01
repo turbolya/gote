@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.35.2';
+export const APP_VERSION = '2.35.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.35.3',
+    date: '2026-08-01',
+    changes: [
+      'Fixed the Apple Watch face complication going stale: your streak and '
+        + 'accuracy on a watch-face complication now refresh in the background '
+        + 'shortly after you play on the phone, instead of staying frozen until '
+        + 'you next opened the watch app.',
+    ],
+  },
   {
     version: '2.35.2',
     date: '2026-07-29',

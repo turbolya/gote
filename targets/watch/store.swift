@@ -63,23 +63,27 @@ final class WatchStore: NSObject, ObservableObject {
   // poke the complication so the watch face updates.
   fileprivate func apply(context: [String: Any]) {
     if isShot { return } // don't let live syncs overwrite the demo snapshot
+    // Background complication pushes (transferCurrentComplicationUserInfo) carry
+    // only the stats to stay small, with no "deck" key — keep the current deck
+    // in that case so a stats refresh never wipes the quiz pool.
+    let hasDeck = context["deck"] != nil
     let deckRaw = context["deck"] as? [[String: Any]] ?? []
-    let deck: [WatchCard] = deckRaw.compactMap { d in
+    let parsedDeck: [WatchCard] = deckRaw.compactMap { d in
       guard let id = d["id"] as? Int,
             let name = d["name"] as? String,
             let image = d["image"] as? String
       else { return nil }
       return WatchCard(id: id, name: name, sci: d["sci"] as? String ?? "", image: image)
     }
-    let snap = Snapshot(
-      accuracy: context["accuracy"] as? Int,
-      correct: context["correct"] as? Int ?? 0,
-      answered: context["answered"] as? Int ?? 0,
-      streak: context["streak"] as? Int ?? 0,
-      streakBest: context["streakBest"] as? Int ?? 0,
-      deck: deck
-    )
     DispatchQueue.main.async {
+      let snap = Snapshot(
+        accuracy: context["accuracy"] as? Int,
+        correct: context["correct"] as? Int ?? 0,
+        answered: context["answered"] as? Int ?? 0,
+        streak: context["streak"] as? Int ?? 0,
+        streakBest: context["streakBest"] as? Int ?? 0,
+        deck: hasDeck ? parsedDeck : self.snapshot.deck
+      )
       guard snap != self.snapshot else { return }
       self.snapshot = snap
       if let data = try? JSONEncoder().encode(snap) {
@@ -107,6 +111,13 @@ extension WatchStore: WCSessionDelegate {
     didReceiveApplicationContext applicationContext: [String: Any]
   ) {
     apply(context: applicationContext)
+  }
+
+  // Background complication push from the phone (transferCurrentComplicationUserInfo).
+  // This is what refreshes the face complication without the watch app being
+  // opened; it carries stats only (no deck), which apply() merges in place.
+  func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+    apply(context: userInfo)
   }
 }
 

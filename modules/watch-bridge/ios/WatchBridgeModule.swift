@@ -77,10 +77,28 @@ final class WatchSessionHolder: NSObject, WCSessionDelegate {
     switch session.activationState {
     case .activated:
       try? session.updateApplicationContext(context)
+      pushComplication(context, on: session)
     default:
       pending = context
       session.activate()
     }
+  }
+
+  // Wake the watch in the background to refresh the face complication.
+  // Application context (above) is only seen the next time the watch APP runs,
+  // so a complication left on the face keeps showing the old streak/accuracy for
+  // hours after phone play until the user opens the watch app. A complication
+  // push is the one WatchConnectivity channel that wakes the watch's widget
+  // extension in the background to update the complication. It's budgeted on
+  // real devices, so only spend a transfer when a complication is actually
+  // installed and budget remains; the deck is stripped since the complication
+  // only needs the stats (and the payload must stay small).
+  private func pushComplication(_ context: [String: Any], on session: WCSession) {
+    guard session.isComplicationEnabled,
+          session.remainingComplicationUserInfoTransfers > 0 else { return }
+    var stats = context
+    stats.removeValue(forKey: "deck")
+    session.transferCurrentComplicationUserInfo(stats)
   }
 
   func drainResults() -> [[String: Any]] {
@@ -98,6 +116,7 @@ final class WatchSessionHolder: NSObject, WCSessionDelegate {
   ) {
     if activationState == .activated, let context = pending {
       try? session.updateApplicationContext(context)
+      pushComplication(context, on: session)
       pending = nil
     }
   }
