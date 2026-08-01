@@ -9,6 +9,11 @@ module.exports = {
   displayName: 'gote',
   bundleIdentifier: '.watch.widget',
   deploymentTarget: '10.0',
+  // Generated into the widget's asset catalog → usable as Image("newt") in the
+  // Streak complication (same white silhouette the watch app uses).
+  images: {
+    newt: '../../assets/gote.png',
+  },
   entitlements: {
     'com.apple.security.application-groups': ['group.com.gote.app'],
   },

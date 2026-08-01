@@ -108,6 +108,17 @@ struct AccuracyWidget: Widget {
 
 // MARK: - Streak complication
 
+// The gote newt, standing in for the usual flame glyph. Unlike an SF Symbol it's
+// a bitmap, so it must be resized explicitly; template rendering lets the watch
+// face tint it to match the surrounding glyphs.
+private func newtGlyph(_ size: CGFloat) -> some View {
+  Image("newt")
+    .renderingMode(.template)
+    .resizable()
+    .scaledToFit()
+    .frame(width: size, height: size)
+}
+
 struct StreakView: View {
   @Environment(\.widgetFamily) var family
   let entry: GoteEntry
@@ -117,8 +128,7 @@ struct StreakView: View {
       switch family {
       case .accessoryCircular:
         VStack(spacing: 0) {
-          Image(systemName: "flame.fill")
-            .font(.caption2)
+          newtGlyph(15)
           Text("\(entry.streak)")
             .font(.system(.title3, design: .rounded).weight(.bold))
             .minimumScaleFactor(0.6)
@@ -132,14 +142,24 @@ struct StreakView: View {
           }
 
       case .accessoryInline:
-        Text(entry.streak > 0 ? "🔥 \(entry.streak)-day streak" : "gote — no streak")
+        // Inline complications render a single line: an optional leading image
+        // plus text. A Label pairs the newt glyph with the streak text.
+        if entry.streak > 0 {
+          Label {
+            Text("\(entry.streak)-day streak")
+          } icon: {
+            Image("newt").renderingMode(.template)
+          }
+        } else {
+          Text("gote — no streak")
+        }
 
       default: // .accessoryRectangular
         VStack(alignment: .leading, spacing: 1) {
           Text("gote")
             .font(.headline.weight(.heavy))
           HStack(spacing: 3) {
-            Image(systemName: "flame.fill")
+            newtGlyph(13)
             Text(entry.streak > 0 ? "\(entry.streak)-day streak" : "No streak yet")
           }
           .font(.footnote)

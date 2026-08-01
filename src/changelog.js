@@ -19,6 +19,8 @@ export const CHANGELOG = [
         + 'accuracy on a watch-face complication now refresh in the background '
         + 'shortly after you play on the phone, instead of staying frozen until '
         + 'you next opened the watch app.',
+      'The streak complication now shows the gote newt instead of a generic '
+        + 'flame.',
     ],
   },
   {
