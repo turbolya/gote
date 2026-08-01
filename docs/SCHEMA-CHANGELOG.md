@@ -38,6 +38,17 @@ The append-only `events` log needs neither rule bent: every client only ever
 
 ## DB schema
 
+### v4 — 2026-08-01 — `20260801120000_events_baseline_history.sql`
+- Added two nullable columns to `public.events`: `history jsonb not null default
+  '[]'` and `days jsonb not null default '[]'`. The first-sync **baseline** now
+  carries the accuracy-chart bars (`history` = per-round pct array) and the
+  active-day set the streak is built from (`days` = YYYY-MM-DD list), so a device
+  joining an existing account rebuilds the whole hero — not just the lifetime
+  total over an empty chart and a reset streak. A normal round leaves both empty
+  and keeps riding its single `pct` / `local_day`. Additive/expand-only exactly
+  like `confusions` (v3): old clients insert without them and get `[]`, old
+  readers ignore them; no RLS or grant change.
+
 ### v3 — 2026-07-28 — `20260728120000_events_confusions.sql`
 - Added a nullable `confusions jsonb not null default '{}'` column to
   `public.events`. Confusion counts (which look-alikes the player mixes up) are
@@ -94,6 +105,17 @@ another device is adopted even when this device's prefs are newer. No DB migrati
   `upgradeSettingsPayload()` treats a missing `v` as v0 and upcasts to v1.
 
 ## Events payload (`events` row)
+
+### v3 — 2026-08-01
+- Added `history` (per-round pct array) and `days` (YYYY-MM-DD array) jsonb
+  deltas, both `[]` on a normal round. The first-sync baseline fills them with the
+  device's whole accuracy chart and active-day set, so `uploadBaseline` no longer
+  strands the chart and streak on the origin device. Folded in `applyEvent`:
+  `history` appends its bars (then any single `pct`), `days` unions into the day
+  set (so a day shared by a baseline and a later round counts once). The baseline
+  nets `history` against still-queued rounds by dropping that many trailing bars
+  (they ride as their own `pct` events); `days` needs no netting — it is a set.
+  Additive; older events simply omit both.
 
 ### v2 — 2026-07-28
 - Added the `confusions` jsonb delta (`{ [correctKey]: { [chosenKey]: count } }`)

@@ -134,7 +134,11 @@ function debug(...args) {
 //   pct               0-100 for a FINISHED round; omit for a single answer,
 //                     which is not a round and must not become a chart point
 //   species           { [taxonId]: { name, sci, image, known, missed } }
-export async function recordEvent({ answered = 0, correct = 0, pct = null, species = {}, confusions = {}, ts = Date.now() } = {}) {
+//   history           baseline only: the accuracy chart's bars (per-round pct
+//                     array); a normal round leaves this empty and rides `pct`
+//   days              baseline only: the active local days the streak is built
+//                     from; a normal round leaves this empty and rides `local_day`
+export async function recordEvent({ answered = 0, correct = 0, pct = null, species = {}, confusions = {}, history = [], days = [], ts = Date.now() } = {}) {
   // Nothing is even queued while sync is off — no sync-related data touches disk
   // until the user opts in. Their existing history is captured wholesale by the
   // baseline at that point (see uploadBaseline), so nothing is lost.
@@ -150,6 +154,8 @@ export async function recordEvent({ answered = 0, correct = 0, pct = null, speci
       pct,
       species: species || {},
       confusions: confusions || {},
+      history: Array.isArray(history) ? history : [],
+      days: Array.isArray(days) ? days : [],
     };
     await pushToOutbox(event);
     return event.id;
@@ -302,7 +308,7 @@ async function pull(supabase, userId) {
 
   let query = supabase
     .from('events')
-    .select('id, device_id, ts, local_day, answered, correct, pct, species, confusions, created_at')
+    .select('id, device_id, ts, local_day, answered, correct, pct, species, confusions, history, days, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
     .limit(PULL_LIMIT);
@@ -462,19 +468,19 @@ export async function afterAuthChange(mode = 'link') {
   return { merged, settings };
 }
 
-// One event carrying this device's lifetime totals, so joining an existing
-// account contributes its history instead of discarding it.
-//
-// Known limitation: a single event carries one local day, so the day-by-day
-// streak history from before the switch stays on this device — the totals and
-// per-species tallies merge, the old calendar does not. Emitting one row per
-// active day would preserve it, at the cost of hundreds of rows for a
-// long-standing player. Revisit if streaks turn out to matter more than that.
+// One event carrying this device's history, so joining an existing account
+// contributes it instead of discarding it. Beyond the lifetime totals and
+// per-species tallies, the baseline carries the accuracy-chart bars (`history`)
+// and the active-day set the streak is built from (`days`) — so a joining device
+// reconstructs the whole hero, not just the lifetime number over an empty chart.
 async function uploadBaseline() {
-  const [stats, species, confusions, queued] = await Promise.all([
+  const [stats, species, confusions, history, activeDays, streak, queued] = await Promise.all([
     loadStats(),
     loadSpeciesStats(),
     loadConfusions(),
+    loadHistory(),
+    loadActiveDays(),
+    loadStreak(),
     loadOutbox(),
   ]);
 
@@ -516,16 +522,36 @@ async function uploadBaseline() {
     if (known || missed) species2[key] = { ...v, known, missed };
   }
 
-  if (!answered && !correct && !Object.keys(species2).length && !Object.keys(conf).length) return;
+  // Accuracy chart: send the whole local history, minus the tail that belongs to
+  // rounds still queued — each of those rides as its own `pct` event and would
+  // otherwise draw a second bar on every other device. Queued rounds are the most
+  // recently played, so they are exactly the last bars in the array.
+  const queuedRounds = queued.filter((e) => e && e.pct != null).length;
+  const baseHistory = queuedRounds > 0 ? history.slice(0, -queuedRounds) : history;
+
+  // Active days: send the full set. A day is a SET member on the other side, so a
+  // day a still-queued round will re-add folds in exactly once — no subtraction
+  // needed. Seed from the streak's one remembered day for a player who predates
+  // the day-set (mirrors backfillActiveDays on the receiving side).
+  let baseDays = Array.isArray(activeDays) ? activeDays : [];
+  if (!baseDays.length && streak && streak.lastActiveDay) baseDays = [streak.lastActiveDay];
+
+  if (
+    !answered && !correct
+    && !Object.keys(species2).length && !Object.keys(conf).length
+    && !baseHistory.length && !baseDays.length
+  ) return;
 
   await recordEvent({
     answered,
     correct,
-    pct: null, // not a round — must not land on the accuracy chart
+    pct: null, // the baseline itself is not a round; its bars ride in `history`
     species: species2,
     confusions: conf,
+    history: baseHistory,
+    days: baseDays,
   });
-  debug('baseline queued:', answered, 'answers');
+  debug('baseline queued:', answered, 'answers,', baseHistory.length, 'bars,', baseDays.length, 'days');
 }
 
 function num(v) {

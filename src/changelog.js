@@ -21,6 +21,11 @@ export const CHANGELOG = [
         + 'you next opened the watch app.',
       'The streak complication now shows the gote newt instead of a generic '
         + 'flame.',
+      'Fixed cross-device sync leaving out your history: when you sign in on a '
+        + 'new device, it now rebuilds your full accuracy graph and day streak '
+        + 'from the account — not just the lifetime total. Previously a device '
+        + 'that had played before you turned sync on only sent its running totals, '
+        + 'so a new device showed an empty graph and a reset streak.',
     ],
   },
   {

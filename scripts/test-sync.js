@@ -90,6 +90,34 @@ console.log('\\napplyEvent');
   eq('survives junk fields', r.stats, { answered: 0, correct: 0 });
 }
 
+console.log('\\napplyEvent (baseline history + days)');
+{
+  // A first-sync baseline carries the device's whole accuracy chart at once as a
+  // history array — so a joining device gets the bars, not just the total.
+  const r = applyEvent(emptyRollups(), { id: 'base', localDay: day(9), answered: 30, correct: 24, history: [50, 60, 70, 80] });
+  eq('a baseline history array becomes chart bars', r.history, [50, 60, 70, 80]);
+  eq('the baseline still counts toward totals', r.stats, { answered: 30, correct: 24 });
+}
+{
+  // The baseline days set rebuilds the streak calendar. A single event used to
+  // carry only one day, stranding the day-by-day streak on the old device.
+  const r = applyEvent(emptyRollups(), { id: 'base', localDay: day(9), days: [day(1), day(2), day(3)] });
+  eq('a baseline days array unions into the day set', r.days.slice().sort(), [day(1), day(2), day(3), day(9)].sort());
+}
+{
+  // Baseline bars fold onto whatever the device already has, and pct + history
+  // can ride the same event without either being dropped.
+  const local = applyEvent(emptyRollups(), ev({ id: 'own', localDay: day(8), answered: 1, correct: 1, pct: 90 }));
+  const r = applyEvent(local, { id: 'base', localDay: day(1), answered: 5, correct: 5, pct: 40, history: [10, 20] });
+  eq('baseline history appends to existing bars, then its own pct', r.history, [90, 10, 20, 40]);
+}
+{
+  // A day that arrives from BOTH a baseline set and a later round folds in once.
+  const withBase = applyEvent(emptyRollups(), { id: 'base', days: [day(1), day(2)] });
+  const withRound = applyEvent(withBase, ev({ id: 'r', localDay: day(2), answered: 1, correct: 1, pct: 50 }));
+  eq('a day shared by baseline and round is not double-listed', withRound.days.slice().sort(), [day(1), day(2)].sort());
+}
+
 console.log('\\napplyEvents (dedup + ordering)');
 {
   // THE case this whole design exists for: the same row delivered twice must

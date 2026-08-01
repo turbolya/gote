@@ -68,15 +68,28 @@ export function applyEvent(rollups, event) {
     };
   }
 
-  // `pct` is null for a single answer: one card is not a round, and letting it
-  // through would spike the menu's accuracy chart with 0%/100% points.
-  const history =
-    event.pct == null
-      ? r.history
-      : [...r.history, clamp(Math.round(num(event.pct)), 0, 100)];
+  // Accuracy-chart points. A finished round carries ONE (`pct`). A first-sync
+  // BASELINE carries the device's whole chart at once as `history: [pct, …]`, so
+  // a joining device shows the bars it played before sync — not just the lifetime
+  // total over an empty chart. A single answer has neither (`pct` null, no array):
+  // one card is not a round and must not spike the chart with a 0%/100% point.
+  let history = r.history;
+  if (Array.isArray(event.history) && event.history.length) {
+    history = [...history, ...event.history.map((p) => clamp(Math.round(num(p)), 0, 100))];
+  }
+  if (event.pct != null) {
+    history = [...history, clamp(Math.round(num(event.pct)), 0, 100)];
+  }
 
+  // Active days (the streak is computed from this set). This event's own
+  // `local_day`, plus any day-set a baseline carries (`days: [YYYY-MM-DD, …]`).
+  // A SET, so a day that arrives from both a baseline and a later round — or from
+  // two devices — folds in exactly once.
+  const daySet = new Set(r.days);
   const day = event.localDay || event.local_day;
-  const days = day && !r.days.includes(day) ? [...r.days, day] : r.days;
+  if (day) daySet.add(day);
+  if (Array.isArray(event.days)) for (const d of event.days) { if (d) daySet.add(d); }
+  const days = daySet.size === r.days.length ? r.days : [...daySet];
 
   // Confusions are counters too, so they fold exactly like species/stats: sum
   // this event's delta into the running matrix. Absent on older events.

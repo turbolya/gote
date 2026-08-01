@@ -508,6 +508,39 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     eq(await a.storage.loadStats(), { answered: 9, correct: 5 }, "A after B's baseline");
   });
 
+  await test('a joining device gets the accuracy chart and streak, not just totals', async () => {
+    // The bug this guards: a device that played BEFORE turning sync on used to
+    // upload a totals-only baseline, so a second device showed the right lifetime
+    // number over an empty chart and a reset streak. The baseline now carries the
+    // per-round history and the active-day set too.
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const email = `hist-${Date.now()}@example.com`;
+
+    // Device A: several days of play sitting in LOCAL storage, nothing queued —
+    // exactly the pre-sync state. Turning sync on uploads one baseline event.
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 40, correct: 30 });
+    await a.storage.saveHistory([60, 70, 80, 90]);
+    await a.storage.saveActiveDays(['2026-03-01', '2026-03-02', '2026-03-03']);
+    await a.sync.syncNow(); // first sync → uploadBaseline carries history + days
+    await attachEmail(admin, idA, email);
+
+    // Device B, fresh, joins the account.
+    const b = makeDevice({ createClient, url, anon, name: 'B' });
+    await b.sync.ensureSession();
+    ok((await b.sync.signInWithEmail(email)).ok, 'signin');
+    ok((await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok, 'confirm');
+    await b.sync.afterAuthChange('signin');
+
+    eq(await b.storage.loadHistory(), [60, 70, 80, 90], "B rebuilt A's accuracy chart");
+    const days = JSON.parse(b.kv._dump()['@gote/activeDays'] || '[]');
+    ok(
+      days.includes('2026-03-01') && days.includes('2026-03-02') && days.includes('2026-03-03'),
+      "B rebuilt A's active days"
+    );
+  });
+
   // --- settings ------------------------------------------------------------
   console.log('\nsettings');
 
