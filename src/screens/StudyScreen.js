@@ -37,10 +37,11 @@ const infoOf = (c) => ({ name: c.common || c.scientific, sci: c.scientific, imag
 import { colors } from '../theme';
 import { SPEEDRUN_LIVES, SPEEDRUN_VIEW_MS } from '../constants';
 import { IS_E2E } from '../e2e/testMode';
+import { Spinner } from '../components/LoadingImage';
 
-// Generic loading spinner shown over a card while its photo downloads. Placeholder
-// art — intended to be swapped for a newt-themed animation later.
-const SPINNER_GIF = require('../../assets/gote-spinner.gif');
+// The loading spinner shown over a card while its photo downloads. Imported
+// from LoadingImage (rather than require'd again) so every screen shares one
+// asset — and therefore one decode, warmed on the menu before a round starts.
 
 const NUM_CHOICES = 5;
 const ON_DARK = '#FFFFFF';
@@ -466,7 +467,7 @@ export default function StudyScreen({
           ]}
           pointerEvents="none"
         >
-          <Image source={SPINNER_GIF} style={styles.spinnerImg} resizeMode="contain" />
+          <Spinner size={56} />
         </View>
       </Pressable>
 
@@ -834,7 +835,6 @@ const styles = StyleSheet.create({
   // Loading-spinner overlay + its sizing (used for both the normal photo load
   // and the fresh-photo fetch).
   photoSpinnerWrap: { alignItems: 'center', justifyContent: 'center' },
-  spinnerImg: { width: 56, height: 56 },
   // Speedrun countdown pie, floated in the top-right corner.
   pieCorner: { position: 'absolute', right: 18, zIndex: 6 },
 

@@ -15,6 +15,7 @@ import { smoothPath, cumulativeAverage, downsampleMean, sampleBucketEnds } from 
 import Icon from '../components/Icon';
 import WatchTip from '../components/WatchTip';
 import OfflineBanner from '../components/OfflineBanner';
+import { SpinnerWarmup } from '../components/LoadingImage';
 import { useTheme, useThemedStyles } from '../theme';
 import { Appear } from '../components/anim';
 import { SPEEDRUN_LIVES, KOFI_URL } from '../constants';
@@ -245,6 +246,9 @@ export default function MenuScreen({
 
   return (
     <View style={styles.flex}>
+      {/* Decodes the loading spinner while the menu is up, so the first card of
+          a round can paint it immediately instead of showing bare black. */}
+      <SpinnerWarmup />
       <Animated.ScrollView
         testID="menu-scroll"
         style={styles.flex}

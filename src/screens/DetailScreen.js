@@ -16,6 +16,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import Icon from '../components/Icon';
+import LoadingImage from '../components/LoadingImage';
 import PhotoViewer from '../components/PhotoViewer';
 import ObservationMap from '../components/ObservationMap';
 import { useColors, useThemedStyles } from '../theme';
@@ -83,7 +84,7 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
             style={styles.heroImg}
             onPress={() => setViewerIndex(0)}
           >
-            <Image
+            <LoadingImage
               source={{ uri: toLargePhoto(card.image) }}
               style={styles.heroImg}
               resizeMode="cover"

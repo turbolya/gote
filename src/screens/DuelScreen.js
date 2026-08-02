@@ -14,12 +14,12 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
-  Image,
   Pressable,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 import Icon from '../components/Icon';
+import LoadingImage from '../components/LoadingImage';
 import ScreenHeader from '../components/ScreenHeader';
 import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonPhotos } from '../api';
@@ -247,7 +247,7 @@ export default function DuelScreen({ pair, note = '', onClose }) {
 
         <View style={styles.photoWrap}>
           {question && question.uri ? (
-            <Image source={{ uri: question.uri }} style={styles.photo} resizeMode="cover" />
+            <LoadingImage source={{ uri: question.uri }} style={styles.photo} resizeMode="cover" />
           ) : (
             <View style={[styles.photo, styles.photoPlaceholder]}>
               <Icon name="image" size={32} color={colors.muted} />

@@ -13,13 +13,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  Image,
   Pressable,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
+import LoadingImage from '../components/LoadingImage';
 import PhotoViewer from '../components/PhotoViewer';
 import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonPhotos } from '../api';
@@ -194,10 +194,11 @@ export default function PickImageScreen({
                     disabled={answered}
                     onPress={() => pick(opt)}
                   >
-                    <Image
+                    <LoadingImage
                       source={{ uri: opt.photo }}
                       style={styles.tileImg}
                       resizeMode="cover"
+                      spinnerSize={34}
                     />
                     {reveal && (
                       <View

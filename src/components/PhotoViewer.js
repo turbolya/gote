@@ -23,6 +23,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import Icon from './Icon';
+import { Spinner } from './LoadingImage';
 import { Appear } from './anim';
 
 const DOUBLE_TAP_MS = 280;
@@ -43,6 +44,9 @@ function ZoomablePage({ uri, screenW, screenH, onZoomChange }) {
   // JS-side mirror of "is this page zoomed", to enable the pan gesture and to
   // notify the parent (which toggles the FlatList's horizontal paging).
   const [zoomed, setZoomed] = useState(false);
+  // Spinner until the full-size photo arrives (a failed load clears it too, so
+  // a broken photo doesn't spin forever).
+  const [loaded, setLoaded] = useState(false);
   const notify = (z) => {
     setZoomed(z);
     if (onZoomChange) onZoomChange(z);
@@ -143,7 +147,16 @@ function ZoomablePage({ uri, screenW, screenH, onZoomChange }) {
           source={{ uri }}
           style={[{ width: screenW, height: screenH }, imgStyle]}
           resizeMode="contain"
+          onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(true)}
         />
+        {/* Sibling overlay rather than a wrapper: the image carries the pinch/
+            pan transform, so nesting it would fight the gesture handling. */}
+        {!loaded && (
+          <View style={styles.pageSpinner} pointerEvents="none">
+            <Spinner size={56} />
+          </View>
+        )}
       </Animated.View>
     </GestureDetector>
   );
@@ -239,6 +252,11 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   emptyText: { color: 'rgba(255,255,255,0.7)', fontSize: 15 },
   page: { alignItems: 'center', justifyContent: 'center' },
+  pageSpinner: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   titleBar: {
     position: 'absolute',
     top: 52,

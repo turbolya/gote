@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  Image,
   TextInput,
   Pressable,
   ScrollView,
@@ -16,6 +15,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import Icon from '../components/Icon';
+import LoadingImage from '../components/LoadingImage';
 import ScreenHeader from '../components/ScreenHeader';
 import { useColors, useThemedStyles } from '../theme';
 
@@ -25,7 +25,7 @@ function SpeciesColumn({ info }) {
   return (
     <View style={styles.col}>
       {info.image ? (
-        <Image source={{ uri: info.image }} style={styles.photo} resizeMode="cover" />
+        <LoadingImage source={{ uri: info.image }} style={styles.photo} resizeMode="cover" />
       ) : (
         <View style={[styles.photo, styles.photoPlaceholder]}>
           <Icon name="image" size={28} color={colors.muted} />
