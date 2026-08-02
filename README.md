@@ -17,7 +17,10 @@ observations and quizzes you on the species you've seen.
 
 Plus a **Lexicon** (browse/search every species you've observed, filter by how
 well you know them, tap through to a detail page) and a **Statistics** page
-(lifetime accuracy, most-missed and best-known species).
+(lifetime accuracy, most-missed and best-known species). Accuracy is counted
+per card rather than per round, and the "best known" ranking discounts species
+you've barely seen — so neither a one-card round nor a single lucky answer can
+flatter the numbers.
 
 ## How it works
 

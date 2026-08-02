@@ -59,6 +59,7 @@ flowchart TB
   subgraph DOMAIN[Domain layer — pure logic, unit-tested]
     quiz[quiz.js\ndistractors, pick rounds]
     lexicon[lexicon.js\nfilter/sort/status]
+    accuracy[accuracy.js\ncard weighting, shrinkage]
     gestures[gestures.js]
     theme[theme.js\ncolors, accents, group icons]
   end
@@ -180,18 +181,19 @@ The core entity is a **card** (one observation, or one place-typical species):
 | Key                       | Shape                                                          | Purpose |
 |---------------------------|----------------------------------------------------------------|---------|
 | `@gote/username`          | string                                                         | Last account |
-| `@gote/prefs`             | `{ perSpecies, locale, researchGrade, speciesOnly, freshPhotos, themeMode }`| Study options + theme |
+| `@gote/prefs`             | `{ perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode }`| Study options + theme |
 | `@gote/stats`             | `{ answered, correct }`                                        | Lifetime totals |
 | `@gote/species`           | `{ [taxonId]: { name, sci, known, missed } }`                 | Per-species tallies (Stats, Lexicon status) |
 | `@gote/confusions`        | `{ [correctKey]: { [chosenKey]: count } }`                    | Confusion matrix — species the player mixes up (synced via the events `confusions` delta) |
 | `@gote/confusionNotes`    | `{ [pairKey]: { text, t } }`                                 | Player's "my tell" notes for confused pairs. Synced via the settings payload as `n:<pairKey>` keys, merged per note by `t` (last edit wins; empty text = tombstone). `displayNotes` gives the UI's `{ pairKey: text }` |
 | `@gote/confusionWins`     | `{ [pairKey]: streak }`                                       | "Verify the fix" recovery streaks — consecutive correct answers on a former-nemesis pair, reset on relapse (device-local) |
 | `@gote/history`           | `number[]` (accuracy %, oldest→newest, cap 120)               | Menu accuracy chart |
+| `@gote/historyCounts`     | `number[]` (cards per round, **right-aligned** with `history`) | Weights for every aggregate over the chart (`accuracy.js`). Shorter than `history` for rounds played before 2.37.0 — those read as "size unknown". Synced via the events `n` / `counts` fields |
 | `@gote/streak`            | `{ count, longest, … }`                                       | Daily streak |
 | `@gote/activeDays`        | `string[]` (YYYY-MM-DD)                                        | Days played — the streak's source of truth |
 | `@gote/flags`             | `{ [username]: { [taxonId]: { on, t } } }`                    | Flagged species, **per account**. Synced via the settings payload as `f:<username>:<taxonId>` keys, merged per flag by `t` (last toggle wins; on:false = tombstone). `loadFlags` gives the flagged-id list the UI reads |
 | `@gote/obscache`          | `{ version, username, locale, cards[], watermark, syncedAt }`  | Offline deck cache |
-| `@gote/downloadedImages`  | `string[]` (photo URLs, capped 1500)                          | Downloaded-photo manifest → offline deck filter (§7) |
+| `@gote/downloadedImages`  | `string[]` (photo URLs, capped 1500)                          | **Retired 2026-08-01.** Was the offline-deck filter; the filesystem is the truth now (`photocache.js`, §7). Cleared once on startup and no longer consulted |
 | `@gote/settingsStamp`     | number (ms epoch)                                             | Last local settings change — cross-device sync LWW |
 | `@gote/dataVersion`       | number                                                        | Local data-shape version — forward migrations |
 | `@gote/watchResultIds`    | `string[]` (dedup ledger, cap 500)                           | Applied watch-result ids |
@@ -310,14 +312,14 @@ flowchart TB
     pf[prefetch.js\nupcoming cards + offline pack]
   end
   subgraph disk2[On-disk - persistent]
-    dm[AsyncStorage @gote/downloadedImages\ndownloaded-photo manifest]
+    dm[photocache.js\nPaths.cache/gote-photos - real JPEG files]
   end
 
   api -->|memoize| t
   app -->|persist deck| o
   rnimg[RN Image] -->|store bytes| p
   pf --> p
-  pf -->|record resolved URLs| dm
+  pf -->|download files| dm
 ```
 
 | Cache | Module | Lifetime | Cleared by |
@@ -325,14 +327,19 @@ flowchart TB
 | Taxon lookups | `api.js` (`taxonCache`) | App session | Language change (`clearTaxonCache`) |
 | Observation deck | `storage.js` (`@gote/obscache`) | Persistent | New account/locale, `CACHE_VERSION` bump |
 | Photo bytes | OS / RN Image (`expo-file-system`) | Persistent | Settings → "Empty" (`cache.js`) |
-| Upcoming images + offline pack | `prefetch.js` | App session (requests) | — (fire-and-forget) |
-| Downloaded-photo manifest | `prefetch.js` → `storage.js` (`@gote/downloadedImages`) | Persistent | Settings → "Empty" (`clearDownloadedManifest`) |
+| Upcoming images (speed only) | `prefetch.js` (`Image.prefetch`) | App session (requests) | — (fire-and-forget) |
+| Offline photo pack | `photocache.js` (`Paths.cache/gote-photos`) | Persistent (OS-reclaimable) | Settings → "Empty" (`clearPhotoCache`) |
 
-**Offline pack.** `prefetch.js` records the URL of every photo whose
-`Image.prefetch` resolves into the persistent manifest, and `prefetchDeck()`
-proactively warms a capped, throttled slice (~120 cards) after each **online**
-deck load. Offline, `isImageDownloaded()` lets the app play only cards whose
-photos will actually render (see §8).
+**Offline pack.** The two jobs are deliberately *different mechanisms*.
+`Image.prefetch` warms the OS cache for the next few cards — a pure speed
+optimisation, never counted as offline-ready, because that cache evicts silently
+and cannot be queried. The pack itself is **real files** written by
+`photocache.js`; `prefetchDeck()` fills a capped slice (1000 cards, ≈280 MB at
+~280 KB/photo) in the background after each **online** deck load, and
+`prefetchUpcoming()` files cards in as they are played. Offline,
+`isCached()` lets the app play only cards whose photos genuinely exist on disk
+(see §8) — the previous manifest-of-attempted-prefetches served cards whose
+photos the OS had quietly discarded, producing a round of grey placeholders.
 
 ---
 
@@ -391,8 +398,13 @@ flowchart LR
   fixtures --> app2
 ```
 
-- **Unit tests** (`npm test`): pure domain logic, ESM transpiled in-memory. ~68
-  assertions across quiz/lexicon/cache/gestures.
+- **Unit tests** (`npm test`): pure domain logic, ESM transpiled in-memory. ~360
+  assertions across quiz, lexicon, cache, gestures, sync/merge, confusions,
+  duel, verify, schedule, mastery, accuracy, watch storage and contrast.
+- **Sync integration** (`npm run test:sync`): the real client against a local
+  Supabase (Docker), covering RLS, idempotency and two-device merges. Run
+  `npx supabase db reset` after adding a migration — `supabase start` only
+  applies migrations when it first creates the database.
 - **E2E tests** (`npm run e2e:build && npm run e2e:test`): Detox drives the real
   app on the iOS simulator. To stay deterministic and offline, a build with
   `EXPO_PUBLIC_E2E=1` (`src/e2e/testMode.js`) short-circuits **every** network
@@ -425,7 +437,9 @@ flowchart LR
 | `src/api.js` | iNaturalist client, `apiFetch` (429 backoff), taxon cache |
 | `src/storage.js` | AsyncStorage: prefs, stats, species, obs cache, flags, history, streak, image manifest, data version |
 | `src/cache.js` | Photo file-cache size / clear |
-| `src/prefetch.js` | Image preloading + downloaded-photo manifest (offline pack) |
+| `src/prefetch.js` | Image preloading (OS warm, speed) + filling the offline pack |
+| `src/photocache.js` | The offline pack itself — real JPEG files under `Paths.cache/gote-photos`, so "will this photo render offline?" is a fact about the filesystem |
+| `src/accuracy.js` | Card-weighted accuracy aggregates + small-sample shrinkage — every chart aggregate is a ratio of sums, never a mean of ratios, so the trend line lands on the lifetime figure; `shrunkRate` keeps a 1-for-1 species off the top of the Success % board (pure) |
 | `src/net.js` | Connectivity (`useIsOffline`, NetInfo) |
 | `src/sync/*` | Optional cross-device sync — versioned events/settings (see `SCHEMA-CHANGELOG.md`) |
 | `src/quiz.js` | Distractor selection, pick-round building (pure) |

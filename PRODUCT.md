@@ -67,7 +67,10 @@ features):
 - **Learn / track:** Lexicon (searchable list of every species seen, filterable
   by how well known); Statistics (accuracy, daily streak, recent-games chart,
   running accuracy trend, and a per-species table with success %, correct, and
-  incorrect, plus a "My observations" filter).
+  incorrect, plus a "My observations" filter). Aggregates are counted **per
+  card, not per round**, so a one-card round can't score a full 100%, and the
+  per-species ranking discounts thin samples so a species answered once doesn't
+  outrank one answered right forty times.
 - **Apple Watch:** a quick photo quiz on the wrist and accuracy/streak
   complications on the watch face.
 - **Source data:** the iNaturalist API and photos from iNaturalist observers,
@@ -169,7 +172,9 @@ regularly-active users. Levers, cheapest first:
   trusted server-side job (`pg_cron`) can fold each user's *old* rounds into their
   baseline (sum totals, keep the last 120 bars + all days) and delete the folded
   rows — turning unbounded growth into bounded per-user storage. The history/days
-  baseline (events payload v3, 2026-08-01) is the vehicle for this.
+  baseline (events payload v3, 2026-08-01) is the vehicle for this; a compaction
+  job must carry `counts` alongside `history` (payload v4, 2026-08-02) or the
+  folded bars lose their weights and the trend line drifts off the totals again.
 - **Store photo IDs, not full URLs**, in the `species` delta and rebuild the URL
   client-side: ~40% smaller blobs (~0.7 KB/round).
 - Fallback: Pro tier ($25/mo) → 8 GB, ~16× the headroom.
