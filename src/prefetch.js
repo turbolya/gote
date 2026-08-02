@@ -70,9 +70,16 @@ export function prefetchUpcoming(deck, index, count = 3) {
 }
 
 // Build the offline pack: after a deck loads online, download a capped slice of
-// its photos to disk. `count` cards is plenty for an offline session; ongoing
-// play adds the rest via prefetchUpcoming.
-export function prefetchDeck(deck, { count = 120 } = {}) {
+// its photos to disk. The cap is high enough to cover a whole typical deck, so
+// an offline session plays essentially the same cards as an online one; ongoing
+// play adds anything beyond it via prefetchUpcoming.
+//
+// Sizing note: photos average ~280 KB, so a full 1000-card pack is roughly
+// 280 MB on disk (and to download). It fills gradually in the background at a
+// concurrency of 4, only ever while online, and only for cards not already
+// cached — but it is real storage, which is why it lives under Paths.cache
+// (reclaimable by the OS) and Settings → Empty clears it.
+export function prefetchDeck(deck, { count = 1000 } = {}) {
   if (!Array.isArray(deck)) return;
   const urls = [];
   for (const c of deck) {
