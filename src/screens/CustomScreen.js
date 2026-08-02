@@ -93,7 +93,7 @@ export default function CustomScreen({
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        {flaggedCount > 0 && (
+        {flaggedCount > 0 ? (
           <Pressable
             testID="custom-flagged"
             onPress={() => setFlaggedOnly((v) => !v)}
@@ -110,6 +110,19 @@ export default function CustomScreen({
               Flagged only ({flaggedCount})
             </Text>
           </Pressable>
+        ) : (
+          // No flagged species in this deck yet. Show the option anyway —
+          // disabled, with a hint — so players discover they can drill just
+          // their flagged cards once they've flagged some.
+          <View testID="custom-flagged-empty" style={styles.flagEmpty}>
+            <View style={styles.flagEmptyRow}>
+              <Icon name="flag-outline" size={16} color={colors.muted} />
+              <Text style={styles.flagToggleText}>Flagged only</Text>
+            </View>
+            <Text style={styles.flagEmptyHint}>
+              Flag species with the flag icon in a round to study just those here.
+            </Text>
+          </View>
         )}
 
         <Text style={styles.label}>Groups</Text>
@@ -218,6 +231,11 @@ const makeStyles = (colors) => StyleSheet.create({
   flagToggleText: { fontSize: 14, fontWeight: '700', color: colors.muted },
   // Was a hardcoded #7A5B00, which sat at 2.9:1 on the dark background.
   flagToggleTextOn: { color: colors.flag },
+  // Disabled "Flagged only" shown when the deck has no flagged species yet, so
+  // the capability is discoverable before anything is flagged.
+  flagEmpty: { alignSelf: 'flex-start', marginBottom: 22 },
+  flagEmptyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
+  flagEmptyHint: { fontSize: 12.5, lineHeight: 17, color: colors.muted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 18, rowGap: 4 },
   chip: {
     flexDirection: 'row',
