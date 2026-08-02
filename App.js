@@ -1307,6 +1307,7 @@ export default function App() {
             onCompare={(item) => setComparePair(item)}
             freshPhotos={freshPhotos}
             onIsMastered={isSpeciesMastered}
+            offline={offline}
             onQuit={() =>
               finishRound(correctCount, missed, correctCount + missed.length)
             }
@@ -1640,6 +1641,7 @@ export default function App() {
                   locale={locale}
                   flags={flags}
                   onToggleFlag={toggleFlag}
+                  offline={offline}
                   onBack={() => setDetailCard(null)}
                 />
               </Appear>

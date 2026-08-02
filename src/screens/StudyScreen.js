@@ -28,6 +28,7 @@ import PieTimer from '../components/PieTimer';
 import { Appear, Pop } from '../components/anim';
 import { shuffle, fetchTaxonPhotos, toLargePhoto } from '../api';
 import { prefetchUpcoming } from '../prefetch';
+import { photoSource } from '../photocache';
 import { pickSimilarDistractors } from '../quiz';
 import { pairKey, pairCount, CONFUSION_HINT_MIN } from '../confusions';
 import { VERIFY_STREAK_MIN } from '../verify';
@@ -88,6 +89,7 @@ export default function StudyScreen({
   onVerifyStreak, // (pairKey) => current recovery streak, for the "verify the fix" callout
   freshPhotos = false, // show a random official photo once a species is mastered
   onIsMastered, // (key) => bool — whether this species is mastered (drives freshPhotos)
+  offline = false, // hides the controls that can only work with a connection
 }) {
   const insets = useSafeAreaInsets();
   const [flipped, setFlipped] = useState(false);
@@ -424,15 +426,17 @@ export default function StudyScreen({
               <View style={[StyleSheet.absoluteFill, styles.freshLoading]} />
             ) : (
               <>
+                {/* photoSource prefers the on-disk copy, so a cached card
+                    renders with no connection (and faster when there is one). */}
                 <Image
-                  source={{ uri: photoUri }}
+                  source={photoSource(photoUri)}
                   style={StyleSheet.absoluteFill}
                   resizeMode="cover"
                   blurRadius={30}
                 />
                 <View style={styles.fsBackdropScrim} />
                 <Image
-                  source={{ uri: photoUri }}
+                  source={photoSource(photoUri)}
                   style={StyleSheet.absoluteFill}
                   resizeMode="contain"
                   onLoad={() => setImgLoaded(true)}
@@ -753,22 +757,29 @@ export default function StudyScreen({
               </Pressable>
             )}
 
-        {/* Bottom corners: more-photos (BL) + photo attribution/license (BR) */}
+        {/* Bottom corners: more-photos (BL) + photo attribution/license (BR).
+            More-photos fetches this species' curated set from iNaturalist, so
+            it's hidden offline rather than left to fail. */}
         <View style={styles.cornerRow} pointerEvents="box-none">
-          <Pressable
-            onPress={showMorePhotos}
-            disabled={loadingMore}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="More photos of this species"
-            style={styles.cornerBtn}
-          >
-            {loadingMore ? (
-              <ActivityIndicator size="small" color={on} />
-            ) : (
-              <Icon name="grid" size={20} color={on} />
-            )}
-          </Pressable>
+          {!offline ? (
+            <Pressable
+              onPress={showMorePhotos}
+              disabled={loadingMore}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="More photos of this species"
+              style={styles.cornerBtn}
+            >
+              {loadingMore ? (
+                <ActivityIndicator size="small" color={on} />
+              ) : (
+                <Icon name="grid" size={20} color={on} />
+              )}
+            </Pressable>
+          ) : (
+            // Keeps the attribution in the right-hand corner where it belongs.
+            <View style={styles.cornerBtn} />
+          )}
           <View style={styles.bottomRight} pointerEvents="box-none">
             {!!attribution && (
               <View style={styles.attribution}>
@@ -778,8 +789,9 @@ export default function StudyScreen({
               </View>
             )}
             {/* Map pin: opens a map showing where this observation was recorded.
-                Only shown when the observation has (public/obscured) coords. */}
-            {hasGeo && (
+                Needs coords AND a connection — the map tiles are fetched, so
+                offline it would open to a blank grid. */}
+            {hasGeo && !offline && (
               <Pressable
                 testID="study-location"
                 onPress={() => setMapOpen(true)}

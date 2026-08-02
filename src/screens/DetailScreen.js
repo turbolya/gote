@@ -21,12 +21,13 @@ import PhotoViewer from '../components/PhotoViewer';
 import ObservationMap from '../components/ObservationMap';
 import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonDetail, toLargePhoto } from '../api';
+import { photoSource } from '../photocache';
 
 // Ranks worth surfacing in the taxonomy block (skip the very fine sub-ranks).
 const SHOWN_RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 
 
-export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack }) {
+export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack, offline = false }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const flagged = !!(flags && card.taxonId != null && flags.has(String(card.taxonId)));
@@ -85,7 +86,9 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
             onPress={() => setViewerIndex(0)}
           >
             <LoadingImage
-              source={{ uri: toLargePhoto(card.image) }}
+              // The large variant is a different URL from the one cached for
+              // play, so offline we show the cached copy rather than nothing.
+              source={offline ? photoSource(card.image) : { uri: toLargePhoto(card.image) }}
               style={styles.heroImg}
               resizeMode="cover"
             />
@@ -127,8 +130,9 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
             <Text style={styles.rank}>{card.rank.toUpperCase()}</Text>
           )}
 
-          {/* Where this observation was recorded — tap to open a map */}
-          {hasGeo && (
+          {/* Where this observation was recorded — tap to open a map. The map
+              tiles are fetched, so this is hidden with no connection. */}
+          {hasGeo && !offline && (
             <Pressable
               testID="detail-location"
               onPress={() => setMapOpen(true)}

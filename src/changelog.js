@@ -22,6 +22,13 @@ export const CHANGELOG = [
       'The card loading spinner now appears immediately while a photo downloads — '
         + 'including over the initial dark screen on a slow connection — instead of '
         + 'only showing up once the blurred background had already loaded.',
+      'Fixed offline play showing broken images. gote now keeps its own copies of '
+        + 'your deck’s photos on the device, so an offline round only serves cards '
+        + 'whose pictures are genuinely there and they actually appear. Previously '
+        + 'it went by a list of photos it had merely tried to preload, which the '
+        + 'system could quietly discard — leaving a round of grey placeholders. '
+        + 'The “more photos” and map buttons are also hidden while offline, since '
+        + 'both need a connection.',
     ],
   },
   {

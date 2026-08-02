@@ -1,98 +1,63 @@
-// Image preloading + a downloaded-photo manifest.
+// Image preloading for upcoming cards, and the offline photo pack.
 //
-// Two jobs:
-//   1. Warm the native image cache with upcoming photos so the next card
-//      appears instantly and the bytes are reused later (RN's Image.prefetch
-//      downloads into the same on-disk cache <Image> reads from).
-//   2. Remember which URLs we successfully prefetched, persisted across launches
-//      (src/storage.js), so an OFFLINE session can be limited to cards whose
-//      photos will actually render. The OS image cache isn't queryable, so this
-//      manifest is our proxy for "downloaded". It's approximate — an entry may
-//      have been evicted — so it's a play-time hint, not a hard guarantee.
+// Two jobs, and they are no longer the same mechanism:
+//
+//   1. Warm the next few cards so a transition is instant. Image.prefetch is
+//      right for this — it is only ever a speed optimisation.
+//   2. Build the OFFLINE pack. This writes real files through src/photocache.js,
+//      because "will this photo render with no connection?" has to be a fact
+//      about the filesystem. It used to be a remembered list of prefetched URLs,
+//      but prefetch only warms the OS cache, which evicts silently and can't be
+//      queried — so offline decks served cards whose photos were gone and every
+//      card showed a broken-image placeholder.
 
 import { Image } from 'react-native';
+import { clearDownloadedImages } from './storage';
 import {
-  loadDownloadedImages,
-  addDownloadedImages,
-  clearDownloadedImages,
-} from './storage';
+  initPhotoCache,
+  isCached,
+  cachePhotos,
+  clearPhotoCache,
+} from './photocache';
 
-// URLs we've already issued a prefetch for this session (dedupe requests).
+// URLs we've already asked the OS to warm this session (dedupe requests).
 const requested = new Set();
-// URLs known downloaded (seeded from storage, grown as prefetches resolve).
-const downloaded = new Set();
 
-// Resolved-but-not-yet-persisted URLs, flushed in a batch so we don't hit
-// storage once per image.
-let pending = [];
-let flushTimer = null;
-let seeded = false;
-
-// Seed the downloaded set from the persisted manifest. Call once at startup,
-// before anything reads isImageDownloaded for an offline deck.
+// Read the on-disk pack once at startup, before anything filters a deck for
+// offline play.
 export async function initDownloadedImages() {
-  if (seeded) return;
-  seeded = true;
-  try {
-    for (const u of await loadDownloadedImages()) downloaded.add(u);
-  } catch {
-    /* best-effort */
-  }
+  await initPhotoCache();
+  // One-time tidy-up: the old AsyncStorage manifest is no longer consulted
+  // (the filesystem is the truth now), so stop carrying it around.
+  clearDownloadedImages().catch(() => {});
 }
 
+// Is this photo actually available offline? Backed by the file cache.
 export function isImageDownloaded(url) {
-  return !!url && downloaded.has(url);
+  return isCached(url);
 }
 
-function recordDownloaded(url) {
-  if (!url || downloaded.has(url)) return;
-  downloaded.add(url);
-  pending.push(url);
-  if (!flushTimer) flushTimer = setTimeout(flushDownloaded, 1500);
-}
-
-// Persist the pending batch. Safe to call directly (e.g. on backgrounding).
-export async function flushDownloaded() {
-  if (flushTimer) {
-    clearTimeout(flushTimer);
-    flushTimer = null;
-  }
-  if (pending.length === 0) return;
-  const batch = pending;
-  pending = [];
-  try {
-    await addDownloadedImages(batch);
-  } catch {
-    /* best-effort — try again on the next flush */
-  }
-}
-
-// Forget every downloaded photo (in-memory + persisted). Called when the user
-// empties the photo cache, so the offline deck doesn't claim evicted images.
+// Forget every downloaded photo. Called when the user empties the photo cache,
+// so the offline deck doesn't claim images the user just deleted.
 export async function clearDownloadedManifest() {
-  downloaded.clear();
   requested.clear();
-  pending = [];
-  await clearDownloadedImages();
+  await clearPhotoCache();
 }
 
-// Prefetch a list of image URLs (best-effort). A resolved prefetch is recorded
-// as downloaded. Skips blanks and anything already requested this session.
+// Warm the OS image cache (speed only — never counted as offline-ready).
 export function prefetchImages(urls) {
   for (const url of urls || []) {
     if (!url || requested.has(url)) continue;
     requested.add(url);
-    Image.prefetch(url)
-      .then(() => recordDownloaded(url))
-      .catch(() => {
-        // Failed to fetch — allow a later retry by forgetting the request.
-        requested.delete(url);
-      });
+    Image.prefetch(url).catch(() => {
+      requested.delete(url); // allow a later retry
+    });
   }
 }
 
 // Prefetch the next `count` cards' images in a deck, starting after `index`.
 // Wraps around for endless modes (speedrun) so the loop's start is warm too.
+// Also files them into the offline pack, so simply playing builds it up.
 export function prefetchUpcoming(deck, index, count = 3) {
   if (!Array.isArray(deck) || deck.length === 0) return;
   const urls = [];
@@ -101,25 +66,18 @@ export function prefetchUpcoming(deck, index, count = 3) {
     if (card && card.image) urls.push(card.image);
   }
   prefetchImages(urls);
+  cachePhotos(urls).catch(() => {});
 }
 
-// Proactively build an offline pack: after a deck loads online, warm (and
-// record) a capped slice of its photos, spread over time so we don't fire
-// hundreds of concurrent downloads at once. `count` cards is plenty for an
-// offline session; ongoing play warms the rest via prefetchUpcoming.
-export function prefetchDeck(deck, { count = 120, chunk = 8, gapMs = 400 } = {}) {
+// Build the offline pack: after a deck loads online, download a capped slice of
+// its photos to disk. `count` cards is plenty for an offline session; ongoing
+// play adds the rest via prefetchUpcoming.
+export function prefetchDeck(deck, { count = 120 } = {}) {
   if (!Array.isArray(deck)) return;
   const urls = [];
   for (const c of deck) {
     if (c && c.image) urls.push(c.image);
     if (urls.length >= count) break;
   }
-  let i = 0;
-  const step = () => {
-    if (i >= urls.length) return;
-    prefetchImages(urls.slice(i, i + chunk));
-    i += chunk;
-    if (i < urls.length) setTimeout(step, gapMs);
-  };
-  step();
+  cachePhotos(urls).catch(() => {});
 }
