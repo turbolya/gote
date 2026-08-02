@@ -521,7 +521,10 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     const a = makeDevice({ createClient, url, anon, name: 'A' });
     const idA = await a.sync.ensureSession();
     await a.storage.saveStats({ answered: 40, correct: 30 });
-    await a.storage.saveHistory([60, 70, 80, 90]);
+    // Sizes for the newest three bars only — the state of a device whose oldest
+    // round predates them. They are right-aligned with the chart, and must land
+    // opposite the same bars on B.
+    await a.storage.saveHistory([60, 70, 80, 90], [10, 20, 10]);
     await a.storage.saveActiveDays(['2026-03-01', '2026-03-02', '2026-03-03']);
     await a.sync.syncNow(); // first sync → uploadBaseline carries history + days
     await attachEmail(admin, idA, email);
@@ -534,6 +537,11 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     await b.sync.afterAuthChange('signin');
 
     eq(await b.storage.loadHistory(), [60, 70, 80, 90], "B rebuilt A's accuracy chart");
+    eq(
+      await b.storage.loadHistoryCounts(),
+      [0, 10, 20, 10],
+      "B rebuilt A's round sizes, aligned to the same bars"
+    );
     const days = JSON.parse(b.kv._dump()['@gote/activeDays'] || '[]');
     ok(
       days.includes('2026-03-01') && days.includes('2026-03-02') && days.includes('2026-03-03'),

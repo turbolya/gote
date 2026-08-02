@@ -38,6 +38,21 @@ The append-only `events` log needs neither rule bent: every client only ever
 
 ## DB schema
 
+### v5 — 2026-08-02 — `20260802120000_events_round_size.sql`
+- Added two columns to `public.events`: `n integer not null default 0` and
+  `counts jsonb not null default '[]'`. `n` is how many cards the round this
+  event's `pct` summarises covered; `counts` is the baseline's per-bar equivalent,
+  right-aligned with `history`. Without the sample size every aggregate over the
+  chart had to treat a 1-card round as the equal of a 100-card one, which is why
+  the "lifetime accuracy" trend line drifted off the lifetime accuracy printed
+  beside it (that figure is `correct/answered` and was always weighted).
+  `n` is deliberately separate from `answered`: an Apple Watch round banks its
+  cards one at a time and reports `answered: 0` to avoid double-counting, yet
+  still draws a bar that needs a weight. Additive/expand-only like v3 and v4 —
+  old clients insert without them and get `0` / `[]`, old readers ignore them,
+  and `0` reads as "size unknown" on the client (which falls back to the player's
+  own mean round length). No RLS or grant change.
+
 ### v4 — 2026-08-01 — `20260801120000_events_baseline_history.sql`
 - Added two nullable columns to `public.events`: `history jsonb not null default
   '[]'` and `days jsonb not null default '[]'`. The first-sync **baseline** now
@@ -106,6 +121,16 @@ another device is adopted even when this device's prefs are newer. No DB migrati
 
 ## Events payload (`events` row)
 
+### v4 — 2026-08-02
+- Added `n` (int, cards in the round this event's `pct` summarises) and `counts`
+  (baseline only: cards per bar, right-aligned with `history` — shorter when the
+  device has bars from before sizes were recorded). Folded in `applyEvent`, which
+  keeps `counts` the SAME LENGTH as `history` (0 = unknown), padding before each
+  append so a point from an older client can't shift every later size one slot.
+  The baseline nets `counts` against still-queued rounds by dropping the same
+  trailing entries as `history`, then clamps to the netted bar count. Additive;
+  older events omit both and read as unknown.
+
 ### v3 — 2026-08-01
 - Added `history` (per-round pct array) and `days` (YYYY-MM-DD array) jsonb
   deltas, both `[]` on a normal round. The first-sync baseline fills them with the
@@ -146,7 +171,15 @@ another device is adopted even when this device's prefs are newer. No DB migrati
   DB v3 / events payload v2, 2026-07-28),
   `confusionNotes` (`{ [pairKey]: text }` — the player's "my tell" notes, added
   additively 2026-07-28, **device-local** — deliberately not synced; per-note
-  timestamped LWW is a future task).
+  timestamped LWW is a future task),
+  `historyCounts` (cards per finished round, parallel to `history` and
+  **right-aligned** with it — added additively 2026-08-02, no version bump; a
+  device with rounds from before it simply has a shorter array, and the missing
+  entries read as "size unknown". Kept as a parallel array rather than folded
+  into `history` because `history` is also a sync wire format: a parallel array
+  is something an older client ignores, whereas changing the element type would
+  make it read every bar as `NaN`. **Now synced** via the events `n` / `counts`
+  fields, DB v5 / events payload v4).
 
 ---
 
@@ -159,6 +192,7 @@ Authoritative source: `supabase/migrations/`. Reproduced here for reference.
 - **`events`** — append-only stat deltas (columns under *Events payload* above).
   Owner-only select/insert; **no update/delete**. Indexed on
   `(user_id, created_at desc)` for the "my rows since last pull" query.
+  Round sizes ride in `n` (per round) and `counts` (baseline) as of v5.
 - **`settings`** — `user_id` (PK → auth.users, cascade), `data` jsonb,
   `updated_at`. Owner-only; update shallow-merges `data` (DB v2).
 - **RLS** everywhere, scoped by `auth.uid()` — anonymous sign-ins carry the

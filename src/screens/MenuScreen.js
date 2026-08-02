@@ -11,7 +11,13 @@ import { View, Text, Pressable, Animated, Easing, Image, Linking, StyleSheet } f
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
-import { smoothPath, cumulativeAverage, downsampleMean, sampleBucketEnds } from '../components/charts';
+import { smoothPath } from '../components/charts';
+import {
+  cumulativeAccuracy,
+  downsampleAccuracy,
+  sampleBucketEnds,
+  priorFor,
+} from '../accuracy';
 import Icon from '../components/Icon';
 import WatchTip from '../components/WatchTip';
 import OfflineBanner from '../components/OfflineBanner';
@@ -53,7 +59,7 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 // spans your FULL history — once there are more games than bars that fit, the
 // data is downsampled (bars become per-bucket averages) rather than dropping the
 // oldest games.
-function AccuracyBars({ data = [] }) {
+function AccuracyBars({ data = [], counts = [], lifetime = null }) {
   const styles = useThemedStyles(makeStyles);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const { w: width, h: height } = size;
@@ -61,15 +67,22 @@ function AccuracyBars({ data = [] }) {
   const grow = useRef(new Animated.Value(IS_E2E ? 1 : 0)).current;
   const maxBars =
     width > 0 ? Math.max(1, Math.floor((width + BAR_GAP) / (BAR_W + BAR_GAP))) : 0;
-  // Per-game accuracy, downsampled to fit the available bars (averaging each
-  // bucket) so the whole lifetime stays on screen.
-  const bars = maxBars > 0 ? downsampleMean(data, maxBars) : [];
+  // Per-game accuracy, downsampled to fit the available bars so the whole
+  // lifetime stays on screen. Each bucket is a card-weighted average, so a long
+  // round isn't averaged away by a short one sharing its bucket.
+  const bars = maxBars > 0 ? downsampleAccuracy(data, counts, maxBars) : [];
 
-  // Lifetime accuracy over time: the running average of every game's accuracy up
-  // to that point, computed over the FULL history then sampled (at bucket ends)
-  // to the same number of points as the bars — so the curve spans the entire
-  // history and ends on your true overall accuracy.
-  const lineVals = maxBars === 0 ? [] : sampleBucketEnds(cumulativeAverage(data), maxBars);
+  // Lifetime accuracy over time: the running card-weighted accuracy up to each
+  // point, computed over the FULL history then sampled (at bucket ends) to the
+  // same number of points as the bars — so the curve spans the entire history
+  // and ends on the exact percentage printed below it.
+  const lineVals =
+    maxBars === 0
+      ? []
+      : sampleBucketEnds(
+          cumulativeAccuracy(data, counts, priorFor(lifetime, data, counts)),
+          maxBars
+        );
 
   // Map the visible line values to pixel points centered on each bar.
   const points = lineVals.map((v, i) => ({
@@ -188,6 +201,7 @@ export default function MenuScreen({
   deckCount,
   lifetime,
   history = [],
+  historyCounts = [],
   streak,
   watchTipDismissed,
   onDismissWatchTip,
@@ -349,7 +363,7 @@ export default function MenuScreen({
           style={[styles.barsLayer, { top: insets.top + 46, opacity: bigOpacity }]}
           pointerEvents="none"
         >
-          <AccuracyBars data={history} />
+          <AccuracyBars data={history} counts={historyCounts} lifetime={lifetime} />
         </Animated.View>
 
         <View style={[styles.heroContent, { paddingTop: insets.top + 10 }]}>

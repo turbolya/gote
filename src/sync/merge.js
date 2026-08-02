@@ -30,6 +30,7 @@ export function emptyRollups() {
     stats: { answered: 0, correct: 0 },
     species: {},
     history: [],
+    counts: [],
     days: [],
     confusions: {},
   };
@@ -73,13 +74,33 @@ export function applyEvent(rollups, event) {
   // a joining device shows the bars it played before sync — not just the lifetime
   // total over an empty chart. A single answer has neither (`pct` null, no array):
   // one card is not a round and must not spike the chart with a 0%/100% point.
+  //
+  // Every point carries its card count in the parallel `counts` array, kept the
+  // SAME LENGTH as `history` here (0 = size unknown) so the two can never drift
+  // apart no matter what mix of old and new events arrives. Without it a 1-card
+  // round would weigh as much as a 100-card one in every aggregate — see
+  // src/accuracy.js. A round event's size rides in `n`, not in `answered`: a
+  // watch round banks its cards individually and reports answered: 0.
   let history = r.history;
+  let counts = r.counts || [];
+  const addPoint = (pct, n) => {
+    // Pad first, so a point from an older client (no size) doesn't shift every
+    // later count one slot to the left.
+    if (counts.length < history.length) {
+      counts = [...counts, ...new Array(history.length - counts.length).fill(0)];
+    }
+    history = [...history, clamp(Math.round(num(pct)), 0, 100)];
+    counts = [...counts, Math.max(0, Math.round(num(n)))];
+  };
   if (Array.isArray(event.history) && event.history.length) {
-    history = [...history, ...event.history.map((p) => clamp(Math.round(num(p)), 0, 100))];
+    const base = Array.isArray(event.counts) ? event.counts : [];
+    // The baseline's counts are right-aligned with its history, matching how the
+    // device stores them (src/storage.js), so a device that predates counts
+    // contributes sizes for its newest rounds only.
+    const offset = event.history.length - base.length;
+    event.history.forEach((p, i) => addPoint(p, i >= offset ? base[i - offset] : 0));
   }
-  if (event.pct != null) {
-    history = [...history, clamp(Math.round(num(event.pct)), 0, 100)];
-  }
+  if (event.pct != null) addPoint(event.pct, event.n);
 
   // Active days (the streak is computed from this set). This event's own
   // `local_day`, plus any day-set a baseline carries (`days: [YYYY-MM-DD, …]`).
@@ -105,6 +126,7 @@ export function applyEvent(rollups, event) {
     },
     species,
     history,
+    counts,
     days,
     confusions,
   };

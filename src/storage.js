@@ -23,6 +23,12 @@ const K_CONFUSION_WINS = '@gote/confusionWins';
 const K_CACHE = '@gote/obscache';
 const K_FLAGS = '@gote/flags';
 const K_HISTORY = '@gote/history';
+// Cards per finished round, parallel to K_HISTORY and right-aligned with it (see
+// src/accuracy.js alignCounts). Stored separately rather than folding the two
+// into one array of objects, because `history` is also a sync wire format: a
+// parallel array is an additive change an older client simply ignores, whereas
+// changing the element type would make it read every bar as NaN.
+const K_HISTORY_N = '@gote/historyCounts';
 const K_STREAK = '@gote/streak';
 const K_DAYS = '@gote/activeDays';
 const K_WATCH_IDS = '@gote/watchResultIds';
@@ -311,7 +317,7 @@ export async function saveConfusionWins(map) {
 // per-game accuracy history shown on the menu).
 export async function resetStatistics() {
   try {
-    await kv.multiRemove([K_STATS, K_SPECIES, K_HISTORY, K_STREAK]);
+    await kv.multiRemove([K_STATS, K_SPECIES, K_HISTORY, K_HISTORY_N, K_STREAK]);
   } catch {
     /* ignore */
   }
@@ -320,10 +326,18 @@ export async function resetStatistics() {
 // --- Per-game accuracy history -----------------------------------------------
 // A list of recent games' accuracy percentages (0–100, oldest → newest), for
 // the little background chart on the menu. Global, like the lifetime totals.
+//
+// Each percentage has a companion card count in K_HISTORY_N, because a
+// percentage alone can't be aggregated honestly: averaging a 1-card round with a
+// 100-card round as equals is what made the "lifetime accuracy" trend line miss
+// the lifetime accuracy. See src/accuracy.js. Rounds played before v2.37.0 have
+// no count; the arrays are right-aligned so those simply sit at the front with
+// an unknown size.
 
-export async function loadHistory() {
+// Read a stored array of finite numbers, or [] for anything unusable.
+async function loadNumbers(key) {
   try {
-    const raw = await kv.getItem(K_HISTORY);
+    const raw = await kv.getItem(key);
     if (raw) {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) return arr.filter((n) => typeof n === 'number');
@@ -334,31 +348,71 @@ export async function loadHistory() {
   return [];
 }
 
+export async function loadHistory() {
+  return loadNumbers(K_HISTORY);
+}
+
+// Cards per finished round, right-aligned with loadHistory()'s percentages.
+// Shorter than the history for a player who has rounds from before counts were
+// recorded; never longer.
+export async function loadHistoryCounts() {
+  return loadNumbers(K_HISTORY_N);
+}
+
 // Overwrite the accuracy history wholesale (normal play uses addGameResult).
-// Used by the screenshot seeder to plant a full, trending chart.
-export async function saveHistory(history) {
+// Used by the screenshot seeder to plant a full, trending chart, and by sync
+// when a merge rebuilds the chart from the account's events.
+export async function saveHistory(history, counts) {
+  const arr = (Array.isArray(history) ? history : [])
+    .filter((n) => typeof n === 'number')
+    .slice(-MAX_HISTORY);
   try {
-    const arr = (Array.isArray(history) ? history : [])
-      .filter((n) => typeof n === 'number')
-      .slice(-MAX_HISTORY);
     await kv.setItem(K_HISTORY, JSON.stringify(arr));
+  } catch {
+    /* ignore */
+  }
+  // Omitted counts leave the stored ones alone: a caller that only knows the
+  // percentages must not silently erase the sizes.
+  if (counts === undefined) return;
+  const clean = (Array.isArray(counts) ? counts : []).filter(
+    (n) => typeof n === 'number'
+  );
+  // Never longer than the history it annotates, and right-aligned to it.
+  const ns = arr.length ? clean.slice(-arr.length) : [];
+  try {
+    await kv.setItem(K_HISTORY_N, JSON.stringify(ns));
   } catch {
     /* ignore */
   }
 }
 
-// Append one finished game's accuracy percent and return the trimmed history.
-export async function addGameResult(pct) {
-  const prev = await loadHistory();
-  const next = [...prev, Math.max(0, Math.min(100, Math.round(pct)))].slice(
+// Append one finished game's accuracy percent, with the number of cards it
+// covered, and return the trimmed history + counts.
+//
+// `n` is the weight every aggregate over this chart uses. It is passed rather
+// than derived so the caller's own card total is the source of truth — including
+// for a watch round, whose cards were already banked one at a time and so can't
+// be recovered from the lifetime delta.
+export async function addGameResult(pct, n = 0) {
+  const [prev, prevN] = await Promise.all([loadHistory(), loadHistoryCounts()]);
+  const history = [...prev, Math.max(0, Math.min(100, Math.round(pct)))].slice(
+    -MAX_HISTORY
+  );
+  // Pad to the history's length before appending, so a first-ever count lands
+  // opposite its own round rather than opposite the oldest one.
+  const padded = prevN.length < prev.length
+    ? [...new Array(prev.length - prevN.length).fill(0), ...prevN]
+    : prevN.slice(-prev.length);
+  const counts = [...padded, Math.max(0, Math.round(Number(n) || 0))].slice(
     -MAX_HISTORY
   );
   try {
-    await kv.setItem(K_HISTORY, JSON.stringify(next));
+    await kv.setItem(K_HISTORY, JSON.stringify(history));
+    await kv.setItem(K_HISTORY_N, JSON.stringify(counts));
   } catch {
     /* ignore — best-effort */
   }
-  return next;
+  return { history, counts };
 }
 
 // --- Daily streak ------------------------------------------------------------

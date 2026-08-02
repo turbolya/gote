@@ -1,11 +1,12 @@
 // Small, theme-aware history charts shared by the menu hero and the Statistics
 // page. Two views over the per-game accuracy history (an array of 0–100 percents,
-// oldest → newest):
+// oldest → newest) plus the matching `counts` (cards per round):
 //   • RecentGamesChart — one bar per game (how you did that round).
 //   • AccuracyTrendChart — a smooth line of your running lifetime accuracy.
 //
-// `smoothPath` and `cumulativeAverage` are exported so the hero's overlaid
-// version can reuse the exact same math.
+// The trend is weighted by cards, not by rounds — see src/accuracy.js for why
+// that is a correctness fix rather than a preference. `smoothPath` is exported
+// so the hero's overlaid version can reuse the exact same curve math.
 
 import React, { useState } from 'react';
 import { View } from 'react-native';
@@ -19,53 +20,9 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 import { useTheme } from '../theme';
+import { cumulativeAccuracy, priorFor } from '../accuracy';
 
 const clampPct = (v) => Math.min(100, Math.max(0, v));
-
-// Cumulative (running) average of a series — value i is the mean of items 0..i.
-// Used for the lifetime-accuracy trend: the average accuracy across every game
-// played up to that point.
-export function cumulativeAverage(data) {
-  const out = [];
-  let sum = 0;
-  for (let i = 0; i < data.length; i++) {
-    sum += data[i];
-    out.push(sum / (i + 1));
-  }
-  return out;
-}
-
-// Partition n items into m contiguous, near-equal buckets; returns m [start,end)
-// index pairs (end exclusive). Assumes n >= m >= 1.
-function buckets(n, m) {
-  const out = [];
-  for (let i = 0; i < m; i++) {
-    out.push([Math.floor((i * n) / m), Math.floor(((i + 1) * n) / m)]);
-  }
-  return out;
-}
-
-// Downsample a series to at most m points by averaging each bucket — so the
-// whole history is always represented, just compressed once it outgrows the
-// available bars. Returned unchanged when it already fits (length <= m).
-export function downsampleMean(data, m) {
-  if (m <= 0) return [];
-  if (data.length <= m) return data.slice();
-  return buckets(data.length, m).map(([s, e]) => {
-    let sum = 0;
-    for (let i = s; i < e; i++) sum += data[i];
-    return sum / (e - s);
-  });
-}
-
-// Sample a series to at most m points by taking each bucket's LAST value, so the
-// final (most recent) value is always preserved. Used for the cumulative
-// lifetime-accuracy line, whose endpoint is the true overall accuracy.
-export function sampleBucketEnds(data, m) {
-  if (m <= 0) return [];
-  if (data.length <= m) return data.slice();
-  return buckets(data.length, m).map(([, e]) => data[e - 1]);
-}
 
 // Smooth (Catmull-Rom → cubic-bezier) SVG path through { x, y } points, so a
 // series reads as a flowing curve rather than jagged segments.
@@ -158,10 +115,13 @@ export function RecentGamesChart({ history = [], height = 96 }) {
 
 // Running lifetime accuracy as a smooth line with a soft area fill, plus a dot
 // on the latest value.
-export function AccuracyTrendChart({ history = [], height = 96 }) {
+export function AccuracyTrendChart({ history = [], counts = [], lifetime = null, height = 96 }) {
   const { colors } = useTheme();
   const [width, setWidth] = useState(0);
-  const series = cumulativeAverage(history);
+  // Weighted by cards per round, and seeded with whatever the chart's own rounds
+  // don't cover, so the curve ends exactly on the accuracy shown in the summary
+  // above it rather than near it.
+  const series = cumulativeAccuracy(history, counts, priorFor(lifetime, history, counts));
 
   let content = null;
   if (width > 0 && series.length >= 2) {

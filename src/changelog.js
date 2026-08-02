@@ -8,9 +8,24 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.36.0';
+export const APP_VERSION = '2.37.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.37.0',
+    date: '2026-08-02',
+    changes: [
+      'Your accuracy trend is now weighted by how many cards each round had. '
+        + 'Before, every game counted the same, so quitting a round after one '
+        + 'lucky card scored a full 100% and pulled the line up as hard as a '
+        + '100-card game would — which also meant the trend line never quite '
+        + 'matched the lifetime accuracy printed next to it. It does now.',
+      'Statistics → “Success %” no longer puts species you’ve seen once at the '
+        + 'top. A species needs a few answers behind it before it is judged on '
+        + 'its own record, so the top of the list is now the species you really '
+        + 'do know rather than the ones you’ve barely met.',
+    ],
+  },
   {
     version: '2.36.0',
     date: '2026-08-01',

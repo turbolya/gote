@@ -152,8 +152,15 @@ const DAY = 24 * 60 * 60 * 1000;
   await test('watch round: addGameResult appends the round accuracy to history', async () => {
     const as = makeAsyncStorage({ '@gote/history': JSON.stringify([17]) });
     const s = loadStorage(as);
-    const out = await s.addGameResult((2 / 3) * 100); // 2/3 correct → 67
-    assert.deepStrictEqual(out, [17, 67]);
+    // A wrist round of 3 cards, 2 right. The card count rides along because every
+    // aggregate over the chart is weighted by it (src/accuracy.js) — and for a
+    // watch round it can't be recovered any other way: those cards were already
+    // banked one at a time, so the round itself reports no lifetime delta.
+    const out = await s.addGameResult((2 / 3) * 100, 3); // 2/3 correct → 67
+    assert.deepStrictEqual(out, { history: [17, 67], counts: [0, 3] });
+    // The pre-existing bar has no recorded size, so it sits at 0 ("unknown") and
+    // the new count lines up opposite its own round, not the older one.
+    assert.deepStrictEqual(JSON.parse(await as.getItem('@gote/historyCounts')), [0, 3]);
   });
 
   // --- applied-id dedup store -------------------------------------------------

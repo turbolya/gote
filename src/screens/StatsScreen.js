@@ -20,6 +20,7 @@ import { fetchTaxonThumbs } from '../api';
 import { AnimatedBar, animateNextLayout } from '../components/anim';
 import { RecentGamesChart, AccuracyTrendChart } from '../components/charts';
 import { topConfusionPairs, pairKey } from '../confusions';
+import { shrunkRate, lifetimeRate, SHRINK_M } from '../accuracy';
 
 
 // Row background tint endpoints: dark red for the lowest net score (correct −
@@ -38,7 +39,6 @@ const SORTS = [
 const knownOf = (s) => s.known || 0;
 const missedOf = (s) => s.missed || 0;
 const totalOf = (s) => knownOf(s) + missedOf(s);
-const successOf = (s) => (totalOf(s) > 0 ? knownOf(s) / totalOf(s) : 0);
 
 // One compact species row: a recognition-% gradient fills the row background,
 // the thumbnail + name sit on the left, and the two count bars (correct /
@@ -146,7 +146,7 @@ function NemesisCell({ info }) {
   );
 }
 
-export default function StatsScreen({ species, cards = [], confusions = {}, confusionNotes = {}, onCompare, lifetime, history = [], streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
+export default function StatsScreen({ species, cards = [], confusions = {}, confusionNotes = {}, onCompare, lifetime, history = [], historyCounts = [], streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const [sort, setSort] = useState('pct');
@@ -258,10 +258,18 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
     } else if (sort === 'incorrect') {
       arr.sort((a, b) => missedOf(b) - missedOf(a) || totalOf(b) - totalOf(a));
     } else {
-      arr.sort((a, b) => successOf(b) - successOf(a) || totalOf(b) - totalOf(a));
+      // Success % ranks on the SHRUNK rate, not the raw one. Raw, a species
+      // answered right once sits at a flat 100% and outranks one you've got
+      // right forty times out of forty-two — which makes the top of this list
+      // the species you've barely seen. Shrinking toward your own lifetime rate
+      // means a thin sample has to earn its position (see src/accuracy.js);
+      // once there's real evidence the two rates are indistinguishable.
+      const prior = lifetimeRate(lifetime);
+      const rate = (s) => shrunkRate(s, prior);
+      arr.sort((a, b) => rate(b) - rate(a) || totalOf(b) - totalOf(a));
     }
     return arr;
-  }, [filtered, sort]);
+  }, [filtered, sort, lifetime]);
 
   // Single-pass max of every count in the list. (Avoid Math.max(...arr): the
   // spread overflows the call stack on very large lists — e.g. Nearby decks
@@ -411,11 +419,17 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
       {history.length >= 2 && (
         <View style={styles.chartCard}>
           <Text style={styles.chartTitle}>Accuracy trend</Text>
-          <AccuracyTrendChart history={history} height={104} />
+          <AccuracyTrendChart
+            history={history}
+            counts={historyCounts}
+            lifetime={lifetime}
+            height={104}
+          />
           <Text style={styles.chartCaption}>
-            Your running lifetime accuracy — the average across every game up to
-            that point. It steadies as you play more, so the slope shows whether
-            you’re improving.
+            Your running lifetime accuracy — every card you’ve answered up to
+            that point, so a long round counts for more than a short one. It
+            steadies as you play more, so the slope shows whether you’re
+            improving, and it ends on the accuracy above.
           </Text>
         </View>
       )}
@@ -518,6 +532,17 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
           })}
         </View>
       </View>
+
+      {/* Say what "Success %" actually ranks on. Without this the order looks
+          broken to anyone who spots a 1-for-1 species sitting below a 40-for-42
+          one — which is the whole point of ranking this way. */}
+      {sort === 'pct' && (
+        <Text style={styles.sortNote}>
+          Ranked by how reliably you know each species, so a species you’ve seen
+          once can’t top the list on a single lucky answer. It takes about{' '}
+          {SHRINK_M} answers before a species is judged on its own record alone.
+        </Text>
+      )}
     </>
   );
 
@@ -632,6 +657,14 @@ const makeStyles = (colors) => StyleSheet.create({
     marginBottom: 12,
   },
   chartCaption: { fontSize: 13, lineHeight: 18, color: colors.muted, marginTop: 12 },
+  // Explains the Success % ordering, sitting just under the sort chips.
+  sortNote: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.muted,
+    marginTop: 8,
+    marginBottom: 2,
+  },
 
   // "Species you mix up" — one row per confused pair.
   nemesisRow: {

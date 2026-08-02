@@ -42,7 +42,7 @@ function eq(name, actual, expected) {
 }
 
 const day = (d) => '2026-03-' + String(d).padStart(2, '0');
-const ev = (o) => ({ id: o.id, ts: o.ts || Date.now(), localDay: o.localDay, answered: o.answered || 0, correct: o.correct || 0, pct: o.pct === undefined ? null : o.pct, species: o.species || {} });
+const ev = (o) => ({ id: o.id, ts: o.ts || Date.now(), localDay: o.localDay, answered: o.answered || 0, correct: o.correct || 0, pct: o.pct === undefined ? null : o.pct, n: o.n || 0, species: o.species || {} });
 
 console.log('\\nlocalDay');
 {
@@ -111,6 +111,54 @@ console.log('\\napplyEvent (baseline history + days)');
   const r = applyEvent(local, { id: 'base', localDay: day(1), answered: 5, correct: 5, pct: 40, history: [10, 20] });
   eq('baseline history appends to existing bars, then its own pct', r.history, [90, 10, 20, 40]);
 }
+
+console.log('\\napplyEvent (round sizes)');
+{
+  // Every chart point carries the cards it covered, so a 1-card round can't
+  // weigh as much as a 100-card one downstream (src/accuracy.js).
+  const r = applyEvent(emptyRollups(), ev({ id: 'a', localDay: day(1), answered: 20, correct: 14, pct: 70, n: 20 }));
+  eq('a round records its size', r.counts, [20]);
+}
+{
+  // A watch round reports answered: 0 (its cards were banked one at a time), so
+  // the size has to ride in n or the bar would have no weight at all.
+  const r = applyEvent(emptyRollups(), { id: 'w', localDay: day(1), answered: 0, correct: 0, pct: 80, n: 5 });
+  eq('a watch round still carries a size', r.counts, [5]);
+  eq('and still adds nothing to the totals', r.stats, { answered: 0, correct: 0 });
+}
+{
+  // An event from a client that predates sizes. 0 means "unknown" — the reader
+  // falls back to the player's own mean round length rather than guessing 1.
+  const r = applyEvent(emptyRollups(), { id: 'old', localDay: day(1), answered: 4, correct: 2, pct: 50 });
+  eq('an older event yields an unknown size', r.counts, [0]);
+}
+{
+  // The two arrays must stay index-aligned through ANY mix of old and new
+  // events, or every bar would be weighted by the wrong round.
+  let r = applyEvent(emptyRollups(), { id: 'old', localDay: day(1), pct: 50 });
+  r = applyEvent(r, ev({ id: 'new', localDay: day(2), answered: 30, correct: 30, pct: 100, n: 30 }));
+  eq('history and counts stay the same length', r.history.length === r.counts.length, true);
+  eq('an old point does not shift the new size', r.counts, [0, 30]);
+}
+{
+  // A baseline's counts are right-aligned with its history, matching how the
+  // device stores them: a device with bars from before sizes were recorded sends
+  // sizes for its NEWEST bars only.
+  const r = applyEvent(emptyRollups(), { id: 'base', localDay: day(9), history: [50, 60, 70, 80], counts: [12, 40] });
+  eq('short baseline counts align to the newest bars', r.counts, [0, 0, 12, 40]);
+}
+{
+  // Baseline bars plus the event's own pct, all sizes landing on the right bar.
+  const local = applyEvent(emptyRollups(), ev({ id: 'own', localDay: day(8), answered: 9, correct: 8, pct: 90, n: 9 }));
+  const r = applyEvent(local, { id: 'base', localDay: day(1), pct: 40, n: 4, history: [10, 20], counts: [1, 2] });
+  eq('bars and sizes stay paired across a mixed event', r.history, [90, 10, 20, 40]);
+  eq('sizes follow their own bars', r.counts, [9, 1, 2, 4]);
+}
+{
+  const r = applyEvent(emptyRollups(), { id: 'j', localDay: day(1), pct: 50, n: 'lots' });
+  eq('a junk size reads as unknown', r.counts, [0]);
+}
+
 {
   // A day that arrives from BOTH a baseline set and a later round folds in once.
   const withBase = applyEvent(emptyRollups(), { id: 'base', days: [day(1), day(2)] });

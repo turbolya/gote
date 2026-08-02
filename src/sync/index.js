@@ -27,6 +27,7 @@ import {
   loadFlagsRecord,
   saveFlagsRecord,
   loadHistory,
+  loadHistoryCounts,
   saveHistory,
   loadStreak,
   saveStreak,
@@ -133,12 +134,19 @@ function debug(...args) {
 //   answered/correct  card counts
 //   pct               0-100 for a FINISHED round; omit for a single answer,
 //                     which is not a round and must not become a chart point
+//   n                 cards the `pct` round covered — the weight every aggregate
+//                     over the chart uses. Sent separately from `answered`
+//                     because a watch round banks its cards one at a time and
+//                     reports answered: 0, yet still draws a bar
 //   species           { [taxonId]: { name, sci, image, known, missed } }
 //   history           baseline only: the accuracy chart's bars (per-round pct
 //                     array); a normal round leaves this empty and rides `pct`
+//   counts            baseline only: cards per bar, right-aligned with `history`
+//                     (shorter when the device has bars from before sizes were
+//                     recorded); a normal round leaves this empty and rides `n`
 //   days              baseline only: the active local days the streak is built
 //                     from; a normal round leaves this empty and rides `local_day`
-export async function recordEvent({ answered = 0, correct = 0, pct = null, species = {}, confusions = {}, history = [], days = [], ts = Date.now() } = {}) {
+export async function recordEvent({ answered = 0, correct = 0, pct = null, n = 0, species = {}, confusions = {}, history = [], counts = [], days = [], ts = Date.now() } = {}) {
   // Nothing is even queued while sync is off — no sync-related data touches disk
   // until the user opts in. Their existing history is captured wholesale by the
   // baseline at that point (see uploadBaseline), so nothing is lost.
@@ -152,9 +160,11 @@ export async function recordEvent({ answered = 0, correct = 0, pct = null, speci
       answered,
       correct,
       pct,
+      n: Math.max(0, Math.round(Number(n) || 0)),
       species: species || {},
       confusions: confusions || {},
       history: Array.isArray(history) ? history : [],
+      counts: Array.isArray(counts) ? counts : [],
       days: Array.isArray(days) ? days : [],
     };
     await pushToOutbox(event);
@@ -308,7 +318,7 @@ async function pull(supabase, userId) {
 
   let query = supabase
     .from('events')
-    .select('id, device_id, ts, local_day, answered, correct, pct, species, confusions, history, days, created_at')
+    .select('id, device_id, ts, local_day, answered, correct, pct, n, species, confusions, history, counts, days, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
     .limit(PULL_LIMIT);
@@ -335,10 +345,11 @@ async function pull(supabase, userId) {
 // Fold remote events into the local rollups. The ONLY place sync writes to the
 // app's own state, and it only ever adds.
 async function applyRemote(events) {
-  const [stats, species, history, streak, confusions, appliedIds] = await Promise.all([
+  const [stats, species, history, counts, streak, confusions, appliedIds] = await Promise.all([
     loadStats(),
     loadSpeciesStats(),
     loadHistory(),
+    loadHistoryCounts(),
     loadStreak(),
     loadConfusions(),
     loadAppliedIds(),
@@ -346,7 +357,7 @@ async function applyRemote(events) {
   const days = await backfillActiveDays(streak);
 
   const { rollups, applied } = applyEvents(
-    { stats, species, history, days, confusions },
+    { stats, species, history, counts, days, confusions },
     events,
     appliedIds
   );
@@ -357,7 +368,7 @@ async function applyRemote(events) {
   await Promise.all([
     saveStats(rollups.stats),
     saveSpeciesStats(rollups.species),
-    saveHistory(rollups.history),
+    saveHistory(rollups.history, rollups.counts),
     saveActiveDays(rollups.days),
     saveConfusions(rollups.confusions),
     // Never let a recomputed streak shrink `longest`: players who predate the
@@ -375,6 +386,9 @@ async function applyRemote(events) {
     lifetime: rollups.stats,
     species: rollups.species,
     history: rollups.history,
+    // Re-read rather than passing rollups.counts through: saveHistory trims and
+    // right-aligns, and the UI must chart exactly what was persisted.
+    historyCounts: await loadHistoryCounts(),
     streak: await loadStreak(),
     confusions: rollups.confusions,
     count: applied.length,
@@ -474,11 +488,12 @@ export async function afterAuthChange(mode = 'link') {
 // and the active-day set the streak is built from (`days`) — so a joining device
 // reconstructs the whole hero, not just the lifetime number over an empty chart.
 async function uploadBaseline() {
-  const [stats, species, confusions, history, activeDays, streak, queued] = await Promise.all([
+  const [stats, species, confusions, history, counts, activeDays, streak, queued] = await Promise.all([
     loadStats(),
     loadSpeciesStats(),
     loadConfusions(),
     loadHistory(),
+    loadHistoryCounts(),
     loadActiveDays(),
     loadStreak(),
     loadOutbox(),
@@ -528,6 +543,12 @@ async function uploadBaseline() {
   // recently played, so they are exactly the last bars in the array.
   const queuedRounds = queued.filter((e) => e && e.pct != null).length;
   const baseHistory = queuedRounds > 0 ? history.slice(0, -queuedRounds) : history;
+  // Card counts ride alongside, right-aligned with the bars they belong to. The
+  // stored counts are already right-aligned with the FULL history, so dropping
+  // the queued tail from both keeps them opposite the same rounds — and a device
+  // whose oldest bars predate counts simply sends a shorter array.
+  const trimmedN = queuedRounds > 0 ? counts.slice(0, -queuedRounds) : counts;
+  const baseCounts = baseHistory.length ? trimmedN.slice(-baseHistory.length) : [];
 
   // Active days: send the full set. A day is a SET member on the other side, so a
   // day a still-queued round will re-add folds in exactly once — no subtraction
@@ -549,6 +570,7 @@ async function uploadBaseline() {
     species: species2,
     confusions: conf,
     history: baseHistory,
+    counts: baseCounts,
     days: baseDays,
   });
   debug('baseline queued:', answered, 'answers,', baseHistory.length, 'bars,', baseDays.length, 'days');

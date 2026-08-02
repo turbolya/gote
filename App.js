@@ -65,6 +65,7 @@ import {
   loadFlags,
   saveFlag,
   loadHistory,
+  loadHistoryCounts,
   addGameResult,
   loadStreak,
   recordStreakDay,
@@ -216,8 +217,11 @@ export default function App() {
   // from many observers, not the current user) — so the message can match.
   const [loadingNearby, setLoadingNearby] = useState(false);
   const [lifetime, setLifetime] = useState({ answered: 0, correct: 0 });
-  // Recent games' accuracy (0–100, oldest→newest) for the menu's mini chart.
+  // Recent games' accuracy (0–100, oldest→newest) for the menu's mini chart,
+  // plus how many cards each of those games covered — right-aligned with it, so
+  // every aggregate weighs a 100-card round above a 1-card one (src/accuracy.js).
   const [history, setHistory] = useState([]);
+  const [historyCounts, setHistoryCounts] = useState([]);
   // Daily streak record { current, longest, lastActiveDay }; the displayed
   // state (done / at-risk / broken) is derived via streakStatus at render.
   const [streak, setStreak] = useState(null);
@@ -607,7 +611,7 @@ export default function App() {
       loadConfusionWins().then((w) => {
         confusionWinsRef.current = w || {};
       });
-      const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedHistory, savedStreak, savedWatchTip] =
+      const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedHistory, savedHistoryN, savedStreak, savedWatchTip] =
         await Promise.all([
           loadUsername(),
           loadStats(),
@@ -615,11 +619,13 @@ export default function App() {
           loadSpeciesStats(),
           loadCache(),
           loadHistory(),
+          loadHistoryCounts(),
           loadStreak(),
           loadWatchTipDismissed(),
         ]);
       if (savedStats) setLifetime(savedStats);
       if (savedHistory && savedHistory.length) setHistory(savedHistory);
+      if (savedHistoryN && savedHistoryN.length) setHistoryCounts(savedHistoryN);
       if (savedStreak) setStreak(savedStreak);
       setWatchTipDismissed(savedWatchTip);
       // Flags are loaded per-account inside loadAccount (below).
@@ -656,6 +662,7 @@ export default function App() {
           speciesRef.current = merged.species;
           setSpeciesStats({ ...merged.species });
           setHistory(merged.history);
+          setHistoryCounts(merged.historyCounts || []);
           setStreak(merged.streak);
           if (merged.confusions) confusionRef.current = merged.confusions;
         });
@@ -710,6 +717,7 @@ export default function App() {
       setSpeciesStats(seed.species);
       setLifetime(seed.lifetime);
       setHistory(seed.history);
+      setHistoryCounts(seed.historyCounts || []);
       setStreak(seed.streak);
       if (seed.confusions) confusionRef.current = seed.confusions;
       loadConfusionNotes().then((n) => setConfusionNotes(displayNotes(n)));
@@ -946,7 +954,10 @@ export default function App() {
     // Record this game's accuracy for the menu chart, and count today toward
     // the daily streak (both skip empty rounds).
     if (total > 0) {
-      addGameResult((finalCorrect / total) * 100).then(setHistory);
+      addGameResult((finalCorrect / total) * 100, total).then((h) => {
+        setHistory(h.history);
+        setHistoryCounts(h.counts);
+      });
       recordStreakDay().then(setStreak);
       addActiveDay();
     }
@@ -966,6 +977,7 @@ export default function App() {
         answered: total,
         correct: finalCorrect,
         pct: (finalCorrect / total) * 100,
+        n: total,
         species: delta,
         confusions: confDelta,
       }).then(() => syncCloud());
@@ -1128,10 +1140,14 @@ export default function App() {
               });
             }
           } else if (r.kind === 'round' && r.total > 0) {
-            setHistory(await addGameResult((r.correct / r.total) * 100));
+            const h = await addGameResult((r.correct / r.total) * 100, r.total);
+            setHistory(h.history);
+            setHistoryCounts(h.counts);
             // The finished wrist round as a chart point. Its cards were already
-            // counted one by one above, so this carries pct only.
-            recordEvent({ pct: (r.correct / r.total) * 100, ts: r.ts || Date.now() });
+            // counted one by one above, so this carries pct only — but `n` still
+            // rides along, because the bar needs a weight even though the round
+            // must not add to the totals a second time.
+            recordEvent({ pct: (r.correct / r.total) * 100, n: r.total, ts: r.ts || Date.now() });
           }
           // Debounced: a watch session arrives one answer at a time, and a
           // round-trip per answer would be a dozen requests in as many seconds.
@@ -1372,6 +1388,7 @@ export default function App() {
               deckCount={playableDeck.length}
               lifetime={lifetime}
               history={history}
+              historyCounts={historyCounts}
               streak={streakStatus(streak)}
               watchTipDismissed={watchTipDismissed}
               onDismissWatchTip={() => {
@@ -1545,6 +1562,7 @@ export default function App() {
             onCompare={(item) => setComparePair(item)}
             lifetime={lifetime}
             history={history}
+            historyCounts={historyCounts}
             streak={streakStatus(streak)}
             flags={flags}
             onToggleFlag={toggleFlag}
@@ -1562,6 +1580,7 @@ export default function App() {
               saveConfusionWins({});
               setLifetime({ answered: 0, correct: 0 });
               setHistory([]);
+              setHistoryCounts([]);
               setStreak({ current: 0, longest: 0, lastActiveDay: null });
             }}
           />
@@ -1600,6 +1619,7 @@ export default function App() {
                 speciesRef.current = merged.species;
                 setSpeciesStats({ ...merged.species });
                 setHistory(merged.history);
+                setHistoryCounts(merged.historyCounts || []);
                 setStreak(merged.streak);
                 if (merged.confusions) confusionRef.current = merged.confusions;
               }

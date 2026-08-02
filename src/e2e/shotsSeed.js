@@ -28,6 +28,7 @@ import {
   saveConfusionNote,
 } from '../storage';
 import { pairKey } from '../confusions';
+import { historyTotals } from '../accuracy';
 
 // Marker is per-username: the capture run briefly loads the default account
 // before switching to the real one, and the per-species stats must key to the
@@ -227,9 +228,16 @@ function buildConfusions(deckCards) {
 // seed were picked by sweeping for the best combination of a real dip in the
 // trend line (~4 points), plenty of direction changes, and a clear overall
 // rise (~19 points).
+// Round SIZES come out of the same generator, because every aggregate over this
+// chart is weighted by them (src/accuracy.js) — seeding percentages alone would
+// leave the screenshots exercising a code path real users never hit. Sizes
+// mirror how the app is actually played: mostly the Custom picker's default 16,
+// a spread of shorter and longer rounds around it, and the occasional one-or-two
+// card round abandoned early — precisely the kind that must NOT swing the trend.
 function buildHistory() {
   const rand = rng(0x5eed);
   const out = [];
+  const counts = [];
   let form = 0;
   for (let i = 0; i < GAMES; i++) {
     const t = GAMES > 1 ? i / (GAMES - 1) : 1;
@@ -241,8 +249,12 @@ function buildHistory() {
     if (r < 0.05) v -= 22 + rand() * 18; // a bad day
     else if (r > 0.975) v = Math.max(v, 95 + rand() * 5); // a great one
     out.push(Math.max(0, Math.min(100, Math.round(v))));
+    const s = rand();
+    if (s < 0.06) counts.push(1 + Math.floor(rand() * 2)); // barely started
+    else if (s > 0.88) counts.push(30 + Math.floor(rand() * 25)); // a long session
+    else counts.push(10 + Math.floor(rand() * 12));
   }
-  return out;
+  return { history: out, counts };
 }
 
 // Seed realistic stats once per account. Returns the seeded values (to hydrate
@@ -256,20 +268,20 @@ export async function seedScreenshotStats(deckCards, username) {
   }
 
   const { species, sumKnown, sumAttempts } = buildSpecies(deckCards);
-  const history = buildHistory();
+  const { history, counts: historyCounts } = buildHistory();
   const { confusions, pairs, note } = buildConfusions(deckCards);
 
   // Lifetime totals: the per-species attempts plus a chunk of extra volume for
   // "past decks / Nearby rounds" (species not in the current deck), so the hero
   // shows an impressive-but-believable answered count.
   //
-  // The RATE is derived from the history's mean rather than the species sums,
-  // so the hero's "X% lifetime accuracy" lands on the same number the trend
-  // line ends at — the Statistics caption literally describes that line as the
-  // running lifetime accuracy, so the two disagreeing is the kind of detail
-  // that makes seeded data look fake.
-  const meanPct =
-    history.reduce((a, b) => a + b, 0) / (history.length || 1);
+  // The RATE is derived from the history rather than the species sums, so the
+  // hero's "X% lifetime accuracy" lands on the same number the trend line ends
+  // at — the Statistics caption literally describes that line as the running
+  // lifetime accuracy, so the two disagreeing is the kind of detail that makes
+  // seeded data look fake. CARD-weighted, matching how the line is drawn.
+  const totals = historyTotals(history, historyCounts);
+  const meanPct = totals.answered > 0 ? (totals.correct / totals.answered) * 100 : 0;
   const extra = 380 + Math.round(sumAttempts * 0.6);
   const answered = sumAttempts + extra;
   const correct = Math.min(answered, Math.round(answered * (meanPct / 100)));
@@ -281,7 +293,7 @@ export async function seedScreenshotStats(deckCards, username) {
 
   await saveSpeciesStats(species);
   await saveStats(lifetime);
-  await saveHistory(history);
+  await saveHistory(history, historyCounts);
   await saveStreak(streak);
   await saveConfusions(confusions);
   // A "your tell" note on the top pair, so the comparison shows a real note and
@@ -295,5 +307,5 @@ export async function seedScreenshotStats(deckCards, username) {
     /* best-effort */
   }
 
-  return { species, lifetime, history, streak, confusions };
+  return { species, lifetime, history, historyCounts, streak, confusions };
 }
