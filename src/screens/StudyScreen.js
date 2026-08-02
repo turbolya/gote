@@ -266,6 +266,10 @@ export default function StudyScreen({
   // the choices automatically. A broken image (imgError) counts as "ready" so a
   // failed load can't freeze the round. Disabled in E2E so tests drive the pace.
   const photoReady = imgLoaded || imgError;
+  // Show the loading spinner whenever the current card's photo isn't on screen
+  // yet — while fetching a fresh photo, or before the normal photo paints (which
+  // includes the initial black backdrop, before even the blurred copy loads).
+  const spinnerVisible = !!card && !imgError && (photoLoading || !imgLoaded);
   const speedrunTiming =
     speedrun && choiceMode && phase === 'front' && photoReady && !IS_E2E;
   // While guessing in Speedrun, the photo is hidden — it only "flashed" for the
@@ -415,9 +419,8 @@ export default function StudyScreen({
             {photoLoading ? (
               // Fetching a mastered species' fresh photo — hold on a neutral
               // backdrop rather than flashing the player's own (memorised) shot.
-              <View style={[StyleSheet.absoluteFill, styles.freshLoading]}>
-                <Image source={SPINNER_GIF} style={styles.spinnerImg} resizeMode="contain" />
-              </View>
+              // The spinner is the persistent layer below, not re-created here.
+              <View style={[StyleSheet.absoluteFill, styles.freshLoading]} />
             ) : (
               <>
                 <Image
@@ -434,15 +437,6 @@ export default function StudyScreen({
                   onLoad={() => setImgLoaded(true)}
                   onError={() => setImgError(true)}
                 />
-                {/* Spinner over the card until its photo has finished loading. */}
-                {!imgLoaded && !imgError && (
-                  <View
-                    style={[StyleSheet.absoluteFill, styles.photoSpinnerWrap]}
-                    pointerEvents="none"
-                  >
-                    <Image source={SPINNER_GIF} style={styles.spinnerImg} resizeMode="contain" />
-                  </View>
-                )}
               </>
             )}
             {/* Speedrun: cover the photo while guessing so it only "flashed". */}
@@ -457,6 +451,23 @@ export default function StudyScreen({
             <Icon name="image" size={48} color="rgba(255,255,255,0.5)" />
           </View>
         )}
+        {/* Loading spinner. Mounted ONCE and kept mounted across card changes —
+            deliberately OUTSIDE the per-card Appear, which remounts every card
+            and would re-decode the GIF each time, so it only appeared once the
+            photo had already downloaded. As a persistent top layer it decodes a
+            single time and is on screen the instant a new card starts loading —
+            including over the initial black backdrop, before any image paints —
+            then hides (opacity 0, staying mounted) once the photo is shown. */}
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            styles.photoSpinnerWrap,
+            { opacity: spinnerVisible ? 1 : 0 },
+          ]}
+          pointerEvents="none"
+        >
+          <Image source={SPINNER_GIF} style={styles.spinnerImg} resizeMode="contain" />
+        </View>
       </Pressable>
 
       {/* Top gradient + chrome */}

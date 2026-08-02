@@ -19,6 +19,9 @@ export const CHANGELOG = [
         + 'species that have no common name in the language you’ve chosen, so you '
         + 'never study one shown only by its scientific (Latin) name. Off by '
         + 'default; find it under Settings → Species name language.',
+      'The card loading spinner now appears immediately while a photo downloads — '
+        + 'including over the initial dark screen on a slow connection — instead of '
+        + 'only showing up once the blurred background had already loaded.',
     ],
   },
   {
