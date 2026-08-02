@@ -111,6 +111,12 @@ struct AccuracyWidget: Widget {
 // The gote newt, standing in for the usual flame glyph. Unlike an SF Symbol it's
 // a bitmap, so it must be resized explicitly; template rendering lets the watch
 // face tint it to match the surrounding glyphs.
+//
+// The backing asset is deliberately small (see expo-target.config.js). A
+// complication's rendered content is archived under a tight size budget, and an
+// oversized bitmap makes watchOS discard it and draw the redacted placeholder
+// instead — grey boxes where the glyph and the number should be. Every use must
+// go through this helper so the image is always explicitly bounded.
 private func newtGlyph(_ size: CGFloat) -> some View {
   Image("newt")
     .renderingMode(.template)
@@ -148,7 +154,7 @@ struct StreakView: View {
           Label {
             Text("\(entry.streak)-day streak")
           } icon: {
-            Image("newt").renderingMode(.template)
+            newtGlyph(12) // bounded like the others — never a raw Image here
           }
         } else {
           Text("gote — no streak")
