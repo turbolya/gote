@@ -124,6 +124,7 @@ import NearbyConfigScreen from './src/screens/NearbyConfigScreen';
 import SplashScreen from './src/components/SplashScreen';
 import SupportModal from './src/components/SupportModal';
 import SwipeBackView from './src/components/SwipeBackView';
+import { backTarget } from './src/navigation';
 import { Appear } from './src/components/anim';
 
 // After this long, re-download an account's deck from scratch on load instead of
@@ -1277,6 +1278,27 @@ export default function App() {
     </SafeAreaView>
   );
 
+  // Back navigation for the screen currently showing. Derived once, from the one
+  // map in src/navigation.js, and handed to BOTH the screen's own header chevron
+  // and the edge swipe-back gesture — so the two can never disagree about where
+  // back goes, or about whether it exists at all (null disables both).
+  const target = backTarget(screen);
+  const navBack = useMemo(
+    () => (target ? () => setScreen(target) : null),
+    [target]
+  );
+
+  // Settings is the one screen with work to do on the way out: `leave` applies
+  // any pending field edits (see its registerLeave), so the gesture must go
+  // through it rather than navigating straight away. It also has nowhere to go
+  // until a deck exists — the first run parks you here until you pick an account.
+  const swipeBack =
+    screen === 'settings'
+      ? fullDeck.length > 0
+        ? () => (settingsLeaveRef.current || navBack || (() => {}))()
+        : null
+      : navBack;
+
   // --- render ---
   // Hold the UI until the icon fonts are loaded, so icons never render as "?"
   // boxes. Proceed anyway if loading errored (better a missing icon than a hang).
@@ -1418,27 +1440,10 @@ export default function App() {
       <SafeAreaView style={styles.safe}>
         <StatusBar style={statusBarStyle} />
 
-        {/* Swipe-right-from-the-left-edge to go back. The target mirrors each
-            screen's own back action: the regular pages return to the menu, and
-            Settings sub-pages return to Settings. Screens without a back action
-            (loading, results) pass null, which disables the gesture. */}
-        <SwipeBackView
-          style={styles.flex}
-          onBack={
-            {
-              settings: fullDeck.length > 0
-                ? () => (settingsLeaveRef.current || (() => setScreen('menu')))()
-                : null,
-              custom: () => setScreen('menu'),
-              flash: () => setScreen('menu'),
-              nearby: () => setScreen('menu'),
-              stats: () => setScreen('menu'),
-              lexicon: () => setScreen('menu'),
-              changelog: () => setScreen('settings'),
-              legal: () => setScreen('settings'),
-            }[screen] || null
-          }
-        >
+        {/* Swipe-right-from-the-left-edge to go back — the same action as the
+            screen's own header chevron, from the same source (see swipeBack
+            above). Screens with no back pass null, which disables the gesture. */}
+        <SwipeBackView style={styles.flex} onBack={swipeBack}>
         {/* Keyed on `screen` so each of these non-full-bleed screens fades +
             slides in when navigated to. */}
         <Appear key={screen} style={styles.flex} offset={10} duration={300}>
@@ -1488,7 +1493,7 @@ export default function App() {
             onChangelog={() => setScreen('changelog')}
             onLegal={() => setScreen('legal')}
             onSync={SYNC_ENABLED ? () => setScreen('sync') : null}
-            onBack={fullDeck.length > 0 ? () => setScreen('menu') : null}
+            onBack={fullDeck.length > 0 ? navBack : null}
             registerLeave={(fn) => { settingsLeaveRef.current = fn; }}
             onSave={(name, prefs) => {
               setPerSpecies(prefs.perSpecies);
@@ -1532,7 +1537,7 @@ export default function App() {
             deck={fullDeck}
             flags={flags}
             onStart={startCustom}
-            onBack={() => setScreen('menu')}
+            onBack={navBack}
           />
         )}
 
@@ -1542,14 +1547,14 @@ export default function App() {
             title="Flash cards"
             flags={flags}
             onStart={startFlash}
-            onBack={() => setScreen('menu')}
+            onBack={navBack}
           />
         )}
 
         {screen === 'nearby' && (
           <NearbyConfigScreen
             onStart={startNearby}
-            onBack={() => setScreen('menu')}
+            onBack={navBack}
           />
         )}
 
@@ -1566,7 +1571,7 @@ export default function App() {
             streak={streakStatus(streak)}
             flags={flags}
             onToggleFlag={toggleFlag}
-            onBack={() => setScreen('menu')}
+            onBack={navBack}
             onSelect={(card) => setDetailCard(card)}
             onReset={async () => {
               await resetStatistics();
@@ -1587,11 +1592,11 @@ export default function App() {
         )}
 
         {screen === 'changelog' && (
-          <ChangelogScreen onBack={() => setScreen('settings')} />
+          <ChangelogScreen onBack={navBack} />
         )}
 
         {screen === 'legal' && (
-          <LegalScreen onBack={() => setScreen('settings')} />
+          <LegalScreen onBack={navBack} />
         )}
 
         {screen === 'lexicon' && (
@@ -1600,14 +1605,14 @@ export default function App() {
             speciesStats={speciesStats}
             flags={flags}
             onToggleFlag={toggleFlag}
-            onBack={() => setScreen('menu')}
+            onBack={navBack}
             onSelect={(card) => setDetailCard(card)}
           />
         )}
 
         {screen === 'sync' && (
           <SyncScreen
-            onBack={() => setScreen('settings')}
+            onBack={navBack}
             // Signing in can fold in a whole other device's history AND its
             // settings, so adopt both immediately rather than waiting for a
             // relaunch. afterAuthChange returns { merged, settings }.

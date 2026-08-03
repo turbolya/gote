@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.37.0';
+export const APP_VERSION = '2.37.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.37.1',
+    date: '2026-08-03',
+    changes: [
+      'Swiping right from the left edge to go back now works on every page that '
+        + 'has a back button. It was missing on “Sync across devices”, where the '
+        + 'gesture quietly did nothing.',
+    ],
+  },
   {
     version: '2.37.0',
     date: '2026-08-02',
