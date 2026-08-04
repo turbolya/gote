@@ -1,5 +1,7 @@
 # gote
 
+Public site: [gote website](http://goteapp.com)
+
 A card-based learning game for **iPhone and Android**, built with
 [Expo](https://expo.dev) (React Native). It pulls your **iNaturalist**
 observations and quizzes you on the species you've seen.
