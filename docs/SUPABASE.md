@@ -107,21 +107,42 @@ EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
 # EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi…
 ```
 
-For EAS builds, the credentials live in the **`testflight`** profile only:
+For EAS builds, the credentials live in the **`production`** profile, which
+`testflight` extends — so both carry sync:
 
 ```bash
-eas build -p ios --profile testflight   # sync ON  — internal TestFlight
-eas build -p ios --profile production   # sync OFF — App Store
+eas build -p ios --profile testflight   # sync ON — internal TestFlight
+eas build -p ios --profile production   # sync ON — App Store
 ```
 
-`testflight` extends `production`, so the two are identical apart from the env
-block. The split is deliberate. Internal TestFlight needs no privacy policy, no
-nutrition label and no Beta App Review, so sync can be tested on real devices
-today — but an App Store build that collects data needs in-app account deletion
-(guideline 5.1.1(v)) and updated privacy disclosures first. Keeping the
-credentials out of `production` means that cannot happen by forgetting.
+The two profiles now differ only by EAS Update `channel`, which is why
+`testflight` still exists rather than being dropped: it keeps internal builds on
+their own update channel.
 
-Move them into `production` once those two are done, and drop this profile.
+**History, because the shape here is deliberate.** The credentials used to sit in
+`testflight` *only*, as an interlock: internal TestFlight needs no privacy
+policy, no nutrition label and no Beta App Review, so sync could be tested on
+real devices immediately — while an App Store build that collects data first
+needed in-app account deletion (guideline 5.1.1(v)) and privacy disclosures.
+Keeping the keys out of `production` meant that could not happen by forgetting.
+Both prerequisites shipped (`deleteAccount()` → the `delete-account` edge
+function, and the sync sections of PRIVACY.md), so the interlock was retired on
+2026-08-03.
+
+The failure mode it caused on the way out is worth knowing, because it is
+silent: a build made from a profile with no credentials has `SYNC_ENABLED` false,
+so App.js passes `onSync={null}` and **Settings hides the sync row entirely** —
+no error, no disabled state, the option is simply absent. If sync "disappears"
+from a build, check which profile built it before looking at any code.
+
+> Keep the App Store Connect **privacy nutrition label** in step with what sync
+> actually stores (see "What your synced play history actually contains" in
+> PRIVACY.md). Now that every store build carries sync, the label is the only
+> remaining gate, and nothing in this repo can enforce it.
+
+`preview` and `development` still carry no credentials, so sync is absent there
+by default; add the same `env` block to a profile if you need to exercise sync
+from it. Local development reads `.env` instead (above).
 
 > Never put the **secret** key (`sb_secret_…`, formerly `service_role`) anywhere
 > in this repo or in the app. It bypasses RLS entirely. The publishable/anon key
