@@ -12,6 +12,23 @@ description: >-
   photos — birds, plants, insects, fungi and more.
 url: https://goteapp.com
 
+# Cloudflare Web Analytics beacon token (Dash ▸ Web Analytics ▸ your site ▸
+# Manage site ▸ copy the value of "token" out of the snippet — just the token,
+# not the whole <script> tag).
+#
+# Leave EMPTY to disable analytics entirely: _layouts/base.html only emits the
+# beacon when this is set AND Jekyll is building for production, so a local
+# `jekyll serve` never counts your own previews. The token is not a secret — it
+# identifies the site, grants nothing, and is visible in the page source of
+# every site using it.
+#
+# Chosen because it is cookieless and stores no cross-site identifier, so the
+# site needs no consent banner. It measures pageviews, referrers, countries and
+# Core Web Vitals only — it has NO custom events, so App Store button clicks
+# are not tracked. See the "About this website" section of PRIVACY.md, which
+# must keep saying whatever is true here.
+cloudflare_analytics_token: ""
+
 # Every page gets the article layout unless it opts out (index.html uses `base`).
 defaults:
   - scope:

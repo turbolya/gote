@@ -1,6 +1,6 @@
 # Privacy Policy for gote
 
-**Last updated: 28 July 2026**
+**Last updated: 3 August 2026**
 
 gote is a species-identification flashcard game for iPhone, iPad and Apple
 Watch, built on the public [iNaturalist](https://www.inaturalist.org) API. This
@@ -83,8 +83,9 @@ place manually instead; every other part of gote works without location access.
 - No advertising, no ad identifiers, no ad networks
 - No tracking across other apps or websites, and no data sold or shared with
   data brokers
-- No third-party analytics SDK, and no profiling of you for marketing,
-  recommendations or any purpose other than showing you your own statistics
+- No third-party analytics SDK **in the app**, and no profiling of you for
+  marketing, recommendations or any purpose other than showing you your own
+  statistics. The *website* counts visits — see "About this website" below
 - No account required to use the app
 
 To be clear about what that last point does **not** mean: with sync on, the
@@ -120,6 +121,29 @@ kind of behavioural model, and nobody outside gote's own service has access to
 it. If that is more than you want stored, do not turn sync on; the app is fully
 usable without it, and everything stays on your device. If you already turned it
 on, Delete synced account removes all of it.
+
+## About this website
+
+Everything above describes the **app**. This section is about goteapp.com, the
+site you are reading this on — a static site with no accounts, no logins and no
+comments.
+
+It uses [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) to
+count visits, so we can tell whether anyone is finding the site. It is used
+instead of the usual analytics products for a specific reason: it sets **no
+cookies** and builds **no identifier that follows you** between sites or between
+visits. That is also why this site shows you no cookie banner — there is nothing
+to ask you to consent to.
+
+What it records is aggregate and about the page, not about you: which pages were
+loaded, which site referred you, rough country, and browser/device type, plus
+page-loading speed. It cannot tell us who you are, cannot follow you to other
+websites, and there is no profile of you anywhere in it. We see totals, never
+individuals. Nothing you do on this website is connected to your app data or to
+a synced account — the two are entirely separate.
+
+The App Store and Google Play buttons are ordinary links; we do not track
+clicks on them.
 
 ## Deleting your data
 

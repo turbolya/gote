@@ -176,6 +176,21 @@
     }
   }
 </style>
+{%- assign cf_token = site.cloudflare_analytics_token | default: "" -%}
+{%- if cf_token != "" and jekyll.environment == "production" %}
+<!-- Cloudflare Web Analytics. The ONLY third-party request this site makes —
+     everything else, including the Fredoka wordmark font above, is deliberately
+     self-hosted. Kept honest by two guards: no token in _config.yml and it
+     vanishes entirely, and it never loads outside a production build, so local
+     previews don't count themselves.
+
+     Cookieless and with no cross-site identifier, which is why there is no
+     consent banner. `defer` so it never blocks rendering. See the "About this
+     website" section of PRIVACY.md — if this line changes, that section changes
+     with it. -->
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon='{"token": "{{ cf_token }}"}'></script>
+{%- endif %}
 </head>
 <body>
   <header class="site-header">
