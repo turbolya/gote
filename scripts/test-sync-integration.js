@@ -538,6 +538,65 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     eq(await a.storage.loadStats(), { answered: 40, correct: 29 }, 'A after B toggled twice');
   });
 
+  await test('an account emptied out of band gets re-baselined', async () => {
+    // Deleting the rows straight out of the table (dashboard surgery, a restore
+    // from an older backup, a project reset) tells the client nothing: it still
+    // believes it baselined this account, and its watermark still points past
+    // rows that no longer exist. Without the guard it would upload nothing and
+    // pull nothing for good, leaving the account permanently empty.
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 12, correct: 9 });
+    await a.sync.recordEvent({ answered: 12, correct: 9, pct: 75 });
+    await a.sync.syncNow();
+
+    const before = await admin.from('events').select('id').eq('user_id', idA);
+    ok(before.data.length > 0, 'nothing was uploaded to begin with');
+
+    // The out-of-band deletion. Rows only — the auth user survives, which is
+    // exactly what makes the client's stale bookkeeping a problem.
+    const del = await admin.from('events').delete().eq('user_id', idA);
+    ok(!del.error, `manual delete failed: ${del.error && del.error.message}`);
+    eq((await admin.from('events').select('id').eq('user_id', idA)).data.length, 0, 'rows gone');
+
+    // Same account, same device, next sync.
+    await a.sync.syncNow();
+
+    const after = await admin.from('events').select('answered, correct').eq('user_id', idA);
+    ok(after.data.length > 0, 'account is still empty — the baseline was not re-sent');
+    const total = after.data.reduce(
+      (acc, r) => ({ answered: acc.answered + r.answered, correct: acc.correct + r.correct }),
+      { answered: 0, correct: 0 }
+    );
+    eq(total, { answered: 12, correct: 9 }, 're-sent baseline should restore the totals');
+
+    // And the device must not have inflated itself in the process.
+    eq(await a.storage.loadStats(), { answered: 12, correct: 9 }, 'A after recovery');
+  });
+
+  await test('a healthy account is never re-baselined', async () => {
+    // The guard above must stay narrow: repeated syncs against an account that
+    // genuinely has rows must not add anything.
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 7, correct: 7 });
+    await a.sync.recordEvent({ answered: 7, correct: 7, pct: 100 });
+    await a.sync.syncNow();
+    const rows = (await admin.from('events').select('id').eq('user_id', idA)).data.length;
+
+    await a.sync.syncNow();
+    await a.sync.syncNow();
+
+    eq(
+      (await admin.from('events').select('id').eq('user_id', idA)).data.length,
+      rows,
+      'extra syncs added rows to a healthy account'
+    );
+    eq(await a.storage.loadStats(), { answered: 7, correct: 7 }, 'A unchanged');
+  });
+
   await test('a re-sent baseline collides with itself instead of duplicating', async () => {
     // Belt to the guard above: the baseline id is derived from (device,
     // account), so even a client that somehow asks twice writes the same row.

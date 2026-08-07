@@ -63,6 +63,7 @@ import {
   saveLastUserId,
   loadBaselineUserId,
   saveBaselineUserId,
+  clearLastPulledAt,
   resetPullState,
   getDeviceId,
   loadSyncOptIn,
@@ -347,7 +348,11 @@ async function pull(supabase, userId) {
   if (since) query = query.gt('created_at', since);
 
   const { data, error } = await query;
-  if (error || !data || !data.length) return null;
+  if (error || !data) return null;
+  if (!data.length) {
+    await recoverEmptiedAccount(supabase, userId);
+    return null;
+  }
 
   // Our own rows were counted locally the moment they were played. Re-applying
   // them would double every number on this device.
@@ -362,6 +367,51 @@ async function pull(supabase, userId) {
   const changed = await applyRemote(foreign);
   await saveLastPulledAt(userId, newest);
   return changed;
+}
+
+// Notice an account that has become EMPTY under a device that believes it has
+// already contributed to it, and re-send the baseline.
+//
+// This is the one contradiction the normal bookkeeping cannot resolve on its
+// own, and it is silent. `baselineUserId` says "I already sent my history to
+// this account" and the watermark points past rows that no longer exist, so the
+// device uploads nothing and pulls nothing — forever. Rows can go out from under
+// it in more ways than one: deleted by hand in the dashboard, lost to a restore
+// from an older backup, or wiped by a project reset. None of that reaches the
+// client, so it has to be inferred.
+//
+// The inference is sound because it is a provable contradiction rather than a
+// heuristic: if this device really had baselined this account, the account
+// cannot be empty. It is deliberately narrow — the probe runs only when a pull
+// came back with nothing at all, and only for a device that claims to have
+// baselined — and it costs one indexed `limit(1)` lookup, not a count.
+//
+// Re-sending is safe even if the diagnosis were somehow wrong: the baseline's id
+// is derived from (device, account), so a copy that is already there collides
+// with itself and the upsert drops it rather than double-counting.
+async function recoverEmptiedAccount(supabase, userId) {
+  // Never claimed to have sent one — an empty account is simply new.
+  if ((await loadBaselineUserId()) !== userId) return;
+  // Anything still queued means "not uploaded yet", not "the account lost it".
+  // Concluding emptiness here would re-baseline on every offline sync.
+  if ((await loadOutbox()).length) return;
+
+  const { data, error } = await supabase
+    .from('events')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1);
+  if (error || !data || data.length) return; // errored, or the account has rows
+
+  debug('account', userId, 'is empty but this device baselined it — re-sending');
+  // Rewind too: rows may have been restored from a backup whose created_at
+  // predates the watermark, which would otherwise stay invisible. Safe, because
+  // the applied-id ledger survives and skips anything already folded in.
+  await clearLastPulledAt(userId);
+  await uploadBaseline(userId);
+  // Flush now rather than waiting for the next sync — the account is empty and
+  // every other device is looking at nothing.
+  await push(supabase, userId);
 }
 
 // Fold remote events into the local rollups. The ONLY place sync writes to the

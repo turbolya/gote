@@ -26,6 +26,9 @@ export const CHANGELOG = [
         + 'other devices.',
       'If your totals are already wrong from this, Statistics → Reset statistics '
         + 'on the affected device and let it sync again.',
+      'Sync now also recovers if your synced data disappears from the server — '
+        + 'your device notices the account is empty and re-sends its history, '
+        + 'instead of both sides waiting for the other forever.',
     ],
   },
   {

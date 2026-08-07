@@ -208,6 +208,23 @@ event, so the ledger is the only thing preventing a re-read from double-counting
 Event ids are UUIDs; an id applied once must never be applied again, whichever
 account it arrives from.
 
+**Deleting rows out of band does not clear these keys**, and that combination is
+recoverable but only because of an explicit guard. If `events` rows are removed
+straight from the table — dashboard surgery, a restore from an older backup, a
+project reset — the auth user survives, so `baselineUserId` still claims the
+history was sent and the watermark still points past rows that no longer exist.
+`recoverEmptiedAccount` (`src/sync/index.js`) resolves that: when a pull returns
+nothing *and* the device claims to have baselined, one indexed `limit(1)` probe
+decides whether the account is genuinely empty, and if so the baseline is re-sent
+and the watermark rewound. Sound because it is a contradiction, not a heuristic —
+a device that truly baselined an account cannot be looking at an empty one.
+
+The clean way to reset an account remains **deleting the auth user** (in-app:
+Settings ▸ Devices ▸ Sync ▸ Delete synced account), which changes the user id and
+makes every key above stop matching by construction. Note that afterwards the
+address must be re-attached with `linkEmail` — `signInWithEmail` passes
+`shouldCreateUser: false`, so signing in to a deleted user fails.
+
 ---
 
 ## Current server schema (summary)
