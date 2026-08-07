@@ -178,3 +178,37 @@ regularly-active users. Levers, cheapest first:
 - **Store photo IDs, not full URLs**, in the `species` delta and rebuild the URL
   client-side: ~40% smaller blobs (~0.7 KB/round).
 - Fallback: Pro tier ($25/mo) → 8 GB, ~16× the headroom.
+
+### Confusion *groups*, not just pairs
+Real ID confusion is rarely two species — it is a blob. Gulls, warblers, yellow
+composites, brown mushrooms: the learner has N look-alikes that all read the
+same, and being shown them two at a time understates the problem.
+
+The data already supports this. `confusions` is
+`{ correctKey: { chosenKey: count } }` — a **directed weighted graph**; only the
+reading is pairwise (`topConfusionPairs` renders edges). Groups are: symmetrise
+(a↔b = both directions summed), threshold, take connected components.
+
+Three things to settle before building it:
+
+- **The transitivity trap is the real risk.** A~B and B~C does not imply A~C.
+  Naive connected components snowball into one mega-cluster labelled "everything
+  is confusing" — useless, and slightly insulting. Needs a density guard: each
+  member must have ≥2 edges *inside* the group, or cap the size.
+- **Evidence cost grows fast.** A pair needs 3 mistakes on one edge; a credible
+  triangle needs evidence on three edges, from rounds where those species
+  actually co-occurred as options. Genuine groups would surface rarely and late.
+- **Taxonomy can substitute for the missing data.** Cards carry `ancestry`, and
+  two confirmed edges among congeneric species is far more trustworthy than two
+  across families. A genus/family prior lets a group be proposed on thinner
+  evidence — exactly where the sparsity bites.
+
+What makes it cheap: **the drill already exists.** The A/B duel is inherently
+2-up, but an N-species drill is just a normal multiple-choice round with the pool
+restricted to the group's members, which `startPicked` already does. So detection
+plus a "Drill this group" button reuses the round machinery rather than adding a
+mode.
+
+Trigger: revisit once there is enough real play to see whether triangles actually
+appear at the current 3-mistake threshold — if they never do, the taxonomic prior
+is the feature, not the graph.
