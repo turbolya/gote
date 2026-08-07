@@ -519,11 +519,15 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     for (let cycle = 1; cycle <= 2; cycle++) {
       await b.sync.disableSync();
       await b.sync.enableSync(); // mints a fresh anonymous account
-      ok((await b.sync.signInWithEmail(email)).ok, `signin cycle ${cycle}`);
-      ok(
-        (await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok,
-        `confirm cycle ${cycle}`
-      );
+      // Straight to the code, skipping signInWithEmail. Asking for a second one
+      // this fast trips the mailer's own resend cooldown (config.toml
+      // max_frequency), which is a property of the mail service and has nothing
+      // to do with what this test is about — the request path is covered by
+      // "signing in on device B merges both histories" above. What matters here
+      // is the session actually switching back to the real account, which is
+      // what confirmSignIn does and what triggers the reconcile.
+      const confirmed = await b.sync.confirmSignIn(email, await otpFor(admin, url, email));
+      ok(confirmed.ok, `confirm cycle ${cycle}: ${confirmed.error}`);
       await b.sync.afterAuthChange();
       await b.sync.syncNow();
       eq(await b.storage.loadStats(), settled, `B unchanged after off/on cycle ${cycle}`);
