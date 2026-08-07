@@ -32,8 +32,12 @@ import { photoSource } from '../photocache';
 import { pickSimilarDistractors } from '../quiz';
 import { pairKey, pairCount, CONFUSION_HINT_MIN } from '../confusions';
 import { VERIFY_STREAK_MIN } from '../verify';
+import { speciesKey } from '../mastery';
+import { wantsFreshPhoto, pickFreshPhoto, studyPhoto } from '../studyphoto';
 
-const keyOf = (c) => (c && c.taxonId != null ? String(c.taxonId) : c && c.scientific);
+// Shared with App.js's tally writer, so a mastery lookup asks under the same key
+// the tally was stored under (src/mastery.js).
+const keyOf = speciesKey;
 const infoOf = (c) => ({ name: c.common || c.scientific, sci: c.scientific, image: c.image || null });
 import { colors } from '../theme';
 import { SPEEDRUN_LIVES, SPEEDRUN_VIEW_MS } from '../constants';
@@ -198,7 +202,7 @@ export default function StudyScreen({
   // `wantsFresh` gates it; `freshUri` is the chosen photo (null once resolved =
   // fall back to the own photo, e.g. offline); `freshResolved` false = still
   // fetching (we hide the own photo meanwhile so it isn't leaked).
-  const wantsFresh = !!(freshPhotos && card && onIsMastered && onIsMastered(keyOf(card)));
+  const wantsFresh = wantsFreshPhoto({ freshPhotos, card, isMastered: onIsMastered });
   const [freshUri, setFreshUri] = useState(null);
   const [freshResolved, setFreshResolved] = useState(() => !wantsFresh);
 
@@ -241,10 +245,7 @@ export default function StudyScreen({
     (async () => {
       let uri = null;
       try {
-        const photos = await fetchTaxonPhotos(card.taxonId, 8);
-        if (Array.isArray(photos) && photos.length) {
-          uri = photos[Math.floor(Math.random() * photos.length)];
-        }
+        uri = pickFreshPhoto(await fetchTaxonPhotos(card.taxonId, 8));
       } catch {
         /* offline / no photos → fall back to the own photo */
       }
@@ -259,11 +260,15 @@ export default function StudyScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shownKey, wantsFresh]);
 
-  // The photo actually shown: the fresh official one when resolved (falling back
-  // to the own photo), the own photo when fresh isn't wanted, or null while a
-  // fresh photo is still loading (so the own photo isn't briefly leaked).
-  const photoUri = wantsFresh ? (freshResolved ? freshUri || card.image : null) : card && card.image;
-  const photoLoading = wantsFresh && !freshResolved;
+  // The photo actually shown, and whether one is still being waited for. The
+  // rule — including the "never leak the own photo while fetching" guard — lives
+  // in src/studyphoto.js so it is covered by tests rather than by inspection.
+  const { uri: photoUri, loading: photoLoading } = studyPhoto({
+    wantsFresh,
+    freshResolved,
+    freshUri,
+    ownImage: card && card.image,
+  });
 
   // Speedrun: once the photo is ready, count down SPEEDRUN_VIEW_MS, then reveal
   // the choices automatically. A broken image (imgError) counts as "ready" so a

@@ -398,9 +398,10 @@ flowchart LR
   fixtures --> app2
 ```
 
-- **Unit tests** (`npm test`): pure domain logic, ESM transpiled in-memory. ~360
+- **Unit tests** (`npm test`): pure domain logic, ESM transpiled in-memory. ~415
   assertions across quiz, lexicon, cache, gestures, sync/merge, confusions,
-  duel, verify, schedule, mastery, accuracy, watch storage and contrast.
+  duel, verify, schedule, mastery, accuracy, navigation, study-photo, watch
+  storage and contrast.
 - **Sync integration** (`npm run test:sync`): the real client against a local
   Supabase (Docker), covering RLS, idempotency and two-device merges. Run
   `npx supabase db reset` after adding a migration — `supabase start` only
@@ -448,7 +449,8 @@ flowchart LR
 | `src/duel.js` | A/B duel-drill sequencing + mastery logic — which look-alike to show next, when the pair is "split reliably" (pure) |
 | `src/verify.js` | "Verify the fix" recovery-streak reducers — count correct answers on a former-nemesis pair, reset on relapse (pure; nemesis detection is `confusions.js` nemesisPartners) |
 | `src/schedule.js` | Spaced-repetition input — `scheduleDeck` biases sampled rounds (Custom/Flash) so unresolved mix-ups + their partner resurface, damped by the recovery streak (pure) |
-| `src/mastery.js` | `isMastered(entry)` — a species is mastered at ≥5 correct and ≥80% accuracy; drives the optional fresh-photo swap on the study screen (pure) |
+| `src/mastery.js` | `isMastered(entry)` — a species is mastered at ≥5 correct and ≥80% accuracy; drives the optional fresh-photo swap on the study screen. Also owns `speciesKey(card)`, the one rule for which key a species is tallied under — App.js writes under it and the study screen looks up under it, and a mismatch would silently disable the swap (pure) |
+| `src/studyphoto.js` | Which photo the study screen shows. Owns the fresh-photo state machine, including the guard that the player's own photo is **never** on screen while a mastered species' official photo is being fetched — a leak there would defeat the whole option and look like a one-frame flicker (pure) |
 | `src/theme.js` | Palette, accents, group-icon mapping |
 | `src/constants.js` | Speedrun lives, language list, defaults |
 | `src/screens/*` | One file per screen |

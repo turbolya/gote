@@ -93,7 +93,7 @@ import { addConfusion, displayNotes } from './src/sync/merge';
 import { pairCount, pairKey, nemesisPartners } from './src/confusions';
 import { verifyStreak, recordVerifyWin, recordVerifyMiss } from './src/verify';
 import { scheduleDeck } from './src/schedule';
-import { isMastered } from './src/mastery';
+import { isMastered, speciesKey } from './src/mastery';
 import {
   prefetchImages,
   prefetchDeck,
@@ -997,7 +997,9 @@ export default function App() {
   // count them twice.
   const recordResult = useCallback((card, correct, { track = true } = {}) => {
     if (!card) return null;
-    const key = card.taxonId != null ? String(card.taxonId) : card.scientific;
+    // Same helper the study screen uses to ask "is this mastered?" — one rule,
+    // so a lookup can never miss a tally it wrote itself.
+    const key = speciesKey(card);
     const prev = speciesRef.current[key] || { known: 0, missed: 0 };
     speciesRef.current[key] = {
       name: card.common || card.scientific,
