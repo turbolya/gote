@@ -8,9 +8,26 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.37.1';
+export const APP_VERSION = '2.37.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.37.2',
+    date: '2026-08-03',
+    changes: [
+      'Fixed a serious sync bug: statistics could be counted twice. Signing in '
+        + 'on another device, or turning sync off and on again, made the app '
+        + 're-read your whole synced history and add it on top of the totals it '
+        + 'already had — so two devices drifted further apart the more you tried '
+        + 'to fix them. Each device now remembers how far it has read for each '
+        + 'account separately, and never applies the same round twice.',
+      'Turning sync off and on no longer re-uploads your history every time. It '
+        + 'used to send a fresh copy on each cycle, inflating the numbers on your '
+        + 'other devices.',
+      'If your totals are already wrong from this, Statistics → Reset statistics '
+        + 'on the affected device and let it sync again.',
+    ],
+  },
   {
     version: '2.37.1',
     date: '2026-08-03',

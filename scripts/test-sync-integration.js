@@ -197,6 +197,7 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     client,
     sync: load('src/sync/index.js'),
     storage: load('src/storage.js'),
+    outbox: load('src/sync/outbox.js'),
   };
 }
 
@@ -484,6 +485,67 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     await b.sync.syncNow(); // extra passes must change nothing
 
     eq(await b.storage.loadStats(), { answered: 22, correct: 12 }, 'B after repeated syncs');
+  });
+
+  await test('turning sync off and on again does not double-count', async () => {
+    // The bug this guards, seen on a real iPad: the pull watermark and the
+    // applied-id ledger were BOTH cleared on every account switch, and a sync
+    // off/on cycle is two account switches (out to a throwaway anonymous
+    // account, back to the real one). Each cycle re-read the account's whole
+    // history with an empty ledger and added it to rollups that already
+    // contained it, so the two devices drifted further apart every time the
+    // user tried to fix them by toggling sync.
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const email = `toggle-${Date.now()}@example.com`;
+
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 30, correct: 24 });
+    await a.sync.recordEvent({ answered: 30, correct: 24, pct: 80 });
+    await a.sync.syncNow();
+    await attachEmail(admin, idA, email);
+
+    const b = makeDevice({ createClient, url, anon, name: 'B' });
+    await b.sync.ensureSession();
+    await b.storage.saveStats({ answered: 10, correct: 5 });
+    ok((await b.sync.signInWithEmail(email)).ok, 'signin');
+    ok((await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok, 'confirm');
+    await b.sync.afterAuthChange();
+
+    const settled = await b.storage.loadStats();
+    eq(settled, { answered: 40, correct: 29 }, 'B after joining');
+
+    // Now the exact sequence a confused user performs: off, on, sign in again.
+    for (let cycle = 1; cycle <= 2; cycle++) {
+      await b.sync.disableSync();
+      await b.sync.enableSync(); // mints a fresh anonymous account
+      ok((await b.sync.signInWithEmail(email)).ok, `signin cycle ${cycle}`);
+      ok(
+        (await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok,
+        `confirm cycle ${cycle}`
+      );
+      await b.sync.afterAuthChange();
+      await b.sync.syncNow();
+      eq(await b.storage.loadStats(), settled, `B unchanged after off/on cycle ${cycle}`);
+    }
+
+    // And A must not have been inflated by B re-uploading a baseline each time.
+    await a.sync.syncNow();
+    eq(await a.storage.loadStats(), { answered: 40, correct: 29 }, 'A after B toggled twice');
+  });
+
+  await test('a re-sent baseline collides with itself instead of duplicating', async () => {
+    // Belt to the guard above: the baseline id is derived from (device,
+    // account), so even a client that somehow asks twice writes the same row.
+    const { outbox } = makeDevice({ createClient, url, anon, name: 'uid' });
+    const first = outbox.baselineUid('device-1', 'user-1');
+    eq(outbox.baselineUid('device-1', 'user-1'), first, 'same inputs, same id');
+    ok(outbox.baselineUid('device-2', 'user-1') !== first, 'different device, different id');
+    ok(outbox.baselineUid('device-1', 'user-2') !== first, 'different account, different id');
+    ok(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(first),
+      `not a well-formed uuid: ${first}`
+    );
   });
 
   await test("device A picks up device B's baseline", async () => {

@@ -43,6 +43,20 @@ export async function multiRemove(keys) {
   return undefined;
 }
 
+// Every key currently stored. Needed because the pull watermark is kept per
+// account (`…/lastPulledAt:<userId>`), so clearing "all of them" means matching
+// a prefix rather than naming one key. Returns [] on a backend that cannot
+// enumerate, which degrades to "clear nothing" — safe, since the only caller
+// (resetPullState) is a cleanup path.
+export async function getAllKeys() {
+  try {
+    if (backend.getAllKeys) return (await backend.getAllKeys()) || [];
+  } catch {
+    /* fall through */
+  }
+  return [];
+}
+
 // supabase-js wants a storage object rather than functions, for its session.
 // Handing it this adapter (instead of AsyncStorage) means a test's in-memory
 // backend holds the session too, so two simulated devices get genuinely
@@ -68,6 +82,7 @@ export function createMemoryKv() {
     multiRemove: async (keys) => {
       keys.forEach((k) => map.delete(k));
     },
+    getAllKeys: async () => [...map.keys()],
     // Test helpers.
     _dump: () => Object.fromEntries(map),
     _clear: () => map.clear(),

@@ -181,6 +181,33 @@ another device is adopted even when this device's prefs are newer. No DB migrati
   make it read every bar as `NaN`. **Now synced** via the events `n` / `counts`
   fields, DB v5 / events payload v4).
 
+### Sync-private keys (`@gote/sync/*`) — 2026-08-03
+
+Not part of `DATA_VERSION`: these are the sync layer's own bookkeeping, never
+read by a screen, and they self-heal when absent. Recorded here because two of
+them changed shape in a way that matters.
+
+- `sync/lastPulledAt` → **`sync/lastPulledAt:<userId>`** — the pull watermark is
+  now **per account**. It was one value, which forced an account switch to
+  discard it, which forced a re-read of the account from the beginning. That
+  re-read was only safe if every event in it was recognised as already applied,
+  putting the entire burden on the capped applied-id ledger. Keyed by account,
+  signing back in resumes where that account left off and re-reads nothing.
+  - *Upgrade behaviour:* the old un-suffixed key is not migrated, so the first
+    sync after updating re-reads the account once. That is safe **because the
+    ledger now survives** — every event is recognised and skipped. `resetPullState`
+    clears both the legacy key and all per-account ones.
+- `sync/baselineUserId` (new) — the account this device has already sent its
+  baseline to. Turning sync off and on is two account switches (out to a
+  throwaway anonymous account, back to the real one), and each one used to
+  re-send a full baseline that every *other* device then added to its totals.
+
+The related fix is not a key at all: **`resetPullState` no longer clears the
+applied-id ledger.** The rollups are a cumulative fold with no way to un-apply an
+event, so the ledger is the only thing preventing a re-read from double-counting.
+Event ids are UUIDs; an id applied once must never be applied again, whichever
+account it arrives from.
+
 ---
 
 ## Current server schema (summary)

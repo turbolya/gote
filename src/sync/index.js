@@ -61,11 +61,14 @@ import {
   saveLastPulledAt,
   loadLastUserId,
   saveLastUserId,
+  loadBaselineUserId,
+  saveBaselineUserId,
   resetPullState,
   getDeviceId,
   loadSyncOptIn,
   saveSyncOptIn,
   uid,
+  baselineUid,
 } from './outbox';
 import {
   localDay,
@@ -146,14 +149,18 @@ function debug(...args) {
 //                     recorded); a normal round leaves this empty and rides `n`
 //   days              baseline only: the active local days the streak is built
 //                     from; a normal round leaves this empty and rides `local_day`
-export async function recordEvent({ answered = 0, correct = 0, pct = null, n = 0, species = {}, confusions = {}, history = [], counts = [], days = [], ts = Date.now() } = {}) {
+//   id                optional: supply a DETERMINISTIC id when the event must
+//                     be idempotent across retries and reinstalls (the baseline
+//                     does — see baselineUid). Omit for ordinary play, where a
+//                     fresh random id per round is exactly right.
+export async function recordEvent({ answered = 0, correct = 0, pct = null, n = 0, species = {}, confusions = {}, history = [], counts = [], days = [], ts = Date.now(), id = null } = {}) {
   // Nothing is even queued while sync is off — no sync-related data touches disk
   // until the user opts in. Their existing history is captured wholesale by the
   // baseline at that point (see uploadBaseline), so nothing is lost.
   if (!(await syncOn())) return null;
   try {
     const event = {
-      id: uid(),
+      id: id || uid(),
       device_id: await getDeviceId(),
       ts: new Date(ts).toISOString(),
       local_day: localDay(ts),
@@ -281,11 +288,26 @@ async function reconcileAccount(userId) {
   if (previous === userId) return; // same account as last time — nothing to do
   if (previous) {
     debug('account changed', previous, '->', userId);
-    await resetPullState();
+    // Nothing to reset. The watermark is per account, so this account already
+    // remembers how far it got (resume, re-read nothing) or has none yet (read
+    // from the start, which is right because this device has never seen it).
+    // Wiping pull state here is what used to re-fold an account's whole history
+    // into rollups that already contained it — see resetPullState.
   } else {
     debug('first sync for this device');
   }
-  await uploadBaseline();
+  // "Different account from last sync" is not the same question as "an account
+  // that has never seen this device's history". Turning sync off and on lands
+  // here twice — once for the throwaway anonymous account, once for the real
+  // one signed back into — and without this guard the second pass re-sends a
+  // baseline the account already has.
+  const baselined = await loadBaselineUserId();
+  if (baselined === userId) {
+    debug('baseline already sent to', userId, '— skipping');
+  } else {
+    await uploadBaseline(userId);
+    await saveBaselineUserId(userId);
+  }
   await saveLastUserId(userId);
 }
 
@@ -313,7 +335,7 @@ async function push(supabase, userId) {
 }
 
 async function pull(supabase, userId) {
-  const since = await loadLastPulledAt();
+  const since = await loadLastPulledAt(userId);
   const deviceId = await getDeviceId();
 
   let query = supabase
@@ -333,12 +355,12 @@ async function pull(supabase, userId) {
   const newest = data[data.length - 1].created_at;
 
   if (!foreign.length) {
-    await saveLastPulledAt(newest);
+    await saveLastPulledAt(userId, newest);
     return null;
   }
 
   const changed = await applyRemote(foreign);
-  await saveLastPulledAt(newest);
+  await saveLastPulledAt(userId, newest);
   return changed;
 }
 
@@ -487,7 +509,7 @@ export async function afterAuthChange(mode = 'link') {
 // per-species tallies, the baseline carries the accuracy-chart bars (`history`)
 // and the active-day set the streak is built from (`days`) — so a joining device
 // reconstructs the whole hero, not just the lifetime number over an empty chart.
-async function uploadBaseline() {
+async function uploadBaseline(userId) {
   const [stats, species, confusions, history, counts, activeDays, streak, queued] = await Promise.all([
     loadStats(),
     loadSpeciesStats(),
@@ -572,6 +594,10 @@ async function uploadBaseline() {
     history: baseHistory,
     counts: baseCounts,
     days: baseDays,
+    // Stable per (device, account), so a second attempt collides with the row
+    // already there and is dropped by the upsert rather than double-counting on
+    // every other device.
+    id: baselineUid(await getDeviceId(), userId),
   });
   debug('baseline queued:', answered, 'answers,', baseHistory.length, 'bars,', baseDays.length, 'days');
 }
@@ -612,7 +638,14 @@ export async function deleteAccount() {
     // outbox: those queued events belong to a user that no longer exists, and
     // uploading them into the next anonymous account would resurrect the data
     // the user just asked to erase.
-    await Promise.all([resetPullState(), saveOutbox([]), saveLastUserId('')]);
+    // The baseline marker goes too: the account it referred to is gone, so a
+    // future account must get this device's history again.
+    await Promise.all([
+      resetPullState(),
+      saveOutbox([]),
+      saveLastUserId(''),
+      saveBaselineUserId(''),
+    ]);
     await authSignOut();
     // Turn sync OFF after a delete. The user removed their synced data;
     // silently minting a fresh anonymous account and re-uploading would undo
@@ -627,12 +660,17 @@ export async function deleteAccount() {
 
 // Sign out and go back to a fresh anonymous account. Local stats are left
 // alone: they are this device's own history and the user did not ask to erase
-// anything. The pull state is reset so the next account is read from scratch.
+// anything.
+//
+// Pull state is deliberately KEPT. Signing out is not "forget this account" —
+// turning sync off and on again, or signing back in later, is the common path,
+// and the account's watermark is exactly what makes the return trip re-read
+// nothing. The baseline marker stays for the same reason: that account already
+// has this device's history and must not be sent it twice.
 export async function signOutAndReset() {
   if (!SYNC_ENABLED) return;
   try {
     await authSignOut();
-    await resetPullState();
     await saveLastUserId('');
   } catch {
     /* best-effort */
