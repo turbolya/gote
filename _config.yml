@@ -27,7 +27,7 @@ url: https://goteapp.com
 # Core Web Vitals only — it has NO custom events, so App Store button clicks
 # are not tracked. See the "About this website" section of PRIVACY.md, which
 # must keep saying whatever is true here.
-cloudflare_analytics_token: ""
+cloudflare_analytics_token: "25acf0857611449290c1a5f1416469ac"
 
 # Every page gets the article layout unless it opts out (index.html uses `base`).
 defaults:
