@@ -43,6 +43,24 @@ async function labelOf(id) {
   return attrs.label != null ? attrs.label : (attrs.elements && attrs.elements[0].label);
 }
 
+// Put text into a field, robustly.
+//
+// Three things, all of which this suite has flaked without:
+//   • wait for the field — replaceText does not wait, so a screen that hasn't
+//     finished mounting gives "No elements found".
+//   • let it settle — synchronization is disabled suite-wide, so a field can
+//     pass a visibility check and then fail the INTERACTION's own 100%
+//     visibility threshold a moment later, while the screen is still animating
+//     in ("View is not hittable at its visible point").
+//   • replaceText, not typeText — typing raises the keyboard and fails that
+//     same threshold far more often. Both search fields filter on onChangeText,
+//     which replaceText fires just the same; pass '' to clear.
+async function typeInto(id, text) {
+  await visible(id);
+  await new Promise((r) => setTimeout(r, 400));
+  await element(by.id(id)).replaceText(text);
+}
+
 // In a multiple-choice study round: read the correct answer (exposed via a
 // hidden element) and tap the matching choice tile.
 async function tapCorrectChoice() {
@@ -66,6 +84,7 @@ module.exports = {
   scrollToId,
   tapScroll,
   labelOf,
+  typeInto,
   tapCorrectChoice,
   tapCorrectPhoto,
 };

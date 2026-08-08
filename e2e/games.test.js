@@ -5,6 +5,7 @@ const {
   exists,
   tap,
   tapScroll,
+  typeInto,
   tapCorrectChoice,
   tapCorrectPhoto,
   TIMEOUT,
@@ -101,10 +102,84 @@ describe('Game modes', () => {
     await visible('results-menu');
   });
 
+  it('Smart play: routes each card to the screen its format belongs on', async () => {
+    await tapMode('smart');
+    await tap('custom-start');
+
+    // Smart play is the only mode whose next card may belong on a DIFFERENT
+    // screen — a photo question renders on the pick screen, a name question on
+    // the study screen. That is what this guards: a card routed to the wrong
+    // screen, where the round just stops advancing and no assertion about any
+    // single screen would notice.
+    //
+    // Which screen the current card landed on.
+    //
+    // Identified by each screen's hidden e2e answer marker rather than by its
+    // root container: `study-screen` and `pick-screen` sit on full-screen root
+    // Views, and toBeVisible demands a 100% visibility threshold, so once the
+    // card's own content covers the root the check fails even though the screen
+    // is plainly up. The markers also mean "this card is ready to answer", not
+    // merely "the screen mounted", so a photo card still loading its grid keeps
+    // the poll going instead of being tapped too early.
+    //
+    // Results is in the list because the suite shares one app install: earlier
+    // tests leave tallies behind, so the deck is not always long enough to serve
+    // three more cards.
+    const whichScreen = async () => {
+      for (let t = 0; t < 10; t++) {
+        for (const [id, name] of [
+          ['e2e-pick-answer', 'pick'],
+          ['e2e-answer', 'study'],
+          ['results-menu', 'results'],
+        ]) {
+          try {
+            await exists(id, 1200);
+            // Synchronization is disabled suite-wide, so a tap can otherwise
+            // land on a view that is still animating in.
+            await new Promise((r) => setTimeout(r, 400));
+            return name;
+          } catch (e) { /* try the next candidate */ }
+        }
+      }
+      throw new Error('Smart play card landed on none of pick / study / results');
+    };
+
+    let answered = 0;
+    let finished = false;
+    for (let i = 0; i < 3 && !finished; i++) {
+      const where = await whichScreen();
+      if (where === 'results') {
+        finished = true;
+      } else if (where === 'pick') {
+        await tapCorrectPhoto();
+        await tap('pick-next');
+        answered += 1;
+      } else {
+        await tap('study-reveal');
+        await tapCorrectChoice();
+        await tap('study-next');
+        answered += 1;
+      }
+    }
+    // The point of the test is that cards kept being served and answered across
+    // whatever mix of screens came up — not how many the deck happened to hold.
+    // (`expect` in this file is Detox's element matcher, so this is a plain check.)
+    if (answered === 0) throw new Error('Smart play served no answerable card');
+
+    if (!finished) {
+      // End from whichever screen the round is sitting on.
+      try {
+        await tap('pick-end', 4000);
+      } catch (e) {
+        await tap('study-end');
+      }
+    }
+    await visible('results-menu');
+  });
+
   it('Nearby species: search a place, then play', async () => {
     await tapMode('nearby');
-    await visible('nearby-search');
-    await element(by.id('nearby-search')).typeText('Test');
+    await typeInto('nearby-search', 'Test'); // waits for the field itself
     await tap('nearby-result-9001'); // fixture place
     await tap('nearby-start');
     await visible('study-reveal');
