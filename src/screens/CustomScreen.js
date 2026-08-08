@@ -17,6 +17,10 @@ export default function CustomScreen({
   onBack,
   title = 'Custom game',
   flags,
+  // Smart play only: the question types to offer. Given as [{ key, label }],
+  // all enabled to start. Absent for the other modes, which ask one kind of
+  // question by definition and so have nothing to choose.
+  questionTypes = null,
 }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -24,6 +28,23 @@ export default function CustomScreen({
 
   // Optionally restrict the whole picker to flagged species.
   const [flaggedOnly, setFlaggedOnly] = useState(false);
+  // Every type on by default: the mode's whole premise is that it picks for you,
+  // so narrowing it is the deliberate act, not the starting point.
+  const [types, setTypes] = useState(
+    () => new Set((questionTypes || []).map((t) => t.key))
+  );
+  const toggleType = (key) => {
+    setTypes((prev) => {
+      // Refuse to turn off the last one rather than letting the player reach a
+      // round with no possible question. Disabling Start instead would be a
+      // dead end they have to reason their way out of.
+      if (prev.size === 1 && prev.has(key)) return prev;
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   // How many distinct flagged species exist in this deck (for the toggle label).
   const flaggedCount = useMemo(() => {
@@ -149,6 +170,38 @@ export default function CustomScreen({
           })}
         </View>
 
+        {questionTypes && (
+          <>
+            <Text style={[styles.label, { marginTop: 28 }]}>Question types</Text>
+            <View style={styles.typeWrap}>
+              {questionTypes.map((t) => {
+                const on = types.has(t.key);
+                return (
+                  <Pressable
+                    key={t.key}
+                    testID={`smart-type-${t.key}`}
+                    onPress={() => toggleType(t.key)}
+                    style={[styles.typeChip, on && styles.typeChipOn]}
+                  >
+                    <Icon
+                      name={on ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={17}
+                      color={on ? colors.primary : colors.muted}
+                    />
+                    <Text style={[styles.typeChipText, on && styles.typeChipTextOn]}>
+                      {t.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.typeHint}>
+              All on lets the round pick whichever fits each species best. Turn
+              some off to drill one kind — the last one can’t be turned off.
+            </Text>
+          </>
+        )}
+
         <Text style={[styles.label, { marginTop: 28 }]}>Number of cards</Text>
         <View style={styles.stepper}>
           <Pressable
@@ -191,7 +244,7 @@ export default function CustomScreen({
           style={[styles.start, !canStart && styles.startDisabled]}
           disabled={!canStart}
           onPress={() =>
-            onStart([...selected], Math.min(count, available), flaggedOnly)
+            onStart([...selected], Math.min(count, available), flaggedOnly, [...types])
           }
         >
           {canStart && <Icon name="play" size={18} color={colors.onPrimary} />}
@@ -209,6 +262,23 @@ export default function CustomScreen({
 const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 20, paddingTop: 16 },
+  typeWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  typeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  typeChipOn: { borderColor: colors.primary, backgroundColor: colors.faint },
+  typeChipText: { fontSize: 14, color: colors.muted, fontWeight: '600' },
+  typeChipTextOn: { color: colors.text, fontWeight: '700' },
+  typeHint: { fontSize: 12, color: colors.muted, marginTop: 8, lineHeight: 17 },
+
   label: {
     fontSize: 13,
     fontWeight: '800',

@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.39.0';
+export const APP_VERSION = '2.39.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.39.1',
+    date: '2026-08-08',
+    changes: [
+      'Smart play’s start screen can now limit which question types come up. '
+        + 'All four are on by default — the point of the mode is that it picks '
+        + 'for you — but you can turn some off to drill one kind, say typing '
+        + 'names from memory. The last one can’t be turned off, since a round '
+        + 'needs at least one way to ask.',
+    ],
+  },
   {
     version: '2.39.0',
     date: '2026-08-08',

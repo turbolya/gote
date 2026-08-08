@@ -99,6 +99,15 @@ import { isMastered, speciesKey } from './src/mastery';
 import { recordRecall } from './src/recall';
 import { FORMAT, chooseFormat, ALL_FORMATS } from './src/smartmode';
 import { scoreDelta } from './src/scoring';
+
+// The question types Smart play offers on its start screen. Labels match the
+// Statistics breakdown so the two screens name the same thing the same way.
+const SMART_QUESTION_TYPES = [
+  { key: FORMAT.PICTURE, label: 'Choosing the photo' },
+  { key: FORMAT.NAME, label: 'Choosing the name' },
+  { key: FORMAT.PAIR, label: 'Look-alike pairs' },
+  { key: FORMAT.TYPED, label: 'Typing from memory' },
+];
 import { shrunkRate, lifetimeRate } from './src/accuracy';
 import {
   prefetchImages,
@@ -997,7 +1006,7 @@ export default function App() {
   // fetched live, so it is impossible offline, and PAIR needs the partner card
   // to actually be in this round's pool.
   const planSmart = useCallback(
-    (cards) => {
+    (cards, chosenTypes = null) => {
       const lifetimeRateNow = lifetimeRate(lifetimeRef.current);
       const byKey = new Map(cards.map((c) => [speciesKey(c), c]));
       return cards.map((card) => {
@@ -1013,8 +1022,14 @@ export default function App() {
         const partner = (nemesisPartnersFor(key) || [])
           .map((k) => byKey.get(String(k)))
           .find((c) => c && speciesKey(c) !== key);
+        // Three filters, and they are different in kind. The player's choice is
+        // a preference; offline and "no partner in this deck" are facts about
+        // what can actually be rendered. Applying them together here keeps
+        // chooseFormat free of both.
+        const wanted = chosenTypes && chosenTypes.length ? new Set(chosenTypes) : null;
         const allow = ALL_FORMATS.filter(
           (f) =>
+            (!wanted || wanted.has(f)) &&
             !(f === FORMAT.PICTURE && offlineRef.current) &&
             !(f === FORMAT.PAIR && !partner)
         );
@@ -1067,22 +1082,27 @@ export default function App() {
   );
 
   const startSmart = useCallback(
-    (groups, count) => {
+    (groups, count, flaggedOnly, chosenTypes) => {
       let pool =
         groups && groups.length
           ? playableDeck.filter((c) => groups.includes(groupKey(c.iconic)))
           : playableDeck;
+      if (flaggedOnly) {
+        const set = flagsRef.current;
+        pool = pool.filter((c) => set.has(String(c.taxonId)));
+      }
       const cards = scheduleDeck(pool, {
         confusions: confusionRef.current,
         wins: confusionWinsRef.current,
         size: count,
       });
+      const plan = (shuffled) => planSmart(shuffled, chosenTypes);
       const run = () =>
-        startRound(cards, 'smart', 'Smart play', playableDeck, planSmart, (shuffled, plan) => {
+        startRound(cards, 'smart', 'Smart play', playableDeck, plan, (shuffled, builtPlan) => {
           // startRound has already put us on 'study'; correct it if card 1 is a
           // photo question. Passed the fresh deck and plan directly, because the
           // state holding them has not re-rendered yet.
-          formatPlanRef.current = plan;
+          formatPlanRef.current = builtPlan;
           deckRef.current = shuffled;
           routeSmart(0, shuffled);
         });
@@ -1764,6 +1784,7 @@ export default function App() {
             deck={fullDeck}
             title="Smart play"
             flags={flags}
+            questionTypes={SMART_QUESTION_TYPES}
             onStart={startSmart}
             onBack={navBack}
           />
