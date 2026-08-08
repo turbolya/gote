@@ -62,16 +62,19 @@ export default function LegalScreen({ onBack }) {
         </Para>
         <Para>
           If you turn on Sync across devices, a round-by-round record of your
-          play — what you answered, when, and which species you got right or
-          wrong — is stored on our server, along with the email address you use
-          to link devices. It is detailed, because your statistics and streak are
-          calculated from it, and it exists only to show you your own progress on
-          every device. You can delete that account and everything on it at any
-          time from Settings → Devices → Sync across devices.
+          play — what you answered, when, which species you got right or wrong,
+          and roughly how long your answers take — is stored on our server, along
+          with the email address you use to link devices. It is detailed, because
+          your statistics and streak are calculated from it, and it exists only
+          to show you your own progress on every device and to decide what to put
+          in front of you next. You can delete that account and everything on it
+          at any time from Settings → Devices → Sync across devices.
         </Para>
         <Para>
-          No advertising, no tracking across apps, no profiling, and nothing is
-          ever sold or shared.
+          No advertising, no tracking across apps, and nothing is ever sold or
+          shared. The one thing gote works out about you is how well you know
+          each species, so it can choose what to show you — that stays in your
+          own account and is never used to describe you to anyone else.
         </Para>
         <Para>
           Full details are in the{' '}
