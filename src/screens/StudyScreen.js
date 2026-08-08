@@ -786,7 +786,7 @@ export default function StudyScreen({
               // Free recall: no options at all, so there is nothing to guess
               // among. The hardest format and the only one that tells "I know
               // it" apart from "I can pick it out of a list".
-              <Appear style={styles.centerPanel} offset={14} scaleFrom={0.96} duration={300}>
+              <Appear style={[styles.centerPanel, styles.typedPanel]} offset={14} scaleFrom={0.96} duration={300}>
                 {!answered ? (
                   <>
                     <Text style={[styles.choiceLead, { color: onDim }]}>
@@ -914,7 +914,13 @@ export default function StudyScreen({
         style={[styles.bottomGrad, { paddingBottom: insets.bottom + 10 }]}
         pointerEvents="box-none"
       >
-        {choiceMode
+        {typedMode
+          ? // Typed recall answers in the panel itself. There is nothing to
+            // reveal here — offering a reveal would just be a way to skip the
+            // question, and this bar used to fall through to the self-grade
+            // branch and show "Reveal answer" over the typing UI.
+            null
+          : choiceMode
           ? phase === 'front' && (
               <Pressable
                 testID="study-reveal"
@@ -1196,6 +1202,15 @@ const styles = StyleSheet.create({
   choiceWrong: { backgroundColor: colors.wrong, borderColor: colors.wrong },
   choiceText: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
   choiceTextOn: { color: ON_DARK },
+  // The choice panel gets away with no backdrop because each option is a
+  // filled pill; typed mode is bare text and a field over an arbitrary photo,
+  // so it needs its own.
+  typedPanel: {
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
+  },
   typedInput: {
     width: '100%',
     borderWidth: 1,
