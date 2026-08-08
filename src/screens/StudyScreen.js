@@ -804,6 +804,7 @@ export default function StudyScreen({
                       autoCorrect={false}
                       autoComplete="off"
                       spellCheck={false}
+                      multiline
                       returnKeyType="done"
                       blurOnSubmit
                     />
@@ -1219,30 +1220,38 @@ const styles = StyleSheet.create({
   // comfortable for glancing is not enough for reading.
   typedPanel: { backgroundColor: 'rgba(0,0,0,0.62)' },
   typedLead: { textAlign: 'center', marginBottom: 10 },
+  // A FIELD, not a pill. It deliberately breaks from the choice-option look in
+  // the ways that say "you type here": left-aligned rather than centred, a
+  // hairline recessed border rather than the options' bright one, and room for
+  // two lines. Making it identical to the button below was the previous
+  // mistake — two identical rounded rectangles, one of which happens to be
+  // tappable, is not a form.
   typedInput: {
     width: '100%',
-    // Solid, unlike the choice pills: a text field has to hold its own against
-    // whatever photo sits behind it while you read your answer back.
     backgroundColor: 'rgba(0,0,0,0.55)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.5)',
-    borderRadius: 14,
-    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.28)',
+    borderRadius: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
     paddingHorizontal: 14,
-    fontSize: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 8,
+    fontSize: 17,
+    fontWeight: '600',
+    textAlign: 'left',
+    // Two lines' worth: plenty of species are three or four words, and a
+    // binomial scrolling sideways out of a single-line field is unreadable
+    // exactly when you most want to check what you wrote.
+    minHeight: 78,
+    textAlignVertical: 'top',
+    marginBottom: 12,
   },
   // Not a faded primary button: reducing opacity on a colour over an arbitrary
   // photo blends it INTO the photo, which is both ugly and unreadable. Disabled
   // borrows the neutral over-photo fill instead, so it stays legible and the
   // jump to solid teal is a clear "now you can".
-  typedSubmitOff: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.35)',
-  },
+  // Still unmistakably the button: a muted version of the primary fill rather
+  // than a neutral one. Going grey made it a twin of the field above it.
+  typedSubmitOff: { backgroundColor: 'rgba(0,138,172,0.34)' },
   typedSubmitOffText: { color: ON_DARK_DIM },
   typedHint: { fontSize: 12, marginTop: 10, textAlign: 'center', lineHeight: 16 },
   nextBtn: {
