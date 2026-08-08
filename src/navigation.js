@@ -13,6 +13,7 @@
 export const BACK_TO = {
   settings: 'menu',
   custom: 'menu',
+  smart: 'menu',
   flash: 'menu',
   nearby: 'menu',
   stats: 'menu',

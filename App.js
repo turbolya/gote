@@ -96,7 +96,8 @@ import { verifyStreak, recordVerifyWin, recordVerifyMiss } from './src/verify';
 import { scheduleDeck } from './src/schedule';
 import { isMastered, speciesKey } from './src/mastery';
 import { recordRecall } from './src/recall';
-import { FORMAT } from './src/smartmode';
+import { FORMAT, chooseFormat, ALL_FORMATS } from './src/smartmode';
+import { shrunkRate, lifetimeRate } from './src/accuracy';
 import {
   prefetchImages,
   prefetchDeck,
@@ -401,6 +402,26 @@ export default function App() {
   // account deck). Full cards, so StudyScreen can pick taxonomically similar
   // distractors using each card's ancestry.
   const [roundPool, setRoundPool] = useState([]);
+  // Mirrors of state the round planner reads. It runs once at round start, from
+  // inside startRound, so reading state through a closure would risk a stale
+  // value deciding a whole round's questions.
+  const lifetimeRef = useRef({ answered: 0, correct: 0 });
+  const offlineRef = useRef(false);
+
+  // Smart play only: the question format chosen for each card, index-aligned
+  // with `deck`. Built once when the round starts (AFTER the shuffle, so it
+  // cannot drift out of alignment) rather than per render — chooseFormat is
+  // random, so deciding lazily would let a card change its own question
+  // mid-answer. null in every other mode.
+  const [formatPlan, setFormatPlan] = useState(null);
+  lifetimeRef.current = lifetime;
+  offlineRef.current = offline;
+  const deckRef = useRef([]);
+  const formatPlanRef = useRef(null);
+  deckRef.current = deck;
+  formatPlanRef.current = formatPlan;
+  const roundPoolRef = useRef([]);
+  roundPoolRef.current = roundPool;
 
   // Re-derive the filtered deck from the raw cache + the given display prefs.
   const applyCurrentFilters = useCallback((prefs) => {
@@ -743,7 +764,7 @@ export default function App() {
   // no-op: the study screen requires a non-empty deck, and starting without one
   // (e.g. "Research grade only" filtering everything out) would dead-end on a
   // blank screen.
-  const startRound = useCallback((cards, m, label = '', pool = null) => {
+  const startRound = useCallback((cards, m, label = '', pool = null, planner = null, afterPlan = null) => {
     if (!cards || cards.length === 0) return;
     finishedRef.current = false;
     // Drop any deltas left by a round the player abandoned. Those cards were
@@ -755,7 +776,12 @@ export default function App() {
     formatDeltaRef.current = {};
     setMode(m);
     setRoundLabel(label);
-    setDeck(shuffle(cards));
+    const shuffled = shuffle(cards);
+    setDeck(shuffled);
+    // The planner sees the deck in play order, which is the only order the
+    // plan can be aligned to.
+    const plan = planner ? planner(shuffled) : null;
+    setFormatPlan(plan);
     setRoundPool(pool && pool.length ? pool : cards);
     setIndex(0);
     setCorrectCount(0);
@@ -763,6 +789,7 @@ export default function App() {
     setLives(SPEEDRUN_LIVES);
     setLoopNonce(0);
     setScreen('study');
+    if (afterPlan) afterPlan(shuffled, plan);
   }, []);
 
   // --- mode launchers (each records how to replay itself) ---
@@ -860,7 +887,12 @@ export default function App() {
   // Each round fetches the target's curated photos + similar species, then
   // builds 4 tiles. Skips cards that can't form a fair round (too few
   // look-alikes), advancing until one works or the deck is exhausted.
-  const prepPickRound = useCallback(async (roundDeck, startIdx, onExhausted) => {
+  // `only: true` tries EXACTLY the card at startIdx instead of scanning forward
+  // for the first one that works. Smart play needs that: it decided this card's
+  // question format in advance, so silently jumping to a different card would
+  // desync the plan from the deck. The caller handles the failure by asking a
+  // different question about the same card instead.
+  const prepPickRound = useCallback(async (roundDeck, startIdx, onExhausted, { only = false } = {}) => {
     const reqId = ++pickReqRef.current;
     setPickError(null);
     setPickRound(null);
@@ -873,7 +905,8 @@ export default function App() {
     const MAX_CONSECUTIVE_EMPTY = 6;
     let consecutiveEmpty = 0;
 
-    for (let i = startIdx; i < roundDeck.length; i++) {
+    const lastIdx = only ? startIdx : roundDeck.length - 1;
+    for (let i = startIdx; i <= lastIdx; i++) {
       const card = roundDeck[i];
       const [correctPhotos, similar] = await Promise.all([
         fetchTaxonPhotos(card.taxonId),
@@ -937,6 +970,109 @@ export default function App() {
     });
   }, [fullDeck, prepPickRound]);
 
+  // Smart play: one round, four question formats, chosen per card by what the
+  // tallies say about that species (src/smartmode.js).
+  //
+  // The plan is built here rather than inside smartmode so the exclusions stay
+  // where the facts are: PICTURE needs four other species' curated photos
+  // fetched live, so it is impossible offline, and PAIR needs the partner card
+  // to actually be in this round's pool.
+  const planSmart = useCallback(
+    (cards) => {
+      const lifetimeRateNow = lifetimeRate(lifetimeRef.current);
+      const byKey = new Map(cards.map((c) => [speciesKey(c), c]));
+      return cards.map((card) => {
+        const key = speciesKey(card);
+        const entry = speciesRef.current[key] || { known: 0, missed: 0 };
+        const evidence = (entry.known || 0) + (entry.missed || 0);
+        // The SHRUNK rate, not the raw one: a species answered right once is
+        // not a species known at 100%, and it must not be promoted straight to
+        // typed recall on that evidence (src/accuracy.js).
+        const rate = shrunkRate(entry, lifetimeRateNow);
+        // A look-alike this player actually confuses it with, present in this
+        // round — otherwise there is no pair to ask about.
+        const partner = (nemesisPartnersFor(key) || [])
+          .map((k) => byKey.get(String(k)))
+          .find((c) => c && speciesKey(c) !== key);
+        const allow = ALL_FORMATS.filter(
+          (f) =>
+            !(f === FORMAT.PICTURE && offlineRef.current) &&
+            !(f === FORMAT.PAIR && !partner)
+        );
+        return chooseFormat({ evidence, rate, hasPartner: !!partner, allow });
+      });
+    },
+    [nemesisPartnersFor]
+  );
+
+  // Send card `i` to whichever screen its planned format needs. Smart play is
+  // the only mode whose screen can change between cards.
+  //
+  // If the photo grid cannot be built for that card (too few look-alikes with
+  // curated photos), the format is DOWNGRADED to a name list for that card
+  // rather than skipping to another one — skipping is what prepPickRound does
+  // by default, and it would silently pull the deck out of step with the plan.
+  // The look-alike to put opposite this card in a PAIR question: a species the
+  // player actually confuses it with, and one that is in this round's pool so
+  // it can be shown. Same lookup the planner used to decide the format.
+  const pairPartnerFor = useCallback(
+    (card) => {
+      if (!card) return null;
+      const key = speciesKey(card);
+      const partners = (nemesisPartnersFor(key) || []).map(String);
+      if (!partners.length) return null;
+      const pool = roundPoolRef.current || [];
+      return pool.find((c) => partners.includes(speciesKey(c)) && speciesKey(c) !== key) || null;
+    },
+    [nemesisPartnersFor]
+  );
+
+  const routeSmart = useCallback(
+    (i, roundDeck) => {
+      const cards = roundDeck || deckRef.current;
+      const fmt = formatPlanRef.current ? formatPlanRef.current[i] : null;
+      if (fmt !== FORMAT.PICTURE) {
+        setScreen('study');
+        return;
+      }
+      setScreen('pick');
+      prepPickRound(cards, i, () => {
+        // Downgrade this one card and hand it back to the study screen.
+        const plan = [...(formatPlanRef.current || [])];
+        plan[i] = FORMAT.NAME;
+        setFormatPlan(plan);
+        setScreen('study');
+      }, { only: true });
+    },
+    [prepPickRound]
+  );
+
+  const startSmart = useCallback(
+    (groups, count) => {
+      let pool =
+        groups && groups.length
+          ? playableDeck.filter((c) => groups.includes(groupKey(c.iconic)))
+          : playableDeck;
+      const cards = scheduleDeck(pool, {
+        confusions: confusionRef.current,
+        wins: confusionWinsRef.current,
+        size: count,
+      });
+      const run = () =>
+        startRound(cards, 'smart', 'Smart play', playableDeck, planSmart, (shuffled, plan) => {
+          // startRound has already put us on 'study'; correct it if card 1 is a
+          // photo question. Passed the fresh deck and plan directly, because the
+          // state holding them has not re-rendered yet.
+          formatPlanRef.current = plan;
+          deckRef.current = shuffled;
+          routeSmart(0, shuffled);
+        });
+      replayRef.current = run;
+      run();
+    },
+    [playableDeck, startRound, planSmart]
+  );
+
   const onSelectMode = useCallback(
     (m) => {
       if (m === 'all') startAll();
@@ -945,6 +1081,7 @@ export default function App() {
       else if (m === 'custom') setScreen('custom');
       else if (m === 'flash') setScreen('flash');
       else if (m === 'nearby') setScreen('nearby');
+      else if (m === 'smart') setScreen('smart');
     },
     [startAll, startSpeedrun, startPick]
   );
@@ -1016,11 +1153,15 @@ export default function App() {
   // the lifetime accuracy stays interpretable once Smart play starts mixing
   // formats of very different difficulty inside one round — a blended number
   // would drift as the mix shifts, with no change in what the player knows.
-  const formatForCard = useCallback(() => {
-    if (mode === 'pick') return FORMAT.PICTURE;
-    if (mode === 'flash') return FORMAT.FLASH;
-    return FORMAT.NAME;
-  }, [mode]);
+  const formatForCard = useCallback(
+    (i = index) => {
+      if (formatPlan && formatPlan[i]) return formatPlan[i];
+      if (mode === 'pick') return FORMAT.PICTURE;
+      if (mode === 'flash') return FORMAT.FLASH;
+      return FORMAT.NAME;
+    },
+    [mode, formatPlan, index]
+  );
 
   const recordResult = useCallback((card, correct, { track = true, ms = 0, format = null } = {}) => {
     if (!card) return null;
@@ -1235,9 +1376,12 @@ export default function App() {
         finishRound(nextCorrect, nextMissed, deck.length);
       } else {
         setIndex(index + 1);
+        // Smart play is the only mode where the NEXT card may belong on a
+        // different screen.
+        if (mode === 'smart') routeSmart(index + 1);
       }
     },
-    [deck, index, correctCount, missed, mode, lives, finishRound, recordResult, recordConfusion, recordVerifyWinFor]
+    [deck, index, correctCount, missed, mode, lives, finishRound, recordResult, recordConfusion, recordVerifyWinFor, routeSmart, formatForCard]
   );
 
   // Grade a tap in "Pick the right one" (tally only; advancing waits for Next).
@@ -1249,7 +1393,7 @@ export default function App() {
       if (correct) setCorrectCount((c) => c + 1);
       else setMissed((m) => [...m, card]);
     },
-    [deck, index, recordResult, recordConfusion]
+    [deck, index, recordResult, recordConfusion, formatForCard]
   );
 
   // Advance to the next pick round (or finish when the deck is done).
@@ -1259,10 +1403,18 @@ export default function App() {
       finishRound(correctCount, missed, total);
       return;
     }
+    // Smart play owns its own routing: the next card may not be a photo
+    // question at all, so hand it back to the router rather than preparing
+    // another pick round here.
+    if (mode === 'smart') {
+      setIndex(index + 1);
+      routeSmart(index + 1);
+      return;
+    }
     prepPickRound(deck, index + 1, () =>
       finishRound(correctCount, missed, total)
     );
-  }, [deck, index, correctCount, missed, finishRound, prepPickRound]);
+  }, [deck, index, correctCount, missed, mode, finishRound, prepPickRound, routeSmart]);
 
   // The side-by-side comparison overlay. Rendered on top of whatever screen is
   // showing (Stats, or mid-round from the just-in-time callout), so it lives in
@@ -1373,6 +1525,18 @@ export default function App() {
             speedrun={mode === 'speedrun'}
             lives={lives}
             choiceMode={['all', 'custom', 'speedrun', 'nearby'].includes(mode)}
+            answerMode={
+              mode === 'smart'
+                ? formatForCard() === FORMAT.TYPED
+                  ? 'typed'
+                  : 'choice'
+                : null
+            }
+            pairWith={
+              mode === 'smart' && formatForCard() === FORMAT.PAIR
+                ? pairPartnerFor(deck[index])
+                : null
+            }
             choicePool={roundPool}
             flags={flags}
             onToggleFlag={toggleFlag}
@@ -1575,6 +1739,16 @@ export default function App() {
             deck={fullDeck}
             flags={flags}
             onStart={startCustom}
+            onBack={navBack}
+          />
+        )}
+
+        {screen === 'smart' && (
+          <CustomScreen
+            deck={fullDeck}
+            title="Smart play"
+            flags={flags}
+            onStart={startSmart}
             onBack={navBack}
           />
         )}

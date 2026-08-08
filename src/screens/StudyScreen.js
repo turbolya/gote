@@ -18,6 +18,7 @@ import {
   Platform,
   StyleSheet,
   Animated,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,6 +35,7 @@ import { pairKey, pairCount, CONFUSION_HINT_MIN } from '../confusions';
 import { VERIFY_STREAK_MIN } from '../verify';
 import { speciesKey } from '../mastery';
 import { wantsFreshPhoto, pickFreshPhoto, studyPhoto } from '../studyphoto';
+import { matchAnswer } from '../answermatch';
 
 // Shared with App.js's tally writer, so a mastery lookup asks under the same key
 // the tally was stored under (src/mastery.js).
@@ -81,7 +83,13 @@ export default function StudyScreen({
   roundLabel,
   speedrun = false,
   lives = SPEEDRUN_LIVES,
-  choiceMode = false,
+  // 'choice' | 'flash' | 'typed'. Smart play sets it per card; the fixed modes
+  // still pass choiceMode and get the old two-way behaviour.
+  answerMode = null,
+  choiceMode: choiceModeProp = false,
+  // Smart play's PAIR question: render exactly two options, this card and the
+  // look-alike the player actually confuses it with.
+  pairWith = null,
   choicePool = [],
   flags,
   onToggleFlag,
@@ -98,7 +106,17 @@ export default function StudyScreen({
   const insets = useSafeAreaInsets();
   const [flipped, setFlipped] = useState(false);
   // Multiple-choice phase: 'front' (photo) -> 'choosing' -> 'answered'.
+  const askMode = answerMode || (choiceModeProp ? 'choice' : 'flash');
+  // Everything downstream already branches on `choiceMode`; a PAIR question is
+  // still multiple choice, just with two options, so it keeps that path.
+  const choiceMode = askMode === 'choice';
+  const typedMode = askMode === 'typed';
+
   const [phase, setPhase] = useState('front');
+  // Typed answers: what the player wrote, and the matcher's verdict once
+  // submitted (src/answermatch.js).
+  const [typed, setTyped] = useState('');
+  const [typedResult, setTypedResult] = useState(null);
   const [picked, setPicked] = useState(null);
   const card = deck[index];
   const answer = cardName(card);
@@ -129,6 +147,8 @@ export default function StudyScreen({
     setFlipped(false);
     setPhase('front');
     setPicked(null);
+    setTyped('');
+    setTypedResult(null);
     // Refs, so the clock resets with the card without costing a render. Zeroed
     // here rather than in an effect so a very fast answer can't be timed against
     // the PREVIOUS card's start.
@@ -145,6 +165,18 @@ export default function StudyScreen({
   // draw — pickSimilarDistractors is random, so drawing twice would disagree.
   const choices = useMemo(() => {
     if (!choiceMode || !card) return { list: [], byName: {} };
+    // A PAIR question is the whole point of two options: the player is asked to
+    // separate exactly the two species they keep confusing. Distractors drawn
+    // from the wider deck would dilute that back into an ordinary round.
+    if (pairWith) {
+      const partnerName = cardName(pairWith);
+      if (partnerName && partnerName !== answer) {
+        return {
+          list: shuffle([answer, partnerName]),
+          byName: { [answer]: card, [partnerName]: pairWith },
+        };
+      }
+    }
     const distractorCards = pickSimilarDistractors(
       card,
       choicePool,
@@ -186,7 +218,7 @@ export default function StudyScreen({
     }
 
     return { list: shuffle([answer, ...names]), byName };
-  }, [choiceMode, card, choicePool, answer, onNemesisPartners]);
+  }, [choiceMode, card, choicePool, answer, onNemesisPartners, pairWith]);
 
   const progress = (index + 1) / deck.length;
 
@@ -200,6 +232,26 @@ export default function StudyScreen({
     if (answerMsRef.current === 0 && answerStartRef.current > 0) {
       answerMsRef.current = Date.now() - answerStartRef.current;
     }
+  };
+
+  // Submitting a typed answer. The matcher is deliberately generous (accents,
+  // case, punctuation, small typos, either the common or the scientific name),
+  // so a player who knows the species is not failed by the keyboard — see
+  // src/answermatch.js.
+  //
+  // The verdict is funnelled through `picked` so every downstream consumer
+  // (gotIt, the verify-the-fix streak, the answered panel) keeps working
+  // unchanged: correct sets it to the answer itself, wrong to a sentinel that
+  // cannot collide with a real species name.
+  const TYPED_WRONG = '\u0000typed-wrong';
+  const submitTyped = () => {
+    if (phase === 'answered' || !card) return;
+    if (!typed.trim()) return;
+    commitAnswer();
+    const res = matchAnswer(typed, card);
+    setTypedResult(res);
+    setPicked(res.ok ? answer : TYPED_WRONG);
+    setPhase('answered');
   };
 
   const pick = (name) => {
@@ -729,6 +781,91 @@ export default function StudyScreen({
                 )}
               </Appear>
             )
+          : typedMode
+          ? (
+              // Free recall: no options at all, so there is nothing to guess
+              // among. The hardest format and the only one that tells "I know
+              // it" apart from "I can pick it out of a list".
+              <Appear style={styles.centerPanel} offset={14} scaleFrom={0.96} duration={300}>
+                {!answered ? (
+                  <>
+                    <Text style={[styles.choiceLead, { color: onDim }]}>
+                      What species is this?
+                    </Text>
+                    <TextInput
+                      testID="study-typed-input"
+                      value={typed}
+                      onChangeText={setTyped}
+                      onSubmitEditing={submitTyped}
+                      placeholder="Type the name…"
+                      placeholderTextColor="rgba(255,255,255,0.5)"
+                      style={[styles.typedInput, { color: on }]}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="off"
+                      spellCheck={false}
+                      returnKeyType="done"
+                      blurOnSubmit
+                    />
+                    <Pressable
+                      testID="study-typed-submit"
+                      disabled={!typed.trim()}
+                      onPress={submitTyped}
+                      style={[styles.nextBtn, !typed.trim() && styles.typedSubmitOff]}
+                    >
+                      <Text style={styles.nextText}>Check</Text>
+                    </Pressable>
+                    <Text style={[styles.typedHint, { color: onDim }]}>
+                      Either name works, and spelling is forgiving.
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Pop trigger>
+                      <View style={styles.resultRow}>
+                        <Icon
+                          name={gotIt ? 'check-circle' : 'x-circle'}
+                          size={22}
+                          color={gotIt ? colors.correct : colors.wrong}
+                        />
+                        <Text style={[styles.choiceLead, { color: on }]}>
+                          {gotIt ? 'Correct' : 'Not quite'}
+                        </Text>
+                      </View>
+                    </Pop>
+                    <Text style={[styles.speciesName, { color: on }]} numberOfLines={2}>
+                      {card.common || card.scientific}
+                    </Text>
+                    {!!card.common && (
+                      <Text style={[styles.speciesSci, { color: onDim }]} numberOfLines={1}>
+                        {card.scientific}
+                      </Text>
+                    )}
+                    {/* A forgiven typo still counts, but the player should see
+                        the spelling they missed rather than have it pass in
+                        silence. */}
+                    {gotIt && typedResult && !typedResult.exact && (
+                      <Text style={[styles.typedHint, { color: onDim }]} numberOfLines={2}>
+                        Counted — you wrote “{typed.trim()}”.
+                      </Text>
+                    )}
+                    {!gotIt && !!typed.trim() && (
+                      <Text style={[styles.typedHint, { color: onDim }]} numberOfLines={2}>
+                        You wrote “{typed.trim()}”.
+                      </Text>
+                    )}
+                    <Pressable
+                      testID="study-next"
+                      style={styles.nextBtn}
+                      onPress={() => onGrade(gotIt, null, null, answerMsRef.current)}
+                    >
+                      <Text style={styles.nextText}>Next card</Text>
+                      <Icon name="arrow-right" size={18} color={colors.onPrimary} />
+                    </Pressable>
+                  </>
+                )}
+              </Appear>
+            )
           : flipped && (
               // Self-grade reveal: the answer cross-dissolves + scales in over
               // the photo (press-and-hold the photo to peek back at it).
@@ -1059,6 +1196,20 @@ const styles = StyleSheet.create({
   choiceWrong: { backgroundColor: colors.wrong, borderColor: colors.wrong },
   choiceText: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
   choiceTextOn: { color: ON_DARK },
+  typedInput: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  typedSubmitOff: { opacity: 0.45 },
+  typedHint: { fontSize: 13, marginTop: 10, textAlign: 'center' },
   nextBtn: {
     flexDirection: 'row',
     alignItems: 'center',

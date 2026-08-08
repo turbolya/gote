@@ -251,6 +251,7 @@ export default function MenuScreen({
   const noOfflineCards = offline && deckCount === 0;
 
   const playModes = [
+    { key: 'smart', icon: 'sparkles-outline', accent: accents.rose, title: 'Smart play', sub: 'Mixed questions, picked for what you know' },
     { key: 'all', icon: 'albums-outline', accent: accents.green, title: 'By name', sub: 'See a photo, choose its name' },
     { key: 'pick', icon: 'apps-outline', accent: accents.blue, title: 'By picture', sub: 'See a name, choose its photo' },
     { key: 'speedrun', icon: 'flash', accent: accents.amber, title: 'Speedrun', sub: `Endless cards — survive ${SPEEDRUN_LIVES} misses` },

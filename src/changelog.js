@@ -8,9 +8,29 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.37.4';
+export const APP_VERSION = '2.38.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.38.0',
+    date: '2026-08-08',
+    changes: [
+      'New game mode — Smart play. Instead of asking the same kind of question '
+        + 'all round, it picks the one that fits what you know about each '
+        + 'species: choose the photo from four when you have only just met it, '
+        + 'choose the name from five as it becomes familiar, and type the name '
+        + 'from memory once you really know it. Species you keep mixing up come '
+        + 'up head-to-head against the look-alike you confuse them with.',
+      'Typing is deliberately forgiving: either the common or the scientific '
+        + 'name counts, accents and capitals do not matter, and a small typo '
+        + 'still passes — it shows you the right spelling rather than marking '
+        + 'you wrong for the keyboard.',
+      'Your accuracy now also breaks down by question type, because typing a '
+        + 'name from memory is far harder than picking one from a list and '
+        + 'blending them into a single number would make your score drift as '
+        + 'the mix changed.',
+    ],
+  },
   {
     version: '2.37.4',
     date: '2026-08-08',
