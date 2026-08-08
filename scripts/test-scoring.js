@@ -29,6 +29,11 @@ console.log('\\nweightOf');
   eq('separating two look-alikes', weightOf('pair'), 1.5);
   eq('typing from memory is worth most', weightOf('typed'), 2);
   eq('an unknown format falls back', weightOf('nonsense'), DEFAULT_WEIGHT);
+  // Self-graded, so worth nothing: a score you can award yourself by tapping
+  // "I knew it" is not a score. Explicitly 0 rather than omitted — omitting it
+  // would fall through to DEFAULT_WEIGHT and quietly be worth 1.
+  eq('self-graded flash cards are worth nothing', weightOf('flash'), 0);
+  ok('and that is a deliberate 0, not a fallback', weightOf('flash') !== DEFAULT_WEIGHT);
   eq('so does undefined', weightOf(undefined), DEFAULT_WEIGHT);
   // The ordering IS the design; assert it rather than the literals alone.
   ok('weights rise with difficulty',
@@ -59,6 +64,23 @@ console.log('\\nscoreFrom — history from before formats were recorded');
   eq('junk values inside the split', scoreFrom({ answered: 3, correct: 3 }, { name: { correct: 'x' } }), 3 * DEFAULT_WEIGHT);
 }
 
+console.log('\\nscoreFrom — flash cards are excluded, not treated as legacy');
+{
+  // The subtle one: flash answers ARE counted, so they do not fall through to
+  // the legacy remainder and get weighted 1 by the back door. They are
+  // recognised and deliberately worth nothing.
+  const by = { flash: { answered: 30, correct: 25 } };
+  eq('a player who only used flash cards scores nothing',
+    scoreFrom({ answered: 30, correct: 25 }, by), 0);
+  eq('and their ceiling is nothing too', potentialFrom({ answered: 30, correct: 25 }, by), 0);
+  // Mixed: only the typed answers count.
+  const mixed = { flash: { answered: 20, correct: 18 }, typed: { answered: 5, correct: 4 } };
+  eq('flash does not dilute a mixed score', scoreFrom({ answered: 25, correct: 22 }, mixed), 8);
+  // Genuine legacy answers (no format at all) still count at DEFAULT_WEIGHT.
+  eq('legacy answers are still distinguishable from flash',
+    scoreFrom({ answered: 35, correct: 30 }, mixed), 8 + 8 * DEFAULT_WEIGHT);
+}
+
 console.log('\\npotentialFrom');
 {
   const by = { picture: { answered: 10, correct: 8 }, typed: { answered: 5, correct: 3 } };
@@ -79,6 +101,10 @@ console.log('\\nscoreDelta');
   eq('a correct photo answer', scoreDelta('picture', true), { points: 0.5, weight: 0.5 });
   eq('a wrong photo answer', scoreDelta('picture', false), { points: 0, weight: 0.5 });
   eq('an unknown format', scoreDelta('???', true), { points: DEFAULT_WEIGHT, weight: DEFAULT_WEIGHT });
+  // Neither points nor weight: a flash answer must not even dilute a species'
+  // weighted rate, or self-grading would still move the ranking.
+  eq('a correct flash card earns nothing at all', scoreDelta('flash', true), { points: 0, weight: 0 });
+  eq('and a wrong one costs nothing either', scoreDelta('flash', false), { points: 0, weight: 0 });
 }
 
 console.log('\\nweightedRate');

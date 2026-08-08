@@ -10,6 +10,8 @@
 // So the score is cumulative points, not a rate. It rewards two things at once —
 // answering more, and answering harder — which is exactly what a score should
 // do and exactly what an accuracy figure must not.
+//
+// One format is worth nothing at all: self-graded Flash cards. See WEIGHTS.
 
 import { FORMAT } from './smartmode.js';
 
@@ -22,11 +24,20 @@ export const WEIGHTS = {
   [FORMAT.NAME]: 1,
   [FORMAT.PAIR]: 1.5,
   [FORMAT.TYPED]: 2,
-  // Self-graded. Worth the same as a name list because that is the nearest
-  // thing it resembles — but note it is the one format the app does not mark
-  // itself, so its points are only as honest as the player is. That is a real
-  // exploit surface for a score in a way it never was for accuracy.
-  [FORMAT.FLASH]: 1,
+  // Self-graded, and therefore worth NOTHING. Flash cards are the one format
+  // the app does not mark itself: the player taps "I knew it", and a score that
+  // rewards that is a score you can award yourself by tapping. Harmless for an
+  // accuracy figure nobody competes on; not harmless for a number whose whole
+  // purpose is to be earned.
+  //
+  // Zero rather than omitted, because an omitted format falls through to
+  // DEFAULT_WEIGHT and would quietly be worth 1. "Unrecognised, assume a name
+  // list" and "recognised, deliberately worth nothing" are different answers
+  // and must not collapse into each other.
+  //
+  // Flash cards still count toward accuracy and still appear in the
+  // by-question-type breakdown. Only the score ignores them.
+  [FORMAT.FLASH]: 0,
 };
 
 // Answers from before formats were recorded, and anything unrecognised. 1 is

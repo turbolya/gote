@@ -399,6 +399,9 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
           <Text style={styles.scoreSub}>
             Harder questions are worth more — typing a name counts {WEIGHTS.typed / WEIGHTS.picture}×
             a photo choice. Out of {Math.round(potentialFrom(lifetime, statsByFormat))} possible.
+            {(statsByFormat.flash && statsByFormat.flash.answered > 0)
+              ? ' Flash cards don’t score — you grade those yourself.'
+              : ''}
           </Text>
         </View>
         <Text style={styles.scoreNum}>{Math.round(scoreFrom(lifetime, statsByFormat))}</Text>

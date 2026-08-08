@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.39.2';
+export const APP_VERSION = '2.39.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.39.3',
+    date: '2026-08-08',
+    changes: [
+      'Flash cards no longer count toward your Score. They are the one mode you '
+        + 'grade yourself, so a score that rewarded them would be one you could '
+        + 'award yourself by tapping “I knew it”. They still count toward your '
+        + 'accuracy and still appear in the by-question-type breakdown — only '
+        + 'the Score ignores them.',
+    ],
+  },
   {
     version: '2.39.2',
     date: '2026-08-08',
