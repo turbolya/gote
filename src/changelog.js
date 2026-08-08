@@ -16,9 +16,9 @@ export const CHANGELOG = [
     date: '2026-08-08',
     changes: [
       'The Statistics page is a lot cleaner. Every card’s explanation now sits '
-        + 'behind a small ⓘ in its corner, so the page reads as your numbers '
-        + 'first — tap the ⓘ on any card to read what it means, and tap again '
-        + 'to put it away.',
+        + 'behind a small ⓘ in its corner — including the daily streak — so the '
+        + 'page reads as your numbers first. Tap the ⓘ on any card to read what '
+        + 'it means, and tap again to put it away.',
     ],
   },
   {

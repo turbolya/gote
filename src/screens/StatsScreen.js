@@ -477,13 +477,35 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
             <Text style={styles.streakTitle}>
               {streak.count > 0 ? `${streak.count}-day streak` : 'No streak yet'}
             </Text>
-            <Text style={styles.streakSub}>
-              {streak.count > 0
+            {/* "Best" stays put: it is a figure, not an explanation, and it is
+                the only place the record appears. Only the sentence describing
+                what a streak IS goes behind the ⓘ. */}
+            {streak.longest > 0 && (
+              <Text style={styles.streakSub}>Best: {streak.longest}</Text>
+            )}
+            {cardInfo(
+              'streak',
+              streak.count > 0
                 ? 'Days you’ve played in a row. Play any round today to keep it going.'
-                : 'Play a round today to start a daily streak.'}
-              {streak.longest > 0 ? ` Best: ${streak.longest}.` : ''}
-            </Text>
+                : 'Play a round today to start a daily streak.'
+            )}
           </View>
+          <Pressable
+            testID="stats-info-streak"
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={openInfo === 'streak' ? 'Hide what the streak means' : 'What does the streak mean?'}
+            onPress={() => {
+              animateNextLayout();
+              setOpenInfo(openInfo === 'streak' ? null : 'streak');
+            }}
+          >
+            <Icon
+              name={openInfo === 'streak' ? 'close-circle' : 'information-circle-outline'}
+              size={20}
+              color={openInfo === 'streak' ? colors.primary : colors.muted}
+            />
+          </Pressable>
         </View>
       )}
     </>
