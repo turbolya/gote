@@ -65,10 +65,19 @@ export function formatWeights({ evidence = 0, rate = 0, hasPartner = false } = {
   const n = num(evidence);
   const r = Math.min(1, Math.max(0, num(rate)));
 
-  // First meeting: show the name and let the photo be found. Nothing else is
-  // fair, and nothing else teaches the association.
+  // First meeting. The photo grid leads, because showing the name and asking
+  // for the picture is the only question that TEACHES rather than tests. But it
+  // must not be the only one, for two reasons found by playing the mode: on a
+  // deck with no history every single card came up as a photo grid, so Smart
+  // play was indistinguishable from By picture until the tallies filled in —
+  // and that is also the one format needing four other species' photos fetched
+  // live, so an all-grid round is by far the slowest and heaviest on the API.
+  //
+  // A name list on a species you have not met is not unfair; it is simply hard,
+  // and it is exactly what By name does on every card. Getting it wrong is
+  // informative, and the answer is revealed either way.
   if (n <= 0) {
-    return { [FORMAT.PICTURE]: 1, [FORMAT.NAME]: 0, [FORMAT.PAIR]: 0, [FORMAT.TYPED]: 0 };
+    return { [FORMAT.PICTURE]: 5, [FORMAT.NAME]: 2, [FORMAT.PAIR]: 0, [FORMAT.TYPED]: 0 };
   }
 
   const weak = n < MIN_EVIDENCE || r < WEAK_RATE;

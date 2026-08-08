@@ -41,8 +41,13 @@ console.log('\\nformatWeights — a species never seen');
   const w = formatWeights({ evidence: 0, rate: 0 });
   eq('is introduced with the name visible', w[FORMAT.PICTURE] > 0, true);
   eq('and is never asked from memory', w[FORMAT.TYPED], 0);
-  eq('nor as a name list', w[FORMAT.NAME], 0);
-  eq('nor as a pair', w[FORMAT.PAIR], 0);
+  eq('nor as a pair it has no history of confusing', w[FORMAT.PAIR], 0);
+  // A name list IS offered on a first meeting, just not often. Making the photo
+  // grid the ONLY first question meant a deck with no history played entirely as
+  // photo grids — indistinguishable from By picture, and the slowest format
+  // besides. Found by playing the mode, not by reading it.
+  ok('a name list is possible from the first meeting', w[FORMAT.NAME] > 0);
+  ok('but the teaching format still leads clearly', w[FORMAT.PICTURE] > w[FORMAT.NAME] * 2);
 }
 
 console.log('\\nformatWeights — a species being learned');
@@ -104,6 +109,9 @@ console.log('\\nchooseFormat — the excluded stay excluded');
   const offline = [FORMAT.NAME, FORMAT.PAIR, FORMAT.TYPED];
   eq('offline, an unseen species falls back to a name list',
     drawSet({ evidence: 0, rate: 0, allow: offline }), [FORMAT.NAME]);
+  // Online, a fresh deck must not be a wall of photo grids.
+  eq('a brand new species sees both introductory formats',
+    drawSet({ evidence: 0, rate: 0 }), [FORMAT.NAME, FORMAT.PICTURE].sort());
   ok('offline, a photo grid is never drawn',
     !drawSet({ evidence: 6, rate: 0.9, hasPartner: true, allow: offline }).includes(FORMAT.PICTURE));
   // PAIR needs the partner card present in this deck.
