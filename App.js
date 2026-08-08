@@ -1027,11 +1027,12 @@ export default function App() {
   // `correctCard`, the player instead chose `chosenCard`. Only the multiple-
   // choice modes supply a chosen option (self-graded Flash cards don't), and a
   // self-pair is ignored by addConfusion. Persisted with the round (finishRound).
-  const keyForCard = (c) => (c && c.taxonId != null ? String(c.taxonId) : c && c.scientific);
   const recordConfusion = useCallback((correctCard, chosenCard) => {
     if (!correctCard || !chosenCard) return;
-    const ck = keyForCard(correctCard);
-    const chk = keyForCard(chosenCard);
+    // speciesKey, not a local copy: confusion keys must match the per-species
+    // tally keys or the stats screen can't resolve a pair back to its cards.
+    const ck = speciesKey(correctCard);
+    const chk = speciesKey(chosenCard);
     confusionRef.current = addConfusion(confusionRef.current, ck, chk);
     confusionDeltaRef.current = addConfusion(confusionDeltaRef.current, ck, chk);
     // Relapse on this pair — the fix isn't holding, so drop any recovery run.

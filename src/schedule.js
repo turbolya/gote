@@ -12,9 +12,12 @@
 
 import { topConfusionPairs, pairKey, CONFUSION_HINT_MIN } from './confusions.js';
 import { verifyStreak } from './verify.js';
+import { speciesKey } from './mastery.js';
 
-const keyOf = (c) =>
-  c && c.taxonId != null ? String(c.taxonId) : c && c.scientific ? String(c.scientific) : '';
+// The shared tally key ('' for an unusable card, so Map/Set lookups stay
+// string-typed). Must match the key confusions are recorded under, or the
+// spaced-repetition bias silently never finds the pairs it should resurface.
+const keyOf = (c) => speciesKey(c) || '';
 
 // Fisher–Yates with an injectable RNG (deterministic in tests).
 function shuffle(arr, rng = Math.random) {

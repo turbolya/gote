@@ -137,6 +137,7 @@ const DEFAULT_PREFS = {
   researchGrade: false,
   speciesOnly: false,
   namedOnly: false,
+  freshPhotos: false, // swap a mastered species' photo for an official one
   themeMode: 'system', // 'light' | 'dark' | 'system'
 };
 
@@ -315,9 +316,17 @@ export async function saveConfusionWins(map) {
 
 // Wipe all gameplay statistics (lifetime totals + per-species tallies + the
 // per-game accuracy history shown on the menu).
+//
+// K_DAYS goes too, and its absence here was a real bug: the streak is
+// recomputed from the active-day SET whenever a sync folds in a remote event
+// (applyRemote → backfillActiveDays → streakFromDays), so clearing the streak
+// but keeping the days meant a synced device watched its streak reset to 0 and
+// then quietly come back on the next pull. Totals didn't resurrect — the
+// applied-id ledger stops old events from re-folding — so the day set must be
+// cleared with the same finality, or reset looks like it didn't stick.
 export async function resetStatistics() {
   try {
-    await kv.multiRemove([K_STATS, K_SPECIES, K_HISTORY, K_HISTORY_N, K_STREAK]);
+    await kv.multiRemove([K_STATS, K_SPECIES, K_HISTORY, K_HISTORY_N, K_STREAK, K_DAYS]);
   } catch {
     /* ignore */
   }

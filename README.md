@@ -70,7 +70,10 @@ src/
   storage.js                 # AsyncStorage: username, stats, prefs, obs cache,
                              #   image manifest, data-version migrations
   cache.js                   # local photo-cache size / clear (expo-file-system)
-  prefetch.js                # image preloading + downloaded-photo manifest (offline pack)
+  prefetch.js                # image preloading (OS warm) + filling the offline pack
+  photocache.js              # the offline pack itself: real photo files on disk
+  accuracy.js                # card-weighted accuracy + small-sample shrinkage (pure, tested)
+  navigation.js              # where "back" goes from each screen (pure, tested)
   net.js                     # connectivity (useIsOffline, NetInfo)
   quiz.js                    # multiple-choice distractor logic (pure, tested)
   lexicon.js                 # Lexicon filtering/status logic (pure, tested)
@@ -82,15 +85,13 @@ src/
                              #   Results, Stats, Lexicon, Detail
   hooks/                     # (none currently)
 scripts/                     # node test runners (npm test)
-assets/                      # app icon + splash (placeholder green)
+assets/                      # app icon, splash, watch glyphs
 ```
 
 ## Notes & next steps
 
 - **Public observations only.** Private/obscured observations would need
   iNaturalist OAuth login.
-- **Placeholder icons.** `assets/*.png` are solid-green placeholders — swap in a
-  real 1024×1024 icon and splash before publishing.
 - **Publishing** to the stores uses
   [EAS Build](https://docs.expo.dev/build/introduction/): `npx eas build`.
 

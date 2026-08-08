@@ -9,7 +9,20 @@ const code = babel.transformFileSync(file, {
   plugins: ['@babel/plugin-transform-modules-commonjs'],
 }).code;
 const m = { exports: {} };
-new Function('module', 'exports', 'require', code)(m, m.exports, require);
+// A require anchored at the SOURCE file, not this script — lexicon.js imports
+// './mastery.js', which must resolve against src/, and mastery.js is transpiled
+// the same way so its ESM syntax doesn't hit plain require.
+const srcRequire = (id) => {
+  if (!id.startsWith('.')) return require(id);
+  const dep = require.resolve(id, { paths: [path.dirname(file)] });
+  const depCode = babel.transformFileSync(dep, {
+    plugins: ['@babel/plugin-transform-modules-commonjs'],
+  }).code;
+  const dm = { exports: {} };
+  new Function('module', 'exports', 'require', depCode)(dm, dm.exports, srcRequire);
+  return dm.exports;
+};
+new Function('module', 'exports', 'require', code)(m, m.exports, srcRequire);
 const {
   genusOf,
   uniqueByTaxon,

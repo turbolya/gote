@@ -451,6 +451,7 @@ flowchart LR
 | `src/schedule.js` | Spaced-repetition input — `scheduleDeck` biases sampled rounds (Custom/Flash) so unresolved mix-ups + their partner resurface, damped by the recovery streak (pure) |
 | `src/mastery.js` | `isMastered(entry)` — a species is mastered at ≥5 correct and ≥80% accuracy; drives the optional fresh-photo swap on the study screen. Also owns `speciesKey(card)`, the one rule for which key a species is tallied under — App.js writes under it and the study screen looks up under it, and a mismatch would silently disable the swap (pure) |
 | `src/studyphoto.js` | Which photo the study screen shows. Owns the fresh-photo state machine, including the guard that the player's own photo is **never** on screen while a mastered species' official photo is being fetched — a leak there would defeat the whole option and look like a one-frame flicker (pure) |
+| `src/navigation.js` | `BACK_TO` — where "back" goes from each screen, feeding both the header chevrons and the edge swipe-back gesture from ONE map. The two used to be independent lists, and a screen missing from the gesture's copy silently lost swipe-back (pure) |
 | `src/theme.js` | Palette, accents, group-icon mapping |
 | `src/constants.js` | Speedrun lives, language list, defaults |
 | `src/screens/*` | One file per screen |

@@ -1,6 +1,8 @@
 // Pure helpers for the Lexicon (browsable list of all observed species).
 // No React Native imports — unit-tested in scripts/test-lexicon.js.
 
+import { speciesKey } from './mastery.js';
+
 // Genus is the first word of a scientific binomial ("Danaus plexippus" → genus
 // "Danaus"). Kept for display (shown under names without a common name).
 export function genusOf(card) {
@@ -26,11 +28,12 @@ export function displayName(card) {
   return (card && (card.common || card.scientific)) || '';
 }
 
-// The key under which a card's gameplay tally is stored (mirrors App's
-// recordResult: taxonId as string, falling back to the scientific name).
+// The key under which a card's gameplay tally is stored. Delegates to the one
+// shared rule (src/mastery.js speciesKey) rather than mirroring it — a mirror
+// is exactly what silently breaks when only one side is edited. Keeps this
+// module's documented '' fallback for a missing card.
 export function statsKey(card) {
-  if (!card) return '';
-  return card.taxonId != null ? String(card.taxonId) : card.scientific;
+  return speciesKey(card) || '';
 }
 
 /**

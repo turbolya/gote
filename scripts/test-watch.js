@@ -163,6 +163,27 @@ const DAY = 24 * 60 * 60 * 1000;
     assert.deepStrictEqual(JSON.parse(await as.getItem('@gote/historyCounts')), [0, 3]);
   });
 
+  await test('resetStatistics clears the active-day set, not just the streak', async () => {
+    // The streak is RECOMPUTED from the active-day set whenever a sync folds in
+    // a remote event (applyRemote → streakFromDays). Clearing the streak while
+    // keeping the days meant a synced device watched its streak reset to 0 and
+    // then come back on the next pull — reset looked like it didn't stick.
+    const as = makeAsyncStorage({
+      '@gote/stats': JSON.stringify({ answered: 50, correct: 40 }),
+      '@gote/history': JSON.stringify([80, 90]),
+      '@gote/historyCounts': JSON.stringify([10, 12]),
+      '@gote/streak': JSON.stringify({ current: 3, longest: 5, lastActiveDay: '2026-08-07' }),
+      '@gote/activeDays': JSON.stringify(['2026-08-05', '2026-08-06', '2026-08-07']),
+    });
+    const s = loadStorage(as);
+    await s.resetStatistics();
+    assert.deepStrictEqual(await s.loadStats(), { answered: 0, correct: 0 });
+    assert.deepStrictEqual(await s.loadHistory(), []);
+    assert.deepStrictEqual(await s.loadHistoryCounts(), []);
+    assert.deepStrictEqual(await s.loadActiveDays(), [], 'the day set must go too');
+    assert.strictEqual(await as.getItem('@gote/streak'), null);
+  });
+
   // --- applied-id dedup store -------------------------------------------------
   await test('applied watch ids: round-trips and caps at MAX_WATCH_IDS (500)', async () => {
     const as = makeAsyncStorage();

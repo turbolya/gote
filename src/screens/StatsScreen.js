@@ -21,6 +21,7 @@ import { AnimatedBar, animateNextLayout } from '../components/anim';
 import { RecentGamesChart, AccuracyTrendChart } from '../components/charts';
 import { topConfusionPairs, pairKey } from '../confusions';
 import { shrunkRate, lifetimeRate, SHRINK_M } from '../accuracy';
+import { speciesKey } from '../mastery';
 
 
 // Row background tint endpoints: dark red for the lowest net score (correct −
@@ -208,7 +209,7 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
   const cardByKey = useMemo(() => {
     const m = {};
     for (const c of cards) {
-      const k = c.taxonId != null ? String(c.taxonId) : c.scientific;
+      const k = speciesKey(c);
       if (k && !m[k]) m[k] = c;
     }
     return m;

@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.37.2';
+export const APP_VERSION = '2.37.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.37.3',
+    date: '2026-08-08',
+    changes: [
+      'Reset statistics now really resets the streak on synced devices. It used '
+        + 'to clear the streak counter but keep the record of days you had '
+        + 'played, so the next sync quietly rebuilt the streak from those days '
+        + 'and the reset looked like it hadn’t stuck.',
+    ],
+  },
   {
     version: '2.37.2',
     date: '2026-08-03',
