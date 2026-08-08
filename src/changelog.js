@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.39.1';
+export const APP_VERSION = '2.39.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.39.2',
+    date: '2026-08-08',
+    changes: [
+      'Custom game, Flash cards and Smart play get “All” and “None” shortcuts '
+        + 'beside the taxon groups, so studying just one group no longer means '
+        + 'tapping ten others off first.',
+    ],
+  },
   {
     version: '2.39.1',
     date: '2026-08-08',

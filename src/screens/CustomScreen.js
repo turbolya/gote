@@ -146,7 +146,43 @@ export default function CustomScreen({
           </View>
         )}
 
-        <Text style={styles.label}>Groups</Text>
+        <View style={styles.labelRow}>
+          <Text style={styles.label}>Groups</Text>
+          {/* Quick actions, because clearing eleven chips one at a time to
+              study a single group is the common case, not the rare one. "None"
+              is safe to offer without a confirm: Start already disables itself
+              and says "Select a group", so an empty selection is a visible
+              dead end rather than a silent one. */}
+          <View style={styles.groupActions}>
+            <Pressable
+              testID="custom-groups-all"
+              disabled={selected.size === groups.length}
+              onPress={() => setSelected(new Set(groups.map((g) => g.key)))}
+              hitSlop={8}
+            >
+              <Text
+                style={[
+                  styles.groupAction,
+                  selected.size === groups.length && styles.groupActionOff,
+                ]}
+              >
+                All
+              </Text>
+            </Pressable>
+            <Pressable
+              testID="custom-groups-none"
+              disabled={selected.size === 0}
+              onPress={() => setSelected(new Set())}
+              hitSlop={8}
+            >
+              <Text
+                style={[styles.groupAction, selected.size === 0 && styles.groupActionOff]}
+              >
+                None
+              </Text>
+            </Pressable>
+          </View>
+        </View>
         <View style={styles.chips}>
           {groups.map((g) => {
             const on = selected.has(g.key);
@@ -262,6 +298,15 @@ export default function CustomScreen({
 const makeStyles = (colors) => StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 20, paddingTop: 16 },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  groupActions: { flexDirection: 'row', gap: 16 },
+  groupAction: { fontSize: 14, fontWeight: '700', color: colors.primary },
+  // Greyed rather than hidden, so the pair doesn't shift about as you select.
+  groupActionOff: { color: colors.muted, opacity: 0.5 },
   typeWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   typeChip: {
     flexDirection: 'row',
