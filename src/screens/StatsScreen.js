@@ -152,6 +152,10 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const [sort, setSort] = useState('pct');
+  // Which card's explanation is open. ONE at a time, deliberately: the whole
+  // point of hiding them is that the page reads as figures, and three expanded
+  // essays would put it straight back where it started.
+  const [openInfo, setOpenInfo] = useState(null);
   // Default: only species in the current user's loaded observations. Toggling
   // off shows every species ever quizzed (incl. Nearby rounds / past decks).
   const [obsOnly, setObsOnly] = useState(true);
@@ -358,6 +362,33 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
   // position lets the list re-order/re-filter in place right under the controls.
   const scrollRef = useRef(null);
 
+  // A card heading with an ⓘ in the corner. The explanation lives behind it
+  // rather than under every chart, so the numbers are what you see first and
+  // the reasoning is one tap away when you want it.
+  const cardHead = (key, title) => (
+    <View style={styles.cardHead}>
+      <Text style={styles.chartTitle}>{title}</Text>
+      <Pressable
+        testID={`stats-info-${key}`}
+        hitSlop={12}
+        accessibilityRole="button"
+        accessibilityLabel={openInfo === key ? `Hide what ${title} means` : `What does ${title} mean?`}
+        onPress={() => {
+          animateNextLayout();
+          setOpenInfo(openInfo === key ? null : key);
+        }}
+      >
+        <Icon
+          name={openInfo === key ? 'close-circle' : 'information-circle-outline'}
+          size={20}
+          color={openInfo === key ? colors.primary : colors.muted}
+        />
+      </Pressable>
+    </View>
+  );
+  const cardInfo = (key, children) =>
+    openInfo === key ? <Text style={styles.chartCaption}>{children}</Text> : null;
+
   const confirmReset = () => {
     Alert.alert(
       'Reset statistics?',
@@ -394,17 +425,44 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
           how much those answers were WORTH, so naming a species from memory
           counts for four times as much as picking its photo out of four. */}
       <View style={styles.scoreCard}>
-        <View style={styles.flex}>
-          <Text style={styles.scoreLabel}>Score</Text>
-          <Text style={styles.scoreSub}>
-            Harder questions are worth more — typing a name counts {WEIGHTS.typed / WEIGHTS.picture}×
-            a photo choice. Out of {Math.round(potentialFrom(lifetime, statsByFormat))} possible.
-            {(statsByFormat.flash && statsByFormat.flash.answered > 0)
+        <View style={styles.scoreRow}>
+          <View style={styles.flex}>
+            <Text style={styles.scoreLabel}>Score</Text>
+            {/* The ceiling stays visible: a score with no scale is just a
+                number, and "of 189" is the part that makes it mean something. */}
+            <Text style={styles.scoreSub}>
+              of {Math.round(potentialFrom(lifetime, statsByFormat))} possible
+            </Text>
+          </View>
+          <Text style={styles.scoreNum}>{Math.round(scoreFrom(lifetime, statsByFormat))}</Text>
+          <Pressable
+            testID="stats-info-score"
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={openInfo === 'score' ? 'Hide what Score means' : 'What does Score mean?'}
+            onPress={() => {
+              animateNextLayout();
+              setOpenInfo(openInfo === 'score' ? null : 'score');
+            }}
+          >
+            <Icon
+              name={openInfo === 'score' ? 'close-circle' : 'information-circle-outline'}
+              size={20}
+              color={openInfo === 'score' ? colors.primary : colors.muted}
+            />
+          </Pressable>
+        </View>
+        {cardInfo(
+          'score',
+          <>
+            Harder questions are worth more — typing a name counts{' '}
+            {WEIGHTS.typed / WEIGHTS.picture}× a photo choice, because there is
+            nothing to guess among.
+            {statsByFormat.flash && statsByFormat.flash.answered > 0
               ? ' Flash cards don’t score — you grade those yourself.'
               : ''}
-          </Text>
-        </View>
-        <Text style={styles.scoreNum}>{Math.round(scoreFrom(lifetime, statsByFormat))}</Text>
+          </>
+        )}
       </View>
 
       {/* Daily streak */}
@@ -454,7 +512,7 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
   // would just restate the accuracy above it.
   const formatBlock = formatRows.length >= 2 && (
     <View style={styles.chartCard}>
-      <Text style={styles.chartTitle}>By question type</Text>
+      {cardHead('formats', 'By question type')}
       {formatRows.map((r) => (
         <View key={r.key} style={styles.fmtRow}>
           <Text style={styles.fmtLabel} numberOfLines={1}>{r.label}</Text>
@@ -465,13 +523,13 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
           <Text style={styles.fmtCount}>{r.answered}</Text>
         </View>
       ))}
-      <Text style={styles.chartCaption}>
+{cardInfo('formats', <>
         These are not equally hard. Typing a name from memory has nothing to
         choose from, while picking a photo out of four gives you a one-in-four
         chance without knowing anything — so a lower score further down this
         list is expected, and comparing your overall accuracy across sessions
         only means something if the mix stayed similar.
-      </Text>
+      </>)}
     </View>
   );
 
@@ -480,29 +538,29 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
     <>
       {history.length >= 1 && (
         <View style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Recent games</Text>
+          {cardHead('recent', 'Recent games')}
           <RecentGamesChart history={history} height={104} />
-          <Text style={styles.chartCaption}>
+{cardInfo('recent', <>
             Each bar is one round — how accurately you identified that game’s
             cards (taller = better). Oldest on the left, newest on the right.
-          </Text>
+          </>)}
         </View>
       )}
       {history.length >= 2 && (
         <View style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Accuracy trend</Text>
+          {cardHead('trend', 'Accuracy trend')}
           <AccuracyTrendChart
             history={history}
             counts={historyCounts}
             lifetime={lifetime}
             height={104}
           />
-          <Text style={styles.chartCaption}>
+{cardInfo('trend', <>
             Your running lifetime accuracy — every card you’ve answered up to
             that point, so a long round counts for more than a short one. It
             steadies as you play more, so the slope shows whether you’re
             improving, and it ends on the accuracy above.
-          </Text>
+          </>)}
         </View>
       )}
     </>
@@ -512,7 +570,7 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
   // studied as a pair. Shown only once there's a real pattern to act on.
   const nemesisBlock = nemesis.length > 0 && (
     <View style={styles.chartCard}>
-      <Text style={styles.chartTitle}>Species you mix up</Text>
+      {cardHead('mixups', 'Species you mix up')}
       {nemesis.map((p, idx) => {
         const hasNote = !!confusionNotes[p.pairKey];
         return (
@@ -541,10 +599,10 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
           </Pressable>
         );
       })}
-      <Text style={styles.chartCaption}>
+{cardInfo('mixups', <>
         Look-alikes you’ve picked for each other. Tap a pair to see them side by
         side and jot down what tells them apart.
-      </Text>
+      </>)}
     </View>
   );
 
@@ -876,10 +934,13 @@ const makeStyles = (colors) => StyleSheet.create({
   // "By question type" rows. A fixed-width track, unlike the per-species bars
   // which flex — here the label is the variable-length part and the bars must
   // line up with each other to be comparable at a glance.
-  scoreCard: {
+  cardHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  scoreCard: {
     backgroundColor: colors.card,
     borderRadius: 16,
     borderWidth: 1,
@@ -888,6 +949,7 @@ const makeStyles = (colors) => StyleSheet.create({
     paddingVertical: 14,
     marginTop: 14,
   },
+  scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   scoreLabel: { fontSize: 15, fontWeight: '800', color: colors.text },
   scoreSub: { fontSize: 12, color: colors.muted, marginTop: 3, lineHeight: 17 },
   scoreNum: { fontSize: 30, fontWeight: '900', color: colors.primary, letterSpacing: -0.5 },

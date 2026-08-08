@@ -2,7 +2,7 @@
   "expo": {
     "name": "gote",
     "slug": "gote",
-    "version": "2.39.3",
+    "version": "2.40.0",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "automatic",

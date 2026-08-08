@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.39.3';
+export const APP_VERSION = '2.40.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.40.0',
+    date: '2026-08-08',
+    changes: [
+      'The Statistics page is a lot cleaner. Every card’s explanation now sits '
+        + 'behind a small ⓘ in its corner, so the page reads as your numbers '
+        + 'first — tap the ⓘ on any card to read what it means, and tap again '
+        + 'to put it away.',
+    ],
+  },
   {
     version: '2.39.3',
     date: '2026-08-08',
