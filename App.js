@@ -98,6 +98,7 @@ import { scheduleDeck } from './src/schedule';
 import { isMastered, speciesKey } from './src/mastery';
 import { recordRecall } from './src/recall';
 import { FORMAT, chooseFormat, ALL_FORMATS } from './src/smartmode';
+import { scoreDelta } from './src/scoring';
 import { shrunkRate, lifetimeRate } from './src/accuracy';
 import {
   prefetchImages,
@@ -1189,6 +1190,7 @@ export default function App() {
     // One `at` for both folds, so the stored tally and the synced delta can
     // never disagree about when this answer happened.
     const at = Date.now();
+    const fmt = format;
     const prev = speciesRef.current[key];
     speciesRef.current[key] = {
       name: card.common || card.scientific,
@@ -1196,7 +1198,7 @@ export default function App() {
       // Thumbnail for the per-species stats list (kept so it shows even when the
       // species isn't in the current deck, e.g. Nearby rounds).
       image: card.image || (prev && prev.image) || null,
-      ...recordRecall(prev, { correct, ms, at }),
+      ...recordRecall(prev, { correct, ms, at, score: fmt ? scoreDelta(fmt, correct) : null }),
     };
     if (track) {
       const d = roundDeltaRef.current[key];
@@ -1204,7 +1206,7 @@ export default function App() {
         name: card.common || card.scientific,
         sci: card.scientific,
         image: card.image || (d && d.image) || null,
-        ...recordRecall(d, { correct, ms, at }),
+        ...recordRecall(d, { correct, ms, at, score: fmt ? scoreDelta(fmt, correct) : null }),
       };
     }
     if (track && format) {

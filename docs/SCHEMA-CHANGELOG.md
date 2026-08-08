@@ -223,6 +223,28 @@ idempotent, so re-sending it cannot double-count.
 Disclosed in PRIVACY.md — this is new personal data, even though nothing
 consumes it yet.
 
+### Species tally gains weighted scoring — 2026-08-08
+
+`@gote/species` entries gain `points` and `weight`, and the same two ride the
+events `species` delta. No migration — `events.species` is `jsonb`, and absent
+fields read as 0 everywhere.
+
+`weight` accumulates the difficulty weight of every answer, `points` only of the
+correct ones (`src/scoring.js`). Two numbers rather than a per-format breakdown
+per species, which would have been eight; both fold by **summing**, which is the
+only property the sync layer requires. Storing a per-species rate instead would
+have been unmergeable, the same trap as latency.
+
+A wrong answer still adds its `weight`, so a miss on a typed question costs four
+times a miss on a photo grid. That is what makes the weighting two-sided rather
+than a pure reward.
+
+The LIFETIME score needs no new storage at all: it is derived from
+`@gote/statsByFormat`, which already carries per-format correct counts. Answers
+predating format recording are reconstructed as `lifetime.correct` minus what
+the split explains and weighted at 1 — the same "prior" trick the accuracy chart
+uses — so a long-time player's history is not silently worth nothing.
+
 ### Sync-private keys (`@gote/sync/*`) — 2026-08-03
 
 Not part of `DATA_VERSION`: these are the sync layer's own bookkeeping, never

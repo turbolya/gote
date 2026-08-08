@@ -8,9 +8,26 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.38.0';
+export const APP_VERSION = '2.39.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.39.0',
+    date: '2026-08-08',
+    changes: [
+      'New: a Score on the Statistics page. Not every right answer is the same '
+        + 'achievement, so harder questions are now worth more — typing a name '
+        + 'from memory counts four times as much as picking a photo out of four, '
+        + 'with choosing a name and telling two look-alikes apart in between.',
+      'Your accuracy percentage is deliberately unchanged. It still answers '
+        + '“what fraction did I get right”, which only stays comparable if it '
+        + 'treats every answer alike — the Score is the one that rewards taking '
+        + 'the harder question.',
+      'The by-species list is ranked by the weighted result too, so a species '
+        + 'you can name from memory now outranks one you have only ever picked '
+        + 'out of a grid of photos.',
+    ],
+  },
   {
     version: '2.38.0',
     date: '2026-08-08',

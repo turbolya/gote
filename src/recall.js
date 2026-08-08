@@ -45,7 +45,7 @@ const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 //
 // Used for BOTH the stored tally and the round's sync delta, which used to be
 // two copies of the same arithmetic sitting one after the other.
-export function recordRecall(prev, { correct = false, ms = 0, at = Date.now() } = {}) {
+export function recordRecall(prev, { correct = false, ms = 0, at = Date.now(), score = null } = {}) {
   const p = prev || {};
   const timed = sanitizeLatency(ms);
   return {
@@ -56,6 +56,12 @@ export function recordRecall(prev, { correct = false, ms = 0, at = Date.now() } 
     lastSeen: Math.max(num(p.lastSeen), num(at) || 0),
     msTotal: num(p.msTotal) + timed,
     msCount: num(p.msCount) + (timed ? 1 : 0),
+    // Difficulty-weighted running totals (src/scoring.js scoreDelta). Sums, like
+    // everything else here, so they fold across devices. `weight` counts every
+    // answer and `points` only the correct ones, which is what lets a wrong
+    // answer on a hard question cost more than a wrong one on an easy question.
+    points: num(p.points) + num(score && score.points),
+    weight: num(p.weight) + num(score && score.weight),
   };
 }
 

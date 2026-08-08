@@ -22,6 +22,7 @@ import { RecentGamesChart, AccuracyTrendChart } from '../components/charts';
 import { topConfusionPairs, pairKey } from '../confusions';
 import { shrunkRate, lifetimeRate, SHRINK_M } from '../accuracy';
 import { speciesKey } from '../mastery';
+import { scoreFrom, potentialFrom, weightedRate, WEIGHTS } from '../scoring';
 
 
 // Row background tint endpoints: dark red for the lowest net score (correct −
@@ -266,7 +267,15 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
       // means a thin sample has to earn its position (see src/accuracy.js);
       // once there's real evidence the two rates are indistinguishable.
       const prior = lifetimeRate(lifetime);
-      const rate = (s) => shrunkRate(s, prior);
+      // Rank on the DIFFICULTY-WEIGHTED rate where there is one, so a species
+      // known by typing outranks one known only from a four-photo grid. Species
+      // answered entirely before scoring existed have no weighted history at
+      // all, so they fall back to the raw shrunk rate rather than sorting to the
+      // bottom as if they were unknown.
+      const rate = (s) => {
+        const w = weightedRate(s);
+        return w == null ? shrunkRate(s, prior) : shrunkRate({ known: s.points, missed: Math.max(0, s.weight - s.points) }, prior);
+      };
       arr.sort((a, b) => rate(b) - rate(a) || totalOf(b) - totalOf(a));
     }
     return arr;
@@ -378,6 +387,21 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
           <Text style={styles.summaryNum}>{list.length}</Text>
           <Text style={styles.summaryLabel}>Species seen</Text>
         </View>
+      </View>
+
+      {/* Score, kept apart from the accuracy row on purpose: it answers a
+          different question. Accuracy is what fraction you got right; this is
+          how much those answers were WORTH, so naming a species from memory
+          counts for four times as much as picking its photo out of four. */}
+      <View style={styles.scoreCard}>
+        <View style={styles.flex}>
+          <Text style={styles.scoreLabel}>Score</Text>
+          <Text style={styles.scoreSub}>
+            Harder questions are worth more — typing a name counts {WEIGHTS.typed / WEIGHTS.picture}×
+            a photo choice. Out of {Math.round(potentialFrom(lifetime, statsByFormat))} possible.
+          </Text>
+        </View>
+        <Text style={styles.scoreNum}>{Math.round(scoreFrom(lifetime, statsByFormat))}</Text>
       </View>
 
       {/* Daily streak */}
@@ -849,6 +873,21 @@ const makeStyles = (colors) => StyleSheet.create({
   // "By question type" rows. A fixed-width track, unlike the per-species bars
   // which flex — here the label is the variable-length part and the bars must
   // line up with each other to be comparable at a glance.
+  scoreCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 14,
+  },
+  scoreLabel: { fontSize: 15, fontWeight: '800', color: colors.text },
+  scoreSub: { fontSize: 12, color: colors.muted, marginTop: 3, lineHeight: 17 },
+  scoreNum: { fontSize: 30, fontWeight: '900', color: colors.primary, letterSpacing: -0.5 },
   fmtRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7 },
   fmtLabel: { flex: 1, fontSize: 14, color: colors.text },
   fmtTrack: {

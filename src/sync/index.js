@@ -601,6 +601,8 @@ async function uploadBaseline(userId) {
       lastSeen: num(v.lastSeen),
       msTotal: num(v.msTotal),
       msCount: num(v.msCount),
+      points: num(v.points),
+      weight: num(v.weight),
     };
   }
   // The per-format split is a set of counters like everything else, so it needs
@@ -628,6 +630,8 @@ async function uploadBaseline(userId) {
       // subtracting a max is not a thing that means anything.
       sp[key].msTotal -= num(d.msTotal);
       sp[key].msCount -= num(d.msCount);
+      sp[key].points -= num(d.points);
+      sp[key].weight -= num(d.weight);
     }
     if (e.confusions) conf = subtractConfusions(conf, e.confusions);
   }
@@ -648,7 +652,11 @@ async function uploadBaseline(userId) {
     // A count without a total (or vice versa) would poison the mean, so they
     // are floored together: either both survive the subtraction or neither.
     const msCount = msTotal > 0 ? Math.max(0, v.msCount) : 0;
-    if (known || missed) species2[key] = { ...v, known, missed, msTotal, msCount };
+    // Floored together for the same reason: points without their weight would
+    // read as an impossible rate.
+    const weight = Math.max(0, v.weight);
+    const points = weight > 0 ? Math.max(0, v.points) : 0;
+    if (known || missed) species2[key] = { ...v, known, missed, msTotal, msCount, points, weight };
   }
 
   // Accuracy chart: send the whole local history, minus the tail that belongs to

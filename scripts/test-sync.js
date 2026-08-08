@@ -91,7 +91,7 @@ console.log('\\napplyEvent');
 {
   const one = applyEvent(emptyRollups(), ev({ id: 'a', localDay: day(1), answered: 2, correct: 1, species: { 42: { name: 'Newt', sci: 'Lissotriton', known: 1, missed: 1 } } }));
   const two = applyEvent(one, ev({ id: 'b', localDay: day(1), answered: 1, correct: 1, species: { 42: { name: 'Newt', sci: 'Lissotriton', known: 1, missed: 0 } } }));
-  eq('species tallies accumulate', two.species['42'], { name: 'Newt', sci: 'Lissotriton', image: null, known: 2, missed: 1, lastSeen: 0, msTotal: 0, msCount: 0 });
+  eq('species tallies accumulate', two.species['42'], { name: 'Newt', sci: 'Lissotriton', image: null, known: 2, missed: 1, lastSeen: 0, msTotal: 0, msCount: 0, points: 0, weight: 0 });
   eq('same day is not double-listed', two.days, [day(1)]);
 }
 {

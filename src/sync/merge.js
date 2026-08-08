@@ -95,6 +95,9 @@ export function applyEvent(rollups, event) {
       lastSeen: Math.max(num(prev.lastSeen), num(d.lastSeen)),
       msTotal: num(prev.msTotal) + num(d.msTotal),
       msCount: num(prev.msCount) + num(d.msCount),
+      // Difficulty-weighted totals (src/scoring.js). Sums, like the rest.
+      points: num(prev.points) + num(d.points),
+      weight: num(prev.weight) + num(d.weight),
     };
   }
 

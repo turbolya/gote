@@ -48,28 +48,44 @@ console.log('\\nrecordRecall');
 {
   eq('a first correct, timed answer',
     recordRecall(undefined, { correct: true, ms: 1500, at: 1000 }),
-    { known: 1, missed: 0, lastSeen: 1000, msTotal: 1500, msCount: 1 });
+    { known: 1, missed: 0, lastSeen: 1000, msTotal: 1500, msCount: 1, points: 0, weight: 0 });
   eq('a first miss',
     recordRecall(undefined, { correct: false, ms: 9000, at: 1000 }),
-    { known: 0, missed: 1, lastSeen: 1000, msTotal: 9000, msCount: 1 });
+    { known: 0, missed: 1, lastSeen: 1000, msTotal: 9000, msCount: 1, points: 0, weight: 0 });
   // An untimed answer (wrist round, Pick the right one) must not count as a
   // zero-latency one, or every mean drifts toward zero.
   eq('an untimed answer counts the result but not the timing',
-    recordRecall({ known: 2, missed: 0, lastSeen: 5, msTotal: 3000, msCount: 2 }, { correct: true, ms: 0, at: 10 }),
-    { known: 3, missed: 0, lastSeen: 10, msTotal: 3000, msCount: 2 });
+    recordRecall({ known: 2, missed: 0, lastSeen: 5, msTotal: 3000, msCount: 2, points: 0, weight: 0 }, { correct: true, ms: 0, at: 10 }),
+    { known: 3, missed: 0, lastSeen: 10, msTotal: 3000, msCount: 2, points: 0, weight: 0 });
   eq('an over-ceiling answer is untimed too',
-    recordRecall({ known: 1, missed: 0, lastSeen: 5, msTotal: 1000, msCount: 1 }, { correct: true, ms: 999999, at: 10 }),
-    { known: 2, missed: 0, lastSeen: 10, msTotal: 1000, msCount: 1 });
+    recordRecall({ known: 1, missed: 0, lastSeen: 5, msTotal: 1000, msCount: 1, points: 0, weight: 0 }, { correct: true, ms: 999999, at: 10 }),
+    { known: 2, missed: 0, lastSeen: 10, msTotal: 1000, msCount: 1, points: 0, weight: 0 });
   // lastSeen takes the MAX, not the newest write: events arrive out of order,
   // so the last one applied is routinely not the last one played.
   eq('an out-of-order older answer does not rewind lastSeen',
-    recordRecall({ known: 1, missed: 0, lastSeen: 900, msTotal: 0, msCount: 0 }, { correct: true, ms: 0, at: 100 }).lastSeen,
+    recordRecall({ known: 1, missed: 0, lastSeen: 900, msTotal: 0, msCount: 0, points: 0, weight: 0 }, { correct: true, ms: 0, at: 100 }).lastSeen,
     900);
   eq('junk previous entry is treated as empty',
     recordRecall({ known: 'x', missed: null, lastSeen: NaN, msTotal: undefined, msCount: {} }, { correct: true, ms: 500, at: 7 }),
-    { known: 1, missed: 0, lastSeen: 7, msTotal: 500, msCount: 1 });
+    { known: 1, missed: 0, lastSeen: 7, msTotal: 500, msCount: 1, points: 0, weight: 0 });
   eq('no options at all still records a miss', recordRecall(undefined, { at: 3 }),
-    { known: 0, missed: 1, lastSeen: 3, msTotal: 0, msCount: 0 });
+    { known: 0, missed: 1, lastSeen: 3, msTotal: 0, msCount: 0, points: 0, weight: 0 });
+}
+
+console.log('\\nrecordRecall — difficulty-weighted totals');
+{
+  // A wrong answer still adds its WEIGHT but no points, which is what makes a
+  // miss on a hard question cost more than a miss on an easy one.
+  const right = recordRecall(undefined, { correct: true, at: 1, score: { points: 2, weight: 2 } });
+  eq('a correct typed answer banks its points', [right.points, right.weight], [2, 2]);
+  const wrong = recordRecall(right, { correct: false, at: 2, score: { points: 0, weight: 2 } });
+  eq('a wrong one adds weight but no points', [wrong.points, wrong.weight], [2, 4]);
+  const easy = recordRecall(wrong, { correct: true, at: 3, score: { points: 0.5, weight: 0.5 } });
+  eq('a correct photo answer is worth a quarter as much', [easy.points, easy.weight], [2.5, 4.5]);
+  // An answer with no format (a wrist round) must not corrupt the totals.
+  const none = recordRecall(easy, { correct: true, at: 4 });
+  eq('an unscored answer leaves the totals alone', [none.points, none.weight], [2.5, 4.5]);
+  eq('but still counts as known', none.known, 3);
 }
 
 console.log('\\nrecordRecall folds like the sync layer expects');
@@ -86,7 +102,7 @@ console.log('\\nrecordRecall folds like the sync layer expects');
   let b = undefined;
   for (const x of [...answers].reverse()) b = recordRecall(b, x);
   eq('order does not change the outcome', a, b);
-  eq('and the totals are right', a, { known: 2, missed: 1, lastSeen: 30, msTotal: 6000, msCount: 3 });
+  eq('and the totals are right', a, { known: 2, missed: 1, lastSeen: 30, msTotal: 6000, msCount: 3, points: 0, weight: 0 });
 }
 
 console.log('\\nmeanLatencyMs');
