@@ -970,6 +970,17 @@ export default function App() {
     });
   }, [fullDeck, prepPickRound]);
 
+  // Look-alikes this player has actually confused with a species. Declared
+  // HERE, above its first consumer: planSmart and pairPartnerFor both list it in
+  // their dependency arrays, which are evaluated during render, so declaring it
+  // further down left those reads inside its temporal dead zone. It only worked
+  // because Babel transpiles the block scoping away — a toolchain detail, not a
+  // guarantee.
+  const nemesisPartnersFor = useCallback(
+    (key) => nemesisPartners(confusionRef.current, key).map((p) => p.partner),
+    []
+  );
+
   // Smart play: one round, four question formats, chosen per card by what the
   // tallies say about that species (src/smartmode.js).
   //
@@ -1230,10 +1241,6 @@ export default function App() {
   //   the old look-alike back in as a distractor.
   // - streak: the current recovery run for a pair, for the celebratory callout.
   // - win: a correct answer over a seeded old look-alike extends the run.
-  const nemesisPartnersFor = useCallback(
-    (key) => nemesisPartners(confusionRef.current, key).map((p) => p.partner),
-    []
-  );
   const verifyStreakFor = useCallback((pk) => verifyStreak(confusionWinsRef.current, pk), []);
   const recordVerifyWinFor = useCallback((pk) => {
     if (!pk) return;
