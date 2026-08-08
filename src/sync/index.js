@@ -18,6 +18,9 @@
 import {
   loadStats,
   saveStats,
+  loadStatsByFormat,
+  saveStatsByFormat,
+  addToStatsByFormat,
   loadSpeciesStats,
   saveSpeciesStats,
   loadConfusions,
@@ -143,6 +146,9 @@ function debug(...args) {
 //                     because a watch round banks its cards one at a time and
 //                     reports answered: 0, yet still draws a bar
 //   species           { [taxonId]: { name, sci, image, known, missed } }
+//   formats           { [format]: { answered, correct } } — Smart play mixes
+//                     question formats of very different difficulty in one
+//                     round, so the totals are split to stay interpretable
 //   history           baseline only: the accuracy chart's bars (per-round pct
 //                     array); a normal round leaves this empty and rides `pct`
 //   counts            baseline only: cards per bar, right-aligned with `history`
@@ -154,7 +160,7 @@ function debug(...args) {
 //                     be idempotent across retries and reinstalls (the baseline
 //                     does — see baselineUid). Omit for ordinary play, where a
 //                     fresh random id per round is exactly right.
-export async function recordEvent({ answered = 0, correct = 0, pct = null, n = 0, species = {}, confusions = {}, history = [], counts = [], days = [], ts = Date.now(), id = null } = {}) {
+export async function recordEvent({ answered = 0, correct = 0, pct = null, n = 0, species = {}, formats = {}, confusions = {}, history = [], counts = [], days = [], ts = Date.now(), id = null } = {}) {
   // Nothing is even queued while sync is off — no sync-related data touches disk
   // until the user opts in. Their existing history is captured wholesale by the
   // baseline at that point (see uploadBaseline), so nothing is lost.
@@ -170,6 +176,7 @@ export async function recordEvent({ answered = 0, correct = 0, pct = null, n = 0
       pct,
       n: Math.max(0, Math.round(Number(n) || 0)),
       species: species || {},
+      formats: formats || {},
       confusions: confusions || {},
       history: Array.isArray(history) ? history : [],
       counts: Array.isArray(counts) ? counts : [],
@@ -341,7 +348,7 @@ async function pull(supabase, userId) {
 
   let query = supabase
     .from('events')
-    .select('id, device_id, ts, local_day, answered, correct, pct, n, species, confusions, history, counts, days, created_at')
+    .select('id, device_id, ts, local_day, answered, correct, pct, n, species, formats, confusions, history, counts, days, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
     .limit(PULL_LIMIT);
@@ -417,8 +424,9 @@ async function recoverEmptiedAccount(supabase, userId) {
 // Fold remote events into the local rollups. The ONLY place sync writes to the
 // app's own state, and it only ever adds.
 async function applyRemote(events) {
-  const [stats, species, history, counts, streak, confusions, appliedIds] = await Promise.all([
+  const [stats, formats, species, history, counts, streak, confusions, appliedIds] = await Promise.all([
     loadStats(),
+    loadStatsByFormat(),
     loadSpeciesStats(),
     loadHistory(),
     loadHistoryCounts(),
@@ -429,7 +437,7 @@ async function applyRemote(events) {
   const days = await backfillActiveDays(streak);
 
   const { rollups, applied } = applyEvents(
-    { stats, species, history, counts, days, confusions },
+    { stats, formats, species, history, counts, days, confusions },
     events,
     appliedIds
   );
@@ -439,6 +447,7 @@ async function applyRemote(events) {
 
   await Promise.all([
     saveStats(rollups.stats),
+    saveStatsByFormat(rollups.formats),
     saveSpeciesStats(rollups.species),
     saveHistory(rollups.history, rollups.counts),
     saveActiveDays(rollups.days),
@@ -456,6 +465,7 @@ async function applyRemote(events) {
 
   return {
     lifetime: rollups.stats,
+    formats: rollups.formats,
     species: rollups.species,
     history: rollups.history,
     // Re-read rather than passing rollups.counts through: saveHistory trims and
@@ -560,8 +570,9 @@ export async function afterAuthChange(mode = 'link') {
 // and the active-day set the streak is built from (`days`) — so a joining device
 // reconstructs the whole hero, not just the lifetime number over an empty chart.
 async function uploadBaseline(userId) {
-  const [stats, species, confusions, history, counts, activeDays, streak, queued] = await Promise.all([
+  const [stats, fmts, species, confusions, history, counts, activeDays, streak, queued] = await Promise.all([
     loadStats(),
+    loadStatsByFormat(),
     loadSpeciesStats(),
     loadConfusions(),
     loadHistory(),
@@ -592,11 +603,22 @@ async function uploadBaseline(userId) {
       msCount: num(v.msCount),
     };
   }
+  // The per-format split is a set of counters like everything else, so it needs
+  // the same "minus what's queued" treatment.
+  const fmt = {};
+  for (const [k, v] of Object.entries(fmts || {})) {
+    fmt[k] = { answered: num(v && v.answered), correct: num(v && v.correct) };
+  }
   // Confusions get the same "minus what's queued" treatment as the totals above.
   let conf = confusions || {};
   for (const e of queued) {
     answered -= num(e.answered);
     correct -= num(e.correct);
+    for (const [k, d] of Object.entries(e.formats || {})) {
+      if (!fmt[k]) continue;
+      fmt[k].answered -= num(d && d.answered);
+      fmt[k].correct -= num(d && d.correct);
+    }
     for (const [key, d] of Object.entries(e.species || {})) {
       if (!sp[key]) continue;
       sp[key].known -= num(d.known);
@@ -612,6 +634,12 @@ async function uploadBaseline(userId) {
 
   answered = Math.max(0, answered);
   correct = Math.max(0, correct);
+  const formats2 = {};
+  for (const [k, v] of Object.entries(fmt)) {
+    const a = Math.max(0, v.answered);
+    const c = Math.max(0, v.correct);
+    if (a || c) formats2[k] = { answered: a, correct: c };
+  }
   const species2 = {};
   for (const [key, v] of Object.entries(sp)) {
     const known = Math.max(0, v.known);
@@ -646,6 +674,7 @@ async function uploadBaseline(userId) {
   if (
     !answered && !correct
     && !Object.keys(species2).length && !Object.keys(conf).length
+    && !Object.keys(formats2).length
     && !baseHistory.length && !baseDays.length
   ) return;
 
@@ -654,6 +683,7 @@ async function uploadBaseline(userId) {
     correct,
     pct: null, // the baseline itself is not a round; its bars ride in `history`
     species: species2,
+    formats: formats2,
     confusions: conf,
     history: baseHistory,
     counts: baseCounts,

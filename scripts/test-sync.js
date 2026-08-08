@@ -42,7 +42,20 @@ function eq(name, actual, expected) {
 }
 
 const day = (d) => '2026-03-' + String(d).padStart(2, '0');
-const ev = (o) => ({ id: o.id, ts: o.ts || Date.now(), localDay: o.localDay, answered: o.answered || 0, correct: o.correct || 0, pct: o.pct === undefined ? null : o.pct, n: o.n || 0, species: o.species || {} });
+// An event with the defaults filled in. It SPREADS the caller's object rather
+// than copying a fixed list of fields: the old version named each field
+// explicitly, so a test passing anything newer (formats, counts, lastSeen…) had
+// it silently dropped and then watched the merge appear not to fold it — a
+// failure that looks exactly like a bug in the code under test.
+const ev = (o) => ({
+  ts: Date.now(),
+  answered: 0,
+  correct: 0,
+  n: 0,
+  species: {},
+  ...o,
+  pct: o.pct === undefined ? null : o.pct,
+});
 
 console.log('\\nlocalDay');
 {
@@ -98,6 +111,22 @@ console.log('\\napplyEvent');
   const old = applyEvent(late, ev({ id: 'd', localDay: day(1), species: sp({ known: 1 }) }));
   eq('an older client event leaves the signals intact', [old.species['42'].lastSeen, old.species['42'].msTotal, old.species['42'].msCount], [900, 2400, 3]);
   eq('and still counts the answer itself', old.species['42'].known, 4);
+}
+{
+  // Lifetime totals split by question format. Smart play mixes formats of very
+  // different difficulty inside one round, so the blended number alone stops
+  // being comparable with itself as the mix shifts.
+  const one = applyEvent(emptyRollups(), ev({ id: 'a', localDay: day(1), answered: 5, correct: 4, formats: { name: { answered: 3, correct: 3 }, typed: { answered: 2, correct: 1 } } }));
+  eq('a mixed round splits by format', one.formats, { name: { answered: 3, correct: 3 }, typed: { answered: 2, correct: 1 } });
+  const two = applyEvent(one, ev({ id: 'b', localDay: day(1), answered: 2, correct: 0, formats: { typed: { answered: 2, correct: 0 } } }));
+  eq('and the splits accumulate', two.formats.typed, { answered: 4, correct: 1 });
+  eq('untouched formats are left alone', two.formats.name, { answered: 3, correct: 3 });
+  // The blended total must still agree with the sum of the parts.
+  eq('the split reconciles with the blended total', two.stats, { answered: 7, correct: 4 });
+  // Rounds from the fixed modes and from older clients carry no split at all.
+  const bare = applyEvent(two, ev({ id: 'c', localDay: day(1), answered: 1, correct: 1 }));
+  eq('an event with no split leaves it untouched', bare.formats, two.formats);
+  eq('junk in the split does not throw', applyEvent(emptyRollups(), ev({ id: 'd', localDay: day(1), formats: { name: null, typed: 'x' } })).formats, { name: { answered: 0, correct: 0 }, typed: { answered: 0, correct: 0 } });
 }
 {
   const r = applyEvent(emptyRollups(), ev({ id: 'a', localDay: day(1), answered: 3, correct: 3, pct: 140 }));

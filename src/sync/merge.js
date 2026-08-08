@@ -28,6 +28,7 @@ export function localDay(ts = Date.now()) {
 export function emptyRollups() {
   return {
     stats: { answered: 0, correct: 0 },
+    formats: {},
     species: {},
     history: [],
     counts: [],
@@ -51,6 +52,22 @@ export function applyEvent(rollups, event) {
 
   const answered = num(event.answered);
   const correct = num(event.correct);
+
+  // Lifetime totals split by question format. Smart play mixes four formats of
+  // very different difficulty within one round, so a blended accuracy number
+  // stops being comparable with itself as the mix shifts — the split is what
+  // keeps it interpretable. Counters, so they fold by summing like everything
+  // else; absent on events from the fixed modes and from older clients.
+  const formats = { ...(r.formats || {}) };
+  const incF = event.formats && typeof event.formats === 'object' ? event.formats : {};
+  for (const key of Object.keys(incF)) {
+    const d = incF[key] || {};
+    const prev = formats[key] || { answered: 0, correct: 0 };
+    formats[key] = {
+      answered: num(prev.answered) + num(d.answered),
+      correct: num(prev.correct) + num(d.correct),
+    };
+  }
 
   const species = { ...r.species };
   const inc = event.species && typeof event.species === 'object' ? event.species : {};
@@ -136,6 +153,7 @@ export function applyEvent(rollups, event) {
       answered: r.stats.answered + answered,
       correct: r.stats.correct + correct,
     },
+    formats,
     species,
     history,
     counts,

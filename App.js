@@ -48,6 +48,7 @@ import {
   saveUsername,
   loadStats,
   addToStats,
+  addToStatsByFormat,
   loadPrefs,
   savePrefs,
   loadSpeciesStats,
@@ -95,6 +96,7 @@ import { verifyStreak, recordVerifyWin, recordVerifyMiss } from './src/verify';
 import { scheduleDeck } from './src/schedule';
 import { isMastered, speciesKey } from './src/mastery';
 import { recordRecall } from './src/recall';
+import { FORMAT } from './src/smartmode';
 import {
   prefetchImages,
   prefetchDeck,
@@ -364,6 +366,8 @@ export default function App() {
   // lifetime-vs-delta split as speciesRef / roundDeltaRef.
   const confusionRef = useRef({});
   const confusionDeltaRef = useRef({});
+  // This round's answers split by question format (see formatForCard).
+  const formatDeltaRef = useRef({});
   // "Verify the fix" recovery streaks: pairKey → consecutive correct answers on
   // a former-nemesis pair. Device-local (like the "my tell" notes), so it rides
   // a ref + its own storage rather than the synced events log.
@@ -748,6 +752,7 @@ export default function App() {
     // doesn't have.
     roundDeltaRef.current = {};
     confusionDeltaRef.current = {};
+    formatDeltaRef.current = {};
     setMode(m);
     setRoundLabel(label);
     setDeck(shuffle(cards));
@@ -916,6 +921,7 @@ export default function App() {
     finishedRef.current = false;
     roundDeltaRef.current = {}; // see startRound
     confusionDeltaRef.current = {};
+    formatDeltaRef.current = {};
 
     const roundDeck = shuffle(fullDeck);
     setMode('pick');
@@ -970,6 +976,12 @@ export default function App() {
     roundDeltaRef.current = {};
     const confDelta = confusionDeltaRef.current;
     confusionDeltaRef.current = {};
+    const fmtDelta = formatDeltaRef.current;
+    formatDeltaRef.current = {};
+    // Persist the per-format split alongside the blended totals. Written before
+    // the upload for the same reason everything else here is: local storage is
+    // authoritative, and the network is allowed to fail.
+    if (Object.keys(fmtDelta).length) addToStatsByFormat(fmtDelta);
     if (total > 0) {
       // Queue, then flush. recordEvent only writes to the outbox; without this
       // the round would sit there until the next cold launch, which looks
@@ -981,6 +993,7 @@ export default function App() {
         pct: (finalCorrect / total) * 100,
         n: total,
         species: delta,
+        formats: fmtDelta,
         confusions: confDelta,
       }).then(() => syncCloud());
     }
@@ -999,7 +1012,17 @@ export default function App() {
   // `ms` is how long the answer took, when the screen was able to time it (see
   // src/recall.js). Nothing reads it yet — it is recorded because retrieval
   // history is the one thing a future scheduler cannot backfill.
-  const recordResult = useCallback((card, correct, { track = true, ms = 0 } = {}) => {
+  // Which question format each fixed mode asks in. Recorded on every answer so
+  // the lifetime accuracy stays interpretable once Smart play starts mixing
+  // formats of very different difficulty inside one round — a blended number
+  // would drift as the mix shifts, with no change in what the player knows.
+  const formatForCard = useCallback(() => {
+    if (mode === 'pick') return FORMAT.PICTURE;
+    if (mode === 'flash') return FORMAT.FLASH;
+    return FORMAT.NAME;
+  }, [mode]);
+
+  const recordResult = useCallback((card, correct, { track = true, ms = 0, format = null } = {}) => {
     if (!card) return null;
     // Same helper the study screen uses to ask "is this mastered?" — one rule,
     // so a lookup can never miss a tally it wrote itself.
@@ -1023,6 +1046,13 @@ export default function App() {
         sci: card.scientific,
         image: card.image || (d && d.image) || null,
         ...recordRecall(d, { correct, ms, at }),
+      };
+    }
+    if (track && format) {
+      const f = formatDeltaRef.current[format] || { answered: 0, correct: 0 };
+      formatDeltaRef.current[format] = {
+        answered: f.answered + 1,
+        correct: f.correct + (correct ? 1 : 0),
       };
     }
     return key;
@@ -1170,7 +1200,7 @@ export default function App() {
   const handleGrade = useCallback(
     (correct, chosen, verifyPairKey, ms = 0) => {
       const card = deck[index];
-      recordResult(card, correct, { ms });
+      recordResult(card, correct, { ms, format: formatForCard() });
       // A wrong multiple-choice pick is a confusion signal (correct card vs. the
       // option they chose). `chosen` is absent for self-graded Flash cards.
       if (!correct && chosen) recordConfusion(card, chosen);
@@ -1214,7 +1244,7 @@ export default function App() {
   const handlePickGrade = useCallback(
     (correct, chosen) => {
       const card = deck[index];
-      recordResult(card, correct);
+      recordResult(card, correct, { format: formatForCard() });
       if (!correct && chosen) recordConfusion(card, chosen);
       if (correct) setCorrectCount((c) => c + 1);
       else setMissed((m) => [...m, card]);

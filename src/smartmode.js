@@ -26,8 +26,14 @@ export const FORMAT = {
   NAME: 'name',
   PAIR: 'pair',
   TYPED: 'typed',
+  // Self-graded reveal (the Flash cards mode). Part of the recording vocabulary
+  // but NOT of Smart play's palette: its "correct" is the player's own opinion,
+  // so it is not comparable with the formats the app marks itself. Kept out of
+  // ALL_FORMATS so chooseFormat can never draw it.
+  FLASH: 'flash',
 };
 
+// The formats Smart play may choose between.
 export const ALL_FORMATS = [FORMAT.PICTURE, FORMAT.NAME, FORMAT.PAIR, FORMAT.TYPED];
 
 // Answers needed before a species is judged on its own record rather than

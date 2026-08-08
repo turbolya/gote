@@ -22,6 +22,12 @@ const K_CONFUSION_NOTES = '@gote/confusionNotes';
 const K_CONFUSION_WINS = '@gote/confusionWins';
 const K_CACHE = '@gote/obscache';
 const K_FLAGS = '@gote/flags';
+// Lifetime totals split by which question format the answer was given in:
+// { [format]: { answered, correct } }. Smart play asks the same species four
+// different ways and they are not equally hard, so a single blended accuracy
+// number stops being comparable with itself as the mix shifts. See
+// src/smartmode.js and the DB v6 migration.
+const K_FORMATS = '@gote/statsByFormat';
 const K_HISTORY = '@gote/history';
 // Cards per finished round, parallel to K_HISTORY and right-aligned with it (see
 // src/accuracy.js alignCounts). Stored separately rather than folding the two
@@ -194,6 +200,48 @@ export async function addToStats(answered, correct) {
   return next;
 }
 
+// --- lifetime totals, split by question format --------------------------------
+// Counters, never averages: they have to fold across devices by summing, like
+// every other rollup here.
+
+export async function loadStatsByFormat() {
+  try {
+    const raw = await kv.getItem(K_FORMATS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+    }
+  } catch {
+    /* fall through */
+  }
+  return {};
+}
+
+export async function saveStatsByFormat(map) {
+  try {
+    await kv.setItem(K_FORMATS, JSON.stringify(map || {}));
+  } catch {
+    /* ignore */
+  }
+}
+
+// Add one round's per-format answers and return the new map. `delta` is
+// { [format]: { answered, correct } } — only the formats actually used.
+export async function addToStatsByFormat(delta) {
+  const prev = await loadStatsByFormat();
+  const next = { ...prev };
+  for (const [format, d] of Object.entries(delta || {})) {
+    if (!format || !d) continue;
+    const p = next[format] || { answered: 0, correct: 0 };
+    next[format] = {
+      answered: (Number(p.answered) || 0) + (Number(d.answered) || 0),
+      correct: (Number(p.correct) || 0) + (Number(d.correct) || 0),
+    };
+  }
+  await saveStatsByFormat(next);
+  return next;
+}
+
 // Overwrite the lifetime totals wholesale (normal play uses addToStats). Used by
 // the screenshot seeder to plant a realistic lifetime score.
 export async function saveStats(stats) {
@@ -326,7 +374,9 @@ export async function saveConfusionWins(map) {
 // cleared with the same finality, or reset looks like it didn't stick.
 export async function resetStatistics() {
   try {
-    await kv.multiRemove([K_STATS, K_SPECIES, K_HISTORY, K_HISTORY_N, K_STREAK, K_DAYS]);
+    await kv.multiRemove([
+      K_STATS, K_FORMATS, K_SPECIES, K_HISTORY, K_HISTORY_N, K_STREAK, K_DAYS,
+    ]);
   } catch {
     /* ignore */
   }

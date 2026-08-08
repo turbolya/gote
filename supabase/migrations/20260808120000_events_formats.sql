@@ -1,0 +1,33 @@
+-- gote — carry which QUESTION FORMAT each answer was given in.
+--
+-- Idempotent. See docs/SCHEMA-CHANGELOG.md for the running record.
+--
+-- Smart play asks the same species in four different ways — pick the photo from
+-- four, pick the name from five, tell two look-alikes apart, or type the name —
+-- and those are not equally hard. A typed answer has no guess floor at all; a
+-- four-photo grid has a 25% one.
+--
+-- Fold them all into one answered/correct tally and the lifetime accuracy stops
+-- being comparable with itself. A session heavy on typing scores lower than one
+-- heavy on photo-matching with no change in what the player knows — and worse,
+-- as the adaptive logic shifts the mix toward harder formats BECAUSE they are
+-- improving, their accuracy would appear to fall. That is the same class of
+-- problem as the unweighted accuracy chart (DB v5): a number that contradicts
+-- the experience it claims to describe.
+--
+-- So each event also carries the split:
+--
+--   formats  { "<format>": { "answered": n, "correct": n }, … }
+--
+-- Counters, so they fold by summing exactly like `species` — no averages, which
+-- cannot be merged across devices.
+--
+-- Additive / expand-only, like every column before it: defaulted, so an older
+-- client inserts without it and gets '{}', an older reader selects the columns
+-- it knows, and only a new reader splits by format. Rounds played in the fixed
+-- modes leave it empty; nothing is lost, because those rounds are all one known
+-- format by definition. No RLS or grant change — the existing owner-only
+-- policies and table-level grants already cover new columns.
+
+alter table public.events
+  add column if not exists formats jsonb not null default '{}'::jsonb;
