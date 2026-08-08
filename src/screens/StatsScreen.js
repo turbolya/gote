@@ -967,9 +967,13 @@ const makeStyles = (colors) => StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    // Matches chartCard: every card on this page separates itself from the NEXT
+    // one, so a card without a bottom margin butts straight into whatever
+    // follows. marginTop is the extra step down from the summary row above,
+    // which has no margin of its own.
+    padding: 16,
     marginTop: 14,
+    marginBottom: 16,
   },
   scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   scoreLabel: { fontSize: 15, fontWeight: '800', color: colors.text },
