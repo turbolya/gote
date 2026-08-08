@@ -789,7 +789,7 @@ export default function StudyScreen({
               <Appear style={[styles.centerPanel, styles.typedPanel]} offset={14} scaleFrom={0.96} duration={300}>
                 {!answered ? (
                   <>
-                    <Text style={[styles.choiceLead, { color: onDim }]}>
+                    <Text style={[styles.choiceLead, styles.typedLead, { color: onDim }]}>
                       What species is this?
                     </Text>
                     <TextInput
@@ -798,7 +798,7 @@ export default function StudyScreen({
                       onChangeText={setTyped}
                       onSubmitEditing={submitTyped}
                       placeholder="Type the name…"
-                      placeholderTextColor="rgba(255,255,255,0.5)"
+                      placeholderTextColor={ON_DARK_DIM}
                       style={[styles.typedInput, { color: on }]}
                       autoCapitalize="none"
                       autoCorrect={false}
@@ -813,7 +813,11 @@ export default function StudyScreen({
                       onPress={submitTyped}
                       style={[styles.nextBtn, !typed.trim() && styles.typedSubmitOff]}
                     >
-                      <Text style={styles.nextText}>Check</Text>
+                      <Text
+                        style={[styles.nextText, !typed.trim() && styles.typedSubmitOffText]}
+                      >
+                        Check
+                      </Text>
                     </Pressable>
                     <Text style={[styles.typedHint, { color: onDim }]}>
                       Either name works, and spelling is forgiving.
@@ -1202,29 +1206,45 @@ const styles = StyleSheet.create({
   choiceWrong: { backgroundColor: colors.wrong, borderColor: colors.wrong },
   choiceText: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
   choiceTextOn: { color: ON_DARK },
-  // The choice panel gets away with no backdrop because each option is a
-  // filled pill; typed mode is bare text and a field over an arbitrary photo,
-  // so it needs its own.
-  typedPanel: {
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 20,
-  },
+  // The text field is a CHOICE PILL that you type into — same fill, border,
+  // radius and padding as the options in every other round. It used to invent
+  // its own darker panel and a thinner border, which read as a different app
+  // and, stacked on top of centerPanel's own scrim, came out muddier than
+  // anything else on screen while still being hard to read.
+  // A darker panel than the choice rounds get. This REPLACES centerPanel's
+  // background rather than stacking with it (one View, one fill), so it is a
+  // deliberate level rather than an accident. Typed mode earns it: you read
+  // your own answer back as you type it, letter by letter, where a choice round
+  // only asks you to glance at four short labels. The same scrim that is
+  // comfortable for glancing is not enough for reading.
+  typedPanel: { backgroundColor: 'rgba(0,0,0,0.62)' },
+  typedLead: { textAlign: 'center', marginBottom: 10 },
   typedInput: {
     width: '100%',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.45)',
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    // Solid, unlike the choice pills: a text field has to hold its own against
+    // whatever photo sits behind it while you read your answer back.
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.5)',
     borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 16,
     fontWeight: '700',
-    marginBottom: 10,
+    textAlign: 'center',
+    marginBottom: 8,
   },
-  typedSubmitOff: { opacity: 0.45 },
-  typedHint: { fontSize: 13, marginTop: 10, textAlign: 'center' },
+  // Not a faded primary button: reducing opacity on a colour over an arbitrary
+  // photo blends it INTO the photo, which is both ugly and unreadable. Disabled
+  // borrows the neutral over-photo fill instead, so it stays legible and the
+  // jump to solid teal is a clear "now you can".
+  typedSubmitOff: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  typedSubmitOffText: { color: ON_DARK_DIM },
+  typedHint: { fontSize: 12, marginTop: 10, textAlign: 'center', lineHeight: 16 },
   nextBtn: {
     flexDirection: 'row',
     alignItems: 'center',
