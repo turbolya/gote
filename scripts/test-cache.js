@@ -46,6 +46,20 @@ function load(rel, kvImpl) {
     // E2E-only modules (ESM); api.js only touches them when IS_E2E is true.
     if (id === './e2e/testMode') return { IS_E2E: false };
     if (id === './e2e/fixtures') return {};
+    // Any other RELATIVE import is a real src/ module: resolve it against the
+    // file that asked for it (not against this script, which is where a bare
+    // require would look) and transpile it the same way. Without this, adding
+    // any new import to a module under test breaks the harness with a confusing
+    // MODULE_NOT_FOUND from scripts/.
+    if (id.startsWith('.')) {
+      const dep = require.resolve(id, { paths: [path.dirname(file)] });
+      const depCode = babel.transformFileSync(dep, {
+        plugins: ['@babel/plugin-transform-modules-commonjs'],
+      }).code;
+      const dm = { exports: {} };
+      new Function('module', 'exports', 'require', depCode)(dm, dm.exports, fakeRequire);
+      return dm.exports;
+    }
     return require(id);
   };
   new Function('module', 'exports', 'require', code)(m, m.exports, fakeRequire);

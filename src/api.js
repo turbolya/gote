@@ -12,6 +12,7 @@
 
 import { IS_E2E } from "./e2e/testMode";
 import * as fx from "./e2e/fixtures";
+import { APP_VERSION } from "./changelog";
 
 const API = "https://api.inaturalist.org/v2/observations";
 const TAXA_API = "https://api.inaturalist.org/v2/taxa";
@@ -21,8 +22,13 @@ const SPECIES_COUNTS_API =
   "https://api.inaturalist.org/v2/observations/species_counts";
 // Place search/autocomplete still lives on v1 (returns named places + coords).
 const PLACES_API = "https://api.inaturalist.org/v1/places/autocomplete";
-// iNaturalist asks API clients to identify themselves.
-const USER_AGENT = "gote";
+// iNaturalist asks API clients to identify themselves, and their recommended
+// practices page is explicit that the point is being able to tell one app's
+// traffic apart. A bare "gote" does that; a version and a URL also give them a
+// way to REACH us — which matters because the documented remedy for a
+// misbehaving client is a block, and a block is much likelier when the only
+// thing they know about the traffic is a four-letter string.
+const USER_AGENT = `gote/${APP_VERSION} (+https://goteapp.com)`;
 
 const PER_PAGE = 200; // API maximum
 const PAGE_LIMIT = 25; // hard safety cap => max 5000 observations scanned
