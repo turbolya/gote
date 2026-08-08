@@ -94,6 +94,7 @@ import { pairCount, pairKey, nemesisPartners } from './src/confusions';
 import { verifyStreak, recordVerifyWin, recordVerifyMiss } from './src/verify';
 import { scheduleDeck } from './src/schedule';
 import { isMastered, speciesKey } from './src/mastery';
+import { recordRecall } from './src/recall';
 import {
   prefetchImages,
   prefetchDeck,
@@ -995,29 +996,33 @@ export default function App() {
   // pass false: they arrive one answer at a time and are uploaded as their own
   // event immediately, so folding them into the phone's in-progress round would
   // count them twice.
-  const recordResult = useCallback((card, correct, { track = true } = {}) => {
+  // `ms` is how long the answer took, when the screen was able to time it (see
+  // src/recall.js). Nothing reads it yet — it is recorded because retrieval
+  // history is the one thing a future scheduler cannot backfill.
+  const recordResult = useCallback((card, correct, { track = true, ms = 0 } = {}) => {
     if (!card) return null;
     // Same helper the study screen uses to ask "is this mastered?" — one rule,
     // so a lookup can never miss a tally it wrote itself.
     const key = speciesKey(card);
-    const prev = speciesRef.current[key] || { known: 0, missed: 0 };
+    // One `at` for both folds, so the stored tally and the synced delta can
+    // never disagree about when this answer happened.
+    const at = Date.now();
+    const prev = speciesRef.current[key];
     speciesRef.current[key] = {
       name: card.common || card.scientific,
       sci: card.scientific,
       // Thumbnail for the per-species stats list (kept so it shows even when the
       // species isn't in the current deck, e.g. Nearby rounds).
-      image: card.image || prev.image || null,
-      known: prev.known + (correct ? 1 : 0),
-      missed: prev.missed + (correct ? 0 : 1),
+      image: card.image || (prev && prev.image) || null,
+      ...recordRecall(prev, { correct, ms, at }),
     };
     if (track) {
-      const d = roundDeltaRef.current[key] || { known: 0, missed: 0 };
+      const d = roundDeltaRef.current[key];
       roundDeltaRef.current[key] = {
         name: card.common || card.scientific,
         sci: card.scientific,
-        image: card.image || d.image || null,
-        known: d.known + (correct ? 1 : 0),
-        missed: d.missed + (correct ? 0 : 1),
+        image: card.image || (d && d.image) || null,
+        ...recordRecall(d, { correct, ms, at }),
       };
     }
     return key;
@@ -1163,9 +1168,9 @@ export default function App() {
   }, [recordResult]);
 
   const handleGrade = useCallback(
-    (correct, chosen, verifyPairKey) => {
+    (correct, chosen, verifyPairKey, ms = 0) => {
       const card = deck[index];
-      recordResult(card, correct);
+      recordResult(card, correct, { ms });
       // A wrong multiple-choice pick is a confusion signal (correct card vs. the
       // option they chose). `chosen` is absent for self-graded Flash cards.
       if (!correct && chosen) recordConfusion(card, chosen);

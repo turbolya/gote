@@ -66,6 +66,18 @@ export function applyEvent(rollups, event) {
       image: prev.image || d.image || null,
       known: num(prev.known) + num(d.known),
       missed: num(prev.missed) + num(d.missed),
+      // Retrieval signals (src/recall.js). Nothing reads them yet; they fold
+      // here so the history exists whenever something does.
+      //
+      // Latency is a SUM and a COUNT, never a mean — a mean cannot be folded,
+      // and averaging two devices' averages would silently misweight whichever
+      // played less. `lastSeen` takes the max rather than the newest event,
+      // because events arrive out of order: the last one APPLIED is routinely
+      // not the last one played. Max makes the fold order-independent, the same
+      // property that makes the active-day set safe.
+      lastSeen: Math.max(num(prev.lastSeen), num(d.lastSeen)),
+      msTotal: num(prev.msTotal) + num(d.msTotal),
+      msCount: num(prev.msCount) + num(d.msCount),
     };
   }
 

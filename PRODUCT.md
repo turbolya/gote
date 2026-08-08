@@ -212,3 +212,56 @@ mode.
 Trigger: revisit once there is enough real play to see whether triangles actually
 appear at the current 3-mistake threshold — if they never do, the taxonomic prior
 is the feature, not the graph.
+
+### Smarter learning — the shortlist
+
+Recorded together because they share one dependency. As of **2.37.4** each
+species tally carries `lastSeen`, `msTotal` and `msCount` (`src/recall.js`) —
+nothing reads them yet, they are being banked because **retrieval history is the
+one thing that cannot be backfilled**. A scheduler written six months from now
+needs six months of data, and data not written down is gone. Everything below
+assumes that clock is already running.
+
+**1. Real spaced repetition.** `scheduleDeck` biases sampled rounds toward
+unresolved mix-ups — that is difficulty sampling, not SRS. True SRS gives each
+species a due date and resurfaces it *just before* it would be forgotten, which
+is a different and stronger mechanism. Already promised on the website's "On the
+horizon". SM-2 is trivial; FSRS-lite is better and still small. Now unblocked by
+`lastSeen`; latency substitutes for the self-reported grade those algorithms
+normally need.
+
+**2. A typed / free-recall mode.** Picking from five options is a much easier
+task than producing the name, and the testing-effect literature is unambiguous
+that recall retains far better than recognition. It also dissolves the
+lucky-guess complaint outright — there is nothing to guess among. Needs fuzzy
+matching (Levenshtein) so a slip on *Chrysanthemum* is not scored as ignorance.
+Biggest single gain in learning strength available, and the largest UI job here.
+
+**3. Seasonal decks.** The one a generic flashcard app cannot copy. iNaturalist
+observations carry dates and Nearby already handles place, so "what is out this
+month near you" is a small step from what exists. Better practice (you will
+actually meet these) and a motivation loop (learn it Friday, find it Saturday).
+
+**4. Adaptive distractor difficulty.** `pickSimilarDistractors` already walks
+`ancestry`. Scale similarity with mastery — different family early, same genus
+once the species is known — to hold rounds at the edge of ability. Nearly free:
+the data is on the card already.
+
+**5. Taxonomic ladder.** Quiz family/genus before species. For a beginner
+"sedge vs grass vs rush" *is* the expert skill, and 200 species is overwhelming
+without that scaffold. `ancestry` again.
+
+**6. Leeches.** Confusions catch species you mix *up*; nothing catches one you
+simply keep forgetting. Flag after N failures, then drill deliberately or
+suspend — repeated failure on a single card is where people quit.
+
+Deliberately rejected, so they are not re-proposed:
+
+- **Cropped field-mark mode.** A random crop usually will not contain the
+  diagnostic feature, and there are no annotations saying where it is. Needs
+  per-species curation that does not exist.
+- **Confidence calibration** ("you predicted 80%, scored 60%") and any
+  post-answer "was that a guess?" prompt. Both depend on self-report after the
+  reveal, where hindsight bias is strongest — the signal is worst exactly where
+  it would matter. Latency is the same signal for free and without the tax on a
+  fast loop. Flash cards already ask the honest version, *before* the reveal.

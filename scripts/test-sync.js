@@ -78,8 +78,26 @@ console.log('\\napplyEvent');
 {
   const one = applyEvent(emptyRollups(), ev({ id: 'a', localDay: day(1), answered: 2, correct: 1, species: { 42: { name: 'Newt', sci: 'Lissotriton', known: 1, missed: 1 } } }));
   const two = applyEvent(one, ev({ id: 'b', localDay: day(1), answered: 1, correct: 1, species: { 42: { name: 'Newt', sci: 'Lissotriton', known: 1, missed: 0 } } }));
-  eq('species tallies accumulate', two.species['42'], { name: 'Newt', sci: 'Lissotriton', image: null, known: 2, missed: 1 });
+  eq('species tallies accumulate', two.species['42'], { name: 'Newt', sci: 'Lissotriton', image: null, known: 2, missed: 1, lastSeen: 0, msTotal: 0, msCount: 0 });
   eq('same day is not double-listed', two.days, [day(1)]);
+}
+{
+  // Retrieval signals (src/recall.js). Nothing reads them yet, but they have to
+  // fold correctly from the first event or the history is wrong forever.
+  const sp = (o) => ({ 42: { name: 'Newt', sci: 'Lissotriton', ...o } });
+  const one = applyEvent(emptyRollups(), ev({ id: 'a', localDay: day(1), species: sp({ known: 1, lastSeen: 500, msTotal: 1200, msCount: 1 }) }));
+  const two = applyEvent(one, ev({ id: 'b', localDay: day(1), species: sp({ known: 1, lastSeen: 900, msTotal: 800, msCount: 1 }) }));
+  eq('latency folds as a sum and a count', [two.species['42'].msTotal, two.species['42'].msCount], [2000, 2]);
+  eq('lastSeen advances to the newer answer', two.species['42'].lastSeen, 900);
+  // Out-of-order delivery is the normal case, not an edge case: an event from a
+  // device that was offline for a week arrives after today's rounds.
+  const late = applyEvent(two, ev({ id: 'c', localDay: day(1), species: sp({ known: 1, lastSeen: 100, msTotal: 400, msCount: 1 }) }));
+  eq('a late-arriving older answer does not rewind lastSeen', late.species['42'].lastSeen, 900);
+  eq('but its latency still counts', [late.species['42'].msTotal, late.species['42'].msCount], [2400, 3]);
+  // An event from a client that predates these fields must not poison them.
+  const old = applyEvent(late, ev({ id: 'd', localDay: day(1), species: sp({ known: 1 }) }));
+  eq('an older client event leaves the signals intact', [old.species['42'].lastSeen, old.species['42'].msTotal, old.species['42'].msCount], [900, 2400, 3]);
+  eq('and still counts the answer itself', old.species['42'].known, 4);
 }
 {
   const r = applyEvent(emptyRollups(), ev({ id: 'a', localDay: day(1), answered: 3, correct: 3, pct: 140 }));

@@ -1,6 +1,6 @@
 # Privacy Policy for gote
 
-**Last updated: 3 August 2026**
+**Last updated: 8 August 2026**
 
 gote is a species-identification flashcard game for iPhone, iPad and Apple
 Watch, built on the public [iNaturalist](https://www.inaturalist.org) API. This
@@ -58,8 +58,11 @@ What is stored there:
 - Your gameplay history, round by round: for each round the number of cards
   answered and got right, the date in your local calendar, which species you
   got right or wrong, and — when you pick the wrong option in a multiple-choice
-  round — which look-alike species you confused for which. This is detailed —
-  see "What your synced play history actually contains" below
+  round — which look-alike species you confused for which. Since version
+  2.37.4 it also records, per species, **when you last answered it and how long
+  your answers took**, so the app can eventually work out what you are about to
+  forget. This is detailed — see "What your synced play history actually
+  contains" below
 - Your preferences, the iNaturalist username you entered, and the species you've
   flagged to revisit (kept in step across your devices; the most recent change wins)
 - **Your email address, only if you choose to link devices.** It is used solely
@@ -104,6 +107,15 @@ up). Individual answers played on the Apple Watch are stored the same way.
 Nothing is aggregated away — the history is kept round by round, because your
 statistics, accuracy chart and streak are calculated from it.
 
+Since 2.37.4, each species also carries **when you last answered it** and **how
+long your answers took** — kept as a total and a count, so what is stored is an
+average rather than a log of individual response times. It exists so a future
+version can resurface a species just before you would forget it, which needs to
+know both when you last saw it and how confidently you knew it. Nothing in the
+app reads it yet. Answers that took more than a minute are discarded rather
+than recorded, because at that point the number describes an interruption
+rather than you.
+
 The short notes you write on the "Species you mix up" comparison screen (your
 own reminder of how to tell two look-alikes apart) are stored with the same
 account data. If you turn on sync, they are backed up and kept in step across
@@ -116,9 +128,15 @@ species you struggle with, and every day you played. It is tied to your account
 identifier, and to your email address if you linked devices.
 
 It exists for one reason — so the app can show you your own progress on all of
-your devices. It is not analysed, profiled, sold, shared, or used to build any
-kind of behavioural model, and nobody outside gote's own service has access to
-it. If that is more than you want stored, do not turn sync on; the app is fully
+your devices, and work out what to put in front of you next. It is not sold,
+shared, or used to profile you for advertising, recommendations, or anything
+outside the app, and nobody outside gote's own service has access to it.
+
+To be exact about the timing data above, since "we build no model of you" would
+be the easy thing to write and would not be true: the app does model one thing,
+which is how well **you** know each species, in order to decide what to show
+you. That model is yours, lives in your own account, and is never used to
+target, rank, or describe you to anyone. If that is more than you want stored, do not turn sync on; the app is fully
 usable without it, and everything stays on your device. If you already turned it
 on, Delete synced account removes all of it.
 

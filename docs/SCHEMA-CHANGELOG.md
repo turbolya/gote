@@ -181,6 +181,48 @@ another device is adopted even when this device's prefs are newer. No DB migrati
   make it read every bar as `NaN`. **Now synced** via the events `n` / `counts`
   fields, DB v5 / events payload v4).
 
+### Species tally gains retrieval signals — 2026-08-08
+
+`@gote/species` entries grow three fields, and the same three ride the events
+`species` delta:
+
+```
+{ name, sci, image, known, missed, lastSeen, msTotal, msCount }
+```
+
+**No migration.** `events.species` is `jsonb`, so new keys inside the object need
+no DDL, and no `DATA_VERSION` bump either — absent fields read as 0 on every
+path (`num()` in merge.js, `recordRecall` in recall.js).
+
+Nothing reads them yet. They are recorded now because **retrieval history cannot
+be backfilled**: a scheduler written later needs history from earlier, and
+history not written down is gone.
+
+The shapes are chosen for MERGE, which is the part worth getting right first:
+
+- `msTotal` / `msCount` are a **sum and a count, never a mean**. Every rollup
+  here folds by summing, because two devices playing offline must reconcile
+  without either overwriting the other. Storing a mean would be unmergeable and
+  would misweight whichever device played less — silently, and only on
+  multi-device accounts.
+- `lastSeen` folds by **max**, not by "newest event wins". Events arrive out of
+  order routinely (a device offline for a week syncs after today's rounds), so
+  the last event *applied* is not the last one *played*. Max is
+  order-independent, the same property that makes the active-day set safe.
+- `msCount` counts **timed** answers only. A wrist round and "Pick the right
+  one" carry no timing; counting them as zero-latency would drag every mean
+  toward nonsense. Answers over `LATENCY_MAX_MS` (60 s) are discarded rather
+  than clamped — past a minute the number describes an interruption, and a fake
+  60 s answer is worse than none.
+
+`uploadBaseline` subtracts `msTotal`/`msCount` for still-queued events exactly
+as it does `known`/`missed`, and floors them together so a count can never
+survive without its total. `lastSeen` is deliberately **not** subtracted: max is
+idempotent, so re-sending it cannot double-count.
+
+Disclosed in PRIVACY.md — this is new personal data, even though nothing
+consumes it yet.
+
 ### Sync-private keys (`@gote/sync/*`) — 2026-08-03
 
 Not part of `DATA_VERSION`: these are the sync layer's own bookkeeping, never

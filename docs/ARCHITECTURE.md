@@ -183,7 +183,7 @@ The core entity is a **card** (one observation, or one place-typical species):
 | `@gote/username`          | string                                                         | Last account |
 | `@gote/prefs`             | `{ perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode }`| Study options + theme |
 | `@gote/stats`             | `{ answered, correct }`                                        | Lifetime totals |
-| `@gote/species`           | `{ [taxonId]: { name, sci, known, missed } }`                 | Per-species tallies (Stats, Lexicon status) |
+| `@gote/species`           | `{ [taxonId]: { name, sci, image, known, missed, lastSeen, msTotal, msCount } }` | Per-species tallies (Stats, Lexicon status). `lastSeen`/`msTotal`/`msCount` added 2026-08-08 — retrieval signals nothing reads yet, banked because that history can't be backfilled (`src/recall.js`). Synced via the events `species` delta |
 | `@gote/confusions`        | `{ [correctKey]: { [chosenKey]: count } }`                    | Confusion matrix — species the player mixes up (synced via the events `confusions` delta) |
 | `@gote/confusionNotes`    | `{ [pairKey]: { text, t } }`                                 | Player's "my tell" notes for confused pairs. Synced via the settings payload as `n:<pairKey>` keys, merged per note by `t` (last edit wins; empty text = tombstone). `displayNotes` gives the UI's `{ pairKey: text }` |
 | `@gote/confusionWins`     | `{ [pairKey]: streak }`                                       | "Verify the fix" recovery streaks — consecutive correct answers on a former-nemesis pair, reset on relapse (device-local) |
@@ -451,6 +451,7 @@ flowchart LR
 | `src/schedule.js` | Spaced-repetition input — `scheduleDeck` biases sampled rounds (Custom/Flash) so unresolved mix-ups + their partner resurface, damped by the recovery streak (pure) |
 | `src/mastery.js` | `isMastered(entry)` — a species is mastered at ≥5 correct and ≥80% accuracy; drives the optional fresh-photo swap on the study screen. Also owns `speciesKey(card)`, the one rule for which key a species is tallied under — App.js writes under it and the study screen looks up under it, and a mismatch would silently disable the swap (pure) |
 | `src/studyphoto.js` | Which photo the study screen shows. Owns the fresh-photo state machine, including the guard that the player's own photo is **never** on screen while a mastered species' official photo is being fetched — a leak there would defeat the whole option and look like a one-frame flicker (pure) |
+| `src/recall.js` | Retrieval signals on the per-species tally — `lastSeen`, plus latency as a sum + count so it MERGES (a mean cannot). Read by nothing yet; recorded because retrieval history can't be backfilled. Also owns `recordRecall`, used for both the stored tally and the sync delta (pure) |
 | `src/navigation.js` | `BACK_TO` — where "back" goes from each screen, feeding both the header chevrons and the edge swipe-back gesture from ONE map. The two used to be independent lists, and a screen missing from the gesture's copy silently lost swipe-back (pure) |
 | `src/theme.js` | Palette, accents, group-icon mapping |
 | `src/constants.js` | Speedrun lives, language list, defaults |

@@ -8,9 +8,21 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.37.3';
+export const APP_VERSION = '2.37.4';
 
 export const CHANGELOG = [
+  {
+    version: '2.37.4',
+    date: '2026-08-08',
+    changes: [
+      'Groundwork for smarter review: gote now remembers when you last answered '
+        + 'each species and roughly how long your answers take. Nothing uses it '
+        + 'yet — it is being recorded because a future "show me this again just '
+        + 'before I forget it" feature needs history that can only be gathered '
+        + 'from now on. Answers that take longer than a minute are ignored '
+        + 'rather than recorded, and it is covered in the privacy policy.',
+    ],
+  },
   {
     version: '2.37.3',
     date: '2026-08-08',

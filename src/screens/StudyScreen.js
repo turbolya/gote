@@ -109,12 +109,31 @@ export default function StudyScreen({
   // state for a frame. Keyed on card identity, plus `loopNonce` so a Speedrun
   // reshuffle onto the same (e.g. single-card) deck still counts as a new card.
   const shownKey = `${loopNonce}:${index}:${card ? card.id : ''}`;
+
+  // How long this card took to answer, measured from the moment the photo was
+  // actually on screen (a slow download is not slow recall) to the moment the
+  // player COMMITTED — the option tap, or the reveal in self-grade mode. Not the
+  // "Next card" tap, which would also count however long they spent reading the
+  // answer.
+  //
+  // Nothing reads this yet; see src/recall.js for why it is collected anyway.
+  // 0 means "not timed", which is the honest answer whenever the photo never
+  // loaded or the card was answered before it did. Declared before the reset
+  // block below, which zeroes them.
+  const answerStartRef = useRef(0);
+  const answerMsRef = useRef(0);
+
   const [prevKey, setPrevKey] = useState(shownKey);
   if (prevKey !== shownKey) {
     setPrevKey(shownKey);
     setFlipped(false);
     setPhase('front');
     setPicked(null);
+    // Refs, so the clock resets with the card without costing a render. Zeroed
+    // here rather than in an effect so a very fast answer can't be timed against
+    // the PREVIOUS card's start.
+    answerStartRef.current = 0;
+    answerMsRef.current = 0;
   }
 
   // Build the multiple-choice options: the correct name plus taxonomically
@@ -177,8 +196,15 @@ export default function StudyScreen({
     prefetchUpcoming(deck, index, 3);
   }, [deck, index]);
 
+  const commitAnswer = () => {
+    if (answerMsRef.current === 0 && answerStartRef.current > 0) {
+      answerMsRef.current = Date.now() - answerStartRef.current;
+    }
+  };
+
   const pick = (name) => {
     if (phase === 'answered') return;
+    commitAnswer();
     setPicked(name);
     setPhase('answered');
   };
@@ -274,6 +300,13 @@ export default function StudyScreen({
   // the choices automatically. A broken image (imgError) counts as "ready" so a
   // failed load can't freeze the round. Disabled in E2E so tests drive the pace.
   const photoReady = imgLoaded || imgError;
+
+  // Start the answer clock the first time this card's photo is on screen. A
+  // broken image counts as ready for the same reason Speedrun treats it that
+  // way — the player can act, so the timing is honest.
+  useEffect(() => {
+    if (photoReady && answerStartRef.current === 0) answerStartRef.current = Date.now();
+  }, [photoReady, shownKey]);
   // Show the loading spinner whenever the current card's photo isn't on screen
   // yet — while fetching a fresh photo, or before the normal photo paints (which
   // includes the initial black backdrop, before even the blurred copy loads).
@@ -683,7 +716,9 @@ export default function StudyScreen({
                         onGrade(
                           gotIt,
                           gotIt ? null : choices.byName[picked],
-                          verifyPair ? verifyPair.pairKey : null
+                          verifyPair ? verifyPair.pairKey : null,
+                          // Timed at the option tap, not here — see commitAnswer.
+                          answerMsRef.current
                         )
                       }
                     >
@@ -717,7 +752,7 @@ export default function StudyScreen({
                   <Pressable
                     testID="study-grade-missed"
                     style={[styles.gradeButton, styles.missed]}
-                    onPress={() => onGrade(false)}
+                    onPress={() => onGrade(false, null, null, answerMsRef.current)}
                   >
                     <Icon name="x" size={20} color={ON_DARK} />
                     <Text style={styles.gradeText}>Missed it</Text>
@@ -725,7 +760,7 @@ export default function StudyScreen({
                   <Pressable
                     testID="study-grade-knew"
                     style={[styles.gradeButton, styles.knew]}
-                    onPress={() => onGrade(true)}
+                    onPress={() => onGrade(true, null, null, answerMsRef.current)}
                   >
                     <Icon name="check" size={20} color={ON_DARK} />
                     <Text style={styles.gradeText}>I knew it</Text>
@@ -756,7 +791,13 @@ export default function StudyScreen({
               <Pressable
                 testID="study-reveal"
                 style={[styles.revealBtn, { borderColor: on }]}
-                onPress={() => setFlipped(true)}
+                onPress={() => {
+                  // The reveal IS the commitment in self-grade mode: at this
+                  // point the player has decided whether they know it. Timing
+                  // the later "I knew it" tap would measure reading, not recall.
+                  commitAnswer();
+                  setFlipped(true);
+                }}
               >
                 <Text style={[styles.revealText, { color: on }]}>Reveal answer</Text>
               </Pressable>

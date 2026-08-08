@@ -585,6 +585,11 @@ async function uploadBaseline(userId) {
       image: v.image || null,
       known: num(v.known),
       missed: num(v.missed),
+      // Retrieval signals ride along, or a device joining an account arrives
+      // with tallies but no history behind them (src/recall.js).
+      lastSeen: num(v.lastSeen),
+      msTotal: num(v.msTotal),
+      msCount: num(v.msCount),
     };
   }
   // Confusions get the same "minus what's queued" treatment as the totals above.
@@ -596,6 +601,11 @@ async function uploadBaseline(userId) {
       if (!sp[key]) continue;
       sp[key].known -= num(d.known);
       sp[key].missed -= num(d.missed);
+      // Additive, so they need the same subtraction. `lastSeen` deliberately
+      // does NOT: it folds by max, so re-sending it is idempotent — and
+      // subtracting a max is not a thing that means anything.
+      sp[key].msTotal -= num(d.msTotal);
+      sp[key].msCount -= num(d.msCount);
     }
     if (e.confusions) conf = subtractConfusions(conf, e.confusions);
   }
@@ -606,7 +616,11 @@ async function uploadBaseline(userId) {
   for (const [key, v] of Object.entries(sp)) {
     const known = Math.max(0, v.known);
     const missed = Math.max(0, v.missed);
-    if (known || missed) species2[key] = { ...v, known, missed };
+    const msTotal = Math.max(0, v.msTotal);
+    // A count without a total (or vice versa) would poison the mean, so they
+    // are floored together: either both survive the subtraction or neither.
+    const msCount = msTotal > 0 ? Math.max(0, v.msCount) : 0;
+    if (known || missed) species2[key] = { ...v, known, missed, msTotal, msCount };
   }
 
   // Accuracy chart: send the whole local history, minus the tail that belongs to
