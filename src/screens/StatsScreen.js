@@ -147,7 +147,7 @@ function NemesisCell({ info }) {
   );
 }
 
-export default function StatsScreen({ species, cards = [], confusions = {}, confusionNotes = {}, onCompare, lifetime, history = [], historyCounts = [], streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
+export default function StatsScreen({ species, cards = [], confusions = {}, confusionNotes = {}, onCompare, lifetime, statsByFormat = {}, history = [], historyCounts = [], streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const [sort, setSort] = useState('pct');
@@ -404,6 +404,50 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
     </>
   );
 
+  // Accuracy split by question format. Ordered by how hard the format is rather
+  // than by score, because that ordering is the entire point: a lower number
+  // further down the list is expected, not a problem.
+  const formatRows = useMemo(() => {
+    const ORDER = [
+      ['picture', 'Choosing the photo'],
+      ['name', 'Choosing the name'],
+      ['pair', 'Look-alike pairs'],
+      ['typed', 'Typing from memory'],
+      ['flash', 'Flash cards'],
+    ];
+    return ORDER.map(([key, label]) => {
+      const v = statsByFormat[key] || {};
+      const answered = Number(v.answered) || 0;
+      const correct = Number(v.correct) || 0;
+      return { key, label, answered, pct: answered > 0 ? Math.round((correct / answered) * 100) : 0 };
+    }).filter((r) => r.answered > 0);
+  }, [statsByFormat]);
+
+  // Only worth the space once there is something to COMPARE. With one format it
+  // would just restate the accuracy above it.
+  const formatBlock = formatRows.length >= 2 && (
+    <View style={styles.chartCard}>
+      <Text style={styles.chartTitle}>By question type</Text>
+      {formatRows.map((r) => (
+        <View key={r.key} style={styles.fmtRow}>
+          <Text style={styles.fmtLabel} numberOfLines={1}>{r.label}</Text>
+          <View style={styles.fmtTrack}>
+            <AnimatedBar pct={r.pct} style={[styles.barFill, { backgroundColor: colors.primary }]} />
+          </View>
+          <Text style={styles.fmtPct}>{r.pct}%</Text>
+          <Text style={styles.fmtCount}>{r.answered}</Text>
+        </View>
+      ))}
+      <Text style={styles.chartCaption}>
+        These are not equally hard. Typing a name from memory has nothing to
+        choose from, while picking a photo out of four gives you a one-in-four
+        chance without knowing anything — so a lower score further down this
+        list is expected, and comparing your overall accuracy across sessions
+        only means something if the mix stayed similar.
+      </Text>
+    </View>
+  );
+
   // Trend charts over the per-game accuracy history. Shown when there's data.
   const chartsBlock = (
     <>
@@ -481,6 +525,7 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
   const listHeader = (
     <>
       {summaryBlock}
+      {formatBlock}
       {chartsBlock}
       {nemesisBlock}
       <Text style={styles.boardTitle}>By species</Text>
@@ -801,6 +846,21 @@ const makeStyles = (colors) => StyleSheet.create({
 
   barsCol: { width: 80, gap: 5 },
   barLine: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  // "By question type" rows. A fixed-width track, unlike the per-species bars
+  // which flex — here the label is the variable-length part and the bars must
+  // line up with each other to be comparable at a glance.
+  fmtRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7 },
+  fmtLabel: { flex: 1, fontSize: 14, color: colors.text },
+  fmtTrack: {
+    width: 72,
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: colors.card,
+    overflow: 'hidden',
+  },
+  fmtPct: { width: 44, textAlign: 'right', fontSize: 14, fontWeight: '800', color: colors.text },
+  fmtCount: { width: 34, textAlign: 'right', fontSize: 12, color: colors.muted },
+
   barTrack: {
     flex: 1,
     height: 7,

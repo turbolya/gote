@@ -25,10 +25,11 @@ export const CHANGELOG = [
         + 'name counts, accents and capitals do not matter, and a small typo '
         + 'still passes — it shows you the right spelling rather than marking '
         + 'you wrong for the keyboard.',
-      'Your accuracy now also breaks down by question type, because typing a '
-        + 'name from memory is far harder than picking one from a list and '
-        + 'blending them into a single number would make your score drift as '
-        + 'the mix changed.',
+      'Statistics gains a “By question type” breakdown. Typing a name from '
+        + 'memory is far harder than picking one from a list, so a single '
+        + 'blended accuracy would drift as the mix changed — this shows each '
+        + 'kind of question on its own, easiest first, so a lower score further '
+        + 'down reads as expected rather than as getting worse.',
     ],
   },
   {

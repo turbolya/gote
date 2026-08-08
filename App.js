@@ -49,6 +49,7 @@ import {
   loadStats,
   addToStats,
   addToStatsByFormat,
+  loadStatsByFormat,
   loadPrefs,
   savePrefs,
   loadSpeciesStats,
@@ -222,6 +223,9 @@ export default function App() {
   // from many observers, not the current user) — so the message can match.
   const [loadingNearby, setLoadingNearby] = useState(false);
   const [lifetime, setLifetime] = useState({ answered: 0, correct: 0 });
+  // Lifetime totals split by question format — shown on Statistics so a blended
+  // accuracy stays interpretable once Smart play mixes formats (src/storage.js).
+  const [statsByFormat, setStatsByFormat] = useState({});
   // Recent games' accuracy (0–100, oldest→newest) for the menu's mini chart,
   // plus how many cards each of those games covered — right-aligned with it, so
   // every aggregate weighs a 100-card round above a 1-card one (src/accuracy.js).
@@ -638,10 +642,11 @@ export default function App() {
       loadConfusionWins().then((w) => {
         confusionWinsRef.current = w || {};
       });
-      const [savedUser, savedStats, savedPrefs, savedSpecies, savedCache, savedHistory, savedHistoryN, savedStreak, savedWatchTip] =
+      const [savedUser, savedStats, savedFormats, savedPrefs, savedSpecies, savedCache, savedHistory, savedHistoryN, savedStreak, savedWatchTip] =
         await Promise.all([
           loadUsername(),
           loadStats(),
+          loadStatsByFormat(),
           loadPrefs(),
           loadSpeciesStats(),
           loadCache(),
@@ -651,6 +656,7 @@ export default function App() {
           loadWatchTipDismissed(),
         ]);
       if (savedStats) setLifetime(savedStats);
+      if (savedFormats) setStatsByFormat(savedFormats);
       if (savedHistory && savedHistory.length) setHistory(savedHistory);
       if (savedHistoryN && savedHistoryN.length) setHistoryCounts(savedHistoryN);
       if (savedStreak) setStreak(savedStreak);
@@ -686,6 +692,7 @@ export default function App() {
         syncCloud().then((merged) => {
           if (!merged) return;
           setLifetime(merged.lifetime);
+          if (merged.formats) setStatsByFormat(merged.formats);
           speciesRef.current = merged.species;
           setSpeciesStats({ ...merged.species });
           setHistory(merged.history);
@@ -1129,7 +1136,7 @@ export default function App() {
     // Persist the per-format split alongside the blended totals. Written before
     // the upload for the same reason everything else here is: local storage is
     // authoritative, and the network is allowed to fail.
-    if (Object.keys(fmtDelta).length) addToStatsByFormat(fmtDelta);
+    if (Object.keys(fmtDelta).length) addToStatsByFormat(fmtDelta).then(setStatsByFormat);
     if (total > 0) {
       // Queue, then flush. recordEvent only writes to the outbox; without this
       // the round would sit there until the next cold launch, which looks
@@ -1785,6 +1792,7 @@ export default function App() {
             confusionNotes={confusionNotes}
             onCompare={(item) => setComparePair(item)}
             lifetime={lifetime}
+            statsByFormat={statsByFormat}
             history={history}
             historyCounts={historyCounts}
             streak={streakStatus(streak)}
@@ -1803,6 +1811,7 @@ export default function App() {
               confusionWinsRef.current = {};
               saveConfusionWins({});
               setLifetime({ answered: 0, correct: 0 });
+              setStatsByFormat({});
               setHistory([]);
               setHistoryCounts([]);
               setStreak({ current: 0, longest: 0, lastActiveDay: null });
@@ -1840,6 +1849,7 @@ export default function App() {
               const merged = res.merged;
               if (merged) {
                 setLifetime(merged.lifetime);
+                if (merged.formats) setStatsByFormat(merged.formats);
                 speciesRef.current = merged.species;
                 setSpeciesStats({ ...merged.species });
                 setHistory(merged.history);
