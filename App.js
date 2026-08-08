@@ -1824,15 +1824,18 @@ export default function App() {
             onBack={navBack}
             onSelect={(card) => setDetailCard(card)}
             onReset={async () => {
+              // Clears the confusion matrix and the recovery streaks as well —
+              // both are derived from play — and tombstones the player's pair
+              // notes. Only the in-memory mirrors are left to us.
               await resetStatistics();
               speciesRef.current = {};
               setSpeciesStats({});
-              // Confusions are derived from play, so reset clears them too —
-              // and with them the "verify the fix" recovery streaks.
               confusionRef.current = {};
-              saveConfusions({});
               confusionWinsRef.current = {};
-              saveConfusionWins({});
+              setConfusionNotes({});
+              // The note deletions live in the settings row, so they only reach
+              // the player's other devices if we push. A no-op when sync is off.
+              pushSettings({ perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode }, username);
               setLifetime({ answered: 0, correct: 0 });
               setStatsByFormat({});
               setHistory([]);

@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.40.0';
+export const APP_VERSION = '2.40.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.40.1',
+    date: '2026-08-08',
+    changes: [
+      '“Reset statistics” now clears everything it implies. Alongside your '
+        + 'totals and per-species results it also clears the look-alike pairs '
+        + 'you mix up, their recovery streaks, and the “my tell” notes you '
+        + 'wrote for them — on every device you sync to, not just this one. '
+        + 'Your flagged species, settings and downloads are untouched.',
+    ],
+  },
   {
     version: '2.40.0',
     date: '2026-08-08',

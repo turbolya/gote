@@ -163,6 +163,42 @@ const DAY = 24 * 60 * 60 * 1000;
     assert.deepStrictEqual(JSON.parse(await as.getItem('@gote/historyCounts')), [0, 3]);
   });
 
+  // --- per-format lifetime totals ---------------------------------------------
+  // The Score card and the "By question type" breakdown both read this map, and
+  // it is also a sync wire field, so junk from an older/newer client must fold
+  // to a number rather than poisoning the totals with NaN.
+  await test('statsByFormat: round-trips, accumulates and survives junk', async () => {
+    const as = makeAsyncStorage();
+    const s = loadStorage(as);
+    assert.deepStrictEqual(await s.loadStatsByFormat(), {}, 'nothing recorded yet');
+
+    const one = await s.addToStatsByFormat({ name: { answered: 3, correct: 2 } });
+    assert.deepStrictEqual(one, { name: { answered: 3, correct: 2 } });
+
+    // A second round adds to the format it used and leaves the others alone.
+    const two = await s.addToStatsByFormat({
+      name: { answered: 2, correct: 2 },
+      typed: { answered: 1, correct: 0 },
+    });
+    assert.deepStrictEqual(two.name, { answered: 5, correct: 4 }, 'sums, never replaces');
+    assert.deepStrictEqual(two.typed, { answered: 1, correct: 0 }, 'a new format starts at the delta');
+    assert.deepStrictEqual(await s.loadStatsByFormat(), two, 'and it persisted');
+
+    // An empty round must not invent an entry, and a malformed one must not
+    // turn a real total into NaN — which would render as an empty bar forever.
+    assert.deepStrictEqual(await s.addToStatsByFormat({}), two, 'an empty delta is a no-op');
+    assert.deepStrictEqual(await s.addToStatsByFormat(), two, 'a missing delta is a no-op');
+    const junk = await s.addToStatsByFormat({ name: { answered: 'x', correct: null }, pair: null });
+    assert.deepStrictEqual(junk.name, { answered: 5, correct: 4 }, 'junk counts as zero');
+    assert.strictEqual(junk.pair, undefined, 'a null entry adds no format');
+  });
+
+  await test('statsByFormat: unreadable storage reads as empty, not as a crash', async () => {
+    const as = makeAsyncStorage({ '@gote/statsByFormat': '{not json' });
+    const s = loadStorage(as);
+    assert.deepStrictEqual(await s.loadStatsByFormat(), {});
+  });
+
   await test('resetStatistics clears the active-day set, not just the streak', async () => {
     // The streak is RECOMPUTED from the active-day set whenever a sync folds in
     // a remote event (applyRemote → streakFromDays). Clearing the streak while
@@ -182,6 +218,82 @@ const DAY = 24 * 60 * 60 * 1000;
     assert.deepStrictEqual(await s.loadHistoryCounts(), []);
     assert.deepStrictEqual(await s.loadActiveDays(), [], 'the day set must go too');
     assert.strictEqual(await as.getItem('@gote/streak'), null);
+  });
+
+  // The test above names its keys by hand, which is exactly how the active-day
+  // bug got in: a new statistic was added and reset simply wasn't told about it.
+  // So seed EVERY key storage.js declares — read out of the source, so a key
+  // added tomorrow is seeded automatically — and assert that what survives a
+  // reset is precisely the survivor list below. Forgetting a new statistic then
+  // fails here instead of shipping as "reset didn't stick".
+  await test('resetStatistics clears every statistic, and only the statistics', async () => {
+    const src = require('fs').readFileSync(
+      path.join(__dirname, '..', 'src/storage.js'), 'utf8'
+    );
+    const allKeys = [...new Set(src.match(/'@gote\/[A-Za-z]+'/g) || [])]
+      .map((q) => q.slice(1, -1));
+    assert.ok(allKeys.length >= 15, `expected to find the key table, got ${allKeys.length}`);
+
+    // Everything that is NOT a statistic: identity, settings, the disposable
+    // download caches, and the flags the player set by hand. These must survive
+    // — clearing a score should not sign you out or drop your flagged species.
+    // confusionNotes is here because reset TOMBSTONES it rather than deleting
+    // it (see the next test), so the key is still present afterwards.
+    const survivors = new Set([
+      '@gote/username', '@gote/prefs', '@gote/settingsStamp', '@gote/dataVersion',
+      '@gote/obscache', '@gote/downloadedImages', '@gote/flags',
+      '@gote/confusionNotes',
+      '@gote/watchResultIds', '@gote/watchTipDismissed',
+    ]);
+
+    const as = makeAsyncStorage(Object.fromEntries(allKeys.map((k) => [k, '"seeded"'])));
+    await loadStorage(as).resetStatistics();
+    const left = allKeys.filter((k) => as._store.has(k)).sort();
+    assert.deepStrictEqual(
+      left,
+      allKeys.filter((k) => survivors.has(k)).sort(),
+      'a key here is either a statistic reset must clear, or a survivor to add above'
+    );
+  });
+
+  await test('resetStatistics tombstones the pair notes rather than deleting them', async () => {
+    // Notes ride the SETTINGS row, which is last-write-wins per note and re-read
+    // on every pull — so a plain delete loses the race against another device's
+    // copy and every note comes back. An empty-text note stamped `now` is the
+    // app's own delete (saveConfusionNote), and it is what actually propagates.
+    const as = makeAsyncStorage({
+      '@gote/confusions': JSON.stringify({ '1001': { '1002': 3 } }),
+      '@gote/confusionWins': JSON.stringify({ '1001|1002': 2 }),
+      '@gote/confusionNotes': JSON.stringify({
+        '1001|1002': { text: 'orange breast, not red', t: 100 },
+        '1003|1004': { text: 'check the tail', t: 200 },
+      }),
+    });
+    const s = loadStorage(as);
+    const notes = await s.resetStatistics(5000);
+
+    // Derived from play: gone outright.
+    assert.deepStrictEqual(await s.loadConfusions(), {}, 'the matrix is derived, so it goes');
+    assert.strictEqual(await as.getItem('@gote/confusionWins'), null, 'recovery streaks go too');
+
+    // Authored by the player: cleared as a syncable deletion, freshly stamped so
+    // it beats the copy still sitting in the other device's settings row.
+    assert.deepStrictEqual(notes, {
+      '1001|1002': { text: '', t: 5000 },
+      '1003|1004': { text: '', t: 5000 },
+    }, 'returned so the caller can push the deletion');
+    assert.deepStrictEqual(await s.loadConfusionNotes(), notes, 'and persisted');
+
+    // Nothing is left for the UI to draw.
+    const { displayNotes } = await import('../src/sync/merge.js');
+    assert.deepStrictEqual(displayNotes(await s.loadConfusionNotes()), {});
+  });
+
+  await test('resetStatistics with no notes writes no tombstones', async () => {
+    const as = makeAsyncStorage({ '@gote/stats': JSON.stringify({ answered: 1, correct: 1 }) });
+    const s = loadStorage(as);
+    assert.deepStrictEqual(await s.resetStatistics(), {}, 'nothing to tombstone');
+    assert.deepStrictEqual(await s.loadConfusionNotes(), {});
   });
 
   // --- applied-id dedup store -------------------------------------------------

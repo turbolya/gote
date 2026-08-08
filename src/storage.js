@@ -372,14 +372,38 @@ export async function saveConfusionWins(map) {
 // then quietly come back on the next pull. Totals didn't resurrect — the
 // applied-id ledger stops old events from re-folding — so the day set must be
 // cleared with the same finality, or reset looks like it didn't stick.
-export async function resetStatistics() {
+//
+// The confusion matrix and the "verify the fix" recovery streaks go too: both
+// are derived from answers, so leaving them would keep the Statistics page
+// showing look-alike pairs for a history the player just erased. They can be
+// removed outright — like the totals, they ride the append-only event log, and
+// the applied-id ledger stops already-consumed events from re-folding.
+//
+// The player's own pair NOTES cannot. Those ride the SETTINGS row, which is
+// last-write-wins per note and re-read on every pull, so deleting the key here
+// would let another device's copy win the next merge and put every note back.
+// They are cleared the way the app clears a single note — an empty-text
+// tombstone stamped `now` (see saveConfusionNote) — which is what makes the
+// deletion propagate instead of silently reappearing. The new map is returned
+// so the caller can push it; the deletion doesn't leave this device otherwise.
+export async function resetStatistics(now = Date.now()) {
+  let notes = {};
   try {
     await kv.multiRemove([
       K_STATS, K_FORMATS, K_SPECIES, K_HISTORY, K_HISTORY_N, K_STREAK, K_DAYS,
+      K_CONFUSIONS, K_CONFUSION_WINS,
     ]);
   } catch {
     /* ignore */
   }
+  try {
+    const prev = await loadConfusionNotes();
+    for (const key of Object.keys(prev)) notes[key] = { text: '', t: now };
+    await saveConfusionNotes(notes);
+  } catch {
+    /* ignore — a failed tombstone just leaves the note, never crashes reset */
+  }
+  return notes;
 }
 
 // --- Per-game accuracy history -----------------------------------------------
