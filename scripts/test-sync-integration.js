@@ -198,6 +198,28 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     sync: load('src/sync/index.js'),
     storage: load('src/storage.js'),
     outbox: load('src/sync/outbox.js'),
+    // Simulate a device that can read but cannot upload — a captive wifi, a
+    // proxy, a server having a bad minute. Reads still work, so the rest of the
+    // sync path behaves normally and only the push fails, which is the state
+    // that used to leave a device marked as "already contributed" while the
+    // account had nothing.
+    breakPushes() {
+      clientMod.setClientForTests({
+        auth: client.auth,
+        from: (t) => {
+          const real = client.from(t);
+          if (t !== 'events') return real;
+          return {
+            upsert: async () => ({ error: { message: 'simulated network failure', code: '08006' } }),
+            select: (...a) => real.select(...a),
+            insert: (...a) => real.insert(...a),
+          };
+        },
+      });
+    },
+    fixPushes() {
+      clientMod.setClientForTests(client);
+    },
   };
 }
 
@@ -1061,6 +1083,179 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
 
     eq(await a.storage.loadStats(), aBefore, 'A is untouched — nothing was double-counted');
     eq(await b.storage.loadStats(), bBefore, 'B is untouched');
+  });
+
+  await test('the repair survives a trimmed applied-id ledger', async () => {
+    // The ledger is CAPPED (trimLedger, 2000). On a long-lived account the ids
+    // of events merged long ago fall out of it, so a repair that asks "did I
+    // merge this?" gets a false negative and re-sends another device's rounds.
+    // Emptying the ledger here is what that looks like at the far end.
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const email = `ledger-${Date.now()}@example.com`;
+
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 9, correct: 7 });
+    await a.storage.saveHistory([90]);
+    await a.sync.recordEvent({ answered: 9, correct: 7, pct: 90, n: 9 });
+    await a.sync.syncNow();
+    await attachEmail(admin, idA, email);
+
+    const b = makeDevice({ createClient, url, anon, name: 'B' });
+    await b.sync.ensureSession();
+    await b.storage.saveStats({ answered: 4, correct: 2 });
+    await b.storage.saveHistory([50]);
+    ok((await b.sync.signInWithEmail(email)).ok, 'signin B');
+    ok((await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok, 'confirm B');
+    await b.sync.afterAuthChange('signin');
+    await a.sync.syncNow();
+
+    const aBefore = await a.storage.loadStats();
+    // The ledger ages out, exactly as it would after thousands of rounds.
+    await b.kv.setItem('@gote/sync/appliedIds', JSON.stringify([]));
+
+    ok((await b.sync.recontributeHistory()).ok, 'repair');
+    await a.sync.syncNow();
+    await a.sync.syncNow();
+    eq(await a.storage.loadStats(), aBefore, 'A must not be double-counted');
+  });
+
+  await test('the repair is correct on an account with more than one page of events', async () => {
+    // Every select is capped, so a repair that read one page saw a partial
+    // account and deducted a partial account — re-sending rounds it already had.
+    // 520 rows crosses the 500 boundary in both the pull and the fetch.
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const email = `page-${Date.now()}@example.com`;
+
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 3, correct: 3 });
+    await a.sync.recordEvent({ answered: 3, correct: 3, pct: 100, n: 3 });
+    await a.sync.syncNow();
+    await attachEmail(admin, idA, email);
+
+    // A long history from a third device, straight into the table.
+    const bulk = [];
+    for (let i = 0; i < 520; i += 1) {
+      bulk.push({
+        id: a.outbox.uid(),
+        user_id: idA,
+        device_id: 'bulk-device',
+        ts: new Date(Date.now() - (520 - i) * 60000).toISOString(),
+        local_day: '2026-08-01',
+        answered: 1,
+        correct: 1,
+        pct: null,
+        n: 0,
+        species: {},
+        formats: {},
+        confusions: {},
+        history: [],
+        counts: [],
+        days: [],
+      });
+    }
+    const { error: bulkErr } = await admin.from('events').insert(bulk);
+    ok(!bulkErr, `bulk insert failed: ${bulkErr && bulkErr.message}`);
+
+    const b = makeDevice({ createClient, url, anon, name: 'B' });
+    await b.sync.ensureSession();
+    await b.storage.saveStats({ answered: 7, correct: 5 });
+    ok((await b.sync.signInWithEmail(email)).ok, 'signin B');
+    ok((await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok, 'confirm B');
+    await b.sync.afterAuthChange('signin');
+    for (let i = 0; i < 5; i += 1) await b.sync.syncNow(); // catch up past one page
+
+    // B now holds its own 7 plus A's 3 plus the 520.
+    eq(await b.storage.loadStats(), { answered: 530, correct: 528 }, 'B after converging');
+
+    // A has to converge too — it is 520 rows behind, which is more than one
+    // page. Snapshotting mid-catch-up compares a partial total against a
+    // complete one and blames the repair for the difference.
+    for (let i = 0; i < 5; i += 1) await a.sync.syncNow();
+    const aBefore = await a.storage.loadStats();
+    eq(aBefore, { answered: 530, correct: 528 }, 'A converged before the repair');
+    ok((await b.sync.recontributeHistory()).ok, 'repair');
+    for (let i = 0; i < 5; i += 1) await a.sync.syncNow();
+    eq(await a.storage.loadStats(), aBefore, 'A must not gain anything from a no-op repair');
+  });
+
+  // --- durability of the queue ----------------------------------------------
+  console.log('\nthe queue must not lose rounds');
+
+  await test('a baseline is not marked as sent while the push is failing', async () => {
+    // The failure this guards: uploadBaseline only QUEUES the row, and the
+    // account used to be marked as baselined right there. If the push then never
+    // succeeded, the device was certain it had contributed while the account had
+    // nothing — and reconcileAccount never tried again.
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 12, correct: 9 });
+    await a.storage.saveHistory([70, 75]);
+
+    a.breakPushes();
+    await a.sync.syncNow();
+    ok(
+      !a.kv._dump()['@gote/sync/baselineUserId'],
+      'must NOT claim to have baselined while the row is still queued'
+    );
+    ok(JSON.parse(a.kv._dump()['@gote/sync/outbox']).length > 0, 'the baseline is still queued');
+
+    // The network comes back.
+    a.fixPushes();
+    await a.sync.syncNow();
+    const userId = await a.sync.currentUserId();
+    ok(a.kv._dump()['@gote/sync/baselineUserId'] === userId, 'marked once it landed');
+    const { data } = await a.client.from('events').select('answered').eq('user_id', userId);
+    eq((data || []).map((r) => r.answered), [12], 'and the history actually reached the account');
+  });
+
+  await test('overflowing the outbox compacts it instead of dropping rounds', async () => {
+    // The cap used to keep the newest 1000 and discard the rest, silently: those
+    // rounds were counted on the device and simply never reached the account.
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const email = `overflow-${Date.now()}@example.com`;
+
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+
+    // 1010 rounds played offline — 10 past the cap.
+    for (let i = 0; i < 1010; i += 1) {
+      await a.outbox.pushToOutbox({
+        id: a.outbox.uid(),
+        device_id: await a.outbox.getDeviceId(),
+        ts: new Date(Date.now() - (1010 - i) * 1000).toISOString(),
+        local_day: '2026-08-03',
+        answered: 1,
+        correct: 1,
+        pct: 100,
+        n: 1,
+        species: {},
+        formats: {},
+        confusions: {},
+        history: [],
+        counts: [],
+        days: [],
+      });
+    }
+    const queued = JSON.parse(a.kv._dump()['@gote/sync/outbox']);
+    eq(queued.length, 1000, 'the queue is still capped');
+    // Nothing lost: the folded row carries the rounds that no longer have one.
+    const total = queued.reduce((sum, e) => sum + e.answered, 0);
+    eq(total, 1010, 'every round is still represented in the queue');
+
+    await a.sync.syncNow();
+    await attachEmail(admin, idA, email);
+
+    const b = makeDevice({ createClient, url, anon, name: 'B' });
+    await b.sync.ensureSession();
+    ok((await b.sync.signInWithEmail(email)).ok, 'signin B');
+    ok((await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok, 'confirm B');
+    await b.sync.afterAuthChange('signin');
+    for (let i = 0; i < 5; i += 1) await b.sync.syncNow();
+
+    eq(await b.storage.loadStats(), { answered: 1010, correct: 1010 }, 'B receives all 1010');
+    eq((await b.storage.loadActiveDays()).includes('2026-08-03'), true, 'the streak day survived');
   });
 
   // --- reset, and the per-format split --------------------------------------

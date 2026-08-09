@@ -514,3 +514,97 @@ function nextDay(key) {
 function prevDay(key) {
   return shiftDay(key, -1);
 }
+
+// Fold a run of events into ONE, losing nothing that is additive.
+//
+// The outbox is capped, and it used to enforce that by dropping the oldest
+// events outright — rounds that were already counted locally and would simply
+// never reach the account, with no signal anywhere. Compaction keeps the same
+// bound without the loss: totals sum, species and formats and confusions merge,
+// and every finished round keeps its bar on the accuracy chart.
+//
+// The result is shaped like a baseline rather than a round, because that is what
+// it is: `pct` is null (a compacted run is not one round) and each source
+// round's percentage moves into `history`, carrying its card count in `counts`.
+// Each source's `local_day` moves into `days`, or compaction would quietly cost
+// the player streak days.
+export function compactEvents(events, id) {
+  const list = (Array.isArray(events) ? events : []).filter(Boolean);
+  if (!list.length) return null;
+
+  let answered = 0;
+  let correct = 0;
+  const species = {};
+  const formats = {};
+  let confusions = {};
+  const history = [];
+  const counts = [];
+  const days = new Set();
+
+  for (const e of list) {
+    answered += num(e.answered);
+    correct += num(e.correct);
+
+    for (const [key, v] of Object.entries(e.species || {})) {
+      const p = species[key] || {};
+      species[key] = {
+        name: v.name || p.name,
+        sci: v.sci || p.sci,
+        image: v.image || p.image || null,
+        known: num(p.known) + num(v.known),
+        missed: num(p.missed) + num(v.missed),
+        // Folds by max, not by sum — it is a timestamp, not a counter.
+        lastSeen: Math.max(num(p.lastSeen), num(v.lastSeen)),
+        msTotal: num(p.msTotal) + num(v.msTotal),
+        msCount: num(p.msCount) + num(v.msCount),
+        points: num(p.points) + num(v.points),
+        weight: num(p.weight) + num(v.weight),
+      };
+    }
+
+    for (const [k, v] of Object.entries(e.formats || {})) {
+      const p = formats[k] || { answered: 0, correct: 0 };
+      formats[k] = {
+        answered: p.answered + num(v && v.answered),
+        correct: p.correct + num(v && v.correct),
+      };
+    }
+
+    if (e.confusions) confusions = mergeConfusions(confusions, e.confusions);
+
+    // Bars, in the order they were played. A baseline's own bars come first,
+    // then its own round percentage if it has one.
+    const h = Array.isArray(e.history) ? e.history : [];
+    const c = Array.isArray(e.counts) ? e.counts : [];
+    const offset = h.length - c.length; // counts are right-aligned with history
+    h.forEach((p, i) => {
+      history.push(clamp(Math.round(num(p)), 0, 100));
+      counts.push(Math.max(0, Math.round(num(i >= offset ? c[i - offset] : 0))));
+    });
+    if (e.pct != null) {
+      history.push(clamp(Math.round(num(e.pct)), 0, 100));
+      counts.push(Math.max(0, Math.round(num(e.n))));
+    }
+
+    for (const d of Array.isArray(e.days) ? e.days : []) if (d) days.add(d);
+    if (e.local_day) days.add(e.local_day);
+  }
+
+  const last = list[list.length - 1];
+  return {
+    id,
+    device_id: last.device_id,
+    ts: last.ts,
+    local_day: last.local_day,
+    answered,
+    correct,
+    pct: null, // a compacted run is not a round; its bars ride in `history`
+    n: 0,
+    species,
+    formats,
+    confusions,
+    history,
+    counts,
+    days: [...days],
+  };
+}

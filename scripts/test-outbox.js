@@ -31,7 +31,21 @@ function loadOutbox() {
     multiRemove: async () => {},
     getAllKeys: async () => [],
   };
-  const fakeRequire = (id) => (id === '../kv' ? stub : require(id));
+  const fakeRequire = (id) => {
+    if (id === '../kv') return stub;
+    // outbox.js folds its overflow with merge.js (compactEvents), which is ESM
+    // like everything else in the sync layer — transform it through the same
+    // path rather than letting require() choke on it.
+    if (id === './merge') {
+      const mergeCode = babel.transformFileSync(path.join(__dirname, '..', 'src/sync/merge.js'), {
+        plugins: ['@babel/plugin-transform-modules-commonjs'],
+      }).code;
+      const mm = { exports: {} };
+      new Function('module', 'exports', 'require', mergeCode)(mm, mm.exports, require);
+      return mm.exports;
+    }
+    return require(id);
+  };
   new Function('module', 'exports', 'require', code)(m, m.exports, fakeRequire);
   return m.exports;
 }

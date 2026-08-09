@@ -8,9 +8,26 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.40.3';
+export const APP_VERSION = '2.40.4';
 
 export const CHANGELOG = [
+  {
+    version: '2.40.4',
+    date: '2026-08-09',
+    changes: [
+      'Fixed sync skipping rounds when a device had a lot to catch up on — '
+        + 'joining a second device to an account with a long history could leave '
+        + 'part of it behind for good. It now works through the whole history, '
+        + 'however large.',
+      'A long stretch offline no longer costs you your oldest rounds. When more '
+        + 'than a thousand are waiting to upload, the earliest are now combined '
+        + 'into one rather than dropped, so your totals, species, streak days '
+        + 'and chart all survive intact.',
+      'If uploading keeps failing, the app no longer assumes your history '
+        + 'reached the account. It waits until it really has, then stops asking '
+        + '— even if that takes days.',
+    ],
+  },
   {
     version: '2.40.3',
     date: '2026-08-09',

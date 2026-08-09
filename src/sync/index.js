@@ -74,6 +74,9 @@ import {
   uid,
   baselineUid,
   sanitizeEvent,
+  loadPendingBaseline,
+  savePendingBaseline,
+  clearPendingBaseline,
 } from './outbox';
 import {
   localDay,
@@ -282,7 +285,8 @@ async function run() {
     // kept a watermark from the account it just left — pulling none of its new
     // account's history.
     await reconcileAccount(userId);
-    await push(supabase, userId);
+    const { discarded } = (await push(supabase, userId)) || {};
+    await confirmBaseline(userId, discarded);
     return await pull(supabase, userId);
   } catch (e) {
     debug('run failed', e && e.message);
@@ -320,18 +324,56 @@ async function reconcileAccount(userId) {
   // one signed back into — and without this guard the second pass re-sends a
   // baseline the account already has.
   const baselined = await loadBaselineUserId();
+  let pendingBaselineId = null;
   if (baselined === userId) {
     debug('baseline already sent to', userId, '— skipping');
   } else {
-    await uploadBaseline(userId);
-    await saveBaselineUserId(userId);
+    // Marking the account as baselined HERE was a quiet way to lose a device's
+    // whole history: uploadBaseline only queues the event, so if the push that
+    // follows never succeeds the account keeps no baseline while the device is
+    // certain it sent one, and reconcileAccount never tries again. The mark now
+    // waits until the row has actually left (see confirmBaseline).
+    pendingBaselineId = await uploadBaseline(userId);
+    // Remembered on DISK, not just for the rest of this run: the push carrying
+    // it may not succeed for days, and reconcileAccount returns early on every
+    // sync after the first, so a purely in-memory hand-off would never be
+    // confirmed at all.
+    if (pendingBaselineId) await savePendingBaseline(userId, pendingBaselineId);
+    // Nothing to contribute — a genuinely empty device. That IS done, so mark it
+    // and don't come back.
+    else await saveBaselineUserId(userId);
   }
   await saveLastUserId(userId);
+  return pendingBaselineId;
+}
+
+// Record "this device has contributed to this account" only once the baseline
+// row has genuinely gone. It has, when it is no longer queued AND was not thrown
+// away as unacceptable — a discarded row leaves the outbox too, and treating
+// that as success is exactly the confusion this guards against.
+//
+// Runs on EVERY sync rather than only the one that queued the baseline, because
+// the push that carries it may fail for a long time first.
+async function confirmBaseline(userId, discarded) {
+  const pending = await loadPendingBaseline();
+  if (!pending || pending.userId !== userId) return;
+  if (discarded && discarded.includes(pending.eventId)) {
+    debug('baseline was rejected outright — not marking', userId);
+    await clearPendingBaseline();
+    return;
+  }
+  const stillQueued = (await loadOutbox()).some((e) => e && e.id === pending.eventId);
+  if (stillQueued) {
+    debug('baseline still queued — will mark once it lands');
+    return;
+  }
+  await saveBaselineUserId(userId);
+  await clearPendingBaseline();
 }
 
 async function push(supabase, userId) {
   const queued = await loadOutbox();
-  if (!queued.length) return;
+  if (!queued.length) return { discarded: [] };
   const rows = queued.map((e) => ({ ...e, user_id: userId }));
   // ON CONFLICT DO NOTHING, not DO UPDATE. A push that succeeded server-side
   // but whose response never arrived must not fail forever on the duplicate
@@ -349,7 +391,7 @@ async function push(supabase, userId) {
     lastPushError = null;
     debug('pushed', rows.length);
     await clearFromOutbox(rows.map((r) => r.id));
-    return;
+    return { discarded: [] };
   }
 
   // The batch failed. It is one statement, so ONE unacceptable row takes every
@@ -378,6 +420,7 @@ async function push(supabase, userId) {
     ? `${stuck.length} round(s) could not be uploaded and were discarded: ${stuck[0].message}`
     : error.message;
   if (stuck.length) debug('discarded', stuck.length, 'unacceptable events');
+  return { discarded: stuck.map((r) => r.id) };
 }
 
 // Is this rejection one that retrying can never fix? A constraint violation or
@@ -407,8 +450,18 @@ async function pull(supabase, userId) {
     .select('id, device_id, ts, local_day, answered, correct, pct, n, species, formats, confusions, history, counts, days, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
+    .order('id', { ascending: true })
     .limit(PULL_LIMIT);
-  if (since) query = query.gt('created_at', since);
+  // Keyset cursor: strictly after (created_at, id). The id tiebreak is what
+  // stops rows sharing a created_at with the last row of a page from being
+  // skipped — see loadLastPulledAt.
+  if (since && since.iso) {
+    query = since.id
+      ? query.or(
+          `created_at.gt."${since.iso}",and(created_at.eq."${since.iso}",id.gt.${since.id})`
+        )
+      : query.gt('created_at', since.iso);
+  }
 
   const { data, error } = await query;
   if (error || !data) return null;
@@ -420,15 +473,17 @@ async function pull(supabase, userId) {
   // Our own rows were counted locally the moment they were played. Re-applying
   // them would double every number on this device.
   const foreign = data.filter((e) => e.device_id !== deviceId);
-  const newest = data[data.length - 1].created_at;
+  const last = data[data.length - 1];
+  const newest = last.created_at;
+  const newestId = last.id;
 
   if (!foreign.length) {
-    await saveLastPulledAt(userId, newest);
+    await saveLastPulledAt(userId, newest, newestId);
     return null;
   }
 
   const changed = await applyRemote(foreign);
-  await saveLastPulledAt(userId, newest);
+  await saveLastPulledAt(userId, newest, newestId);
   return changed;
 }
 
@@ -595,45 +650,57 @@ export async function getSyncStatus() {
 // Only events this device actually APPLIED are deducted (the applied-id ledger).
 // A foreign event not yet folded in is not in the local totals either, so
 // subtracting it would leave the account short by that much instead.
+// Every event on the account, a page at a time. A single select is capped
+// (PostgREST defaults, and PULL_LIMIT above), and a partial list here would mean
+// a partial subtraction — i.e. re-sending rounds the account already has.
+async function fetchAllEvents(supabase, userId) {
+  const PAGE = 500;
+  const rows = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('events')
+      .select('id, device_id, answered, correct, pct, species, formats, confusions, history')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) return { error: error.message };
+    rows.push(...(data || []));
+    if (!data || data.length < PAGE) return { rows };
+  }
+}
+
 export async function recontributeHistory() {
   if (!(await syncOn())) return { ok: false, error: 'sync-off' };
   const supabase = getClient();
   const userId = await ensureSession();
   if (!supabase || !userId) return { ok: false, error: 'not-signed-in' };
 
-  const [appliedIds, deviceId] = await Promise.all([loadAppliedIds(), getDeviceId()]);
-  const seen = new Set(appliedIds || []);
-  const { data, error } = await supabase
-    .from('events')
-    .select('id, device_id, answered, correct, pct, species, formats, confusions, history')
-    .eq('user_id', userId)
-    .limit(PULL_LIMIT);
-  if (error) return { ok: false, error: error.message };
+  // Converge FIRST. Everything below rests on "the local totals contain every
+  // event on the account", so pull until nothing new arrives — a single pass
+  // moves at most PULL_LIMIT rows, and an account with more than that would
+  // otherwise leave rows unapplied and get them subtracted anyway, sending less
+  // than this device actually owns. Bounded, because a device that never
+  // converges must not spin here.
+  for (let i = 0; i < 10; i += 1) {
+    const changed = await syncNow();
+    if (!changed) break;
+  }
 
-  // Two deductions, and both are needed:
+  const { rows, error } = await fetchAllEvents(supabase, userId);
+  if (error) return { ok: false, error };
+
+  // Deduct EVERY event on the account, this device's and the other devices'
+  // alike. Both are already in the local totals by now — a foreign event
+  // because the loop above merged it, an own event because it was counted when
+  // it was played — and both are already on the account, so what is left over is
+  // exactly the part that never got there.
   //
-  //   foreign AND already folded in — other devices' rounds that are sitting in
-  //     this device's totals. Only the APPLIED ones: a foreign event not yet
-  //     merged is not in the local totals either, so deducting it would leave
-  //     the account short by that much instead.
-  //   this device's own rows already on the account — what it has ALREADY
-  //     contributed. Without this the repair is not idempotent: run on a healthy
-  //     device it would send its history a second time and double it everywhere.
-  //     With it, a device that has nothing missing computes zero and sends
-  //     nothing, which is what makes the button safe to press.
-  const merged = (data || []).filter(
-    (e) => (e.device_id !== deviceId && seen.has(e.id)) || e.device_id === deviceId
-  );
-
-  // Chart bars need their own accounting, because they are a list rather than a
-  // counter: applyEvent APPENDS each one, so a bar already on the account draws
-  // a second round that never happened. Two sources are already there —
-  //   • bars this device merged FROM others, which are sitting in its local
-  //     history and would otherwise be handed straight back to their owner;
-  //   • bars this device has ALREADY sent, including the ones its original
-  //     baseline carried, which is why a repair could duplicate a chart even
-  //     when the totals it was fixing were genuinely missing.
-  // Both are exactly the rows in `merged`, so they are collected together.
+  // Deliberately NOT filtered by the applied-id ledger. The ledger is capped
+  // (trimLedger, 2000), so on a long-lived account the ids of events merged long
+  // ago fall out of it, and asking it "did I merge this?" returns a false
+  // negative — which sent another device's rounds back to it. The integration
+  // suite caught that; converging first makes the question unnecessary.
+  const merged = rows;
   const removeBars = [];
   for (const e of merged) {
     if (e.pct != null) removeBars.push(Number(e.pct));
@@ -866,7 +933,7 @@ async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = []
     && !outHistory.length && !baseDays.length
   ) return;
 
-  await recordEvent({
+  const queuedId = await recordEvent({
     answered,
     correct,
     pct: null, // the baseline itself is not a round; its bars ride in `history`
@@ -882,6 +949,9 @@ async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = []
     id: idOverride || baselineUid(await getDeviceId(), userId),
   });
   debug('baseline queued:', answered, 'answers,', outHistory.length, 'bars,', baseDays.length, 'days');
+  // The caller marks the account as baselined only once this row has actually
+  // left the outbox, so it needs to know which row to watch.
+  return queuedId;
 }
 
 function num(v) {

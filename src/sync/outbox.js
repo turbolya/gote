@@ -10,6 +10,7 @@
 // this is transport bookkeeping that only the sync layer reads.
 
 import * as kv from '../kv';
+import { compactEvents } from './merge';
 
 const K_OUTBOX = '@gote/sync/outbox';
 const K_APPLIED = '@gote/sync/appliedIds';
@@ -21,6 +22,11 @@ const K_LAST_USER = '@gote/sync/lastUserId';
 // differ exactly when a baseline must be skipped. See loadBaselineUserId.
 const K_BASELINE_USER = '@gote/sync/baselineUserId';
 const K_OPT_IN = '@gote/sync/optIn';
+// A baseline that has been QUEUED for an account but has not reached it yet,
+// stored as "<userId>|<eventId>". Durable, because the push that carries it may
+// not succeed for days — and until it does, this device must not believe it has
+// already contributed. See confirmBaseline.
+const K_PENDING_BASELINE = '@gote/sync/pendingBaseline';
 
 // Whether the user has turned sync ON. Off by default: a sync-capable build
 // still uploads NOTHING and creates no account until this is set. Everything
@@ -43,8 +49,15 @@ export async function saveSyncOptIn(on) {
 }
 
 // A cap so a long offline stretch (or a server that stays unreachable) can't
-// grow the queue without bound. Oldest go first: they are the ones whose
-// history matters least if something has to be dropped.
+// grow the queue without bound.
+//
+// The overflow is COMPACTED, not dropped. Dropping the oldest events was silent
+// data loss of the worst kind: those rounds were already counted on this device,
+// so nothing looked wrong here, while the account — and therefore every other
+// device — simply never learned about them. Folding them into one event holds
+// the same bound and keeps the totals, the species tallies, the chart bars and
+// the streak days. What it costs is granularity, which is the right thing to
+// spend: nobody can tell that forty old rounds arrived as one row.
 const MAX_OUTBOX = 1000;
 
 // Force an event's counters into the range the `events` table will accept.
@@ -82,7 +95,15 @@ export async function loadOutbox() {
 
 export async function saveOutbox(events) {
   const arr = Array.isArray(events) ? events : [];
-  await writeJson(K_OUTBOX, arr.slice(-MAX_OUTBOX));
+  if (arr.length <= MAX_OUTBOX) {
+    await writeJson(K_OUTBOX, arr);
+    return;
+  }
+  // Fold the excess (plus one, so the compacted row fits) into a single event
+  // and keep it at the front, where its place in the queue still is.
+  const cut = arr.length - MAX_OUTBOX + 1;
+  const folded = compactEvents(arr.slice(0, cut), uid());
+  await writeJson(K_OUTBOX, folded ? [folded, ...arr.slice(cut)] : arr.slice(-MAX_OUTBOX));
 }
 
 export async function pushToOutbox(event) {
@@ -130,17 +151,33 @@ function pulledKey(userId) {
   return `${K_PULLED_AT}:${userId || 'anon'}`;
 }
 
+// The pull cursor is a (created_at, id) PAIR, stored as "<iso>|<id>".
+//
+// created_at alone is not unique and cannot be: `now()` is the TRANSACTION
+// timestamp, and push inserts the whole outbox in one statement, so a batch of
+// queued rounds all carry the same created_at. A cursor of "everything after
+// this timestamp" therefore skipped every row that shared a timestamp with the
+// last row of a page — silently, and for ever, because the cursor had already
+// moved past them. Pairing it with the id makes the ordering total.
+//
+// A value written by an older build is a bare ISO string with no id; it reads
+// back with id null, which simply means "resume the old way once", and the next
+// pull writes the pair.
 export async function loadLastPulledAt(userId) {
   try {
-    return (await kv.getItem(pulledKey(userId))) || null;
+    const raw = await kv.getItem(pulledKey(userId));
+    if (!raw) return null;
+    const at = String(raw).indexOf('|');
+    if (at < 0) return { iso: String(raw), id: null };
+    return { iso: raw.slice(0, at), id: raw.slice(at + 1) || null };
   } catch {
     return null;
   }
 }
 
-export async function saveLastPulledAt(userId, iso) {
+export async function saveLastPulledAt(userId, iso, id = null) {
   try {
-    if (iso) await kv.setItem(pulledKey(userId), String(iso));
+    if (iso) await kv.setItem(pulledKey(userId), id ? `${iso}|${id}` : String(iso));
   } catch {
     /* ignore */
   }
@@ -305,5 +342,34 @@ async function writeJson(key, value) {
     await kv.setItem(key, JSON.stringify(value));
   } catch {
     /* best-effort */
+  }
+}
+
+// The baseline queued for an account but not yet confirmed to have landed.
+export async function loadPendingBaseline() {
+  try {
+    const raw = await kv.getItem(K_PENDING_BASELINE);
+    if (!raw) return null;
+    const at = String(raw).indexOf('|');
+    if (at < 0) return null;
+    return { userId: raw.slice(0, at), eventId: raw.slice(at + 1) };
+  } catch {
+    return null;
+  }
+}
+
+export async function savePendingBaseline(userId, eventId) {
+  try {
+    await kv.setItem(K_PENDING_BASELINE, `${userId}|${eventId}`);
+  } catch {
+    /* ignore */
+  }
+}
+
+export async function clearPendingBaseline() {
+  try {
+    await kv.removeItem(K_PENDING_BASELINE);
+  } catch {
+    /* ignore */
   }
 }
