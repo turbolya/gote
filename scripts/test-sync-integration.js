@@ -809,6 +809,255 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     eq(await b.storage.loadConfusions(), { 10: { 20: 2 } }, "B folded in A's confusion");
   });
 
+  // --- a row the database refuses -------------------------------------------
+  // The `events` table carries CHECK constraints (answered >= 0, correct >= 0,
+  // pct 0..100). A violating row is refused with SQLSTATE 23514 on EVERY
+  // attempt — it describes the row, not the moment — and the outbox is pushed
+  // as one statement, so a single such row used to stop every later round
+  // uploading, forever, while the screen said only "waiting to upload".
+  //
+  // These craft the bad row by writing it straight to the outbox, because that
+  // is the only way it can still arise: recordEvent sanitizes now, so the app
+  // itself cannot make one. An older build could, and its rows are still on
+  // devices.
+  console.log('\na row the database refuses');
+
+  const badRow = async (d, over = {}) => ({
+    id: d.outbox.uid(),
+    device_id: await d.outbox.getDeviceId(),
+    ts: new Date().toISOString(),
+    local_day: '2026-08-09',
+    answered: 0,
+    correct: 0,
+    // THE POISON: pct must be null or 0..100, so this row is refused however
+    // else it is filled in. It lives on `pct` rather than on `answered`
+    // deliberately — callers below override answered/correct to give the row a
+    // size, and a poison sitting on one of those would be cured by the override
+    // without the test noticing it had stopped testing anything.
+    pct: 140,
+    n: 0,
+    species: {},
+    formats: {},
+    confusions: {},
+    history: [],
+    counts: [],
+    days: [],
+    ...over,
+  });
+
+  await test('a refused round does not stop the good ones uploading', async () => {
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const userId = await a.sync.ensureSession();
+    await a.outbox.pushToOutbox(await badRow(a));
+    await a.sync.recordEvent({ answered: 4, correct: 3, pct: 75 });
+    await a.sync.recordEvent({ answered: 6, correct: 6, pct: 100 });
+    await a.sync.syncNow();
+
+    const { data } = await a.client.from('events').select('answered').eq('user_id', userId);
+    const landed = (data || []).map((r) => r.answered).sort((x, y) => x - y);
+    eq(landed, [4, 6], 'the two good rounds landed despite the refused one');
+  });
+
+  await test('a permanently refused round is discarded, not retried forever', async () => {
+    // Before the per-row fallback this row sat in the outbox for good, and took
+    // every later round with it. Dropping it loses one round; keeping it lost
+    // all of them.
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    await a.sync.ensureSession();
+    await a.outbox.pushToOutbox(await badRow(a));
+    await a.sync.syncNow();
+    eq(JSON.parse(a.kv._dump()['@gote/sync/outbox']), [], 'outbox after the refusal');
+
+    // And the queue keeps working afterwards.
+    await a.sync.recordEvent({ answered: 2, correct: 1, pct: 50 });
+    await a.sync.syncNow();
+    eq(JSON.parse(a.kv._dump()['@gote/sync/outbox']), [], 'outbox after a later round');
+  });
+
+  await test('the refusal is reported, not swallowed', async () => {
+    // "N rounds waiting to upload" with no reason is what sent a real user
+    // looking at their wifi for a problem that was on the server.
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    await a.sync.ensureSession();
+    await a.outbox.pushToOutbox(await badRow(a));
+    await a.sync.syncNow();
+    const status = await a.sync.getSyncStatus();
+    ok(status.pushError, 'getSyncStatus must carry why the push failed');
+  });
+
+  await test('recordEvent cannot create a row the table would refuse', async () => {
+    // sanitizeEvent's whole job. Values no caller should produce, clamped into
+    // range rather than queued and refused for ever.
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const userId = await a.sync.ensureSession();
+    await a.sync.recordEvent({ answered: -3, correct: -1, pct: 140, n: -2 });
+    await a.sync.syncNow();
+    const { data } = await a.client.from('events').select('answered, correct, pct, n').eq('user_id', userId);
+    eq((data || []).length, 1, 'the clamped row was accepted');
+    eq(data[0], { answered: 0, correct: 0, pct: 100, n: 0 }, 'clamped values');
+    eq(JSON.parse(a.kv._dump()['@gote/sync/outbox']), [], 'nothing left stuck');
+  });
+
+  // --- stranded history and its recovery ------------------------------------
+  // The failure that cost a real device its whole history: uploadBaseline
+  // subtracts whatever is in the outbox (those rounds are about to be pushed as
+  // their own events), so if that push then fails permanently the account keeps
+  // a baseline with the rounds deducted and nothing to replace them. The device
+  // has already recorded baselineUserId, and the baseline id is stable per
+  // (device, account), so it can never correct itself.
+  console.log('\nstranded history');
+
+  await test('a baseline deducting an unpushable round leaves the account short', async () => {
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const email = `strand-${Date.now()}@example.com`;
+
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.sync.recordEvent({ answered: 1, correct: 1, pct: 100 });
+    await a.sync.syncNow();
+    await attachEmail(admin, idA, email);
+
+    // B has played 38 rounds locally, and one queued round it can never push.
+    const b = makeDevice({ createClient, url, anon, name: 'B' });
+    await b.sync.ensureSession();
+    await b.storage.saveStats({ answered: 38, correct: 27 });
+    // Bars and days too, or the baseline finds nothing at all to send and never
+    // queues a row — the production case had a row, with the totals deducted.
+    await b.storage.saveHistory([70, 80]);
+    await b.storage.saveActiveDays(['2026-08-01', '2026-08-02']);
+    await b.outbox.pushToOutbox(await badRow(b, { answered: 38, correct: 27 }));
+
+    ok((await b.sync.signInWithEmail(email)).ok, 'signin B');
+    ok((await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok, 'confirm B');
+    await b.sync.afterAuthChange('signin');
+
+    // B's baseline deducted the queued round, which was then refused: the
+    // account has B's row, but with nothing in it.
+    const idB = await b.sync.currentUserId();
+    const { data } = await b.client
+      .from('events').select('answered').eq('user_id', idB).eq('device_id', await b.outbox.getDeviceId());
+    eq((data || []).map((r) => r.answered), [0], "B's contribution to the account");
+  });
+
+  await test('recontributeHistory puts a stranded history back on the account', async () => {
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const email = `recover-${Date.now()}@example.com`;
+
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 5, correct: 4 });
+    await a.sync.recordEvent({ answered: 5, correct: 4, pct: 80 });
+    await a.sync.syncNow();
+    await attachEmail(admin, idA, email);
+
+    const b = makeDevice({ createClient, url, anon, name: 'B' });
+    await b.sync.ensureSession();
+    await b.storage.saveStats({ answered: 38, correct: 27 });
+    await b.storage.saveHistory([70, 80]);
+    await b.storage.saveActiveDays(['2026-08-01', '2026-08-02']);
+    await b.outbox.pushToOutbox(await badRow(b, { answered: 38, correct: 27 }));
+    ok((await b.sync.signInWithEmail(email)).ok, 'signin B');
+    ok((await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok, 'confirm B');
+    await b.sync.afterAuthChange('signin');
+
+    // Stranded: A syncs and sees nothing of B's 38.
+    await a.sync.syncNow();
+    eq(await a.storage.loadStats(), { answered: 5, correct: 4 }, 'A before the recovery');
+
+    // The repair. A fresh event id, because the deterministic one is taken by
+    // the empty row.
+    const res = await b.sync.recontributeHistory();
+    ok(res.ok, `recontributeHistory refused: ${res.error}`);
+
+    await a.sync.syncNow();
+    eq(await a.storage.loadStats(), { answered: 43, correct: 31 }, "A after B's history is restored");
+    // B is unchanged by its own re-upload — it skips its own rows on pull. Its
+    // total is 43 because signing in folded A's 5 in, not because of the repair.
+    eq(await b.storage.loadStats(), { answered: 43, correct: 31 }, 'B unchanged by its own re-upload');
+  });
+
+  await test('recontributeHistory changes nothing on a healthy device', async () => {
+    // Idempotence is what makes the button safe to press. A device with nothing
+    // missing must compute an empty contribution: its local totals minus what it
+    // merged from others minus what it has already sent is zero. An earlier
+    // version refused outright whenever anything had been merged, which was
+    // useless — a device PULLS as it signs in, so the ledger is never empty by
+    // the time anyone notices history is missing.
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const email = `idem-${Date.now()}@example.com`;
+
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 9, correct: 9 });
+    await a.sync.recordEvent({ answered: 9, correct: 9, pct: 100 });
+    await a.sync.syncNow();
+    await attachEmail(admin, idA, email);
+
+    const b = makeDevice({ createClient, url, anon, name: 'B' });
+    await b.sync.ensureSession();
+    await b.storage.saveStats({ answered: 4, correct: 2 });
+    await b.storage.saveHistory([50]);
+    ok((await b.sync.signInWithEmail(email)).ok, 'signin B');
+    ok((await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok, 'confirm B');
+    await b.sync.afterAuthChange('signin'); // B contributes its 4 and folds in A's 9
+    await a.sync.syncNow();
+
+    const aBefore = await a.storage.loadStats();
+    const bBefore = await b.storage.loadStats();
+    eq(aBefore, { answered: 13, correct: 11 }, 'A has both devices before the repair');
+
+    const res = await b.sync.recontributeHistory();
+    ok(res.ok, `recontributeHistory failed: ${res.error}`);
+    await a.sync.syncNow();
+    await a.sync.syncNow();
+
+    eq(await a.storage.loadStats(), aBefore, 'A is untouched — nothing was double-counted');
+    eq(await b.storage.loadStats(), bBefore, 'B is untouched');
+  });
+
+  // --- reset, and the per-format split --------------------------------------
+  console.log('\nreset and formats');
+
+  await test('resetting statistics is not undone by the next sync', async () => {
+    // The 2.37.3 bug, at the level it actually bit: clearing the streak but
+    // keeping the day set let the next pull recompute the streak back.
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 30, correct: 20 });
+    await a.sync.recordEvent({ answered: 30, correct: 20, pct: 66, days: ['2026-08-01', '2026-08-02'] });
+    await a.sync.syncNow();
+
+    await a.storage.resetStatistics();
+    await a.sync.syncNow();
+    await a.sync.syncNow();
+    eq(await a.storage.loadStats(), { answered: 0, correct: 0 }, 'totals stay reset');
+    eq(await a.storage.loadActiveDays(), [], 'the day set stays cleared');
+  });
+
+  await test('the per-format split reaches another device', async () => {
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const email = `fmt-${Date.now()}@example.com`;
+
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.sync.recordEvent({
+      answered: 4, correct: 3, pct: 75,
+      formats: { typed: { answered: 2, correct: 2 }, pair: { answered: 2, correct: 1 } },
+    });
+    await a.sync.syncNow();
+    await attachEmail(admin, idA, email);
+
+    const b = makeDevice({ createClient, url, anon, name: 'B' });
+    await b.sync.ensureSession();
+    ok((await b.sync.signInWithEmail(email)).ok, 'signin B');
+    ok((await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok, 'confirm B');
+    await b.sync.afterAuthChange('signin');
+
+    const fmts = await b.storage.loadStatsByFormat();
+    eq(fmts.typed, { answered: 2, correct: 2 }, 'typed split reached B');
+    eq(fmts.pair, { answered: 2, correct: 1 }, 'pair split reached B');
+  });
+
   // --- deletion ------------------------------------------------------------
   console.log('\naccount deletion');
 

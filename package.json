@@ -13,7 +13,8 @@
     "e2e:build": "detox build --configuration ios.sim.release",
     "e2e:test": "detox test --configuration ios.sim.release",
     "e2e:build:debug": "detox build --configuration ios.sim.debug",
-    "e2e:test:debug": "detox test --configuration ios.sim.debug"
+    "e2e:test:debug": "detox test --configuration ios.sim.debug",
+    "test:all": "npm test && npm run test:sync"
   },
   "dependencies": {
     "@bacons/apple-targets": "^4.0.7",

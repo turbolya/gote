@@ -576,26 +576,51 @@ export async function getSyncStatus() {
 // per (device, account), so even a forced retry collides with the wrong row and
 // is dropped. The history is stranded on the device, silently and permanently.
 //
-// The guard is the important part. A device that has already folded in another
-// device's events holds totals that are no longer purely its own, and re-sending
-// them would put the other device's rounds on the account a second time — for
-// everyone. That is worse than the problem being fixed, so this refuses rather
-// than guesses. The applied-id ledger is exactly the record of "have I folded in
-// anything foreign", and it is empty precisely in the case this repairs: a device
-// whose contribution never landed has, by definition, not been syncing.
+// The subtlety is what "this device's history" means. Local totals are NOT it:
+// a device that has joined an account has folded other devices' events into the
+// same numbers, and re-sending those would put the other devices' rounds on the
+// account a second time, for everyone. So deduct exactly what was merged.
+//
+// An earlier version refused outright when anything had been merged. That was
+// useless in practice — a device signs in and PULLS before anything else, so the
+// ledger is never empty by the time someone notices history is missing, and the
+// repair refused precisely when it was needed. The integration suite caught it.
+//
+// Only events this device actually APPLIED are deducted (the applied-id ledger).
+// A foreign event not yet folded in is not in the local totals either, so
+// subtracting it would leave the account short by that much instead.
 export async function recontributeHistory() {
   if (!(await syncOn())) return { ok: false, error: 'sync-off' };
   const supabase = getClient();
   const userId = await ensureSession();
   if (!supabase || !userId) return { ok: false, error: 'not-signed-in' };
 
-  const applied = await loadAppliedIds();
-  if (applied && applied.length) {
-    return { ok: false, error: 'already-merged', applied: applied.length };
-  }
+  const [appliedIds, deviceId] = await Promise.all([loadAppliedIds(), getDeviceId()]);
+  const seen = new Set(appliedIds || []);
+  const { data, error } = await supabase
+    .from('events')
+    .select('id, device_id, answered, correct, species, formats, confusions')
+    .eq('user_id', userId)
+    .limit(PULL_LIMIT);
+  if (error) return { ok: false, error: error.message };
+
+  // Two deductions, and both are needed:
+  //
+  //   foreign AND already folded in — other devices' rounds that are sitting in
+  //     this device's totals. Only the APPLIED ones: a foreign event not yet
+  //     merged is not in the local totals either, so deducting it would leave
+  //     the account short by that much instead.
+  //   this device's own rows already on the account — what it has ALREADY
+  //     contributed. Without this the repair is not idempotent: run on a healthy
+  //     device it would send its history a second time and double it everywhere.
+  //     With it, a device that has nothing missing computes zero and sends
+  //     nothing, which is what makes the button safe to press.
+  const merged = (data || []).filter(
+    (e) => (e.device_id !== deviceId && seen.has(e.id)) || e.device_id === deviceId
+  );
 
   // A fresh id on purpose: the deterministic one is already taken by the bad row.
-  await uploadBaseline(userId, { id: uid() });
+  await uploadBaseline(userId, { id: uid(), alsoSubtract: merged });
   await saveBaselineUserId(userId);
   const queued = await loadOutbox();
   await syncNow();
@@ -666,7 +691,12 @@ export async function afterAuthChange(mode = 'link') {
 // id is stable per (device, account) precisely so a retry collides with the row
 // already there — which also means a baseline that went up WRONG can never be
 // corrected by re-sending it. See recontributeHistory.
-async function uploadBaseline(userId, { id: idOverride = null } = {}) {
+// `alsoSubtract` is a further list of events to deduct, alongside the outbox.
+// Recovery needs it: a device that has already folded in another device's
+// events holds totals that are no longer only its own, and re-sending them
+// would put that other device's rounds on the account a second time. Deducting
+// exactly what it merged leaves its OWN history, which is the thing to re-send.
+async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = [] } = {}) {
   const [stats, fmts, species, confusions, history, counts, activeDays, streak, queued] = await Promise.all([
     loadStats(),
     loadStatsByFormat(),
@@ -710,7 +740,7 @@ async function uploadBaseline(userId, { id: idOverride = null } = {}) {
   }
   // Confusions get the same "minus what's queued" treatment as the totals above.
   let conf = confusions || {};
-  for (const e of queued) {
+  for (const e of [...queued, ...(alsoSubtract || [])]) {
     answered -= num(e.answered);
     correct -= num(e.correct);
     for (const [k, d] of Object.entries(e.formats || {})) {
