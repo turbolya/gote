@@ -41,6 +41,7 @@ import {
   confirmSignIn,
   afterAuthChange,
   deleteAccount,
+  recontributeHistory,
 } from '../sync';
 // LINK   — attach an address to the account this device already has
 // SIGNIN — join an account that lives on another device
@@ -109,6 +110,42 @@ export default function SyncScreen({ onBack, onSynced }) {
     setNotice('Sync is off. Everything stays on this device.');
     await refresh();
   }, [refresh, resetLinkFlow]);
+
+  // Re-send this device's whole history to the account. For the case where a
+  // failed push left the account with a baseline that deducted rounds it never
+  // received, so this device's play is missing from every other device.
+  const confirmRecontribute = useCallback(() => {
+    Alert.alert(
+      "Re-upload this device's history?",
+      'Use this if rounds you played here are missing on your other devices. It sends this device’s totals to the account again. It is refused if this device has already merged anything from another device, because then the totals are not only its own.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Re-upload',
+          onPress: async () => {
+            setBusy(true);
+            setError(null);
+            const res = await recontributeHistory();
+            setBusy(false);
+            if (res.ok) {
+              setNotice(
+                res.stillQueued > 0
+                  ? `Sent. ${res.stillQueued} round(s) are still queued — check back in a moment.`
+                  : 'Sent. Your other devices will pick it up on their next sync.'
+              );
+            } else if (res.error === 'already-merged') {
+              setNotice(
+                'Not needed: this device has already merged data from another device, so its totals are no longer only its own. Re-sending them would double-count that other device on every device.'
+              );
+            } else {
+              setError(friendlyError(res.error, mode));
+            }
+            await refresh();
+          },
+        },
+      ]
+    );
+  }, [refresh, mode]);
 
   const send = useCallback(async () => {
     const addr = email.trim().toLowerCase();
@@ -304,10 +341,31 @@ export default function SyncScreen({ onBack, onSynced }) {
               </Text>
             </View>
             {status.queued > 0 && (
+              // "Next time you're online" is a promise we can only keep when
+              // nothing is being REFUSED. Saying it to someone whose push is
+              // failing sends them looking at their wifi for a problem that is
+              // on the server, so say which of the two it is.
               <Text style={styles.queued}>
-                {status.queued} round{status.queued === 1 ? '' : 's'} waiting to
-                upload — they'll go up next time you're online.
+                {status.queued} round{status.queued === 1 ? '' : 's'} waiting to upload
+                {status.pushError
+                  ? ` — the last attempt was refused: ${status.pushError}`
+                  : " — they'll go up next time you're online."}
               </Text>
+            )}
+            {/* Recovery for a device whose history never reached the account —
+                see recontributeHistory. Offered only once this device has
+                joined a shared account, because that is the only situation
+                where "my rounds are missing from the other device" is a
+                question someone can be asking. */}
+            {!status.anonymous && (
+              <Pressable
+                testID="sync-recontribute"
+                style={styles.linkBtn}
+                disabled={busy}
+                onPress={confirmRecontribute}
+              >
+                <Text style={styles.linkBtnText}>Re-upload this device's history</Text>
+              </Pressable>
             )}
             {!!notice && <Text style={styles.notice}>{notice}</Text>}
             <Pressable
@@ -626,6 +684,8 @@ const makeStyles = (colors, accents) =>
     hint: { fontSize: 13, lineHeight: 19, color: colors.muted, marginTop: 14 },
     queued: { fontSize: 13, lineHeight: 19, color: colors.muted, marginTop: 14 },
 
+    linkBtn: { marginTop: 14, alignSelf: 'flex-start' },
+    linkBtnText: { fontSize: 14, fontWeight: '600', color: colors.primary },
     secondaryBtn: {
       borderWidth: 1.5,
       borderColor: colors.border,

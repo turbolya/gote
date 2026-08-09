@@ -8,9 +8,24 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.40.1';
+export const APP_VERSION = '2.40.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.40.2',
+    date: '2026-08-09',
+    changes: [
+      'Fixed a sync problem that could quietly strand a device’s history. One '
+        + 'round the server refused would block every later round from '
+        + 'uploading — for good — while Sync only said they were “waiting to '
+        + 'upload”. Rounds are now checked before they queue, one bad round no '
+        + 'longer holds up the rest, and if an upload is refused the Sync '
+        + 'screen tells you so instead of blaming your connection.',
+      'Added Settings → Sync → “Re-upload this device’s history”, for putting a '
+        + 'device’s play back on the account if it went missing from your other '
+        + 'devices.',
+    ],
+  },
   {
     version: '2.40.1',
     date: '2026-08-08',

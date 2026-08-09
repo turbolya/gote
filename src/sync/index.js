@@ -73,6 +73,7 @@ import {
   saveSyncOptIn,
   uid,
   baselineUid,
+  sanitizeEvent,
 } from './outbox';
 import {
   localDay,
@@ -125,6 +126,12 @@ let inFlight = null;
 // firing a round-trip for each would be a dozen requests in as many seconds.
 let pending = null;
 
+// Why the last push failed, for the Sync screen. Without this a rejected push
+// is completely silent: the screen shows "1 round waiting upload" and the user
+// has no way to learn that it is being refused rather than merely delayed.
+// Not persisted — the next sync attempt sets it again.
+let lastPushError = null;
+
 // Everything in this file swallows its errors on purpose — a failed sync must
 // never break a screen. That makes silent breakage the failure mode, so in
 // development say something. Stripped from production builds.
@@ -166,7 +173,10 @@ export async function recordEvent({ answered = 0, correct = 0, pct = null, n = 0
   // baseline at that point (see uploadBaseline), so nothing is lost.
   if (!(await syncOn())) return null;
   try {
-    const event = {
+    // sanitizeEvent owns the numeric clamping (see src/sync/outbox.js): the
+    // table's CHECK constraints reject a bad row permanently AND take the rest
+    // of the batch down with it, so nothing may leave here out of range.
+    const event = sanitizeEvent({
       id: id || uid(),
       device_id: await getDeviceId(),
       ts: new Date(ts).toISOString(),
@@ -174,14 +184,14 @@ export async function recordEvent({ answered = 0, correct = 0, pct = null, n = 0
       answered,
       correct,
       pct,
-      n: Math.max(0, Math.round(Number(n) || 0)),
+      n,
       species: species || {},
       formats: formats || {},
       confusions: confusions || {},
       history: Array.isArray(history) ? history : [],
       counts: Array.isArray(counts) ? counts : [],
       days: Array.isArray(days) ? days : [],
-    };
+    });
     await pushToOutbox(event);
     return event.id;
   } catch {
@@ -331,15 +341,55 @@ async function push(supabase, userId) {
   // It also has to be DO NOTHING for a more mundane reason: DO UPDATE requires
   // UPDATE privilege at plan time, whether or not a conflict happens, and
   // `events` deliberately grants none.
-  const { error } = await supabase
-    .from('events')
-    .upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
-  if (error) {
-    debug('push rejected —', error.message, '(', rows.length, 'queued )');
-    return; // keep them queued
+  const send = (batch) =>
+    supabase.from('events').upsert(batch, { onConflict: 'id', ignoreDuplicates: true });
+
+  const { error } = await send(rows);
+  if (!error) {
+    lastPushError = null;
+    debug('pushed', rows.length);
+    await clearFromOutbox(rows.map((r) => r.id));
+    return;
   }
-  debug('pushed', rows.length);
-  await clearFromOutbox(rows.map((r) => r.id));
+
+  // The batch failed. It is one statement, so ONE unacceptable row takes every
+  // other round down with it — and a row rejected by a CHECK constraint is
+  // rejected forever, which used to wedge the queue permanently: nothing more
+  // ever uploaded, the outbox grew to its 1000 cap, and the oldest rounds were
+  // then dropped unseen. Retry row by row so the good ones still land.
+  debug('batch push rejected —', error.message, '— retrying individually');
+  const stuck = [];
+  const sent = [];
+  for (const row of rows) {
+    const { error: e } = await send([row]);
+    if (!e) {
+      sent.push(row.id);
+    } else if (isPermanentReject(e)) {
+      // This row can never be accepted. Dropping it loses one round from the
+      // account, which is the lesser harm: keeping it loses ALL of them.
+      debug('dropping unacceptable event', row.id, '—', e.code, e.message);
+      sent.push(row.id);
+      stuck.push({ id: row.id, code: e.code, message: e.message });
+    }
+    // Anything else (offline, rate-limited, 5xx) stays queued for next time.
+  }
+  if (sent.length) await clearFromOutbox(sent);
+  lastPushError = stuck.length
+    ? `${stuck.length} round(s) could not be uploaded and were discarded: ${stuck[0].message}`
+    : error.message;
+  if (stuck.length) debug('discarded', stuck.length, 'unacceptable events');
+}
+
+// Is this rejection one that retrying can never fix? A constraint violation or
+// a malformed value describes the ROW, not the moment — the same bytes will be
+// refused on every attempt. Network, rate-limit and 5xx failures are the
+// opposite and must stay queued.
+//   23514 check_violation · 23502 not_null_violation · 23503 fk_violation
+//   22P02 invalid_text_representation · 22003 numeric_value_out_of_range
+//   PGRST204 unknown column (client newer than the database)
+function isPermanentReject(e) {
+  const code = String((e && e.code) || '');
+  return ['23514', '23502', '23503', '22P02', '22003', 'PGRST204'].includes(code);
 }
 
 async function pull(supabase, userId) {
@@ -502,15 +552,58 @@ export async function getSyncStatus() {
       anonymous: anon,
       email: email || null,
       queued: queued.length,
+      // Why those queued rounds are still queued, when we know. A count on its
+      // own cannot distinguish "waiting for a network" from "being refused".
+      pushError: lastPushError,
     };
   } catch {
-    return { enabled: true, on: true, signedIn: false, anonymous: true, email: null, queued: 0 };
+    return { enabled: true, on: true, signedIn: false, anonymous: true, email: null, queued: 0, pushError: lastPushError };
   }
 }
 
 // Turn sync ON. Records consent, then syncs: the first run signs the device in
 // anonymously and uploads a baseline of everything played so far, so nothing
 // already on the device is left behind. Returns the merge summary (or null).
+// Re-send this device's history to the account, for the case where the baseline
+// went up WRONG and the normal machinery cannot notice.
+//
+// How that happens: uploadBaseline deliberately subtracts whatever is sitting in
+// the outbox, because those rounds are about to be pushed as their own events.
+// If that push then fails permanently — one row the table's CHECK constraints
+// refuse takes the whole batch with it — the account keeps a baseline with the
+// rounds deducted and nothing to replace them. `baselineUserId` is already
+// recorded, so reconcileAccount never tries again, and the baseline id is stable
+// per (device, account), so even a forced retry collides with the wrong row and
+// is dropped. The history is stranded on the device, silently and permanently.
+//
+// The guard is the important part. A device that has already folded in another
+// device's events holds totals that are no longer purely its own, and re-sending
+// them would put the other device's rounds on the account a second time — for
+// everyone. That is worse than the problem being fixed, so this refuses rather
+// than guesses. The applied-id ledger is exactly the record of "have I folded in
+// anything foreign", and it is empty precisely in the case this repairs: a device
+// whose contribution never landed has, by definition, not been syncing.
+export async function recontributeHistory() {
+  if (!(await syncOn())) return { ok: false, error: 'sync-off' };
+  const supabase = getClient();
+  const userId = await ensureSession();
+  if (!supabase || !userId) return { ok: false, error: 'not-signed-in' };
+
+  const applied = await loadAppliedIds();
+  if (applied && applied.length) {
+    return { ok: false, error: 'already-merged', applied: applied.length };
+  }
+
+  // A fresh id on purpose: the deterministic one is already taken by the bad row.
+  await uploadBaseline(userId, { id: uid() });
+  await saveBaselineUserId(userId);
+  const queued = await loadOutbox();
+  await syncNow();
+  // Report what is left queued, so a caller can tell "sent" from "still stuck".
+  const after = await loadOutbox();
+  return { ok: true, sent: queued.length, stillQueued: after.length };
+}
+
 export async function enableSync() {
   if (!SYNC_ENABLED) return null;
   await saveSyncOptIn(true);
@@ -569,7 +662,11 @@ export async function afterAuthChange(mode = 'link') {
 // per-species tallies, the baseline carries the accuracy-chart bars (`history`)
 // and the active-day set the streak is built from (`days`) — so a joining device
 // reconstructs the whole hero, not just the lifetime number over an empty chart.
-async function uploadBaseline(userId) {
+// `id` overrides the deterministic baseline id. Recovery needs that: the normal
+// id is stable per (device, account) precisely so a retry collides with the row
+// already there — which also means a baseline that went up WRONG can never be
+// corrected by re-sending it. See recontributeHistory.
+async function uploadBaseline(userId, { id: idOverride = null } = {}) {
   const [stats, fmts, species, confusions, history, counts, activeDays, streak, queued] = await Promise.all([
     loadStats(),
     loadStatsByFormat(),
@@ -698,8 +795,8 @@ async function uploadBaseline(userId) {
     days: baseDays,
     // Stable per (device, account), so a second attempt collides with the row
     // already there and is dropped by the upsert rather than double-counting on
-    // every other device.
-    id: baselineUid(await getDeviceId(), userId),
+    // every other device — unless a caller deliberately supplies a fresh one.
+    id: idOverride || baselineUid(await getDeviceId(), userId),
   });
   debug('baseline queued:', answered, 'answers,', baseHistory.length, 'bars,', baseDays.length, 'days');
 }

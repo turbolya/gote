@@ -47,6 +47,35 @@ export async function saveSyncOptIn(on) {
 // history matters least if something has to be dropped.
 const MAX_OUTBOX = 1000;
 
+// Force an event's counters into the range the `events` table will accept.
+//
+// The table carries CHECK constraints — answered >= 0, correct >= 0, and pct
+// null or 0..100 — and Postgres rejects a violating row with SQLSTATE 23514.
+// That rejection is PERMANENT: retrying never helps, and because the whole
+// outbox is pushed as one statement, a single bad row stops every later round
+// from uploading too. So the shape is fixed here, at the only point where an
+// event is created, rather than discovered later against the server.
+//
+// Clamping (rather than refusing to record) is deliberate: a wrong count is a
+// small, local inaccuracy, whereas dropping the round loses it from every
+// device. Nothing should ever produce these values — this is the floor under a
+// caller that does.
+export function sanitizeEvent(event) {
+  const e = event || {};
+  const n = (v) => {
+    const x = Math.round(Number(v));
+    return Number.isFinite(x) ? x : 0;
+  };
+  const pct = e.pct == null ? null : n(e.pct);
+  return {
+    ...e,
+    answered: Math.max(0, n(e.answered)),
+    correct: Math.max(0, n(e.correct)),
+    n: Math.max(0, n(e.n)),
+    pct: pct == null ? null : Math.min(100, Math.max(0, pct)),
+  };
+}
+
 export async function loadOutbox() {
   return readJson(K_OUTBOX, []);
 }
