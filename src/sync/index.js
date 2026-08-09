@@ -386,10 +386,16 @@ async function push(supabase, userId) {
 // opposite and must stay queued.
 //   23514 check_violation · 23502 not_null_violation · 23503 fk_violation
 //   22P02 invalid_text_representation · 22003 numeric_value_out_of_range
+//   22007 invalid_datetime_format · 22008 datetime_field_overflow
 //   PGRST204 unknown column (client newer than the database)
+//
+// 22007 is here because the integration suite caught its absence: a malformed
+// `local_day` comes back as 22007, not the 22P02 you would expect from a bad
+// text value, so a row with a broken date wedged the queue for ever — the exact
+// failure this function exists to stop.
 function isPermanentReject(e) {
   const code = String((e && e.code) || '');
-  return ['23514', '23502', '23503', '22P02', '22003', 'PGRST204'].includes(code);
+  return ['23514', '23502', '23503', '22P02', '22003', '22007', '22008', 'PGRST204'].includes(code);
 }
 
 async function pull(supabase, userId) {
@@ -599,7 +605,7 @@ export async function recontributeHistory() {
   const seen = new Set(appliedIds || []);
   const { data, error } = await supabase
     .from('events')
-    .select('id, device_id, answered, correct, species, formats, confusions')
+    .select('id, device_id, answered, correct, pct, species, formats, confusions, history')
     .eq('user_id', userId)
     .limit(PULL_LIMIT);
   if (error) return { ok: false, error: error.message };
@@ -619,8 +625,23 @@ export async function recontributeHistory() {
     (e) => (e.device_id !== deviceId && seen.has(e.id)) || e.device_id === deviceId
   );
 
+  // Chart bars need their own accounting, because they are a list rather than a
+  // counter: applyEvent APPENDS each one, so a bar already on the account draws
+  // a second round that never happened. Two sources are already there —
+  //   • bars this device merged FROM others, which are sitting in its local
+  //     history and would otherwise be handed straight back to their owner;
+  //   • bars this device has ALREADY sent, including the ones its original
+  //     baseline carried, which is why a repair could duplicate a chart even
+  //     when the totals it was fixing were genuinely missing.
+  // Both are exactly the rows in `merged`, so they are collected together.
+  const removeBars = [];
+  for (const e of merged) {
+    if (e.pct != null) removeBars.push(Number(e.pct));
+    if (Array.isArray(e.history)) for (const p of e.history) removeBars.push(Number(p));
+  }
+
   // A fresh id on purpose: the deterministic one is already taken by the bad row.
-  await uploadBaseline(userId, { id: uid(), alsoSubtract: merged });
+  await uploadBaseline(userId, { id: uid(), alsoSubtract: merged, removeBars });
   await saveBaselineUserId(userId);
   const queued = await loadOutbox();
   await syncNow();
@@ -696,7 +717,14 @@ export async function afterAuthChange(mode = 'link') {
 // events holds totals that are no longer only its own, and re-sending them
 // would put that other device's rounds on the account a second time. Deducting
 // exactly what it merged leaves its OWN history, which is the thing to re-send.
-async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = [] } = {}) {
+// `removeBars` drops specific chart points from the payload by VALUE. The
+// accuracy chart is a flat list of per-round percentages with no provenance, and
+// applyEvent APPENDS them, so re-sending a bar that is already on the account
+// makes every other device draw a round that never happened. Matching by value
+// rather than by position is what makes it safe: bars arrive interleaved (own
+// rounds when played, foreign ones when pulled), so any positional rule is wrong
+// the moment the device plays a round after joining.
+async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = [], removeBars = [] } = {}) {
   const [stats, fmts, species, confusions, history, counts, activeDays, streak, queued] = await Promise.all([
     loadStats(),
     loadStatsByFormat(),
@@ -797,7 +825,32 @@ async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = []
   // the queued tail from both keeps them opposite the same rounds — and a device
   // whose oldest bars predate counts simply sends a shorter array.
   const trimmedN = queuedRounds > 0 ? counts.slice(0, -queuedRounds) : counts;
-  const baseCounts = baseHistory.length ? trimmedN.slice(-baseHistory.length) : [];
+  let baseCounts = baseHistory.length ? trimmedN.slice(-baseHistory.length) : [];
+  let outHistory = baseHistory;
+
+  if (removeBars && removeBars.length) {
+    // counts are stored right-aligned with history (a device whose oldest bars
+    // predate card counts simply has a shorter array), so pad the front before
+    // walking them together — otherwise every bar keeps the wrong count.
+    const padded = [
+      ...new Array(Math.max(0, outHistory.length - baseCounts.length)).fill(0),
+      ...baseCounts,
+    ];
+    const pending = [...removeBars];
+    const keptH = [];
+    const keptC = [];
+    for (let i = 0; i < outHistory.length; i++) {
+      const at = pending.indexOf(outHistory[i]);
+      if (at >= 0) {
+        pending.splice(at, 1); // this bar is already on the account
+        continue;
+      }
+      keptH.push(outHistory[i]);
+      keptC.push(padded[i] || 0);
+    }
+    outHistory = keptH;
+    baseCounts = keptC;
+  }
 
   // Active days: send the full set. A day is a SET member on the other side, so a
   // day a still-queued round will re-add folds in exactly once — no subtraction
@@ -810,7 +863,7 @@ async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = []
     !answered && !correct
     && !Object.keys(species2).length && !Object.keys(conf).length
     && !Object.keys(formats2).length
-    && !baseHistory.length && !baseDays.length
+    && !outHistory.length && !baseDays.length
   ) return;
 
   await recordEvent({
@@ -820,7 +873,7 @@ async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = []
     species: species2,
     formats: formats2,
     confusions: conf,
-    history: baseHistory,
+    history: outHistory,
     counts: baseCounts,
     days: baseDays,
     // Stable per (device, account), so a second attempt collides with the row
@@ -828,7 +881,7 @@ async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = []
     // every other device — unless a caller deliberately supplies a fresh one.
     id: idOverride || baselineUid(await getDeviceId(), userId),
   });
-  debug('baseline queued:', answered, 'answers,', baseHistory.length, 'bars,', baseDays.length, 'days');
+  debug('baseline queued:', answered, 'answers,', outHistory.length, 'bars,', baseDays.length, 'days');
 }
 
 function num(v) {

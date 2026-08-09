@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.40.2';
+export const APP_VERSION = '2.40.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.40.3',
+    date: '2026-08-09',
+    changes: [
+      'Fixed the recent-games chart showing a different number of bars on each '
+        + 'device after re-uploading a device’s history. Rounds it had already '
+        + 'received from your other device were being sent back, and drawn a '
+        + 'second time. Your lifetime totals and accuracy were never affected — '
+        + 'only the chart — and existing extra bars scroll off as you play.',
+    ],
+  },
   {
     version: '2.40.2',
     date: '2026-08-09',

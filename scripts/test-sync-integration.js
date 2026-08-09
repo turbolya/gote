@@ -829,12 +829,17 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     local_day: '2026-08-09',
     answered: 0,
     correct: 0,
-    // THE POISON: pct must be null or 0..100, so this row is refused however
-    // else it is filled in. It lives on `pct` rather than on `answered`
-    // deliberately — callers below override answered/correct to give the row a
-    // size, and a poison sitting on one of those would be cured by the override
-    // without the test noticing it had stopped testing anything.
-    pct: 140,
+    // THE POISON: `local_day` is a date column, so this is refused (22P02)
+    // however else the row is filled in.
+    //
+    // Two deliberate choices. It is NOT on answered/correct, because callers
+    // below override those to give the row a size and would cure the poison
+    // without the test noticing it had stopped testing anything. And it is not
+    // on `pct` either: a non-null pct counts as a queued ROUND, so uploadBaseline
+    // trims a bar off the baseline's chart, which quietly skews every assertion
+    // about bar counts. A test fixture must break exactly one thing.
+    local_day: 'not-a-date',
+    pct: null,
     n: 0,
     species: {},
     formats: {},
@@ -848,7 +853,10 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
   await test('a refused round does not stop the good ones uploading', async () => {
     const a = makeDevice({ createClient, url, anon, name: 'A' });
     const userId = await a.sync.ensureSession();
+    // One of each permanent rejection: a bad date (22P02) and a pct outside the
+    // CHECK constraint (23514). Both must be got out of the way.
     await a.outbox.pushToOutbox(await badRow(a));
+    await a.outbox.pushToOutbox(await badRow(a, { local_day: '2026-08-09', pct: 140 }));
     await a.sync.recordEvent({ answered: 4, correct: 3, pct: 75 });
     await a.sync.recordEvent({ answered: 6, correct: 6, pct: 100 });
     await a.sync.syncNow();
@@ -974,6 +982,46 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     // B is unchanged by its own re-upload — it skips its own rows on pull. Its
     // total is 43 because signing in folded A's 5 in, not because of the repair.
     eq(await b.storage.loadStats(), { answered: 43, correct: 31 }, 'B unchanged by its own re-upload');
+  });
+
+  await test('the repair does not duplicate the chart bars it merged', async () => {
+    // The accuracy chart is a list of per-round bars, and applyEvent APPENDS
+    // them. A device that has joined an account holds its own bars plus the ones
+    // it folded in, so re-sending "its history" sends the other device its own
+    // bars back, and that device appends them a second time. Both devices end up
+    // showing a different number of recent games, which is what a real user saw.
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const email = `bars-${Date.now()}@example.com`;
+
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 5, correct: 4 });
+    // Playing a round appends the bar locally AND sends it as `pct` — the
+    // baseline then trims that trailing bar so it is not sent twice. Modelling
+    // only half of that is what made an earlier version of this test lie.
+    await a.storage.saveHistory([60, 70, 80]);
+    await a.sync.recordEvent({ answered: 5, correct: 4, pct: 80, n: 5 });
+    await a.sync.syncNow();
+    await attachEmail(admin, idA, email);
+
+    const b = makeDevice({ createClient, url, anon, name: 'B' });
+    await b.sync.ensureSession();
+    await b.storage.saveStats({ answered: 38, correct: 27 });
+    await b.storage.saveHistory([40, 50, 55]);
+    await b.storage.saveActiveDays(['2026-08-01']);
+    await b.outbox.pushToOutbox(await badRow(b, { answered: 38, correct: 27 }));
+    ok((await b.sync.signInWithEmail(email)).ok, 'signin B');
+    ok((await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok, 'confirm B');
+    await b.sync.afterAuthChange('signin');
+    await a.sync.syncNow();
+
+    ok((await b.sync.recontributeHistory()).ok, 'repair');
+    await a.sync.syncNow();
+    await a.sync.syncNow();
+
+    const barsA = (await a.storage.loadHistory()).length;
+    const barsB = (await b.storage.loadHistory()).length;
+    eq(barsA, barsB, `bar counts must match (A=${barsA}, B=${barsB})`);
   });
 
   await test('recontributeHistory changes nothing on a healthy device', async () => {
