@@ -313,6 +313,11 @@ export default function PickImageScreen({
   );
 }
 
+// Corner radius of a photo tile. Shared, because the reveal border is drawn by
+// an absolutely-filled overlay INSIDE the tile: if the two radii disagree the
+// tile clips the border's corners away.
+const TILE_RADIUS = 18;
+
 const makeStyles = (colors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: 20 },
   e2eHidden: { position: 'absolute', top: 0, left: 0, width: 1, height: 1, opacity: 0.01 },
@@ -356,13 +361,17 @@ const makeStyles = (colors) => StyleSheet.create({
   tile: {
     width: '100%',
     aspectRatio: 1,
-    borderRadius: 18,
+    borderRadius: TILE_RADIUS,
     overflow: 'hidden',
     backgroundColor: colors.faint,
   },
   tileImg: { width: '100%', height: '100%' },
   tileOverlay: {
     ...StyleSheet.absoluteFillObject,
+    // Must match the tile's radius. The overlay carries the correct/wrong
+    // border, and the tile clips it (overflow: 'hidden'); a square border under
+    // a rounded clip loses its corners, which read as a broken frame.
+    borderRadius: TILE_RADIUS,
     alignItems: 'center',
     justifyContent: 'center',
   },
