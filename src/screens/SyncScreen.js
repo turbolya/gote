@@ -42,11 +42,9 @@ import {
   afterAuthChange,
   deleteAccount,
 } from '../sync';
-
-// 'link'   — attach an address to the account this device already has
-// 'signin' — join an account that lives on another device
-const LINK = 'link';
-const SIGNIN = 'signin';
+// LINK   — attach an address to the account this device already has
+// SIGNIN — join an account that lives on another device
+import { LINK, SIGNIN, friendlyError } from '../sync/errors';
 
 // Seconds to wait before another code can be requested. Supabase rate-limits
 // server-side too; this just stops the button inviting a request that would bounce.
@@ -520,31 +518,6 @@ function Tab({ label, active, onPress, styles }) {
   );
 }
 
-// Supabase's messages are accurate but written for developers. Translate the
-// ones a user can actually hit; pass anything else through rather than hiding
-// a real problem behind a vague apology.
-function friendlyError(message, mode) {
-  const m = String(message || '').toLowerCase();
-  if (m.includes('already been registered') || m.includes('already registered')) {
-    return 'That address is already used by another device. Choose "I already have gote elsewhere" to sign in with it.';
-  }
-  if (m.includes('signups not allowed') || m.includes('user not found')) {
-    return mode === SIGNIN
-      ? "We don't know that address yet. Connect your first device with it, then sign in here."
-      : message;
-  }
-  if (m.includes('token has expired') || m.includes('expired')) {
-    return 'That code has expired. Tap “Resend code” for a new one.';
-  }
-  if (m.includes('invalid') && m.includes('token')) {
-    return "That code doesn't match. Check the email and try again.";
-  }
-  if (m.includes('rate limit') || m.includes('too many')) {
-    return 'Too many attempts just now. Wait a minute and try again.';
-  }
-  if (m === 'sync-disabled') return 'Sync is not available in this build.';
-  return message || 'Something went wrong. Try again.';
-}
 
 const makeStyles = (colors, accents) =>
   StyleSheet.create({
