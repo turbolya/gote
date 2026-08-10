@@ -333,6 +333,21 @@ async function reconcileAccount(userId) {
     // follows never succeeds the account keeps no baseline while the device is
     // certain it sent one, and reconcileAccount never tries again. The mark now
     // waits until the row has actually left (see confirmBaseline).
+    // Supersede a baseline still queued for a PREVIOUS account. Ordinary rounds
+    // are deltas, so re-stamping a queued one onto the account the device is
+    // signed into now is right and loses nothing. A baseline is not a delta, it
+    // is a snapshot of everything this device has — so a stale one would be
+    // pushed beside the fresh snapshot and draw this device's chart twice. (The
+    // totals happened to survive, because uploadBaseline deducts the outbox and
+    // the second snapshot came out at zero; the bars did not.) Dropping it first
+    // also means the fresh snapshot is computed WITHOUT it, so it carries the
+    // full history rather than a remainder.
+    const stale = await loadPendingBaseline();
+    if (stale) {
+      debug('superseding a baseline queued for', stale.userId);
+      await clearFromOutbox([stale.eventId]);
+      await clearPendingBaseline();
+    }
     pendingBaselineId = await uploadBaseline(userId);
     // Remembered on DISK, not just for the rest of this run: the push carrying
     // it may not succeed for days, and reconcileAccount returns early on every
@@ -997,6 +1012,9 @@ export async function deleteAccount() {
       saveOutbox([]),
       saveLastUserId(''),
       saveBaselineUserId(''),
+      // The queued baseline it referred to went with the outbox, and the account
+      // it was for no longer exists.
+      clearPendingBaseline(),
     ]);
     await authSignOut();
     // Turn sync OFF after a delete. The user removed their synced data;

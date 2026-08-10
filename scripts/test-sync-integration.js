@@ -1258,6 +1258,42 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     eq((await b.storage.loadActiveDays()).includes('2026-08-03'), true, 'the streak day survived');
   });
 
+  await test('a baseline queued while offline is not sent twice after a sync off/on', async () => {
+    // Rounds are DELTAS, so re-stamping a queued one onto whatever account the
+    // device is signed into now is right — nothing is lost. A baseline is not a
+    // delta, it is a snapshot of everything this device has. If one is still
+    // queued when the account changes, the device queues a second snapshot for
+    // the new account and the stale one rides along beside it.
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    await a.sync.ensureSession();
+    await a.storage.saveStats({ answered: 20, correct: 15 });
+    await a.storage.saveHistory([75]);
+
+    a.breakPushes();
+    await a.sync.syncNow(); // baseline queued, push fails
+    ok(JSON.parse(a.kv._dump()['@gote/sync/outbox']).length === 1, 'baseline is queued');
+
+    // The player toggles sync off and on — two account switches.
+    await a.sync.disableSync();
+    a.fixPushes();
+    await a.sync.enableSync();
+    await a.sync.syncNow();
+
+    const userId = await a.sync.currentUserId();
+    const { data } = await a.client.from('events').select('answered, pct, history').eq('user_id', userId);
+    const rows = data || [];
+    const total = rows.reduce((sum, r) => sum + r.answered, 0);
+    eq(total, 20, `totals must land ONCE (rows: ${JSON.stringify(rows.map((r) => r.answered))})`);
+    // And the chart. Totals survive because uploadBaseline deducts the outbox,
+    // which says nothing about the bars — the failure mode that actually reached
+    // a user was a duplicated chart sitting on top of correct totals.
+    const bars = rows.reduce(
+      (n, r) => n + (r.pct != null ? 1 : 0) + (Array.isArray(r.history) ? r.history.length : 0),
+      0
+    );
+    eq(bars, 1, `the single played round must appear as ONE bar (rows: ${JSON.stringify(rows)})`);
+  });
+
   // --- reset, and the per-format split --------------------------------------
   console.log('\nreset and formats');
 

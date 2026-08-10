@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.40.4';
+export const APP_VERSION = '2.40.5';
 
 export const CHANGELOG = [
+  {
+    version: '2.40.5',
+    date: '2026-08-09',
+    changes: [
+      'Fixed the recent-games chart drawing a round twice if you turned sync '
+        + 'off and on again while something was still waiting to upload. Your '
+        + 'totals were always right — it was only the chart.',
+    ],
+  },
   {
     version: '2.40.4',
     date: '2026-08-09',
