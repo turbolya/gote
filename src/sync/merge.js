@@ -30,6 +30,11 @@ export function emptyRollups() {
     stats: { answered: 0, correct: 0 },
     formats: {},
     species: {},
+    // The accuracy chart. `bars` is the source of truth — each is an identified
+    // record, so folding is a set union and re-sending one is harmless.
+    // `history`/`counts` are DERIVED views of it, kept because the chart
+    // components, src/accuracy.js and storage all read plain arrays.
+    bars: [],
     history: [],
     counts: [],
     days: [],
@@ -101,40 +106,23 @@ export function applyEvent(rollups, event) {
     };
   }
 
-  // Accuracy-chart points. A finished round carries ONE (`pct`). A first-sync
-  // BASELINE carries the device's whole chart at once as `history: [pct, …]`, so
-  // a joining device shows the bars it played before sync — not just the lifetime
-  // total over an empty chart. A single answer has neither (`pct` null, no array):
-  // one card is not a round and must not spike the chart with a 0%/100% point.
+  // Accuracy-chart bars.
   //
-  // Every point carries its card count in the parallel `counts` array, kept the
-  // SAME LENGTH as `history` here (0 = size unknown) so the two can never drift
-  // apart no matter what mix of old and new events arrives. Without it a 1-card
-  // round would weigh as much as a 100-card one in every aggregate — see
-  // src/accuracy.js. A round event's size rides in `n`, not in `answered`: a
-  // watch round banks its cards individually and reports answered: 0.
-  let history = r.history;
-  let counts = r.counts || [];
-  const addPoint = (pct, n) => {
-    // Pad first, so a point from an older client (no size) doesn't shift every
-    // later count one slot to the left.
-    if (counts.length < history.length) {
-      counts = [...counts, ...new Array(history.length - counts.length).fill(0)];
-    }
-    history = [...history, clamp(Math.round(num(pct)), 0, 100)];
-    counts = [...counts, Math.max(0, Math.round(num(n)))];
-  };
-  if (Array.isArray(event.history) && event.history.length) {
-    const base = Array.isArray(event.counts) ? event.counts : [];
-    // The baseline's counts are right-aligned with its history, matching how the
-    // device stores them (src/storage.js), so a device that predates counts
-    // contributes sizes for its newest rounds only.
-    const offset = event.history.length - base.length;
-    event.history.forEach((p, i) => addPoint(p, i >= offset ? base[i - offset] : 0));
-  }
-  if (event.pct != null) addPoint(event.pct, event.n);
+  // A bar is an identified record — { id, pct, n, at } — not a bare number, and
+  // folding is a UNION BY ID. That is the whole point: re-sending a bar is a
+  // no-op instead of a second round appearing on the chart. It used to be an
+  // append-only list of anonymous percentages, so nothing could tell two copies
+  // of one round apart, and three separate mechanisms existed to compensate —
+  // a positional trim of queued rounds, a value-matching removal, and bespoke
+  // accounting in the repair path. All three are gone.
+  //
+  // Sorting by `at` (when the round was played) rather than by arrival is the
+  // other half. Appending in pull order meant two devices could hold the same
+  // rounds in different sequences and draw different charts even with no bug at
+  // all; ordering by play time makes them converge.
+  const bars = mergeBars(r.bars || [], barsOf(event));
 
-  // Active days (the streak is computed from this set). This event's own
+    // Active days (the streak is computed from this set). This event's own
   // `local_day`, plus any day-set a baseline carries (`days: [YYYY-MM-DD, …]`).
   // A SET, so a day that arrives from both a baseline and a later round — or from
   // two devices — folds in exactly once.
@@ -158,11 +146,64 @@ export function applyEvent(rollups, event) {
     },
     formats,
     species,
-    history,
-    counts,
+    bars,
+    // Derived, so every existing reader (charts, accuracy, storage) is unchanged.
+    history: bars.map((b) => b.pct),
+    counts: bars.map((b) => b.n),
     days,
     confusions,
   };
+}
+
+// How many bars the chart keeps. Matches MAX_HISTORY in src/storage.js — the
+// chart draws only the newest that fit, so this is generous, not a limit anyone
+// sees.
+export const MAX_BARS = 120;
+
+// The bars an event contributes.
+//
+// A client that knows about bars ships them explicitly, ids and all, so the
+// producer decides a bar's identity and every receiver agrees with it. Rows
+// written before that carry `history`/`counts`/`pct` instead, and their ids are
+// SYNTHESISED from the event id plus position — deterministic, so two devices
+// independently reading the same old row derive the same id and still dedupe.
+export function barsOf(event) {
+  const e = event || {};
+  const bar = (id, pct, n, at) => ({
+    id: String(id),
+    pct: clamp(Math.round(num(pct)), 0, 100),
+    n: Math.max(0, Math.round(num(n))),
+    at: num(at),
+  });
+
+  if (Array.isArray(e.bars) && e.bars.length) {
+    return e.bars.map((b, i) => bar((b && b.id) || `${e.id}#${i}`, b && b.pct, b && b.n, b && b.at));
+  }
+
+  // Legacy shape. `at` is spread out from the event's own timestamp by position
+  // so the bars keep their order once everything is sorted together.
+  // `ts` is an ISO string on the wire and a number in some callers; accept both
+  // rather than silently reading zero and losing every bar's ordering.
+  const t = (typeof e.ts === 'number' ? e.ts : Date.parse(e.ts)) || 0;
+  const out = [];
+  const h = Array.isArray(e.history) ? e.history : [];
+  const c = Array.isArray(e.counts) ? e.counts : [];
+  const offset = h.length - c.length; // counts are right-aligned with history
+  h.forEach((p, i) => out.push(bar(`${e.id}#${i}`, p, i >= offset ? c[i - offset] : 0, t + i)));
+  // A single answer is not a round and must never become a chart point.
+  if (e.pct != null) out.push(bar(`${e.id}#p`, e.pct, e.n, t + h.length));
+  return out;
+}
+
+// Union two bar lists by id, oldest first, capped. First writer of an id wins,
+// so a re-send can never change a bar that is already recorded.
+export function mergeBars(existing, incoming) {
+  const byId = new Map();
+  for (const b of Array.isArray(existing) ? existing : []) if (b && b.id) byId.set(String(b.id), b);
+  for (const b of Array.isArray(incoming) ? incoming : []) if (b && b.id && !byId.has(String(b.id))) byId.set(String(b.id), b);
+  return [...byId.values()]
+    .sort((x, y) => (num(x.at) - num(y.at)) || (String(x.id) < String(y.id) ? -1 : String(x.id) > String(y.id) ? 1 : 0))
+    .slice(-MAX_BARS);
 }
 
 // Fold many events, skipping any whose id has already been applied. Returns
@@ -537,8 +578,7 @@ export function compactEvents(events, id) {
   const species = {};
   const formats = {};
   let confusions = {};
-  const history = [];
-  const counts = [];
+  const bars = [];
   const days = new Set();
 
   for (const e of list) {
@@ -572,19 +612,10 @@ export function compactEvents(events, id) {
 
     if (e.confusions) confusions = mergeConfusions(confusions, e.confusions);
 
-    // Bars, in the order they were played. A baseline's own bars come first,
-    // then its own round percentage if it has one.
-    const h = Array.isArray(e.history) ? e.history : [];
-    const c = Array.isArray(e.counts) ? e.counts : [];
-    const offset = h.length - c.length; // counts are right-aligned with history
-    h.forEach((p, i) => {
-      history.push(clamp(Math.round(num(p)), 0, 100));
-      counts.push(Math.max(0, Math.round(num(i >= offset ? c[i - offset] : 0))));
-    });
-    if (e.pct != null) {
-      history.push(clamp(Math.round(num(e.pct)), 0, 100));
-      counts.push(Math.max(0, Math.round(num(e.n))));
-    }
+    // Chart bars, keeping their identities — that is what lets a compacted run
+    // be folded, re-sent or merged alongside the originals without any of those
+    // rounds being drawn twice.
+    for (const b of barsOf(e)) bars.push(b);
 
     for (const d of Array.isArray(e.days) ? e.days : []) if (d) days.add(d);
     if (e.local_day) days.add(e.local_day);
@@ -598,13 +629,16 @@ export function compactEvents(events, id) {
     local_day: last.local_day,
     answered,
     correct,
-    pct: null, // a compacted run is not a round; its bars ride in `history`
+    pct: null, // a compacted run is not a round; its bars ride in `bars`
     n: 0,
     species,
     formats,
     confusions,
-    history,
-    counts,
+    bars: mergeBars([], bars),
+    // Not sent as the legacy arrays: a client that predates bars cannot dedupe
+    // them, and handing it a whole run at once is how it draws rounds twice.
+    history: [],
+    counts: [],
     days: [...days],
   };
 }

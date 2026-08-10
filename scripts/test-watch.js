@@ -157,7 +157,16 @@ const DAY = 24 * 60 * 60 * 1000;
     // watch round it can't be recovered any other way: those cards were already
     // banked one at a time, so the round itself reports no lifetime delta.
     const out = await s.addGameResult((2 / 3) * 100, 3); // 2/3 correct → 67
-    assert.deepStrictEqual(out, { history: [17, 67], counts: [0, 3] });
+    assert.deepStrictEqual(
+      { history: out.history, counts: out.counts },
+      { history: [17, 67], counts: [0, 3] }
+    );
+    // It also hands back the bar it created, so the caller can put that exact
+    // id on the wire — every other device then adopts it instead of inventing
+    // one, which is what makes a re-send a no-op rather than a duplicate bar.
+    assert.ok(out.bar && out.bar.id, 'the new bar is returned');
+    assert.strictEqual(out.bar.pct, 67);
+    assert.strictEqual(out.bar.n, 3);
     // The pre-existing bar has no recorded size, so it sits at 0 ("unknown") and
     // the new count lines up opposite its own round, not the older one.
     assert.deepStrictEqual(JSON.parse(await as.getItem('@gote/historyCounts')), [0, 3]);

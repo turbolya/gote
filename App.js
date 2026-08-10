@@ -1137,10 +1137,16 @@ export default function App() {
     saveConfusions(confusionRef.current);
     // Record this game's accuracy for the menu chart, and count today toward
     // the daily streak (both skip empty rounds).
+    // Kept as a promise because the chart bar it creates has to ride along on the
+    // event queued below: the bar's id is decided HERE, and every other device
+    // adopts it rather than inventing one, which is what stops the same round
+    // being drawn twice on someone else's chart.
+    let newBar = Promise.resolve(null);
     if (total > 0) {
-      addGameResult((finalCorrect / total) * 100, total).then((h) => {
+      newBar = addGameResult((finalCorrect / total) * 100, total).then((h) => {
         setHistory(h.history);
         setHistoryCounts(h.counts);
+        return h.bar;
       });
       recordStreakDay().then(setStreak);
       addActiveDay();
@@ -1163,15 +1169,20 @@ export default function App() {
       // the round would sit there until the next cold launch, which looks
       // exactly like sync being broken. Not awaited — the results screen must
       // never wait on the network.
-      recordEvent({
-        answered: total,
-        correct: finalCorrect,
-        pct: (finalCorrect / total) * 100,
-        n: total,
-        species: delta,
-        formats: fmtDelta,
-        confusions: confDelta,
-      }).then(() => syncCloud());
+      newBar
+        .then((bar) =>
+          recordEvent({
+            answered: total,
+            correct: finalCorrect,
+            pct: (finalCorrect / total) * 100,
+            n: total,
+            species: delta,
+            formats: fmtDelta,
+            confusions: confDelta,
+            bars: bar ? [bar] : [],
+          })
+        )
+        .then(() => syncCloud());
     }
     setMissed(finalMissed);
     setCorrectCount(finalCorrect);
@@ -1363,7 +1374,12 @@ export default function App() {
             // counted one by one above, so this carries pct only — but `n` still
             // rides along, because the bar needs a weight even though the round
             // must not add to the totals a second time.
-            recordEvent({ pct: (r.correct / r.total) * 100, n: r.total, ts: r.ts || Date.now() });
+            recordEvent({
+              pct: (r.correct / r.total) * 100,
+              n: r.total,
+              ts: r.ts || Date.now(),
+              bars: h.bar ? [h.bar] : [],
+            });
           }
           // Debounced: a watch session arrives one answer at a time, and a
           // round-trip per answer would be a dozen requests in as many seconds.

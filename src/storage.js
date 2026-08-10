@@ -35,6 +35,12 @@ const K_HISTORY = '@gote/history';
 // parallel array is an additive change an older client simply ignores, whereas
 // changing the element type would make it read every bar as NaN.
 const K_HISTORY_N = '@gote/historyCounts';
+// The accuracy chart, as identified records: [{ id, pct, n, at }]. The source of
+// truth; K_HISTORY / K_HISTORY_N are still written as derived arrays so an older
+// build (or a rollback) keeps working. See src/sync/merge.js mergeBars for why
+// bars need identities: an anonymous list cannot tell two copies of one round
+// apart, which is how the same round kept being drawn twice.
+const K_BARS = '@gote/bars';
 const K_STREAK = '@gote/streak';
 const K_DAYS = '@gote/activeDays';
 const K_WATCH_IDS = '@gote/watchResultIds';
@@ -77,7 +83,7 @@ const CACHE_VERSION = 5;
 //   • DATA_VERSION (here)      — the on-device AsyncStorage shapes.
 //   • CACHE_VERSION (below)    — only the disposable observation cache.
 //   • SETTINGS_PAYLOAD_VERSION — what crosses the network (src/sync/merge.js).
-export const DATA_VERSION = 1;
+export const DATA_VERSION = 2;
 
 export async function loadDataVersion() {
   try {
@@ -100,8 +106,11 @@ export async function runDataMigrations() {
     // nothing is rewritten. (Pre-launch there is no older shape in the wild.)
     from = DATA_VERSION;
   }
-  // Add steps as the shapes evolve, e.g.:
-  //   if (from < 2) { await migratePrefsToV2(); from = 2; }
+  // v1 -> v2: the accuracy chart becomes a list of identified bars.
+  if (from < 2) {
+    await migrateBarsV2();
+    from = 2;
+  }
   try {
     await kv.setItem(K_DATA_VERSION, String(DATA_VERSION));
   } catch {
@@ -390,7 +399,7 @@ export async function resetStatistics(now = Date.now()) {
   let notes = {};
   try {
     await kv.multiRemove([
-      K_STATS, K_FORMATS, K_SPECIES, K_HISTORY, K_HISTORY_N, K_STREAK, K_DAYS,
+      K_STATS, K_FORMATS, K_SPECIES, K_HISTORY, K_HISTORY_N, K_BARS, K_STREAK, K_DAYS,
       K_CONFUSIONS, K_CONFUSION_WINS,
     ]);
   } catch {
@@ -446,27 +455,24 @@ export async function loadHistoryCounts() {
 // Used by the screenshot seeder to plant a full, trending chart, and by sync
 // when a merge rebuilds the chart from the account's events.
 export async function saveHistory(history, counts) {
-  const arr = (Array.isArray(history) ? history : [])
+  const pcts = (Array.isArray(history) ? history : [])
     .filter((n) => typeof n === 'number')
     .slice(-MAX_HISTORY);
-  try {
-    await kv.setItem(K_HISTORY, JSON.stringify(arr));
-  } catch {
-    /* ignore */
-  }
-  // Omitted counts leave the stored ones alone: a caller that only knows the
-  // percentages must not silently erase the sizes.
-  if (counts === undefined) return;
-  const clean = (Array.isArray(counts) ? counts : []).filter(
-    (n) => typeof n === 'number'
+  const clean = (Array.isArray(counts) ? counts : []).filter((n) => typeof n === 'number');
+  // Right-aligned, exactly as the old parallel arrays were.
+  const ns = pcts.length ? clean.slice(-pcts.length) : [];
+  const offset = pcts.length - ns.length;
+  const prev = counts === undefined ? await loadBars() : [];
+  await saveBars(
+    pcts.map((pct, i) => ({
+      id: `seed-${i}`,
+      pct,
+      // Omitted counts leave the stored sizes alone: a caller that only knows
+      // the percentages must not silently erase them.
+      n: counts === undefined ? (prev[i] ? prev[i].n : 0) : i >= offset ? ns[i - offset] : 0,
+      at: i,
+    }))
   );
-  // Never longer than the history it annotates, and right-aligned to it.
-  const ns = arr.length ? clean.slice(-arr.length) : [];
-  try {
-    await kv.setItem(K_HISTORY_N, JSON.stringify(ns));
-  } catch {
-    /* ignore */
-  }
 }
 
 // Append one finished game's accuracy percent, with the number of cards it
@@ -477,25 +483,19 @@ export async function saveHistory(history, counts) {
 // for a watch round, whose cards were already banked one at a time and so can't
 // be recovered from the lifetime delta.
 export async function addGameResult(pct, n = 0) {
-  const [prev, prevN] = await Promise.all([loadHistory(), loadHistoryCounts()]);
-  const history = [...prev, Math.max(0, Math.min(100, Math.round(pct)))].slice(
-    -MAX_HISTORY
-  );
-  // Pad to the history's length before appending, so a first-ever count lands
-  // opposite its own round rather than opposite the oldest one.
-  const padded = prevN.length < prev.length
-    ? [...new Array(prev.length - prevN.length).fill(0), ...prevN]
-    : prevN.slice(-prev.length);
-  const counts = [...padded, Math.max(0, Math.round(Number(n) || 0))].slice(
-    -MAX_HISTORY
-  );
-  try {
-    await kv.setItem(K_HISTORY, JSON.stringify(history));
-    await kv.setItem(K_HISTORY_N, JSON.stringify(counts));
-  } catch {
-    /* ignore — best-effort */
-  }
-  return { history, counts };
+  const bars = await loadBars();
+  // The producer names the bar. Every other device adopts this id rather than
+  // inventing one, which is what makes re-sending it a no-op instead of a
+  // second round on the chart. `at` is when it was played, so devices that
+  // merge in a different order still draw the rounds in the same sequence.
+  const bar = {
+    id: barId(),
+    pct: Math.max(0, Math.min(100, Math.round(pct))),
+    n: Math.max(0, Math.round(Number(n) || 0)),
+    at: Date.now(),
+  };
+  const next = await saveBars([...bars, bar]);
+  return { history: next.map((b) => b.pct), counts: next.map((b) => b.n), bar };
 }
 
 // --- Daily streak ------------------------------------------------------------
@@ -869,5 +869,84 @@ export async function clearDownloadedImages() {
     await kv.removeItem(K_DL_IMAGES);
   } catch {
     /* ignore */
+  }
+}
+
+
+// --- accuracy chart bars ------------------------------------------------------
+
+// A local id for a bar. Only ever compared for equality, and the producer of a
+// bar is the one that names it, so the other devices adopt this id rather than
+// inventing their own — which is what makes a re-send a no-op.
+function barId() {
+  return 'b-xxxxxxxxxxxx'.replace(/x/g, () => Math.floor(Math.random() * 16).toString(16));
+}
+
+export async function loadBars() {
+  try {
+    const raw = await kv.getItem(K_BARS);
+    // Fall back to the legacy parallel arrays when the bar list is absent, so
+    // correctness does not depend on the migration having run first. A device
+    // that reads before runDataMigrations, or one restored from a backup taken
+    // before it, still has its chart rather than a silently empty one.
+    if (!raw) return legacyBars(await loadNumbers(K_HISTORY), await loadNumbers(K_HISTORY_N));
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter((b) => b && b.id != null)
+      .map((b) => ({
+        id: String(b.id),
+        pct: Math.max(0, Math.min(100, Math.round(Number(b.pct) || 0))),
+        n: Math.max(0, Math.round(Number(b.n) || 0)),
+        at: Number(b.at) || 0,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// Persist the chart, and mirror it into the legacy arrays so nothing that still
+// reads those (an older build, a rollback) sees an empty chart.
+export async function saveBars(bars) {
+  const arr = (Array.isArray(bars) ? bars : []).slice(-MAX_HISTORY);
+  try {
+    await kv.setItem(K_BARS, JSON.stringify(arr));
+    await kv.setItem(K_HISTORY, JSON.stringify(arr.map((b) => b.pct)));
+    await kv.setItem(K_HISTORY_N, JSON.stringify(arr.map((b) => b.n)));
+  } catch {
+    /* ignore */
+  }
+  return arr;
+}
+
+// v1 -> v2. The old shape was two parallel arrays of bare numbers, right-aligned
+// with each other. They get ids by position and an `at` of their index, which
+// puts every pre-existing bar before anything played since — true, and it keeps
+// their order without needing a timestamp nobody recorded.
+// The old shape: two parallel arrays of bare numbers, the counts right-aligned
+// with the percentages. They get ids by position and an `at` of their index,
+// which puts every pre-existing bar before anything played since — true, and it
+// keeps their order without needing a timestamp nobody recorded.
+function legacyBars(history, counts) {
+  const offset = history.length - counts.length;
+  return history.map((pct, i) => ({
+    id: `legacy-${i}`,
+    pct: Math.max(0, Math.min(100, Math.round(Number(pct) || 0))),
+    n: i >= offset ? Math.max(0, Math.round(Number(counts[i - offset]) || 0)) : 0,
+    at: i,
+  }));
+}
+
+async function migrateBarsV2() {
+  try {
+    if (await kv.getItem(K_BARS)) return; // already migrated
+    const [history, counts] = await Promise.all([
+      loadNumbers(K_HISTORY),
+      loadNumbers(K_HISTORY_N),
+    ]);
+    if (!history.length) return;
+    await kv.setItem(K_BARS, JSON.stringify(legacyBars(history, counts)));
+  } catch {
+    /* best-effort — a failed migration just leaves the legacy arrays in place */
   }
 }

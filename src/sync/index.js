@@ -31,7 +31,8 @@ import {
   saveFlagsRecord,
   loadHistory,
   loadHistoryCounts,
-  saveHistory,
+  loadBars,
+  saveBars,
   loadStreak,
   saveStreak,
   loadActiveDays,
@@ -159,8 +160,11 @@ function debug(...args) {
 //   formats           { [format]: { answered, correct } } — Smart play mixes
 //                     question formats of very different difficulty in one
 //                     round, so the totals are split to stay interpretable
-//   history           baseline only: the accuracy chart's bars (per-round pct
-//                     array); a normal round leaves this empty and rides `pct`
+//   bars              identified chart points [{ id, pct, n, at }]. A round
+//                     ships the single bar it created; a baseline ships the
+//                     device's whole chart. Folding is a union by id, so
+//                     re-sending one changes nothing
+//   history           legacy chart array, for clients that predate `bars`
 //   counts            baseline only: cards per bar, right-aligned with `history`
 //                     (shorter when the device has bars from before sizes were
 //                     recorded); a normal round leaves this empty and rides `n`
@@ -170,7 +174,7 @@ function debug(...args) {
 //                     be idempotent across retries and reinstalls (the baseline
 //                     does — see baselineUid). Omit for ordinary play, where a
 //                     fresh random id per round is exactly right.
-export async function recordEvent({ answered = 0, correct = 0, pct = null, n = 0, species = {}, formats = {}, confusions = {}, history = [], counts = [], days = [], ts = Date.now(), id = null } = {}) {
+export async function recordEvent({ answered = 0, correct = 0, pct = null, n = 0, species = {}, formats = {}, confusions = {}, bars = [], history = [], counts = [], days = [], ts = Date.now(), id = null } = {}) {
   // Nothing is even queued while sync is off — no sync-related data touches disk
   // until the user opts in. Their existing history is captured wholesale by the
   // baseline at that point (see uploadBaseline), so nothing is lost.
@@ -191,6 +195,11 @@ export async function recordEvent({ answered = 0, correct = 0, pct = null, n = 0
       species: species || {},
       formats: formats || {},
       confusions: confusions || {},
+      // Identified chart bars. A round ships the one it just created, so every
+      // other device adopts THAT id instead of deriving its own — which is what
+      // makes a re-send a no-op rather than a second bar. `pct`/`n` ride along
+      // for clients that predate bars.
+      bars: Array.isArray(bars) ? bars : [],
       history: Array.isArray(history) ? history : [],
       counts: Array.isArray(counts) ? counts : [],
       days: Array.isArray(days) ? days : [],
@@ -462,7 +471,7 @@ async function pull(supabase, userId) {
 
   let query = supabase
     .from('events')
-    .select('id, device_id, ts, local_day, answered, correct, pct, n, species, formats, confusions, history, counts, days, created_at')
+    .select('id, device_id, ts, local_day, answered, correct, pct, n, species, formats, confusions, bars, history, counts, days, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
     .order('id', { ascending: true })
@@ -550,12 +559,11 @@ async function recoverEmptiedAccount(supabase, userId) {
 // Fold remote events into the local rollups. The ONLY place sync writes to the
 // app's own state, and it only ever adds.
 async function applyRemote(events) {
-  const [stats, formats, species, history, counts, streak, confusions, appliedIds] = await Promise.all([
+  const [stats, formats, species, bars, streak, confusions, appliedIds] = await Promise.all([
     loadStats(),
     loadStatsByFormat(),
     loadSpeciesStats(),
-    loadHistory(),
-    loadHistoryCounts(),
+    loadBars(),
     loadStreak(),
     loadConfusions(),
     loadAppliedIds(),
@@ -563,7 +571,7 @@ async function applyRemote(events) {
   const days = await backfillActiveDays(streak);
 
   const { rollups, applied } = applyEvents(
-    { stats, formats, species, history, counts, days, confusions },
+    { stats, formats, species, bars, days, confusions },
     events,
     appliedIds
   );
@@ -575,7 +583,8 @@ async function applyRemote(events) {
     saveStats(rollups.stats),
     saveStatsByFormat(rollups.formats),
     saveSpeciesStats(rollups.species),
-    saveHistory(rollups.history, rollups.counts),
+    // Bars, not the derived arrays: identity is what makes the fold a union.
+    saveBars(rollups.bars),
     saveActiveDays(rollups.days),
     saveConfusions(rollups.confusions),
     // Never let a recomputed streak shrink `longest`: players who predate the
@@ -594,9 +603,7 @@ async function applyRemote(events) {
     formats: rollups.formats,
     species: rollups.species,
     history: rollups.history,
-    // Re-read rather than passing rollups.counts through: saveHistory trims and
-    // right-aligns, and the UI must chart exactly what was persisted.
-    historyCounts: await loadHistoryCounts(),
+    historyCounts: rollups.counts,
     streak: await loadStreak(),
     confusions: rollups.confusions,
     count: applied.length,
@@ -674,7 +681,7 @@ async function fetchAllEvents(supabase, userId) {
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from('events')
-      .select('id, device_id, answered, correct, pct, species, formats, confusions, history')
+      .select('id, device_id, answered, correct, species, formats, confusions')
       .eq('user_id', userId)
       .order('created_at', { ascending: true })
       .range(from, from + PAGE - 1);
@@ -716,14 +723,13 @@ export async function recontributeHistory() {
   // negative — which sent another device's rounds back to it. The integration
   // suite caught that; converging first makes the question unnecessary.
   const merged = rows;
-  const removeBars = [];
-  for (const e of merged) {
-    if (e.pct != null) removeBars.push(Number(e.pct));
-    if (Array.isArray(e.history)) for (const p of e.history) removeBars.push(Number(p));
-  }
 
+  // Note there is no bar accounting here any more. Bars fold by id, so the
+  // baseline can ship the whole chart and anything the account already has is
+  // simply ignored.
+  //
   // A fresh id on purpose: the deterministic one is already taken by the bad row.
-  await uploadBaseline(userId, { id: uid(), alsoSubtract: merged, removeBars });
+  await uploadBaseline(userId, { id: uid(), alsoSubtract: merged });
   await saveBaselineUserId(userId);
   const queued = await loadOutbox();
   await syncNow();
@@ -799,14 +805,7 @@ export async function afterAuthChange(mode = 'link') {
 // events holds totals that are no longer only its own, and re-sending them
 // would put that other device's rounds on the account a second time. Deducting
 // exactly what it merged leaves its OWN history, which is the thing to re-send.
-// `removeBars` drops specific chart points from the payload by VALUE. The
-// accuracy chart is a flat list of per-round percentages with no provenance, and
-// applyEvent APPENDS them, so re-sending a bar that is already on the account
-// makes every other device draw a round that never happened. Matching by value
-// rather than by position is what makes it safe: bars arrive interleaved (own
-// rounds when played, foreign ones when pulled), so any positional rule is wrong
-// the moment the device plays a round after joining.
-async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = [], removeBars = [] } = {}) {
+async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = [] } = {}) {
   const [stats, fmts, species, confusions, history, counts, activeDays, streak, queued] = await Promise.all([
     loadStats(),
     loadStatsByFormat(),
@@ -896,43 +895,17 @@ async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = []
     if (known || missed) species2[key] = { ...v, known, missed, msTotal, msCount, points, weight };
   }
 
-  // Accuracy chart: send the whole local history, minus the tail that belongs to
-  // rounds still queued — each of those rides as its own `pct` event and would
-  // otherwise draw a second bar on every other device. Queued rounds are the most
-  // recently played, so they are exactly the last bars in the array.
-  const queuedRounds = queued.filter((e) => e && e.pct != null).length;
-  const baseHistory = queuedRounds > 0 ? history.slice(0, -queuedRounds) : history;
-  // Card counts ride alongside, right-aligned with the bars they belong to. The
-  // stored counts are already right-aligned with the FULL history, so dropping
-  // the queued tail from both keeps them opposite the same rounds — and a device
-  // whose oldest bars predate counts simply sends a shorter array.
-  const trimmedN = queuedRounds > 0 ? counts.slice(0, -queuedRounds) : counts;
-  let baseCounts = baseHistory.length ? trimmedN.slice(-baseHistory.length) : [];
-  let outHistory = baseHistory;
-
-  if (removeBars && removeBars.length) {
-    // counts are stored right-aligned with history (a device whose oldest bars
-    // predate card counts simply has a shorter array), so pad the front before
-    // walking them together — otherwise every bar keeps the wrong count.
-    const padded = [
-      ...new Array(Math.max(0, outHistory.length - baseCounts.length)).fill(0),
-      ...baseCounts,
-    ];
-    const pending = [...removeBars];
-    const keptH = [];
-    const keptC = [];
-    for (let i = 0; i < outHistory.length; i++) {
-      const at = pending.indexOf(outHistory[i]);
-      if (at >= 0) {
-        pending.splice(at, 1); // this bar is already on the account
-        continue;
-      }
-      keptH.push(outHistory[i]);
-      keptC.push(padded[i] || 0);
-    }
-    outHistory = keptH;
-    baseCounts = keptC;
-  }
+  // The chart. Just send it: bars carry ids and fold by union, so a bar the
+  // account already has is ignored rather than drawn twice. That single
+  // property replaced three separate mechanisms here — a positional trim of
+  // queued rounds, a value-matching removal, and bespoke accounting in the
+  // repair path — none of which are needed any more.
+  //
+  // `history`/`counts` are deliberately NOT sent from a baseline. A client that
+  // predates bars cannot dedupe them, so handing it a whole chart is how it
+  // ends up drawing rounds twice. It keeps getting per-round `pct` events,
+  // which are safe; it just doesn't inherit a joining device's back catalogue.
+  const bars = await loadBars();
 
   // Active days: send the full set. A day is a SET member on the other side, so a
   // day a still-queued round will re-add folds in exactly once — no subtraction
@@ -945,7 +918,7 @@ async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = []
     !answered && !correct
     && !Object.keys(species2).length && !Object.keys(conf).length
     && !Object.keys(formats2).length
-    && !outHistory.length && !baseDays.length
+    && !bars.length && !baseDays.length
   ) return;
 
   const queuedId = await recordEvent({
@@ -955,15 +928,16 @@ async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = []
     species: species2,
     formats: formats2,
     confusions: conf,
-    history: outHistory,
-    counts: baseCounts,
+    bars,
+    history: [],
+    counts: [],
     days: baseDays,
     // Stable per (device, account), so a second attempt collides with the row
     // already there and is dropped by the upsert rather than double-counting on
     // every other device — unless a caller deliberately supplies a fresh one.
     id: idOverride || baselineUid(await getDeviceId(), userId),
   });
-  debug('baseline queued:', answered, 'answers,', outHistory.length, 'bars,', baseDays.length, 'days');
+  debug('baseline queued:', answered, 'answers,', bars.length, 'bars,', baseDays.length, 'days');
   // The caller marks the account as baselined only once this row has actually
   // left the outbox, so it needs to know which row to watch.
   return queuedId;

@@ -17,8 +17,15 @@ const src = path.join(__dirname, '..', 'src', 'sync', 'merge.js');
 const script = `
 import { compactEvents } from ${JSON.stringify(src)};
 
+// Distinct ids and increasing timestamps, because bars are identified by
+// (event id + position) and ordered by time. Real events always have both; a
+// fixture that reuses one id makes two different rounds collide into one bar
+// and quietly stops testing what it claims to.
+let seq = 0;
 const ev = (o) => ({
-  id: o.id || 'e', device_id: 'dev', ts: o.ts || '2026-08-01T00:00:00Z',
+  id: o.id || \`e\${seq += 1}\`,
+  device_id: 'dev',
+  ts: o.ts || new Date(Date.UTC(2026, 7, 1, 0, 0, seq)).toISOString(),
   local_day: o.local_day || '2026-08-01', answered: 0, correct: 0, pct: null, n: 0,
   species: {}, formats: {}, confusions: {}, history: [], counts: [], days: [], ...o,
 });
@@ -105,8 +112,12 @@ test("each round's percentage becomes a chart bar, carrying its card count", () 
   // the percentages have to survive as bars or the chart silently loses points.
   assert.strictEqual(r.rounds.pct, null, 'a compacted run is not a round');
   assert.strictEqual(r.rounds.n, 0);
-  assert.deepStrictEqual(r.rounds.history, [80, 50]);
-  assert.deepStrictEqual(r.rounds.counts, [5, 4]);
+  assert.deepStrictEqual(r.rounds.bars.map((b) => b.pct), [80, 50]);
+  assert.deepStrictEqual(r.rounds.bars.map((b) => b.n), [5, 4]);
+  assert.ok(r.rounds.bars.every((b) => b.id), 'every bar keeps an identity');
+  // The legacy arrays are deliberately empty: a client that predates bars
+  // cannot dedupe a whole run handed to it at once.
+  assert.deepStrictEqual(r.rounds.history, []);
 });
 
 test('species tallies deep-add, and lastSeen folds by max not by sum', () => {
@@ -133,8 +144,8 @@ test('confusion pairs merge and their counts sum', () => {
 test('existing bars are kept in order, with counts still right-aligned', () => {
   // The source baseline had 3 bars but only 2 counts (its oldest predates card
   // counts), so the missing one must pad to 0 rather than shifting the rest.
-  assert.deepStrictEqual(r.bars.history, [60, 70, 80, 90]);
-  assert.deepStrictEqual(r.bars.counts, [0, 4, 5, 9]);
+  assert.deepStrictEqual(r.bars.bars.map((b) => b.pct), [60, 70, 80, 90]);
+  assert.deepStrictEqual(r.bars.bars.map((b) => b.n), [0, 4, 5, 9]);
 });
 
 test('every local_day survives, deduplicated, so no streak day is lost', () => {
@@ -165,7 +176,7 @@ test('junk folds to values the events table will accept', () => {
   assert.strictEqual(r.junk.answered, 0);
   assert.strictEqual(r.junk.correct, 0);
   assert.strictEqual(r.junk.pct, null);
-  assert.ok(r.junk.counts.every((c) => c >= 0));
+  assert.ok(r.junk.bars.every((b) => b.n >= 0 && b.pct >= 0 && b.pct <= 100));
 });
 
 console.log(`\n${pass} passed, ${fail} failed\n`);

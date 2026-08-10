@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.40.5';
+export const APP_VERSION = '2.41.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.41.0',
+    date: '2026-08-10',
+    changes: [
+      'Your recent-games chart now looks the same on every device. Each round '
+        + 'is tracked individually rather than as an anonymous bar, so a round '
+        + 'can no longer be drawn twice, and both devices show them in the '
+        + 'order you played them rather than the order they happened to sync.',
+    ],
+  },
   {
     version: '2.40.5',
     date: '2026-08-09',

@@ -1280,18 +1280,92 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     await a.sync.syncNow();
 
     const userId = await a.sync.currentUserId();
-    const { data } = await a.client.from('events').select('answered, pct, history').eq('user_id', userId);
+    const { data } = await a.client.from('events').select('answered, pct, bars').eq('user_id', userId);
     const rows = data || [];
     const total = rows.reduce((sum, r) => sum + r.answered, 0);
     eq(total, 20, `totals must land ONCE (rows: ${JSON.stringify(rows.map((r) => r.answered))})`);
     // And the chart. Totals survive because uploadBaseline deducts the outbox,
     // which says nothing about the bars — the failure mode that actually reached
-    // a user was a duplicated chart sitting on top of correct totals.
-    const bars = rows.reduce(
-      (n, r) => n + (r.pct != null ? 1 : 0) + (Array.isArray(r.history) ? r.history.length : 0),
-      0
+    // a user was a duplicated chart sitting on top of correct totals. Counted by
+    // distinct bar ID now, which is the point: a bar the account already has is
+    // the same bar, however many events happen to mention it.
+    const ids = new Set();
+    for (const r of rows) for (const b of Array.isArray(r.bars) ? r.bars : []) ids.add(b.id);
+    eq(ids.size, 1, `the single played round must appear as ONE bar (rows: ${JSON.stringify(rows)})`);
+  });
+
+  // --- the chart converges --------------------------------------------------
+  console.log('\nidentified chart bars');
+
+  await test('two devices end up with the SAME chart, not just the same totals', async () => {
+    // The assertion that could not pass before bars had identities. Points were
+    // appended in PULL order, so two devices holding exactly the same rounds
+    // could draw them in different sequences — no bug required. Ordering by when
+    // a round was played is what makes them converge.
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const email = `chart-${Date.now()}@example.com`;
+
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    const barA1 = (await a.storage.addGameResult(60, 6)).bar;
+    await a.sync.recordEvent({ answered: 6, correct: 4, pct: 60, n: 6, bars: [barA1] });
+    await a.sync.syncNow();
+    await attachEmail(admin, idA, email);
+
+    const b = makeDevice({ createClient, url, anon, name: 'B' });
+    await b.sync.ensureSession();
+    const barB1 = (await b.storage.addGameResult(80, 5)).bar;
+    await b.sync.recordEvent({ answered: 5, correct: 4, pct: 80, n: 5, bars: [barB1] });
+    ok((await b.sync.signInWithEmail(email)).ok, 'signin B');
+    ok((await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok, 'confirm B');
+    await b.sync.afterAuthChange('signin');
+
+    // Both play again, in the other order, then everyone syncs.
+    const barA2 = (await a.storage.addGameResult(70, 7)).bar;
+    await a.sync.recordEvent({ answered: 7, correct: 5, pct: 70, n: 7, bars: [barA2] });
+    const barB2 = (await b.storage.addGameResult(90, 9)).bar;
+    await b.sync.recordEvent({ answered: 9, correct: 8, pct: 90, n: 9, bars: [barB2] });
+    for (let i = 0; i < 3; i += 1) {
+      await a.sync.syncNow();
+      await b.sync.syncNow();
+    }
+
+    const chartA = await a.storage.loadBars();
+    const chartB = await b.storage.loadBars();
+    eq(
+      chartA.map((x) => `${x.pct}@${x.at}`),
+      chartB.map((x) => `${x.pct}@${x.at}`),
+      'identical bars, identical order'
     );
-    eq(bars, 1, `the single played round must appear as ONE bar (rows: ${JSON.stringify(rows)})`);
+    eq(chartA.map((x) => x.n), chartB.map((x) => x.n), 'identical sizes');
+    eq(chartA.length, 4, 'four rounds, none duplicated');
+  });
+
+  await test('re-sending the whole chart changes nothing', async () => {
+    // Union by id, so the repair path no longer needs any bar accounting: it can
+    // ship the device's entire chart and the account ignores what it has.
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const email = `idem-bars-${Date.now()}@example.com`;
+
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    const bar = (await a.storage.addGameResult(55, 5)).bar;
+    await a.sync.recordEvent({ answered: 5, correct: 3, pct: 55, n: 5, bars: [bar] });
+    await a.sync.syncNow();
+    await attachEmail(admin, idA, email);
+
+    const b = makeDevice({ createClient, url, anon, name: 'B' });
+    await b.sync.ensureSession();
+    await b.storage.addGameResult(40, 4);
+    ok((await b.sync.signInWithEmail(email)).ok, 'signin B');
+    ok((await b.sync.confirmSignIn(email, await otpFor(admin, url, email))).ok, 'confirm B');
+    await b.sync.afterAuthChange('signin');
+    for (let i = 0; i < 3; i += 1) await a.sync.syncNow();
+
+    const before = (await a.storage.loadBars()).map((x) => x.pct);
+    ok((await b.sync.recontributeHistory()).ok, 'repair');
+    for (let i = 0; i < 3; i += 1) await a.sync.syncNow();
+    eq((await a.storage.loadBars()).map((x) => x.pct), before, 'the chart is unchanged');
   });
 
   // --- reset, and the per-format split --------------------------------------

@@ -47,8 +47,13 @@ const day = (d) => '2026-03-' + String(d).padStart(2, '0');
 // explicitly, so a test passing anything newer (formats, counts, lastSeen…) had
 // it silently dropped and then watched the merge appear not to fold it — a
 // failure that looks exactly like a bug in the code under test.
+// Strictly increasing, because bars now sort by WHEN A ROUND WAS PLAYED rather
+// than by arrival. Real events always carry a timestamp (recordEvent stamps
+// one); several fixtures landing in the same millisecond is an artefact of the
+// fixture, not something the app can produce.
+let tsSeq = Date.now();
 const ev = (o) => ({
-  ts: Date.now(),
+  ts: tsSeq++,
   answered: 0,
   correct: 0,
   n: 0,
@@ -155,7 +160,7 @@ console.log('\\napplyEvent (baseline history + days)');
   // Baseline bars fold onto whatever the device already has, and pct + history
   // can ride the same event without either being dropped.
   const local = applyEvent(emptyRollups(), ev({ id: 'own', localDay: day(8), answered: 1, correct: 1, pct: 90 }));
-  const r = applyEvent(local, { id: 'base', localDay: day(1), answered: 5, correct: 5, pct: 40, history: [10, 20] });
+  const r = applyEvent(local, ev({ id: 'base', localDay: day(1), answered: 5, correct: 5, pct: 40, history: [10, 20] }));
   eq('baseline history appends to existing bars, then its own pct', r.history, [90, 10, 20, 40]);
 }
 
@@ -197,7 +202,7 @@ console.log('\\napplyEvent (round sizes)');
 {
   // Baseline bars plus the event's own pct, all sizes landing on the right bar.
   const local = applyEvent(emptyRollups(), ev({ id: 'own', localDay: day(8), answered: 9, correct: 8, pct: 90, n: 9 }));
-  const r = applyEvent(local, { id: 'base', localDay: day(1), pct: 40, n: 4, history: [10, 20], counts: [1, 2] });
+  const r = applyEvent(local, ev({ id: 'base', localDay: day(1), pct: 40, n: 4, history: [10, 20], counts: [1, 2] }));
   eq('bars and sizes stay paired across a mixed event', r.history, [90, 10, 20, 40]);
   eq('sizes follow their own bars', r.counts, [9, 1, 2, 4]);
 }
