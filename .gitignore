@@ -51,3 +51,7 @@ artifacts/
 .env
 *.tmp
 /.impeccable
+
+# Local EAS build artifacts (`eas build --local` writes these to the repo root)
+build-*.ipa
+*.ipa
