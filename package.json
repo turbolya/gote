@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "node scripts/test-gestures.js && node scripts/test-cache.js && node scripts/test-quiz.js && node scripts/test-lexicon.js && node scripts/test-watch.js && node scripts/test-contrast.js && node scripts/test-sync.js && node scripts/test-outbox.js && node scripts/test-compact.js && node scripts/test-confusions.js && node scripts/test-duel.js && node scripts/test-verify.js && node scripts/test-schedule.js && node scripts/test-mastery.js && node scripts/test-accuracy.js && node scripts/test-navigation.js && node scripts/test-studyphoto.js && node scripts/test-recall.js && node scripts/test-answermatch.js && node scripts/test-smartmode.js && node scripts/test-scoring.js && node scripts/test-syncerrors.js",
+    "test": "node scripts/test-gestures.js && node scripts/test-cache.js && node scripts/test-quiz.js && node scripts/test-lexicon.js && node scripts/test-watch.js && node scripts/test-contrast.js && node scripts/test-sync.js && node scripts/test-outbox.js && node scripts/test-compact.js && node scripts/test-confusions.js && node scripts/test-duel.js && node scripts/test-verify.js && node scripts/test-schedule.js && node scripts/test-mastery.js && node scripts/test-accuracy.js && node scripts/test-navigation.js && node scripts/test-studyphoto.js && node scripts/test-recall.js && node scripts/test-answermatch.js && node scripts/test-smartmode.js && node scripts/test-scoring.js && node scripts/test-syncerrors.js && node scripts/test-plugin.js",
     "test:sync": "node scripts/test-sync-integration.js",
     "e2e:build": "detox build --configuration ios.sim.release",
     "e2e:test": "detox test --configuration ios.sim.release",

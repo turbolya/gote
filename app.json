@@ -47,7 +47,8 @@
         {
           "appleTeamId": "24M7W58WAU"
         }
-      ]
+      ],
+      "./plugins/withXcode26Build"
     ],
     "extra": {
       "eas": {
