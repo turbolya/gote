@@ -22,6 +22,10 @@ const K_CONFUSION_NOTES = '@gote/confusionNotes';
 const K_CONFUSION_WINS = '@gote/confusionWins';
 const K_CACHE = '@gote/obscache';
 const K_FLAGS = '@gote/flags';
+// Guided-tour progress: { status: 'new' | 'running' | 'done', step: <index> }.
+// Device-local and deliberately not synced — "have I been shown around THIS
+// phone" is a property of the device, not of the account.
+const K_TUTORIAL = '@gote/tutorial';
 // Lifetime totals split by which question format the answer was given in:
 // { [format]: { answered, correct } }. Smart play asks the same species four
 // different ways and they are not equally hard, so a single blended accuracy
@@ -653,6 +657,28 @@ export async function loadWatchTipDismissed() {
 export async function saveWatchTipDismissed(dismissed) {
   try {
     await kv.setItem(K_WATCH_TIP, dismissed ? '1' : '0');
+  } catch {
+    /* ignore — best-effort */
+  }
+}
+
+// --- Guided tour ------------------------------------------------------------
+// Where the tutorial got to. Stored as an opaque record: the shape and every
+// rule about it belong to src/tutorial.js, which normalizes whatever comes back
+// (including nothing, and including a record written by a different version).
+
+export async function loadTutorial() {
+  try {
+    const raw = await kv.getItem(K_TUTORIAL);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null; // unreadable or not valid JSON — treat as never started
+  }
+}
+
+export async function saveTutorial(state) {
+  try {
+    await kv.setItem(K_TUTORIAL, JSON.stringify(state));
   } catch {
     /* ignore — best-effort */
   }

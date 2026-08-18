@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import PhotoViewer from '../components/PhotoViewer';
+import { useAnchorRef } from '../components/Tutorial';
 import ObservationMap from '../components/ObservationMap';
 import PieTimer from '../components/PieTimer';
 import { Appear, Pop } from '../components/anim';
@@ -262,6 +263,8 @@ export default function StudyScreen({
   };
 
   // --- fullscreen self-grade photo state ---
+  // The guided tour points at the more-photos button (src/tutorial.js).
+  const photosAnchor = useAnchorRef('study-photos');
   const [gallery, setGallery] = useState(card ? [card.image] : []);
   const [fetched, setFetched] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -957,6 +960,8 @@ export default function StudyScreen({
         <View style={styles.cornerRow} pointerEvents="box-none">
           {!offline ? (
             <Pressable
+              ref={photosAnchor}
+              testID="study-photos"
               onPress={showMorePhotos}
               disabled={loadingMore}
               hitSlop={8}

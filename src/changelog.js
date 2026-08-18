@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.41.0';
+export const APP_VERSION = '2.42.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.42.0',
+    date: '2026-08-18',
+    changes: [
+      'New: a guided tour for first-time players. It sets up your iNaturalist '
+        + 'account, plays a short round, and points out the things that are '
+        + 'easy to miss — other photos of a species, your statistics, learning '
+        + 'the species of a place, and syncing across devices. It can be left '
+        + 'at any point, and replayed from Settings → Take the tutorial.',
+    ],
+  },
   {
     version: '2.41.0',
     date: '2026-08-10',
