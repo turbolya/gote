@@ -26,6 +26,7 @@ import { useTheme, useThemedStyles } from '../theme';
 import { Appear } from '../components/anim';
 import { SPEEDRUN_LIVES, KOFI_URL } from '../constants';
 import { IS_E2E } from '../e2e/testMode';
+import { useAnchorRef, useTutorialScroller } from '../components/Tutorial';
 
 // Modes that need a live network call to build a round, so they can't run
 // offline at all: Nearby (a place query) and By picture (curated photos per
@@ -162,9 +163,12 @@ function AccuracyBars({ data = [], counts = [], lifetime = null }) {
 // One tappable list row (game mode / Lexicon / Settings). Top-level (stable
 // identity) so incidental re-renders don't replay the entrance animation.
 // Staggers in via `index`, and springs down slightly while pressed.
-function Row({ icon, accent, title, sub, onPress, testID, first, index = 0, disabled }) {
+function Row({ icon, accent, title, sub, onPress, testID, first, index = 0, disabled, anchor }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  // Rows the guided tour points at (see ANCHORS in src/tutorial.js). A no-op
+  // for every other row, and when no tour is running.
+  const anchorRef = useAnchorRef(anchor);
   const scale = useRef(new Animated.Value(1)).current;
   const to = (v) =>
     Animated.spring(scale, { toValue: v, useNativeDriver: true, friction: 7, tension: 220 }).start();
@@ -172,6 +176,7 @@ function Row({ icon, accent, title, sub, onPress, testID, first, index = 0, disa
     <Appear delay={index * 55} offset={10}>
       <Animated.View style={{ transform: [{ scale }] }}>
         <Pressable
+          ref={anchorRef}
           testID={testID}
           disabled={disabled}
           onPress={disabled ? undefined : onPress}
@@ -214,6 +219,17 @@ export default function MenuScreen({
   const { colors, accents } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
+  const statsAnchor = useAnchorRef('menu-stats');
+  // Let the guided tour bring a row below the fold into view before pointing at
+  // it — Settings sits under six game modes and starts off screen everywhere.
+  // The offset is tracked here because only this list knows where it is.
+  const scrollRef = useRef(null);
+  const scrollOffset = useRef(0);
+  useTutorialScroller((dy) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ y: Math.max(0, scrollOffset.current + dy), animated: true });
+    }
+  });
   const lifetimePct =
     lifetime && lifetime.answered > 0
       ? Math.round((lifetime.correct / lifetime.answered) * 100)
@@ -251,11 +267,11 @@ export default function MenuScreen({
   const noOfflineCards = offline && deckCount === 0;
 
   const playModes = [
-    { key: 'smart', icon: 'sparkles-outline', accent: accents.rose, title: 'Smart play', sub: 'Mixed questions, picked for what you know' },
+    { key: 'smart', anchor: 'mode-smart', icon: 'sparkles-outline', accent: accents.rose, title: 'Smart play', sub: 'Mixed questions, picked for what you know' },
     { key: 'all', icon: 'albums-outline', accent: accents.green, title: 'By name', sub: 'See a photo, choose its name' },
     { key: 'pick', icon: 'apps-outline', accent: accents.blue, title: 'By picture', sub: 'See a name, choose its photo' },
     { key: 'speedrun', icon: 'flash', accent: accents.amber, title: 'Speedrun', sub: `Endless cards — survive ${SPEEDRUN_LIVES} misses` },
-    { key: 'nearby', icon: 'compass-outline', accent: accents.teal, title: 'Nearby species', sub: 'Learn species typical to a place' },
+    { key: 'nearby', anchor: 'mode-nearby', icon: 'compass-outline', accent: accents.teal, title: 'Nearby species', sub: 'Learn species typical to a place' },
     { key: 'custom', icon: 'options-outline', accent: accents.violet, title: 'Custom game', sub: 'Choose how many cards and which groups' },
   ];
 
@@ -265,6 +281,7 @@ export default function MenuScreen({
           a round can paint it immediately instead of showing bare black. */}
       <SpinnerWarmup />
       <Animated.ScrollView
+        ref={scrollRef}
         testID="menu-scroll"
         style={styles.flex}
         contentContainerStyle={[
@@ -277,7 +294,12 @@ export default function MenuScreen({
         scrollEventThrottle={16}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
+          {
+            useNativeDriver: false,
+            listener: (e) => {
+              scrollOffset.current = e.nativeEvent.contentOffset.y;
+            },
+          }
         )}
       >
         {/* "Did you know?" Apple Watch notice — iPhone-only, dismissible
@@ -328,7 +350,7 @@ export default function MenuScreen({
 
         <Text style={styles.section}>Settings</Text>
         <View style={styles.group}>
-          <Row first testID="open-settings" icon="settings-outline" accent={accents.slate} title="Settings" sub="Account, language and study options" onPress={onSettings} />
+          <Row first testID="open-settings" anchor="open-settings" icon="settings-outline" accent={accents.slate} title="Settings" sub="Account, language and study options" onPress={onSettings} />
         </View>
 
         {/* Quiet support link at the very bottom — deliberately low-key. */}
@@ -352,7 +374,7 @@ export default function MenuScreen({
         style={[styles.hero, { height: headerHeight, shadowOpacity, elevation }]}
       >
         <View style={styles.heroClip}>
-        <Pressable testID="menu-stats" onPress={onStats} style={styles.flex}>
+        <Pressable ref={statsAnchor} testID="menu-stats" onPress={onStats} style={styles.flex}>
         <LinearGradient
           colors={HERO_GRADIENT}
           start={{ x: 0, y: 0 }}

@@ -76,6 +76,8 @@ import {
   saveAppliedWatchIds,
   loadWatchTipDismissed,
   saveWatchTipDismissed,
+  loadTutorial,
+  saveTutorial,
   addActiveDay,
 } from './src/storage';
 // NOTE the alias: this component already has its own `syncNow` (the
@@ -117,6 +119,13 @@ import {
 } from './src/prefetch';
 import { groupKey, ThemeProvider, themeFor, resolveScheme } from './src/theme';
 import { IS_E2E, IS_SHOTS } from './src/e2e/testMode';
+import { TutorialProvider, TutorialOverlay } from './src/components/Tutorial';
+import {
+  INITIAL as TUTORIAL_INITIAL,
+  normalize as normalizeTutorial,
+  startState as startTutorial,
+  shouldAutoStart,
+} from './src/tutorial';
 import { useIsOffline } from './src/net';
 import { E2E_CARDS } from './src/e2e/fixtures';
 import { seedScreenshotStats } from './src/e2e/shotsSeed';
@@ -247,6 +256,9 @@ export default function App() {
   // Whether the "Did you know? (Apple Watch)" menu notice has been hidden. Always
   // still shown in Settings; iPhone-only display is handled inside WatchTip.
   const [watchTipDismissed, setWatchTipDismissed] = useState(false);
+  // Guided tour. Held here (not in the provider) because every root return
+  // mounts its own TutorialProvider, and progress has to survive those.
+  const [tutorial, setTutorial] = useState(TUTORIAL_INITIAL);
 
   // Raw cached cards (unfiltered) for the current account, kept in a ref so sync
   // can read/merge without re-renders. `fullDeck` is the filtered view shown to
@@ -308,6 +320,40 @@ export default function App() {
   useEffect(() => {
     usernameRef.current = username;
   }, [username]);
+
+  // Restore the tour, and start it for someone who has never seen it. Starting
+  // here rather than on the menu is deliberate: step 1 lives on the menu and
+  // simply waits for it, so a first launch that begins in Settings (or spends a
+  // while loading a deck) still gets the tour at the right moment.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const saved = normalizeTutorial(await loadTutorial());
+      if (!alive) return;
+      const next = shouldAutoStart(saved, { isE2E: IS_E2E || IS_SHOTS })
+        ? startTutorial()
+        : saved;
+      setTutorial(next);
+      if (next !== saved) saveTutorial(next);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // One place to change the tour, so persistence can never be forgotten at a
+  // call site (exiting, finishing and every Next all come through here).
+  const changeTutorial = useCallback((next) => {
+    setTutorial(next);
+    saveTutorial(next);
+  }, []);
+
+  // "Take the tutorial" in Settings. Returns to the menu with it, because the
+  // tour opens there — otherwise its first step would start out waiting.
+  const restartTutorial = useCallback(() => {
+    changeTutorial(startTutorial());
+    setScreen('menu');
+  }, [changeTutorial]);
 
   // When there is no JS splash to wait for (E2E), drop the native splash as soon
   // as the fonts are ready so the UI under test isn't left covered.
@@ -1566,6 +1612,7 @@ export default function App() {
     return (
       <ThemeProvider value={theme}>
       <SafeAreaProvider>
+      <TutorialProvider screen={screen} state={tutorial} onChange={changeTutorial}>
         <Appear style={styles.studyRoot} offset={0} duration={300}>
           <StatusBar style="light" />
           <StudyScreen
@@ -1608,6 +1655,8 @@ export default function App() {
         {comparePair && renderCompareOverlay()}
         {duelPair && renderDuelOverlay()}
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
+        <TutorialOverlay />
+      </TutorialProvider>
       </SafeAreaProvider>
       </ThemeProvider>
     );
@@ -1618,6 +1667,7 @@ export default function App() {
     return (
       <ThemeProvider value={theme}>
       <SafeAreaProvider>
+      <TutorialProvider screen={screen} state={tutorial} onChange={changeTutorial}>
         <Appear style={styles.pickRoot} offset={0} duration={300}>
           <StatusBar style={statusBarStyle} />
           <PickImageScreen
@@ -1645,6 +1695,8 @@ export default function App() {
         {comparePair && renderCompareOverlay()}
         {duelPair && renderDuelOverlay()}
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
+        <TutorialOverlay />
+      </TutorialProvider>
       </SafeAreaProvider>
       </ThemeProvider>
     );
@@ -1657,6 +1709,7 @@ export default function App() {
     return (
       <ThemeProvider value={theme}>
         <SafeAreaProvider>
+        <TutorialProvider screen={screen} state={tutorial} onChange={changeTutorial}>
           <Appear style={styles.menuRoot} offset={0} duration={320}>
             <StatusBar style="light" />
             <MenuScreen
@@ -1683,6 +1736,8 @@ export default function App() {
           </Appear>
           {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
           <SupportModal visible={showSupport} onClose={() => setShowSupport(false)} />
+          <TutorialOverlay />
+        </TutorialProvider>
         </SafeAreaProvider>
       </ThemeProvider>
     );
@@ -1691,6 +1746,7 @@ export default function App() {
   return (
     <ThemeProvider value={theme}>
     <SafeAreaProvider>
+    <TutorialProvider screen={screen} state={tutorial} onChange={changeTutorial}>
       <SafeAreaView style={styles.safe}>
         <StatusBar style={statusBarStyle} />
 
@@ -1747,6 +1803,7 @@ export default function App() {
             onChangelog={() => setScreen('changelog')}
             onLegal={() => setScreen('legal')}
             onSync={SYNC_ENABLED ? () => setScreen('sync') : null}
+            onTutorial={restartTutorial}
             onBack={fullDeck.length > 0 ? navBack : null}
             registerLeave={(fn) => { settingsLeaveRef.current = fn; }}
             onSave={(name, prefs) => {
@@ -1952,6 +2009,8 @@ export default function App() {
       </SafeAreaView>
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
       <SupportModal visible={showSupport} onClose={() => setShowSupport(false)} />
+      <TutorialOverlay />
+    </TutorialProvider>
     </SafeAreaProvider>
     </ThemeProvider>
   );

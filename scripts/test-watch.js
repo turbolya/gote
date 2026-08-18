@@ -253,6 +253,9 @@ const DAY = 24 * 60 * 60 * 1000;
       '@gote/obscache', '@gote/downloadedImages', '@gote/flags',
       '@gote/confusionNotes',
       '@gote/watchResultIds', '@gote/watchTipDismissed',
+      // Having been shown around the app is not a score. Replaying the tour on
+      // a reset would be a surprise, and it is one tap away in Settings anyway.
+      '@gote/tutorial',
     ]);
 
     const as = makeAsyncStorage(Object.fromEntries(allKeys.map((k) => [k, '"seeded"'])));

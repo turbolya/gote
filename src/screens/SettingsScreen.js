@@ -5,7 +5,7 @@
 // softly-tinted Ionicons tile so options are scannable and the screen feels
 // modern rather than a flat wall of switches.
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,8 @@ import { clearDownloadedManifest } from '../prefetch';
 import Icon from '../components/Icon';
 import LanguageDropdown from '../components/LanguageDropdown';
 import WatchTip from '../components/WatchTip';
+import { useAnchorRef, useTutorialScroller } from '../components/Tutorial';
+import { UI_TEXT as TUTORIAL_UI } from '../tutorialtext';
 
 // The Apple Watch companion only pairs with an iPhone — hide its section on
 // iPad and Android (WatchTip self-gates too, but this drops the empty header).
@@ -131,11 +133,14 @@ function SwitchRow({ icon, accent, label, hint, value, onValueChange, disabled, 
 }
 
 // A tappable navigation row (opens a screen / external link).
-function NavRow({ icon, accent, label, trailing = 'chevron-right', onPress, testID }) {
+function NavRow({ icon, accent, label, trailing = 'chevron-right', onPress, testID, anchor }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
+  // Offered to the guided tour when it names this row (src/tutorial.js).
+  const anchorRef = useAnchorRef(anchor);
   return (
     <Pressable
+      ref={anchorRef}
       testID={testID}
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
       onPress={onPress}
@@ -164,12 +169,22 @@ export default function SettingsScreen({
   onChangelog,
   onLegal,
   onSync,
+  onTutorial,
   onSave,
   onBack,
   registerLeave,
 }) {
   const { colors, accents } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const usernameAnchor = useAnchorRef('settings-account');
+  // As on the menu: the tour points at Sync, which is most of a screen down.
+  const scrollRef = useRef(null);
+  const scrollOffset = useRef(0);
+  useTutorialScroller((dy) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ y: Math.max(0, scrollOffset.current + dy), animated: true });
+    }
+  });
   const [username, setUsername] = useState(initialUsername || '');
   const [perSpecies, setPerSpecies] = useState(initialPerSpecies !== false);
   const [locale, setLocale] = useState(initialLocale || DEFAULT_LOCALE);
@@ -239,10 +254,15 @@ export default function SettingsScreen({
       )}
 
       <ScrollView
+        ref={scrollRef}
         testID="settings-scroll"
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          scrollOffset.current = e.nativeEvent.contentOffset.y;
+        }}
       >
         <View style={styles.header}>
           <View style={styles.logo}>
@@ -260,6 +280,10 @@ export default function SettingsScreen({
 
         {/* Account */}
         <Text style={styles.section}>Account</Text>
+        {/* Field, hint and Save are one anchor, not three. The tutorial says
+            "type your username and tap Save", and spotlighting only the field
+            put the bubble straight over the button it was talking about. */}
+        <View ref={usernameAnchor}>
         <View style={styles.card}>
           <View style={styles.inputRow}>
             <Tile icon="at-outline" accent={accents.green} />
@@ -293,6 +317,7 @@ export default function SettingsScreen({
           <Icon name="save-outline" size={18} color="#fff" />
           <Text style={styles.buttonText}>Save</Text>
         </Pressable>
+        </View>
 
         {/* Keeping this account's observations fresh — grouped with the account
             it belongs to rather than off in its own section. */}
@@ -424,6 +449,7 @@ export default function SettingsScreen({
             <>
               <NavRow
                 testID="settings-sync"
+                anchor="settings-sync"
                 icon="refresh-cw"
                 accent={accents.teal}
                 label="Sync across devices"
@@ -472,6 +498,18 @@ export default function SettingsScreen({
         {/* About */}
         <Text style={styles.section}>About</Text>
         <View style={styles.card}>
+          {onTutorial && (
+            <>
+              <NavRow
+                testID="settings-tutorial"
+                icon="school-outline"
+                accent={accents.amber}
+                label={TUTORIAL_UI.settingsRow}
+                onPress={onTutorial}
+              />
+              <View style={styles.sep} />
+            </>
+          )}
           {onChangelog && (
             <>
               <NavRow
