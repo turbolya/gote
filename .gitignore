@@ -55,3 +55,6 @@ artifacts/
 # Local EAS build artifacts (`eas build --local` writes these to the repo root)
 build-*.ipa
 *.ipa
+
+# Generated from docs/MANUAL-TESTS.md for import into Testiny.
+testiny-cases.csv

@@ -61,10 +61,17 @@ npm run e2e:test:debug
 - `e2e/games.test.js` — All cards, Flash cards, Custom, Speedrun, Pick, Nearby.
 - `e2e/browse.test.js` — Lexicon search/flag/filter, detail, results-missed
   flagging, settings pages, stats reset confirmation.
+- `e2e/tutorial.test.js` — the guided tour: starting it from Settings, tapping a
+  spotlit control through the dimmed backdrop, the waiting bar, the exit
+  confirmation, and resuming after a relaunch. The tour does NOT auto-start
+  under `EXPO_PUBLIC_E2E=1` (an overlay on the menu would break every other
+  spec), so these start it explicitly.
 
 ## Notes
 
 - These are separate from the fast unit tests (`npm test`), which keep running in
   CI without a simulator.
+- Cases a simulator cannot run — real devices, real accounts, VoiceOver, large
+  text — live in `docs/MANUAL-TESTS.md` and are exported to Testiny from there.
 - `testID`s used by the specs live on the components; grep for `testID=` to find
   them. Keep them stable when refactoring.
