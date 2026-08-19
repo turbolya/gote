@@ -18,9 +18,12 @@ export const SPEEDRUN_VIEW_MS = 3000;
 // Ko-fi "Buy me a coffee" donation page.
 export const KOFI_URL = 'https://ko-fi.com/goteapp';
 
-// App Store "write a review" deep link. Empty until the app has an App Store id;
-// then set to:  https://apps.apple.com/app/id<APP_ID>?action=write-review
-export const APP_STORE_REVIEW_URL = '';
+// App Store "write a review" deep link. The id is the app's App Store Connect
+// ascAppId (see eas.json). Live from the moment the listing is published — until
+// then the link resolves to nothing, which is why it stayed empty through the
+// TestFlight builds and is set here for the release candidate.
+export const APP_STORE_REVIEW_URL =
+  'https://apps.apple.com/app/id6792750976?action=write-review';
 
 // Chance (0–1) that the support/review popup appears on a given launch.
 export const SUPPORT_PROMPT_CHANCE = 0.1;
