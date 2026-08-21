@@ -133,7 +133,10 @@ describe('App Store screenshots', () => {
     // Seed some history so the hero, Statistics and streak look alive: grade a
     // few flash cards, then End the round to reach Results (08).
     await step('seed stats (flash cards)', async () => {
-      await tap('mode-flash');
+      // tapMenuRow, not tap: "Flash cards" sits below the fold on shorter
+      // screens (iPhone 17), where a plain toBeVisible burns the full timeout,
+      // skips this whole step and loses 08-results.
+      await tapMenuRow('mode-flash');
       await hold(1500); // let CustomScreen compute groups + enable Start
       await tap('custom-start');
       await hold(2000); // let the round start + the first card mount

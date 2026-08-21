@@ -130,7 +130,7 @@ extension WatchStore: WCSessionDelegate {
 // an updated snapshot back here.
 extension WatchStore {
   // Screenshot-only: force the canonical demo stats (matching the iPhone
-  // screenshot set — 83% · 1392/1680, 12-day streak) so every device in the
+  // screenshot set — 89% · 1450/1627, 12-day streak) so every device in the
   // marketing set is consistent, while KEEPING the real synced deck for real
   // photos. If the phone hasn't synced a deck yet, a demo deck is planted too
   // (no images → the quiz shows a placeholder rather than a broken photo).
@@ -140,9 +140,9 @@ extension WatchStore {
     // Kept in step with the phone seeder (src/e2e/shotsSeed.js), whose rate is
     // the mean of the generated history — so every device in the marketing set
     // shows the same lifetime accuracy.
-    snap.accuracy = 78
-    snap.correct = 1409
-    snap.answered = 1801
+    snap.accuracy = 89
+    snap.correct = 1450
+    snap.answered = 1627
     snap.streak = 12
     snap.streakBest = 21
     if snap.deck.isEmpty {
