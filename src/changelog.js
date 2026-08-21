@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.42.1';
+export const APP_VERSION = '2.42.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.42.2',
+    date: '2026-08-21',
+    changes: [
+      'The guided tour now keeps you on the step it is showing. While a step is '
+        + 'up, only the highlighted button responds and the page behind it stays '
+        + 'put, so the tour can no longer end up pointing at something you have '
+        + 'scrolled away from. Leaving is unchanged — "Exit" is on every step.',
+    ],
+  },
   {
     version: '2.42.1',
     date: '2026-08-21',
