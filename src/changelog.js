@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.42.2';
+export const APP_VERSION = '2.42.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.42.3',
+    date: '2026-08-21',
+    changes: [
+      'On the Apple Watch, your streak is now marked with the gote newt rather '
+        + 'than a flame — matching the streak complication on your watch face, '
+        + 'which already used it.',
+    ],
+  },
   {
     version: '2.42.2',
     date: '2026-08-21',

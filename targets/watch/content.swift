@@ -5,6 +5,24 @@ import SwiftUI
 
 let goteTeal = Color(red: 0 / 255, green: 138 / 255, blue: 172 / 255)
 
+// The streak glyph: the gote newt, not the usual flame. Mirrors newtGlyph() in
+// targets/watch-widget/index.swift — the complication is the thing being shown
+// off below, so the two have to draw the same glyph at the same sizes or the
+// showcase is advertising something the watch does not actually render.
+//
+// Template rendering so the surrounding foregroundStyle tints it, exactly as a
+// watch face tints the real complication. `newt` here is the full-size gote.png
+// rather than the widget's newt-glyph.png; it is the same artwork, and the size
+// budget that forces the small asset on the widget (see its config) applies only
+// to WidgetKit's archived content, not to an in-app view.
+private func newtGlyph(_ size: CGFloat) -> some View {
+  Image("newt")
+    .renderingMode(.template)
+    .resizable()
+    .scaledToFit()
+    .frame(width: size, height: size)
+}
+
 // Screenshot-only showcase of the two watch-face complications (Accuracy +
 // Streak), rendered as tiles reading the synced snapshot. Real face
 // complications can't be captured headlessly (adding them to a face needs
@@ -23,10 +41,12 @@ struct ComplicationsShowcase: View {
           .font(.footnote.weight(.semibold))
           .foregroundStyle(.secondary)
 
-        // Circular pair (accuracy gauge + streak flame), as on a face corner.
+        // Circular pair (accuracy gauge + streak newt), as on a face corner.
         HStack(spacing: 22) {
           Gauge(value: Double(accuracy), in: 0...100) {
-            Image(systemName: "flame.fill")
+            // "acc", matching AccuracyView's .accessoryCircular label. This
+            // used to be a flame, which the real gauge has never drawn.
+            Text("acc")
           } currentValueLabel: {
             Text("\(accuracy)%")
               .font(.system(.body, design: .rounded).weight(.bold))
@@ -36,7 +56,7 @@ struct ComplicationsShowcase: View {
           .tint(goteTeal)
 
           VStack(spacing: 0) {
-            Image(systemName: "flame.fill").font(.caption).foregroundStyle(.orange)
+            newtGlyph(15) // StreakView .accessoryCircular
             Text("\(streak)")
               .font(.system(.title3, design: .rounded).weight(.bold))
           }
@@ -49,7 +69,7 @@ struct ComplicationsShowcase: View {
           Text("gote").font(.headline.weight(.heavy))
           Text("\(accuracy)% lifetime accuracy").font(.footnote)
           HStack(spacing: 3) {
-            Image(systemName: "flame.fill")
+            newtGlyph(13) // StreakView .accessoryRectangular
             Text("\(streak)-day streak")
           }
           .font(.footnote)
@@ -95,8 +115,10 @@ struct HomeView: View {
           // Daily streak — two stacked lines so nothing crops on small screens.
           VStack(spacing: 1) {
             HStack(spacing: 5) {
-              Image(systemName: "flame.fill")
-                .foregroundStyle(store.snapshot.streak > 0 ? .orange : .secondary)
+              // Same newt as the Streak complication, so the app and the watch
+              // face agree on what a streak looks like.
+              newtGlyph(14)
+                .foregroundStyle(store.snapshot.streak > 0 ? goteTeal : .secondary)
               Text(store.snapshot.streak > 0
                 ? "\(store.snapshot.streak)-day streak"
                 : "No streak yet")
