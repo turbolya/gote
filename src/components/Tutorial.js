@@ -10,9 +10,16 @@
 // This file measures, animates and draws — nothing here decides the tour.
 //
 // Two deliberate properties:
-//   • The backdrop never swallows touches. The point of the spotlight is that
-//     the user taps the real control through it, and someone who wants to go
-//     somewhere else entirely must not be trapped by a tutorial.
+//   • A step is MODAL. Everything except the spotlight is sealed off, so the
+//     step cannot be side-stepped by tapping something else or by scrolling the
+//     page out from under it. The hole stays live — tapping the real control is
+//     how an action step advances — and Exit sits in the bubble, so sealing the
+//     screen never traps anyone.
+//     This replaced a pass-everything backdrop. That version kept the user free
+//     to wander, but it also let them get lost behind a tour that was still
+//     pointing at a screen they had left. `waiting` (a slim, deliberately
+//     UNSEALED bar) is the honest way to be non-blocking: it only appears once
+//     the user is somewhere the tour is not.
 //   • The bubble is placed from a MEASURED anchor and a MEASURED bubble, so it
 //     lands correctly on a 320pt phone and on an iPad without a special case.
 
@@ -42,6 +49,7 @@ import {
   view as tutorialView,
   placeBubble,
   spotlight,
+  blockers,
   bubbleWidth,
   onScreen,
   advance,
@@ -261,11 +269,18 @@ export function TutorialOverlay() {
     : null;
   const { title, body } = current.text || {};
 
+  // Seal the screen off around the spotlight — but only when the step has a way
+  // forward that the seal leaves reachable. A step with a target keeps that
+  // target tappable; a step with no target but a button is advanced from the
+  // bubble. A step with NEITHER (a target that has scrolled away or not measured
+  // yet, on a step whose only exit is tapping the real control) is left open on
+  // purpose: sealing it would leave Exit as the only move.
+  const sealed = !!spot || !!current.cta;
+
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none" testID="tutorial-overlay">
-      {/* The dim, with the target punched out of it. pointerEvents none on the
-          wrapper as well as the Svg: the whole point is that the highlighted
-          control is still tappable through the hole. */}
+      {/* The dim, with the target punched out of it. Drawing only — it is the
+          bands below, not this layer, that decide what can be touched. */}
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]} pointerEvents="none">
         <Svg width={screenSize.width} height={screenSize.height}>
           <Defs>
@@ -307,6 +322,27 @@ export function TutorialOverlay() {
           )}
         </Svg>
       </Animated.View>
+
+      {/* The seal. Separate views around the hole rather than one full-screen
+          view with the spotlight cut out, because a cut-out exists only in the
+          SVG mask — masks do not affect hit testing, so a single layer would
+          block the very control the step is asking the user to tap.
+
+          Claiming the responder on START blocks taps; claiming it on MOVE, and
+          refusing to hand it back, blocks the drag a ScrollView underneath would
+          otherwise read as a scroll. Rendered before the bubble so the bubble's
+          own Exit/Next buttons stay above the seal. */}
+      {sealed &&
+        blockers(spot, screenSize).map((b) => (
+          <View
+            key={`${b.x}:${b.y}:${b.width}:${b.height}`}
+            testID="tutorial-block"
+            style={{ position: 'absolute', left: b.x, top: b.y, width: b.width, height: b.height }}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => true}
+            onResponderTerminationRequest={() => false}
+          />
+        ))}
 
       <Animated.View
         testID="tutorial-bubble"

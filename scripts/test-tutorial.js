@@ -81,7 +81,7 @@ import {
   STEPS, TOTAL, ANCHORS, QUIET_SCREENS, INITIAL,
   startState, doneState, normalize, isRunning, stepAt, currentStep,
   shouldAutoStart, advance, onScreen, view,
-  placeBubble, spotlight, bubbleWidth, anchorVisible, scrollDelta,
+  placeBubble, spotlight, blockers, bubbleWidth, anchorVisible, scrollDelta,
   MARGIN, GAP, ARROW_INSET, SPOT_PAD, SPOT_RADIUS, BUBBLE_MAX_W, MIN_VISIBLE,
   SCROLL_MIN, SCROLL_BIAS,
 } from ${JSON.stringify(src)};
@@ -629,6 +629,72 @@ head('scroll deltas are stable');
   ok('and the delta is a whole number of points', Number.isInteger(dy), 'dy ' + dy);
   ok('smaller than the minimum means no scroll at all', Math.abs(dy) === 0 || Math.abs(dy) >= SCROLL_MIN);
   ok('the bias keeps the target above the middle', SCROLL_BIAS > 0 && SCROLL_BIAS < 0.5);
+}
+
+head('the seal covers everything except the spotlight');
+{
+  // Total blocked area + the hole must equal the screen exactly, and no two
+  // bands may overlap — an overlap would mean a double-counted area hiding a
+  // gap somewhere else, which is precisely the bug that lets a tap through.
+  const area = (r) => r.width * r.height;
+  const overlaps = (a, b) =>
+    a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+  for (const d of DEVICES) {
+    const screen = { width: d.width, height: d.height };
+    const positions = [
+      ['top', { x: 16, y: d.insets.top + 8, width: d.width - 32, height: 64 }],
+      ['middle', { x: 16, y: Math.round(d.height / 2), width: d.width - 32, height: 64 }],
+      ['bottom', { x: 16, y: d.height - d.insets.bottom - 80, width: d.width - 32, height: 64 }],
+      ['full-width', { x: 0, y: Math.round(d.height / 3), width: d.width, height: 50 }],
+      ['tiny icon', { x: 12, y: 12, width: 24, height: 24 }],
+      ['off the left', { x: -40, y: 200, width: 120, height: 44 }],
+      ['off the bottom', { x: 16, y: d.height - 10, width: 100, height: 44 }],
+    ];
+    for (const [label, anchor] of positions) {
+      const spot = spotlight(anchor, screen);
+      const bands = blockers(spot, screen);
+      const name = d.name + ' / ' + label;
+      const blocked = bands.reduce((s, b) => s + area(b), 0);
+      const hole = spot
+        ? Math.max(0, Math.min(spot.x + spot.width, d.width) - Math.max(spot.x, 0)) *
+          Math.max(0, Math.min(spot.y + spot.height, d.height) - Math.max(spot.y, 0))
+        : 0;
+      ok(name + ': bands + hole == the whole screen',
+        Math.abs(blocked + hole - d.width * d.height) < 0.01,
+        'blocked ' + blocked + ' + hole ' + hole + ' vs ' + d.width * d.height);
+      ok(name + ': every band is on screen and positive',
+        bands.every((b) => b.width > 0 && b.height > 0 && b.x >= 0 && b.y >= 0 &&
+          b.x + b.width <= d.width + 0.01 && b.y + b.height <= d.height + 0.01),
+        JSON.stringify(bands));
+      let clash = false;
+      for (let i = 0; i < bands.length; i++)
+        for (let j = i + 1; j < bands.length; j++) if (overlaps(bands[i], bands[j])) clash = true;
+      ok(name + ': no two bands overlap', !clash, JSON.stringify(bands));
+      // The whole point: the control being pointed at must stay reachable.
+      if (spot) {
+        const cx = spot.x + spot.width / 2;
+        const cy = spot.y + spot.height / 2;
+        const covered = bands.some(
+          (b) => cx >= b.x && cx <= b.x + b.width && cy >= b.y && cy <= b.y + b.height
+        );
+        ok(name + ': the spotlight centre is NOT blocked', !covered);
+      }
+    }
+  }
+}
+
+head('a step with nothing to light up seals the whole screen');
+{
+  const screen = { width: 393, height: 852 };
+  eq('no spotlight means one full-screen band', blockers(null, screen), [
+    { x: 0, y: 0, width: 393, height: 852 },
+  ]);
+  // An anchor too small to be worth pointing at gives no spotlight, and must
+  // still produce a seal rather than an empty list (which would block nothing).
+  const tiny = spotlight({ x: 10, y: 10, width: 2, height: 2 }, screen);
+  eq('an unusable anchor still seals', blockers(tiny, screen).length, 1);
+  eq('a degenerate screen seals nothing', blockers(null, { width: 0, height: 0 }), []);
 }
 
 console.log('');

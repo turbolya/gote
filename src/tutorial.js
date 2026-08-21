@@ -230,6 +230,55 @@ export function spotlight(anchor, screen) {
   };
 }
 
+// The screen minus the spotlight, as rectangles to seal off.
+//
+// A step is modal: the user must not be able to tap past it, or scroll the page
+// out from under the thing being pointed at. But the spotlight itself has to
+// stay live — for an action step ({ screen: 'x' }) tapping the real control is
+// the ONLY way forward — so the blocked area is the screen with the target's
+// rectangle taken out of it, returned as up to four bands:
+//
+//        ┌───────────────┐
+//        │      top      │
+//        ├────┬─────┬────┤
+//        │left│ HOLE│righ│
+//        ├────┴─────┴────┤
+//        │     bottom    │
+//        └───────────────┘
+//
+// No spotlight (a step that points at nothing, or one whose target has not been
+// measured yet) means one full-screen band. Whether that is safe to render is
+// the overlay's call, not this function's: a step with no target AND no button
+// would have no way forward, and must not be sealed.
+//
+// The corners of the hole are square even though the ring is rounded. Blocking
+// those few points would mean four more views to spare a touch that lands on the
+// rounded edge of the control being pointed at anyway.
+export function blockers(spot, screen) {
+  if (!screen || !(screen.width > 0) || !(screen.height > 0)) return [];
+  const full = { x: 0, y: 0, width: screen.width, height: screen.height };
+  if (!spot) return [full];
+
+  // Clip the hole to the screen, so a partly off-screen anchor cannot produce a
+  // band with a negative width.
+  const left = clamp(spot.x, 0, screen.width);
+  const top = clamp(spot.y, 0, screen.height);
+  const right = clamp(spot.x + spot.width, 0, screen.width);
+  const bottom = clamp(spot.y + spot.height, 0, screen.height);
+  if (!(right > left) || !(bottom > top)) return [full];
+
+  const bands = [];
+  if (top > 0) bands.push({ x: 0, y: 0, width: screen.width, height: top });
+  if (bottom < screen.height) {
+    bands.push({ x: 0, y: bottom, width: screen.width, height: screen.height - bottom });
+  }
+  if (left > 0) bands.push({ x: 0, y: top, width: left, height: bottom - top });
+  if (right < screen.width) {
+    bands.push({ x: right, y: top, width: screen.width - right, height: bottom - top });
+  }
+  return bands;
+}
+
 // How far to scroll to bring a target into view, in points (positive = scroll
 // down / further into the content). Zero when it is already somewhere sensible.
 //
