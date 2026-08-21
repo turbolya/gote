@@ -8,9 +8,17 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.42.0';
+export const APP_VERSION = '2.42.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.42.1',
+    date: '2026-08-21',
+    changes: [
+      'Housekeeping: the Expo libraries the app is built on are up to date '
+        + 'again. Nothing changes in how the app looks or plays.',
+    ],
+  },
   {
     version: '2.42.0',
     date: '2026-08-18',

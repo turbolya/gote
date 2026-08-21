@@ -13,6 +13,10 @@ node_modules/
 /build-device/
 /build-shots/
 
+# `eas build --local --output ./build/...` artifacts and logs. A signed .ipa is
+# ~17 MB and must never land in the repo.
+/build/
+
 # NOTE: screenshots-local/ IS tracked — it's the App Store screenshot tooling.
 # Only its OUTPUT is kept out of the repo: the PNGs are written to the separate
 # gote-launch folder, so there is nothing to ignore here.
