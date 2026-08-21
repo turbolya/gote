@@ -94,6 +94,13 @@ describe('Guided tour', () => {
     await tap('tutorial-next'); // → "open Settings"
     await atStep(2);
     await visible('open-settings');
+    // Once there is a target to seal around, the step is modal: the bands are
+    // up. Asserted AFTER the target resolves, not on arrival — this step has no
+    // Next button, so until its anchor has been measured there is deliberately
+    // nothing sealed. Sealing a step with no target and no button would leave
+    // Exit as the only way out.
+    await expect(element(by.id('tutorial-block')).atIndex(0)).toExist();
+    // …and the spotlight is still a hole, not a picture of one.
     await element(by.id('open-settings')).tap();
     await visible('settings-username');
     await atStep(3);
@@ -128,6 +135,10 @@ describe('Guided tour', () => {
     // Not lost, and not silent: a bar says how to get back to it…
     await visible('tutorial-waiting');
     await expect(element(by.id('tutorial-bubble'))).not.toExist();
+    // …and crucially the screen is NOT sealed here. Waiting means the user has
+    // gone somewhere the tour is not; blocking them there would be the trap the
+    // modal step is careful to avoid.
+    await expect(element(by.id('tutorial-block')).atIndex(0)).not.toExist();
     // …and the tour can still be left from there, which is the whole reason the
     // bar exists rather than the tour simply vanishing.
     await tap('tutorial-exit');
