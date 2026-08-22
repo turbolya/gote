@@ -57,10 +57,20 @@ export const STEPS = [
 
 export const TOTAL = STEPS.length;
 
-// Screens where even the "waiting" bar stays out of the way: a round in play and
-// the moments either side of it. The bar is a nudge, not a nag, and it must
-// never sit on top of a card the user is trying to answer.
-export const QUIET_SCREENS = ['loading', 'study', 'pick', 'results'];
+// Screens where even the "waiting" bar stays out of the way. The bar is a nudge,
+// not a nag, and it must never sit on top of a card someone is trying to answer:
+// `study` and `pick` are both a round in play, and `loading` has no UI to speak
+// of.
+//
+// `results` used to be here too, as "the moment just after a round". That was
+// wrong in practice: it is the one screen where the user is idle and choosing
+// what to do next, and a tour that vanishes there looks like a tour that has
+// broken. Nothing on Results has to be answered, so the bar covers nothing.
+//
+// Keep this list as short as it can be. Every screen on it is a screen where a
+// running tour is completely invisible, and `view()` returning 'off' is
+// indistinguishable to the user from the tour having given up.
+export const QUIET_SCREENS = ['loading', 'study', 'pick'];
 
 // --- state -------------------------------------------------------------------
 // { status: 'new' | 'running' | 'done', step: <index into STEPS> }

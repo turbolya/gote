@@ -275,7 +275,15 @@ export function TutorialOverlay() {
   // bubble. A step with NEITHER (a target that has scrolled away or not measured
   // yet, on a step whose only exit is tapping the real control) is left open on
   // purpose: sealing it would leave Exit as the only move.
-  const sealed = !!spot || !!current.cta;
+  //
+  // Gated on `ready` as well, which is the invariant that matters: BLOCKING
+  // WITHOUT VISIBLE INSTRUCTIONS IS NEVER CORRECT. The bubble's height is not
+  // known until it has laid out, and the dim and bubble both fade in off that
+  // same measurement — so an ungated seal blocks the screen for a frame or more
+  // while nothing at all is drawn, which reads as the app having frozen. Worse
+  // on a step whose bubble is slow to measure, and worst on a CTA step, where
+  // there is no spotlight to hint at what is going on.
+  const sealed = ready && (!!spot || !!current.cta);
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none" testID="tutorial-overlay">

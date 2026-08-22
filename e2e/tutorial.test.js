@@ -154,6 +154,77 @@ describe('Guided tour', () => {
     await atStep(5);
   });
 
+  // Both of the reports this spec grew from: screens where the tour drew
+  // nothing at all, and screens where it blocked without saying why.
+
+  it('stays visible on Results, where a round ends', async () => {
+    // Results used to be a QUIET_SCREEN, so the tour vanished on the one screen
+    // where the user stops and decides what to do next — indistinguishable from
+    // the tour having died.
+    // Getting to a menu where the tour is WAITING takes some care: every step
+    // that lives on the menu seals it, and relaunching at step 3 lands on the
+    // menu, which is the very arrival step 3 is waiting for. So walk to step 5,
+    // which lives on the Smart play screen, and come back.
+    await startTutorial();
+    await tap('tutorial-next'); // → 2, open Settings
+    await visible('open-settings');
+    await element(by.id('open-settings')).tap();
+    await atStep(3);
+
+    await device.launchApp({ newInstance: true });
+    await device.disableSynchronization();
+    await atStep(4); // arriving on the menu satisfied step 3
+    await visible('mode-smart');
+    await element(by.id('mode-smart')).tap();
+    await atStep(5); // lives on Smart play
+
+    await device.launchApp({ newInstance: true });
+    await device.disableSynchronization();
+    await visible('mode-smart');
+    await visible('tutorial-waiting'); // …so the menu is only waiting, unsealed
+    await expect(element(by.id('tutorial-block')).atIndex(0)).not.toExist();
+
+    // "By picture" lands on `pick`, which no step waits for — so the tour does
+    // not advance, and we can play a round without the seal getting in the way.
+    await tapScroll('mode-pick', 'menu-scroll');
+    await visible('pick-screen');
+    // `pick` is a round in play, so the tour is deliberately silent here.
+    await expect(element(by.id('tutorial-waiting'))).not.toExist();
+    await expect(element(by.id('tutorial-bubble'))).not.toExist();
+    await expect(element(by.id('tutorial-block')).atIndex(0)).not.toExist();
+
+    await tap('pick-end');
+    await visible('results-menu');
+
+    // …and Results is where it must come back. This is the regression: Results
+    // used to be quiet too, so the tour vanished exactly where the user stops
+    // and decides what to do next.
+    await visible('tutorial-waiting');
+    await expect(element(by.id('tutorial-block')).atIndex(0)).not.toExist();
+  });
+
+  it('never blocks the screen without showing instructions', async () => {
+    // The seal is gated on the bubble having laid out, because blocking with
+    // nothing drawn reads as the app having frozen. Checked on both kinds of
+    // step: one with a button, and one whose only way on is the real control.
+    await startTutorial();
+
+    // Step 1 — a Next button, no spotlight: sealed whole, bubble must be up.
+    await visible('tutorial-bubble');
+    await expect(element(by.id('tutorial-block')).atIndex(0)).toExist();
+    await expect(element(by.id('tutorial-next'))).toExist();
+
+    await tap('tutorial-next');
+    await atStep(2);
+
+    // Step 2 — an action step: spotlight up, bubble up, seal up together.
+    await visible('open-settings');
+    await visible('tutorial-bubble');
+    await expect(element(by.id('tutorial-block')).atIndex(0)).toExist();
+    await visible('tutorial-title');
+    await visible('tutorial-body');
+  });
+
   it('confirms before exiting, and can be dismissed', async () => {
     await startTutorial();
     await tap('tutorial-exit');

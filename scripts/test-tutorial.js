@@ -697,6 +697,137 @@ head('a step with nothing to light up seals the whole screen');
   eq('a degenerate screen seals nothing', blockers(null, { width: 0, height: 0 }), []);
 }
 
+// --------------------------------------------------- visibility, exhaustively
+//
+// The bug this section exists for: a running tour that draws NOTHING. The user
+// is told the app is guiding them, then lands on a screen where there is no
+// bubble, no bar, and no way to tell whether the tour is alive. It is invisible
+// on QUIET_SCREENS by design — so the test is not "never invisible", it is
+// "invisible ONLY where we chose, and we chose as few as possible".
+
+head('every step on every screen resolves to something coherent');
+{
+  const MODES = ['step', 'waiting', 'off'];
+  let stepScreens = 0;
+  for (let i = 0; i < TOTAL; i++) {
+    const state = { status: 'running', step: i };
+    for (const screen of RENDERED) {
+      const v = view(state, screen);
+      const label = STEPS[i].id + ' on ' + screen;
+      ok(label + ': a known mode', MODES.includes(v.mode), v.mode);
+      if (v.mode === 'step') {
+        stepScreens++;
+        ok(label + ': carries text', !!v.text && !!v.text.title && !!v.text.body);
+        ok(label + ': carries progress', typeof v.progress === 'string' && v.progress.length > 0);
+        ok(label + ': is on its own screen', screen === STEPS[i].screen);
+      }
+      if (v.mode === 'waiting') {
+        ok(label + ': the bar says something', typeof v.text === 'string' && v.text.length > 0);
+        ok(label + ': names the screen it wants', v.waitingFor === STEPS[i].screen);
+      }
+      if (v.mode === 'off') {
+        ok(label + ': only ever quiet on a quiet screen', QUIET_SCREENS.includes(screen), screen);
+      }
+    }
+  }
+  eq('each step is showable on exactly one screen', stepScreens, TOTAL);
+}
+
+head('the tour is never invisible except where chosen');
+{
+  // A screen that is 'off' for EVERY step is a screen where the tour can never
+  // be seen at all — the "page with no instructions" report.
+  for (const screen of RENDERED) {
+    let off = 0;
+    for (let i = 0; i < TOTAL; i++) if (view({ status: 'running', step: i }, screen).mode === 'off') off++;
+    const always = off === TOTAL;
+    ok('always-invisible screens are declared quiet: ' + screen,
+      !always || QUIET_SCREENS.includes(screen),
+      screen + ' is invisible on all ' + TOTAL + ' steps but is not in QUIET_SCREENS');
+  }
+  // Results is the regression guard: it was quiet, which made the tour vanish
+  // exactly where the user stops to decide what to do next.
+  ok('results is NOT quiet', !QUIET_SCREENS.includes('results'));
+  eq('results shows the waiting bar mid-tour',
+    view({ status: 'running', step: 0 }, 'results').mode, 'waiting');
+  // …while a round in play still is.
+  for (const s of ['study', 'pick']) ok(s + ' stays quiet during play', QUIET_SCREENS.includes(s));
+  ok('every quiet screen is a real screen', QUIET_SCREENS.every((s) => RENDERED.includes(s)),
+    JSON.stringify(QUIET_SCREENS.filter((s) => !RENDERED.includes(s))));
+}
+
+head('a tour that is not running draws nothing, whatever the screen');
+{
+  for (const state of [null, undefined, {}, INITIAL, doneState(), { status: 'running', step: -1 },
+                       { status: 'running', step: TOTAL }, { status: 'running', step: 99 },
+                       { status: 'nonsense', step: 0 }]) {
+    for (const screen of RENDERED) {
+      eq('off for ' + JSON.stringify(state) + ' on ' + screen, view(state, screen).mode, 'off');
+    }
+  }
+}
+
+head('an unknown screen still leaves the tour reachable');
+{
+  // A screen this test does not know about (added later, or a typo) must fall
+  // back to the bar, never to silence — silence is the failure mode that hides.
+  for (const screen of ['brand-new-screen', '', 'MENU', 'settings ']) {
+    const v = view({ status: 'running', step: 1 }, screen);
+    eq('unknown screen "' + screen + '" waits rather than vanishing', v.mode, 'waiting');
+    ok('  …and still says where to go', !!v.text);
+  }
+}
+
+head('advancing is monotonic and cannot skip or stall');
+{
+  // Walk every step, advancing the way the app would, and assert the tour always
+  // moves forward and terminates.
+  let state = startState();
+  const seen = [];
+  for (let guard = 0; guard < TOTAL * 3; guard++) {
+    if (!isRunning(state)) break;
+    const step = currentStep(state);
+    seen.push(step.id);
+    const before = state.step;
+    state = step.advance === 'next' ? advance(state) : onScreen(state, step.advance.screen);
+    ok('progressed past ' + step.id, !isRunning(state) || state.step > before,
+      'stuck at ' + before);
+  }
+  eq('the walk visits every step exactly once', seen.length, TOTAL);
+  eq('in order', seen.join(','), STEPS.map((s) => s.id).join(','));
+  eq('and ends done', state.status, 'done');
+
+  // Arriving somewhere irrelevant must never advance an action step.
+  for (let i = 0; i < TOTAL; i++) {
+    const st = { status: 'running', step: i };
+    const step = STEPS[i];
+    if (step.advance === 'next') {
+      for (const screen of RENDERED) {
+        eq(step.id + ': screen arrival cannot advance a Next step', onScreen(st, screen).step, i);
+      }
+    } else {
+      for (const screen of RENDERED.filter((s) => s !== step.advance.screen)) {
+        eq(step.id + ': arriving at ' + screen + ' does not advance', onScreen(st, screen).step, i);
+      }
+    }
+  }
+}
+
+head('the seal can never be up without a way forward');
+{
+  // The overlay seals when (spotlight || cta). Re-stated over the real steps:
+  // a step with no button MUST have an anchor, or a user whose anchor cannot be
+  // measured would be sealed in with only Exit.
+  for (const step of STEPS) {
+    const hasButton = step.advance === 'next';
+    ok(step.id + ': has a button or an anchor', hasButton || !!step.anchor,
+      'no cta and no anchor — nothing to seal around and no way on');
+    if (!hasButton) {
+      ok(step.id + ': its anchor is one a screen registers', REGISTERED.includes(step.anchor), step.anchor);
+    }
+  }
+}
+
 console.log('');
 console.log(failed ? 'FAILED ' + failed + ' / ' + (passed + failed) : 'passed ' + passed);
 if (failed) process.exit(1);
