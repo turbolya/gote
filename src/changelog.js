@@ -8,9 +8,21 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.42.4';
+export const APP_VERSION = '2.42.5';
 
 export const CHANGELOG = [
+  {
+    version: '2.42.5',
+    date: '2026-08-26',
+    changes: [
+      'A first launch now opens on the main menu, where the guided tour starts '
+        + 'with its welcome. It used to open in Settings, so the tour greeted you '
+        + 'by asking you to go back to a menu you had not seen yet.',
+      'While your observations download, the screen now says that only your '
+        + '~1,000 most recent ones are loaded — so a count like "200 of 35954" '
+        + 'no longer looks like it has stalled.',
+    ],
+  },
   {
     version: '2.42.4',
     date: '2026-08-22',

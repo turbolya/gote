@@ -76,6 +76,15 @@ const DEVICES = [
   { name: 'iPad Pro 12.9', width: 1024, height: 1366, insets: { top: 24, bottom: 20, left: 0, right: 0 } },
 ];
 
+// Where a fresh install lands, scraped from App.js's first-start branch. The
+// tour auto-starts at boot, so if this screen is not the one step 1 lives on,
+// a brand-new user is dropped somewhere the tour can only WAIT — greeted by
+// "go back to the main menu" before they have ever seen the menu.
+const FIRST_START_LANDS_ON = (() => {
+  const m = appSource.match(/DEFAULT_USERNAME,[\s\S]{0,600}?landOn:\s*'([a-z]+)'/);
+  return m ? m[1] : null;
+})();
+
 const script = `
 import {
   STEPS, TOTAL, ANCHORS, QUIET_SCREENS, INITIAL,
@@ -90,6 +99,7 @@ import { STEP_TEXT, WAITING, UI_TEXT } from ${JSON.stringify(path.join(root, 'sr
 const RENDERED = ${JSON.stringify(RENDERED)};
 const REGISTERED = ${JSON.stringify(REGISTERED)};
 const DEVICES = ${JSON.stringify(DEVICES)};
+const FIRST_START_LANDS_ON = ${JSON.stringify(FIRST_START_LANDS_ON)};
 
 let passed = 0, failed = 0;
 function eq(name, actual, expected) {
@@ -754,6 +764,18 @@ head('the tour is never invisible except where chosen');
   for (const s of ['study', 'pick']) ok(s + ' stays quiet during play', QUIET_SCREENS.includes(s));
   ok('every quiet screen is a real screen', QUIET_SCREENS.every((s) => RENDERED.includes(s)),
     JSON.stringify(QUIET_SCREENS.filter((s) => !RENDERED.includes(s))));
+}
+
+head('a fresh install lands where the tour opens');
+{
+  ok('App.js first-start branch was found', !!FIRST_START_LANDS_ON,
+    'could not scrape landOn from the DEFAULT_USERNAME branch — did it change?');
+  eq('it lands on step 1\\'s own screen', FIRST_START_LANDS_ON, STEPS[0].screen);
+  // Stated the other way round, because this is the failure it prevents: the
+  // tour auto-starts at boot, so landing anywhere else means a brand-new user
+  // meets the tour as a "go back to…" bar on a screen they never chose.
+  eq('so the first thing shown is the step, not the waiting bar',
+    view(startState(), FIRST_START_LANDS_ON).mode, 'step');
 }
 
 head('a tour that is not running draws nothing, whatever the screen');

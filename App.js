@@ -321,10 +321,16 @@ export default function App() {
     usernameRef.current = username;
   }, [username]);
 
-  // Restore the tour, and start it for someone who has never seen it. Starting
-  // here rather than on the menu is deliberate: step 1 lives on the menu and
-  // simply waits for it, so a first launch that begins in Settings (or spends a
-  // while loading a deck) still gets the tour at the right moment.
+  // Restore the tour, and start it for someone who has never seen it. Started
+  // here, at boot, rather than on arrival at the menu: step 1 lives on the menu
+  // and simply waits for it, so a launch that spends a while loading a deck
+  // still gets the tour at the right moment rather than missing its cue.
+  //
+  // What it must NOT do is leave the user somewhere the tour is only waiting
+  // before they have seen the menu at all — being told to "go back to the main
+  // menu" on a screen you were dropped on is nonsense. A fresh install therefore
+  // lands on the menu (see the first-start branch below), which is where step 1
+  // is, so the tour opens with its welcome rather than with a nag.
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -776,15 +782,22 @@ export default function App() {
         );
       } else {
         // Very first start (fresh install): download the default public account's
-        // deck (loarie) so there's something to play, then land on Settings so the
-        // user can set their own username (or just back out and play loarie's). It
+        // deck (loarie) so there's something to play, then land on the MENU. It
         // saves the username + cache, so later starts load from cache + a quick
         // incremental sync (see loadAccount) rather than downloading again.
+        //
+        // This used to land on Settings, so a first-time user could set their own
+        // username straight away. That read badly once the tour existed: the tour
+        // opens on the menu, so a first launch dropped the user in Settings with
+        // the tour already nagging "go back to the main menu" — before they had
+        // ever seen the menu. The tour walks them to Settings itself (step 2) and
+        // asks for the username there (step 3), so the prompt is not lost; it just
+        // arrives after an introduction rather than instead of one.
         setUsername(DEFAULT_USERNAME);
         fullDownload(
           DEFAULT_USERNAME,
           { perSpecies: ps, locale: loc, researchGrade: rg, speciesOnly: so, namedOnly: no },
-          { landOn: 'settings' }
+          { landOn: 'menu' }
         );
       }
     })();
@@ -1770,6 +1783,16 @@ export default function App() {
                 {Math.min(progress.loaded, progress.total)} of {progress.total}
               </Text>
             )}
+            {/* Says the same thing as the hint under the username field in
+                Settings, and for the same reason: a big account stops well
+                short of its real total (MAX_CACHE in src/api.js), and without
+                this the count above looks like the load gave up. Not shown for
+                "nearby", which is a different query with its own limit. */}
+            {!loadingNearby && (
+              <Text style={styles.loadingNote}>
+                Only your ~1,000 most recent observations are loaded.
+              </Text>
+            )}
             <Pressable
               testID="loading-cancel"
               onPress={cancelLoad}
@@ -2041,6 +2064,9 @@ const makeStyles = (colors) => StyleSheet.create({
     textAlign: 'center',
   },
   loadingSub: { marginTop: 6, fontSize: 14, color: colors.muted },
+  // Smaller than the count it sits under: a standing fact about the account,
+  // not part of the progress. Matches Settings' accountHint.
+  loadingNote: { marginTop: 10, fontSize: 12.5, color: colors.muted, textAlign: 'center' },
   loadingCancel: { marginTop: 28, paddingVertical: 8, paddingHorizontal: 16 },
   loadingCancelText: { fontSize: 15, fontWeight: '700', color: colors.muted },
 });
