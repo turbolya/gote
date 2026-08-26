@@ -1,0 +1,90 @@
+# The pre-build gates, on every push.
+#
+# These are the same four checks the handbook asks for before an EAS build. The
+# fourth — the sync integration suite — needs Docker, which is why it lives here
+# rather than only on a developer's machine: it has been skipped on every build
+# since the dev VM lost the ability to run Docker (no nested virtualisation), and
+# a gate that only runs when someone remembers is not a gate. Linux runners have
+# Docker preinstalled, and Actions is free with unlimited minutes on public
+# repositories.
+#
+# Deliberately NOT here: Detox and the iOS builds. Those need a simulator, and
+# GitHub's macOS runners are slow and heavily queued. Run them locally
+# (`npm run e2e:build && npm run e2e:test`) as now — see e2e/README.md.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Only the newest run on a branch matters; cancel anything it superseded.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: Pre-build gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned to eas.json's node rather than "latest": CI should resolve
+      # dependencies the way the builder that actually ships the app does. If
+      # that pin moves, move this with it.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: npm
+
+      # `npm ci` IS the lockfile gate. It fails outright on a lockfile that has
+      # drifted from package.json, which is exactly what `npm install` would
+      # quietly paper over — and what EAS Build would then fail on. (.npmrc
+      # supplies legacy-peer-deps; see the comment in that file for why.)
+      - name: Install dependencies
+        run: npm ci
+
+      - name: expo-doctor
+        run: npx expo-doctor
+
+      - name: Unit suites
+        run: npm test
+
+      - name: Install the Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # A fresh runner means a freshly created database, so `start` applies
+      # supabase/migrations/ on the way up. The `db reset` the handbook insists
+      # on locally is for a stale local database, and has nothing to reset here.
+      - name: Start Supabase
+        run: supabase start
+
+      # The suite reads these three from the environment and only falls back to
+      # asking the CLI itself; passing them explicitly keeps it from shelling out
+      # to `npx supabase@latest`, which would fetch a second, unpinned copy.
+      # These are the local stack's throwaway development keys, not secrets.
+      #
+      # The SKIPPED check is the point of running it here at all. The suite exits
+      # 0 when it cannot reach a Supabase instance, so that a developer without
+      # Docker is not blocked — the right call locally, and exactly wrong in CI,
+      # where it would let this workflow go green while testing nothing. Note
+      # `pipefail`: without it the exit status would come from `tee`, and a
+      # genuine test failure would pass.
+      - name: Sync integration suite
+        run: |
+          set -o pipefail
+          eval "$(supabase status -o env)"
+          SUPABASE_URL="$API_URL" \
+          SUPABASE_ANON_KEY="$ANON_KEY" \
+          SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
+          npm run test:sync 2>&1 | tee /tmp/sync.log
+          if grep -q "SKIPPED" /tmp/sync.log; then
+            echo "::error::The sync integration suite reported SKIPPED — it did not run."
+            exit 1
+          fi
