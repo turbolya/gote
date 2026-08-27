@@ -10,6 +10,10 @@
 //   • title — 1-3 words, sentence case, no full stop.
 //   • body  — one sentence, ideally under ~90 characters. It sits over the UI
 //     it is describing, so it should name the thing and stop.
+//
+// Explicit `.js` on the import, as in src/tutorial.js: scripts/test-tutorial.js
+// loads this file under node ESM, which does not do Metro's extension guessing.
+import { DEFAULT_USERNAME } from './constants.js';
 
 // Shown in the bubble, keyed by step id (see STEPS in src/tutorial.js).
 export const STEP_TEXT = {
@@ -23,7 +27,7 @@ export const STEP_TEXT = {
   },
   username: {
     title: 'Your species',
-    body: 'Type your iNaturalist username and tap Save. Those observations become your deck.',
+    body: `Type your iNaturalist username and tap Save — or keep ${DEFAULT_USERNAME} for now if you have no account.`,
   },
   smart: {
     title: 'Smart play',

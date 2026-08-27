@@ -40,10 +40,18 @@ async function startTutorial() {
 
 // The progress line is styled uppercase, and textTransform happens natively —
 // so this is the string Detox reads back, not the one in tutorialtext.js.
+//
+// The visibility check is not decoration. toHaveText matches a view that is
+// mounted but fully transparent — which is the shape of the failure this spec
+// most needs to catch: the step advances, its text is in the hierarchy, and the
+// overlay never fades in. Detox treats an alpha-0 view as not visible, so this
+// is what tells "the tour moved on" from "the tour is there but nobody can see
+// it".
 async function atStep(n, total = 12) {
   await waitFor(element(by.id('tutorial-progress')))
     .toHaveText(`${n} OF ${total}`)
     .withTimeout(TIMEOUT);
+  await visible('tutorial-bubble');
 }
 
 describe('Guided tour', () => {

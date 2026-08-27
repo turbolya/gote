@@ -89,7 +89,7 @@ const script = `
 import {
   STEPS, TOTAL, ANCHORS, QUIET_SCREENS, INITIAL,
   startState, doneState, normalize, isRunning, stepAt, currentStep,
-  shouldAutoStart, advance, onScreen, view,
+  shouldAutoStart, advance, onScreen, view, hasCta,
   placeBubble, spotlight, blockers, bubbleWidth, anchorVisible, scrollDelta,
   MARGIN, GAP, ARROW_INSET, SPOT_PAD, SPOT_RADIUS, BUBBLE_MAX_W, MIN_VISIBLE,
   SCROLL_MIN, SCROLL_BIAS,
@@ -265,9 +265,37 @@ head('the tour asks for the right things');
   eq('statistics are opened, not just described', byId.stats.advance, { screen: 'stats' });
   eq('the location mode is pointed out', byId.nearby.anchor, 'mode-nearby');
   // Nearby wants a location permission; nobody should be made to grant one to
-  // finish a tutorial.
-  eq('but playing it is not required', byId.nearby.advance, 'next');
+  // finish a tutorial — so it keeps a button…
+  ok('but playing it is not required', hasCta(byId.nearby));
+  // …and yet opening it counts, because the step lights up a row that navigates
+  // and people tap what is lit up. Without this the user lands on Nearby, comes
+  // back, and is told to open Nearby again.
+  eq('though opening it counts too', byId.nearby.advance.screen, 'nearby');
   eq('sync is the last thing shown', byId.sync.anchor, 'settings-sync');
+  // Same trap, same escape: the Sync row navigates.
+  ok('sync can be skipped', hasCta(byId.sync));
+  eq('or opened', byId.sync.advance.screen, 'sync');
+
+  // Stated once over the whole list, so a step added later cannot reintroduce
+  // it: a spotlit control that navigates must accept the arrival as an advance.
+  // (Every anchor that goes nowhere — a button inside its own screen — is
+  // exempt, which is why this is a list and not a rule about anchors.)
+  const NAVIGATES = {
+    'open-settings': 'settings',
+    'menu-stats': 'stats',
+    'mode-smart': 'smart',
+    'mode-nearby': 'nearby',
+    'settings-account': 'menu', // Save reloads the deck and lands back on the menu
+    'settings-sync': 'sync',
+    'custom-start': 'study',
+    // 'study-photos' is absent on purpose: it opens an overlay, not a screen.
+  };
+  eq(
+    'every step pointing at a control that navigates advances on arriving there',
+    STEPS.filter((s) => NAVIGATES[s.anchor] && (s.advance === 'next' || s.advance.screen !== NAVIGATES[s.anchor]))
+      .map((s) => s.id),
+    []
+  );
 }
 
 head('a user who wanders off is not lost');
@@ -841,7 +869,7 @@ head('the seal can never be up without a way forward');
   // a step with no button MUST have an anchor, or a user whose anchor cannot be
   // measured would be sealed in with only Exit.
   for (const step of STEPS) {
-    const hasButton = step.advance === 'next';
+    const hasButton = hasCta(step);
     ok(step.id + ': has a button or an anchor', hasButton || !!step.anchor,
       'no cta and no anchor — nothing to seal around and no way on');
     if (!hasButton) {

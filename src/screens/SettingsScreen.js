@@ -303,7 +303,7 @@ export default function SettingsScreen({
           </View>
         </View>
         <Text style={styles.accountHint}>
-          Only your ~1,000 most recent observations are loaded.
+          Only the ~1,000 most recent observations are loaded.
         </Text>
 
         {!!error && <Text style={styles.error}>{error}</Text>}

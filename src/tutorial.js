@@ -30,14 +30,26 @@ export const ANCHORS = [
 ];
 
 // How a step ends:
-//   'next'            — the bubble shows a button; the user reads and taps it.
-//   { screen: 'x' }   — the user does the thing, and ARRIVING at screen x is the
-//                       proof. No button, so the tour cannot be advanced past an
-//                       action without performing it.
+//   'next'                      — the bubble shows a button; the user reads and
+//                                 taps it.
+//   { screen: 'x' }             — the user does the thing, and ARRIVING at
+//                                 screen x is the proof. No button, so the tour
+//                                 cannot be advanced past an action without
+//                                 performing it.
+//   { screen: 'x', cta: true }  — either one. A button AND arriving both count.
 //
 // Steps that ask for an action use the second form; steps that merely point
 // something out use the first. Anything the user might reasonably not want to do
-// (Nearby wants a location permission) is deliberately 'next'.
+// (Nearby wants a location permission) must not be the second form.
+//
+// The third form exists because the first two are not the whole story for a
+// step that both POINTS AT a control and offers a button. Every action step
+// before it has taught one lesson — tap the lit-up thing — and the spotlight is
+// a live hole, so tapping it is exactly what people do. The screen behind then
+// changes, the step does not, and coming back re-lights the same control with
+// the same instruction: a loop the user can only leave by noticing the button
+// they have not needed until now. Optional means optional, not forbidden — so
+// doing it counts too.
 export const STEPS = [
   { id: 'welcome', screen: 'menu', anchor: null, advance: 'next' },
   { id: 'openSettings', screen: 'menu', anchor: 'open-settings', advance: { screen: 'settings' } },
@@ -49,9 +61,10 @@ export const STEPS = [
   { id: 'morePhotos', screen: 'study', anchor: 'study-photos', advance: 'next' },
   { id: 'stats', screen: 'menu', anchor: 'menu-stats', advance: { screen: 'stats' } },
   { id: 'statsTour', screen: 'stats', anchor: null, advance: 'next' },
-  { id: 'nearby', screen: 'menu', anchor: 'mode-nearby', advance: 'next' },
+  // Both of these light up a row that navigates. See the third form above.
+  { id: 'nearby', screen: 'menu', anchor: 'mode-nearby', advance: { screen: 'nearby', cta: true } },
   { id: 'openSettings2', screen: 'menu', anchor: 'open-settings', advance: { screen: 'settings' } },
-  { id: 'sync', screen: 'settings', anchor: 'settings-sync', advance: 'next' },
+  { id: 'sync', screen: 'settings', anchor: 'settings-sync', advance: { screen: 'sync', cta: true } },
   { id: 'done', screen: 'settings', anchor: null, advance: 'next' },
 ];
 
@@ -107,6 +120,11 @@ export function normalize(raw) {
 
 export function isRunning(state) {
   return !!state && state.status === 'running' && state.step >= 0 && state.step < TOTAL;
+}
+
+// Does this step's bubble carry a Next/Done button?
+export function hasCta(step) {
+  return !!step && (step.advance === 'next' || !!step.advance.cta);
 }
 
 export function stepAt(index) {
@@ -166,9 +184,9 @@ export function view(state, screen) {
       total: TOTAL,
       text: STEP_TEXT[step.id],
       anchor: step.anchor,
-      // A step the user must act on has no button — arriving somewhere is what
-      // advances it.
-      cta: step.advance === 'next' ? (state.step === TOTAL - 1 ? UI_TEXT.finish : UI_TEXT.next) : null,
+      // A step the user MUST act on has no button — arriving somewhere is what
+      // advances it. One that merely offers the action keeps both.
+      cta: hasCta(step) ? (state.step === TOTAL - 1 ? UI_TEXT.finish : UI_TEXT.next) : null,
       progress: UI_TEXT.progress(state.step + 1, TOTAL),
     };
   }

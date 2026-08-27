@@ -8,9 +8,27 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.42.5';
+export const APP_VERSION = '2.42.6';
 
 export const CHANGELOG = [
+  {
+    version: '2.42.6',
+    date: '2026-08-27',
+    changes: [
+      'The guided tour no longer goes in circles. Opening Nearby species from '
+        + 'the step that points at it — or Sync, two steps later — left the tour '
+        + 'asking for the same thing again when you came back. Doing it now '
+        + 'counts, and Next is still there if you would rather skip it.',
+      'Two more tour fixes: a step can no longer dim the screen with its '
+        + 'instructions invisible, and the control a step highlights can be '
+        + 'tapped straight away rather than only once the list has finished '
+        + 'scrolling to it.',
+      'The tour now says you can leave the account on the default, loarie, if '
+        + 'you have no iNaturalist account of your own.',
+      'The "Enjoying gote?" prompt no longer turns up on a first launch, on top '
+        + 'of the tour.',
+    ],
+  },
   {
     version: '2.42.5',
     date: '2026-08-26',

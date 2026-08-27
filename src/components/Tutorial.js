@@ -66,7 +66,14 @@ import { UI_TEXT } from '../tutorialtext';
 // measureInWindow on one node, only while a coach mark is up, is cheaper than
 // wiring scroll handlers through every screen — and it cannot be defeated by a
 // screen that moves its content some new way later.
-const POLL_MS = 120;
+//
+// Roughly a frame, not a leisurely tick, because the hole in the dim is also
+// the only live part of the screen. Whatever lag this leaves is a stretch where
+// the spotlight is drawn where the target USED TO BE and the seal covers where
+// it now is — so a tap on the thing the step is asking for gets swallowed. That
+// window opens every time the tour scrolls a target into view, which is exactly
+// when the user is most likely to reach for it.
+const POLL_MS = 32;
 
 const DIM = 'rgba(0,0,0,0.66)';
 
@@ -166,18 +173,32 @@ export function TutorialOverlay() {
   const stepId = current.mode === 'step' ? current.id : null;
 
   const [rect, setRect] = useState(null);
-  const [size, setSize] = useState(null); // measured bubble
+  // The bubble's own height, from its onLayout. Deliberately NOT cleared
+  // between steps: the previous step's height is a good enough estimate to
+  // place this one, and onLayout fires only when the layout actually CHANGES —
+  // so clearing it would make every step depend on a callback that a bubble of
+  // the same height is entitled to skip. Carried, `placed` can only be null
+  // before the overlay's very first layout, which onLayout always delivers.
+  const [size, setSize] = useState(null);
   const fade = useRef(new Animated.Value(0)).current;
   // Which step we have already scrolled for. Once on arrival, not continuously:
   // the user must stay free to scroll away again. Keyed by step rather than by
   // anchor, because two steps can point at the same row.
   const scrolledFor = useRef(null);
+  // Whether the target is still travelling — see `sealed` below. Mirrored in a
+  // ref so the measure loop can read it without being rebuilt on every change.
+  const rectRef = useRef(null);
+  const movingRef = useRef(false);
+  const [moving, setMoving] = useState(false);
 
   // Re-measure the current target. Cleared between steps so a stale rect from
   // the previous step can never be drawn under the new one's bubble.
   useEffect(() => {
     setRect(null);
+    rectRef.current = null;
     scrolledFor.current = null;
+    movingRef.current = false;
+    setMoving(false);
     if (!anchorId || !ctx) return undefined;
     let alive = true;
     const measure = () => {
@@ -192,11 +213,21 @@ export function TutorialOverlay() {
           const dy = scrollDelta({ x, y, width, height }, screenSize, insets);
           if (dy) ctx.scroller.current(dy);
         }
-        setRect((prev) =>
-          prev && prev.x === x && prev.y === y && prev.width === width && prev.height === height
-            ? prev
-            : { x, y, width, height }
-        );
+        const prev = rectRef.current;
+        if (prev && prev.x === x && prev.y === y && prev.width === width && prev.height === height) {
+          // Two identical measurements in a row: it has come to rest.
+          if (movingRef.current) {
+            movingRef.current = false;
+            setMoving(false);
+          }
+          return;
+        }
+        rectRef.current = { x, y, width, height };
+        if (!movingRef.current) {
+          movingRef.current = true;
+          setMoving(true);
+        }
+        setRect(rectRef.current);
       });
     };
     measure();
@@ -209,18 +240,25 @@ export function TutorialOverlay() {
     // screen, and the old node would measure at a stale position.
   }, [anchorId, stepId, ctx && ctx.screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // A fresh step measures over a frame or two; fading in covers the reflow that
-  // would otherwise read as the bubble jumping into place.
+  // Each step fades in. Reset AND start in the same effect, keyed on the step,
+  // so the two can never come apart — becoming visible is not conditional on
+  // anything.
+  //
+  // It used to be: this effect cleared the fade, and a SECOND one started it
+  // once the bubble had been measured. The start half therefore hung off
+  // onLayout — which fires only when a layout actually changes, and a bubble
+  // that lands at the same size and place as the one before it is entitled not
+  // to change. Any step where that measurement did not arrive got the clear
+  // without the start: dim, spotlight ring and bubble all left at opacity 0
+  // with the step still current. A tour that is running and completely
+  // invisible is the worst state this component has, so nothing that makes it
+  // visible may depend on a measurement arriving.
   useEffect(() => {
-    setSize(null);
     fade.setValue(0);
+    const a = Animated.timing(fade, { toValue: 1, duration: 180, useNativeDriver: true });
+    a.start();
+    return () => a.stop();
   }, [stepId, fade]);
-  // Only the bubble's own height is unknown; once it has laid out, the
-  // placement is final and can be faded in.
-  const ready = current.mode === 'step' && !!size;
-  useEffect(() => {
-    if (ready) Animated.timing(fade, { toValue: 1, duration: 180, useNativeDriver: true }).start();
-  }, [ready, fade]);
 
   const confirmExit = useCallback(() => {
     Alert.alert(UI_TEXT.confirmTitle, UI_TEXT.confirmBody, [
@@ -276,14 +314,19 @@ export function TutorialOverlay() {
   // yet, on a step whose only exit is tapping the real control) is left open on
   // purpose: sealing it would leave Exit as the only move.
   //
-  // Gated on `ready` as well, which is the invariant that matters: BLOCKING
-  // WITHOUT VISIBLE INSTRUCTIONS IS NEVER CORRECT. The bubble's height is not
-  // known until it has laid out, and the dim and bubble both fade in off that
-  // same measurement — so an ungated seal blocks the screen for a frame or more
-  // while nothing at all is drawn, which reads as the app having frozen. Worse
-  // on a step whose bubble is slow to measure, and worst on a CTA step, where
-  // there is no spotlight to hint at what is going on.
-  const sealed = ready && (!!spot || !!current.cta);
+  // Gated on the bubble having a place to be, which is the invariant that
+  // matters: BLOCKING WITHOUT VISIBLE INSTRUCTIONS IS NEVER CORRECT. Until the
+  // overlay has laid out once there is no height to place a bubble from, and an
+  // ungated seal would block the screen while nothing at all is drawn, which
+  // reads as the app having frozen. Worst on a CTA step, where there is no
+  // spotlight to hint at what is going on.
+  //
+  // Never while the target is still travelling, either. The hole is drawn from
+  // the last measurement, so for those frames it sits where the target WAS and
+  // the band covers where it now IS — and the one control the step is asking
+  // the user to tap does nothing. That window opens every time the tour scrolls
+  // a target into view, which is precisely when someone is reaching for it.
+  const sealed = !!placed && !moving && (!!spot || !!current.cta);
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none" testID="tutorial-overlay">

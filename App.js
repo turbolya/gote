@@ -124,6 +124,7 @@ import {
   INITIAL as TUTORIAL_INITIAL,
   normalize as normalizeTutorial,
   startState as startTutorial,
+  isRunning as tutorialRunning,
   shouldAutoStart,
 } from './src/tutorial';
 import { useIsOffline } from './src/net';
@@ -259,6 +260,10 @@ export default function App() {
   // Guided tour. Held here (not in the provider) because every root return
   // mounts its own TutorialProvider, and progress has to survive those.
   const [tutorial, setTutorial] = useState(TUTORIAL_INITIAL);
+  // Read by effects that must not depend on the tour's progress (see the
+  // support-prompt roll below).
+  const tutorialRef = useRef(tutorial);
+  tutorialRef.current = tutorial;
 
   // Raw cached cards (unfiltered) for the current account, kept in a ref so sync
   // can read/merge without re-renders. `fullDeck` is the filtered view shown to
@@ -369,9 +374,16 @@ export default function App() {
 
   // Once per launch, when the menu first appears, roll the support/review popup
   // (~1 in 10 launches). Never in E2E, so the test runs stay deterministic.
+  //
+  // Never over the guided tour either. It is a native Modal, so it sits above
+  // the tour's overlay and covers the step someone is in the middle of reading
+  // — and on a first launch the tour IS running, which is exactly the moment
+  // asking for a rating is both intrusive and worthless as feedback. Read
+  // through a ref so a tour ending later in the launch cannot re-roll it.
   useEffect(() => {
     if (screen === 'menu' && !supportRolledRef.current && !IS_E2E) {
       supportRolledRef.current = true;
+      if (tutorialRunning(tutorialRef.current)) return;
       if (Math.random() < SUPPORT_PROMPT_CHANCE) setShowSupport(true);
     }
   }, [screen]);
@@ -1790,7 +1802,7 @@ export default function App() {
                 "nearby", which is a different query with its own limit. */}
             {!loadingNearby && (
               <Text style={styles.loadingNote}>
-                Only your ~1,000 most recent observations are loaded.
+                Only the ~1,000 most recent observations are loaded.
               </Text>
             )}
             <Pressable
