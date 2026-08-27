@@ -120,6 +120,7 @@ import {
 import { groupKey, ThemeProvider, themeFor, resolveScheme } from './src/theme';
 import { IS_E2E, IS_SHOTS } from './src/e2e/testMode';
 import { TutorialProvider, TutorialOverlay } from './src/components/Tutorial';
+import { Spinner } from './src/components/LoadingImage';
 import {
   INITIAL as TUTORIAL_INITIAL,
   normalize as normalizeTutorial,
@@ -1784,7 +1785,14 @@ export default function App() {
         <Appear key={screen} style={styles.flex} offset={10} duration={300}>
         {screen === 'loading' && (
           <View style={styles.center}>
-            <ActivityIndicator size="large" color={colors.primary} />
+            {/* The gote newt rather than a system spinner: this screen is the
+                first thing a new install sits on, sometimes for half a minute.
+                Teal artwork because it sits on the app's own background, where
+                the white newt every other spinner uses would vanish in the
+                light theme. Spinner falls back to an ActivityIndicator until
+                the GIF has decoded, which matters here — SpinnerWarmup lives on
+                the menu, and on a first launch this screen comes first. */}
+            <Spinner size={72} teal color={colors.primary} />
             <Text style={styles.loadingText}>
               {loadingNearby
                 ? 'Finding species observed near this place…'

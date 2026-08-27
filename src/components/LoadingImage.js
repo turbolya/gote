@@ -17,6 +17,14 @@ import { View, Image, ActivityIndicator, StyleSheet } from 'react-native';
 // per card, but the asset must stay the same one so it shares the decode.
 export const SPINNER_GIF = require('../../assets/gote-spinner.gif');
 
+// The same animation in the brand teal, for spinners that sit on the app's own
+// background rather than on a photo — a white newt is invisible there in the
+// light theme. It has to be a separate ASSET because iOS cannot tint an
+// animated image: Image's tintColor templates one CGImage, and a GIF is a stack
+// of them, so the tint silently does nothing. Regenerate it from the white one
+// with scripts/tint-gif.swift.
+export const SPINNER_GIF_TEAL = require('../../assets/gote-spinner-teal.gif');
+
 // The newt animation is 119 frames at 144x144 — lovely, but several megabytes
 // once decoded, and that first decode is not instant. It used to mean the very
 // first card of a round sat on a plain black screen with no feedback at all
@@ -26,16 +34,21 @@ export const SPINNER_GIF = require('../../assets/gote-spinner.gif');
 // (zero decode), and the newt takes over the moment it's ready. Once the GIF
 // has loaded ANYWHERE it stays ready for the rest of the launch — tracked
 // module-wide so later spinners skip straight to the newt with no flicker.
-let gifReady = false;
+// Per artwork, because the two GIFs decode separately.
+const gifReady = { white: false, teal: false };
 
 /**
  * @param scrim  draw a dark chip behind the newt. The artwork is white, which
  *               is invisible on the near-white placeholder fills photos sit on
  *               in the light theme — screens with their own dark backdrop
  *               (study, fullscreen viewer) leave this off.
+ * @param teal   use the brand-teal artwork instead of the white one. For
+ *               spinners on the app's own background, where white is invisible
+ *               in the light theme. Fixed at mount — nothing flips it.
  */
-export function Spinner({ size = 44, color = '#FFFFFF', scrim = false }) {
-  const [ready, setReady] = useState(gifReady);
+export function Spinner({ size = 44, color = '#FFFFFF', scrim = false, teal = false }) {
+  const art = teal ? 'teal' : 'white';
+  const [ready, setReady] = useState(gifReady[art]);
   return (
     <View
       style={[
@@ -46,13 +59,13 @@ export function Spinner({ size = 44, color = '#FFFFFF', scrim = false }) {
     >
       {!ready && <ActivityIndicator color={color} />}
       <Image
-        source={SPINNER_GIF}
+        source={teal ? SPINNER_GIF_TEAL : SPINNER_GIF}
         // Kept mounted (just hidden) before it's ready, so it actually loads —
         // it's the onLoad below that flips this over to the newt.
         style={ready ? { width: size, height: size } : styles.hiddenSpinner}
         resizeMode="contain"
         onLoad={() => {
-          gifReady = true;
+          gifReady[art] = true;
           setReady(true);
         }}
       />
