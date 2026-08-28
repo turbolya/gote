@@ -12,6 +12,15 @@ Everything already covered by `npm test` (1,634 tutorial assertions) and
 `npm run e2e:test` (34 Detox specs) is deliberately **not** repeated here. What
 follows is the residue: the things automation genuinely cannot reach.
 
+**Scope.** This file is not the whole manual suite. The broad, whole-app pass —
+game modes, sync and linking, offline, account deletion, store-build sanity,
+Apple Watch — lives in the launch notes as `MANUAL-TEST-PLAN.md` and its own
+CSV, and is already in the same Testiny project. What is written here is the
+newer material that plan predates: the guided tour, and features added since.
+Both import into one project, so before adding a case, check the launch plan is
+not already covering it — two cases for one behaviour is worse than none, since
+they drift apart and a tester has to guess which is current.
+
 ## Format
 
 Each case is `### <ID> <title>`, then Priority, Preconditions, numbered steps,
@@ -458,16 +467,20 @@ photographers actually chose.
 
 ## Apple Watch
 
-### WA-01 The streak is marked with a newt, not a flame
+The complications are covered by "Complications" in the launch-plan set, which
+already calls for the newt rather than a flame. What follows is only the part
+that case does not reach: the watch app's own screens.
+
+### WA-01 The newt on the watch app's own screens
 
 **Priority:** Medium
 **Preconditions:** A paired Apple Watch with the gote watch app installed, and a streak of at least one day synced to it.
 
 1. Open gote on the watch and look at the streak on its home screen.
-2. Add the gote streak complication to a watch face, in both a circular and a rectangular slot.
-3. Look at the accuracy gauge in the watch app.
+2. Let the streak lapse (or check on a watch whose streak is zero) and look again.
+3. Look at the label under the accuracy gauge.
 
-**Expected:** Every streak is marked with the small gote newt — teal on the app's home screen while the streak is running, dimmed when it is not. No flame appears anywhere: the flame is the generic fitness glyph, and it was replaced in the app and in both complication shapes. The accuracy gauge is labelled "acc" rather than carrying a glyph of its own.
+**Expected:** The streak is marked with the small gote newt, teal while the streak is running and dimmed when it is not — never a flame, which is the generic fitness glyph the app deliberately does not borrow. The accuracy gauge is labelled "acc" and carries no glyph of its own.
 
 ---
 
@@ -490,19 +503,25 @@ Testiny is where these run; this file is where they are written. The loop:
    Testiny's own field names (`Title`, `Precondition`, `Steps`, `Expected
    Result`, `Priority`, `Folder`), so the mapping should mostly be picked up for
    you.
-4. Re-importing matches on **Title**, so a case whose title changes here arrives
-   as a new case and leaves the old one behind. Two so far: GT-12 was "Controls
-   outside the spotlight still work" and GT-22 was "Tapping the spotlit Sync row
-   mid-step behaves sensibly", and both now describe the opposite behaviour.
-   Delete that stale pair by hand after importing — the **Reference** column
-   (`GT-nn`) is what ties a case back to this file.
+4. **The import cannot update an existing case.** "Detect existing by" only
+   decides whether a match is *skipped* or *created anyway* — there is no
+   overwrite, and it cannot match on the `Reference` column; detection is on
+   **folder & title**. So a re-import is safe to repeat and never needs a record
+   of what was last imported, but it will not carry an edit into Testiny. Two
+   consequences, both of which have to be done by hand:
+
+   - **A case whose text changed** keeps its title, so it is skipped. Edit it in
+     Testiny to match this file.
+   - **A case whose title changed** arrives as a second copy and leaves the
+     original behind. Delete the original.
+
+   Treat titles as stable keys, and rename one only when the case genuinely
+   became a different case.
 5. The **Folder** column carries a path taken from the `##` headings above
    (`Guided tour/presentation` and so on), so the suite arrives with the same
-   shape it has here rather than as one flat list. Re-importing updates
-   existing cases when their **Title** matches and adds the rest, so the CSV can
-   be re-imported after every edit rather than curated by hand. The **Reference**
-   column carries the `GT-nn` id, which is how a case in Testiny is traced back
-   to this file.
+   shape it has here rather than as one flat list. The **Reference** column
+   carries the `GT-nn` id, which is how a case in Testiny is traced back to
+   this file.
 6. Add the cases to whichever test run covers the release, and record results in
    Testiny as usual. Results live there; the cases live here.
 
