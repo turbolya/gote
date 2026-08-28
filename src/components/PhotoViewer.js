@@ -2,8 +2,19 @@
 // pinch-zoomable, pan-when-zoomed, and double-tap to toggle zoom. Cross-platform
 // (iOS + Android) via react-native-gesture-handler + reanimated. Used by the
 // "Pick the right one" tiles and the species/study photo galleries.
+//
+// Two ways in, because two things are being asked for:
+//   • Straight to one photo (`grid` off) — "show me THIS one bigger", which is
+//     what a double-tap on a card or a tap on a tile means.
+//   • A scrollable grid first (`grid` on) — "show me the other photos", where
+//     the point is to see the set. Picking one opens it full-screen, and back
+//     returns to the grid rather than dumping the user out of the viewer.
+//
+// A photo shown full-screen carries its credit. iNaturalist photos are licensed
+// individually by the people who took them, and a picture filling the screen
+// with no attribution is the one place that reads as the app's own.
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +26,7 @@ import {
   useWindowDimensions,
   StyleSheet,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -25,6 +37,7 @@ import Animated, {
 import Icon from './Icon';
 import { Spinner } from './LoadingImage';
 import { Appear } from './anim';
+import { photoCredit, toSmallPhoto } from '../api';
 
 const DOUBLE_TAP_MS = 280;
 const MAX_ZOOM = 5;
@@ -162,26 +175,77 @@ function ZoomablePage({ uri, screenW, screenH, onZoomChange }) {
   );
 }
 
+// One thumbnail in the grid. Its own component so a re-render of the grid (a
+// photo loading, the credit changing) doesn't reset every cell's image.
+function GridCell({ uri, size, onPress, index }) {
+  return (
+    <Pressable
+      testID={`photo-cell-${index}`}
+      onPress={onPress}
+      accessibilityRole="imagebutton"
+      accessibilityLabel={`Photo ${index + 1}`}
+      style={({ pressed }) => [
+        styles.cell,
+        { width: size, height: size },
+        pressed && styles.cellPressed,
+      ]}
+    >
+      <Image source={{ uri: toSmallPhoto(uri) }} style={styles.cellImage} resizeMode="cover" />
+    </Pressable>
+  );
+}
+
 export default function PhotoViewer({
   visible,
   photos = [],
   title,
   loading = false,
   startIndex = 0,
+  grid = false,
   onClose,
 }) {
   const { width: screenW, height: screenH } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   // Horizontal paging is disabled while any page is zoomed in, so a pan drags
   // the image rather than flipping photos.
   const [paging, setPaging] = useState(true);
+  // Null means the grid is up; a number means that photo is full-screen. A
+  // viewer opened without `grid` is never null — there is no grid to go back to.
+  const [page, setPage] = useState(grid ? null : startIndex);
+  // Which photo the pager is on, for the credit footer. Tracked separately from
+  // `page`, which only says where the pager STARTED.
+  const [shown, setShown] = useState(startIndex);
   const listRef = useRef(null);
+
+  // Opening again starts where the caller asked, not where the last visit left
+  // off. Keyed on `visible` so it costs nothing while closed.
+  useEffect(() => {
+    if (!visible) return;
+    setPage(grid ? null : startIndex);
+    setShown(startIndex);
+    setPaging(true);
+  }, [visible, grid, startIndex]);
+
+  // Back out one layer at a time: full-screen returns to the grid it came from,
+  // and only the outermost layer closes. Android's hardware back and the
+  // on-screen control share this, so they cannot disagree.
+  const back = () => {
+    if (grid && page !== null) setPage(null);
+    else onClose();
+  };
+
+  // Thumbnails big enough to tell two photos of the same species apart, and a
+  // count that suits the width — three across a phone, more on an iPad.
+  const cols = Math.max(3, Math.min(6, Math.round(screenW / 130)));
+  const cell = Math.floor((screenW - GRID_GAP * (cols + 1)) / cols);
+  const credit = page !== null && photos.length ? photoCredit(photos[shown]) : null;
 
   return (
     <Modal
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={back}
     >
       <GestureHandlerRootView style={styles.flex}>
       <View style={styles.backdrop}>
@@ -195,6 +259,26 @@ export default function PhotoViewer({
             <Icon name="image" size={36} color="rgba(255,255,255,0.6)" />
             <Text style={styles.emptyText}>No other photos available</Text>
           </View>
+        ) : page === null ? (
+          <FlatList
+            testID="photo-grid"
+            data={photos}
+            // numColumns cannot change on a live list, so a rotation that
+            // changes the count remounts it rather than throwing.
+            key={`cols-${cols}`}
+            numColumns={cols}
+            keyExtractor={(uri, i) => `${i}-${uri}`}
+            contentContainerStyle={[
+              styles.gridContent,
+              { paddingTop: insets.top + 96, paddingBottom: insets.bottom + 24 },
+            ]}
+            renderItem={({ item, index }) => (
+              <GridCell uri={item} size={cell} index={index} onPress={() => {
+                setShown(index);
+                setPage(index);
+              }} />
+            )}
+          />
         ) : (
           <FlatList
             ref={listRef}
@@ -202,7 +286,7 @@ export default function PhotoViewer({
             horizontal
             pagingEnabled
             scrollEnabled={paging}
-            initialScrollIndex={Math.min(startIndex, photos.length - 1)}
+            initialScrollIndex={Math.min(page, photos.length - 1)}
             getItemLayout={(_, i) => ({
               length: screenW,
               offset: screenW * i,
@@ -210,6 +294,13 @@ export default function PhotoViewer({
             })}
             keyExtractor={(uri, i) => `${i}-${uri}`}
             showsHorizontalScrollIndicator={false}
+            // Which photo the credit belongs to. Momentum end rather than
+            // onScroll: paging snaps, so this fires once per photo instead of
+            // on every frame of the swipe.
+            onMomentumScrollEnd={(e) => {
+              const i = Math.round(e.nativeEvent.contentOffset.x / screenW);
+              setShown(Math.max(0, Math.min(photos.length - 1, i)));
+            }}
             renderItem={({ item }) => (
               <ZoomablePage
                 uri={item}
@@ -223,15 +314,53 @@ export default function PhotoViewer({
         </Appear>
 
         {!!title && photos.length > 0 && (
-          <View style={styles.titleBar} pointerEvents="none">
+          <View
+            style={[styles.titleBar, grid && page !== null && styles.titleBarInset]}
+            pointerEvents="none"
+          >
             <Text style={styles.title}>{title}</Text>
             {photos.length > 1 && (
-              <Text style={styles.hint}>{photos.length} photos · swipe</Text>
+              <Text style={styles.hint}>
+                {page === null
+                  ? `${photos.length} photos · tap to open`
+                  : `${shown + 1} of ${photos.length} · swipe`}
+              </Text>
             )}
           </View>
         )}
 
+        {/* The credit for the photo filling the screen. Only full-screen: the
+            grid shows several at once, and one line cannot honestly caption
+            them all. */}
+        {!!credit && (
+          <View
+            style={[styles.creditBar, { paddingBottom: insets.bottom + 14 }]}
+            pointerEvents="none"
+          >
+            <Text testID="photo-credit" style={styles.creditText} numberOfLines={2}>
+              {credit}
+            </Text>
+          </View>
+        )}
+
+        {/* Back to the grid, and close, as two separate controls: one X that
+            meant "up a layer" here and "leave" there would be a coin toss every
+            time. Only the viewer opened on a grid has anywhere to go back to. */}
+        {grid && page !== null && (
+          <Pressable
+            testID="photo-back"
+            style={styles.back}
+            onPress={() => setPage(null)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Back to all photos"
+          >
+            <Icon name="chevron-left" size={24} color="#fff" />
+          </Pressable>
+        )}
+
         <Pressable
+          testID="photo-close"
           style={styles.close}
           onPress={onClose}
           hitSlop={12}
@@ -245,6 +374,9 @@ export default function PhotoViewer({
     </Modal>
   );
 }
+
+// Hairline gutters: the grid is about seeing the photos, not the spaces.
+const GRID_GAP = 3;
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
@@ -263,8 +395,35 @@ const styles = StyleSheet.create({
     left: 24,
     right: 70,
   },
+  // Clears the back control when there is one.
+  titleBarInset: { left: 72 },
   title: { color: '#fff', fontSize: 17, fontWeight: '800' },
   hint: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 2 },
+  back: {
+    position: 'absolute',
+    top: 50,
+    left: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridContent: { paddingHorizontal: GRID_GAP / 2 },
+  cell: { margin: GRID_GAP / 2, borderRadius: 6, overflow: 'hidden', backgroundColor: '#111' },
+  cellPressed: { opacity: 0.6 },
+  cellImage: { width: '100%', height: '100%' },
+  creditBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 24,
+    paddingTop: 14,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  creditText: { color: 'rgba(255,255,255,0.85)', fontSize: 12.5, lineHeight: 17 },
   close: {
     position: 'absolute',
     top: 50,

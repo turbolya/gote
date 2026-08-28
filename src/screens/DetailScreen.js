@@ -20,7 +20,7 @@ import LoadingImage from '../components/LoadingImage';
 import PhotoViewer from '../components/PhotoViewer';
 import ObservationMap from '../components/ObservationMap';
 import { useColors, useThemedStyles } from '../theme';
-import { fetchTaxonDetail, toLargePhoto } from '../api';
+import { fetchTaxonDetail, toLargePhoto, rememberPhotoCredit } from '../api';
 import { photoSource } from '../photocache';
 
 // Ranks worth surfacing in the taxonomy block (skip the very fine sub-ranks).
@@ -71,6 +71,11 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
   // The full set for the fullscreen viewer: the user's hero photo first, then
   // the curated strip — so the strip's photo at position i opens at index i + 1.
   const viewerPhotos = [card.image, ...curated].map(toLargePhoto);
+  // The curated photos file their own credits as they are parsed; the card's
+  // own photo arrives as a bare URL, so file that one here.
+  useEffect(() => {
+    rememberPhotoCredit(card.image, card.attribution);
+  }, [card]);
 
   return (
     <View style={styles.flex}>

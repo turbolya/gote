@@ -28,7 +28,13 @@ import { useAnchorRef } from '../components/Tutorial';
 import ObservationMap from '../components/ObservationMap';
 import PieTimer from '../components/PieTimer';
 import { Appear, Pop } from '../components/anim';
-import { shuffle, fetchTaxonPhotos, toLargePhoto } from '../api';
+import {
+  shuffle,
+  fetchTaxonPhotos,
+  toLargePhoto,
+  rememberPhotoCredit,
+  formatAttribution,
+} from '../api';
 import { prefetchUpcoming } from '../prefetch';
 import { photoSource } from '../photocache';
 import { pickSimilarDistractors } from '../quiz';
@@ -373,8 +379,10 @@ export default function StudyScreen({
   const hidePhoto = speedrun && phase === 'choosing';
 
   // Open the fullscreen zoom viewer on the current photo (used by double-tap).
+  // Straight to the photo, not the grid: a double-tap on THIS picture means
+  // "bigger", not "show me the others".
   const openZoom = () => {
-    setViewer({ photos: gallery.map(toLargePhoto), startIndex: 0 });
+    setViewer({ photos: gallery.map(toLargePhoto), startIndex: 0, grid: false });
   };
 
   // Tapping the photo never reveals/flips the card — that's only done by the
@@ -390,11 +398,13 @@ export default function StudyScreen({
     }
   };
 
-  // Fetch curated photos once, then open the swipeable viewer.
+  // Fetch curated photos once, then open the viewer on its grid — the whole
+  // point of this button is the SET, so landing on one photo and making the
+  // user swipe blind to find the rest gets it backwards.
   const showMorePhotos = async () => {
     if (loadingMore) return;
     if (fetched) {
-      setViewer({ photos: gallery.map(toLargePhoto), startIndex: 0 });
+      setViewer({ photos: gallery.map(toLargePhoto), startIndex: 0, grid: true });
       return;
     }
     setLoadingMore(true);
@@ -403,7 +413,7 @@ export default function StudyScreen({
     setGallery(merged);
     setFetched(true);
     setLoadingMore(false);
-    setViewer({ photos: merged.map(toLargePhoto), startIndex: 0 });
+    setViewer({ photos: merged.map(toLargePhoto), startIndex: 0, grid: true });
   };
 
   // Chrome is always white over a dark gradient, so it stays legible on light
@@ -416,11 +426,15 @@ export default function StudyScreen({
   // answer is done via the button, never by tapping/swiping the photo.
   const onPhotoPress = onPhotoTap;
 
-  // Photo credit shown bottom-right (small print). Strip the leading "(c) " /
-  // "(C) " since we render a © icon before it.
-  const attribution = card && card.attribution
-    ? card.attribution.replace(/^\(c\)\s*/i, '')
-    : null;
+  // Photo credit shown bottom-right (small print).
+  const attribution = card ? formatAttribution(card.attribution) : null;
+
+  // The card's own photo travels through the app as a bare URL, like every
+  // other, so file its credit where the fullscreen viewer can find it — it is
+  // the first photo in the gallery the more-photos button opens.
+  useEffect(() => {
+    if (card) rememberPhotoCredit(card.image, card.attribution);
+  }, [card]);
 
   // Whether this observation has coordinates for the map pin (older cached cards
   // downloaded before this feature won't, and obscured/private ones may not).
@@ -983,7 +997,7 @@ export default function StudyScreen({
             {!!attribution && (
               <View style={styles.attribution}>
                 <Text style={[styles.attributionText, { color: onDim }]} numberOfLines={1}>
-                  © {attribution}
+                  {attribution}
                 </Text>
               </View>
             )}
@@ -1015,6 +1029,7 @@ export default function StudyScreen({
             : null
         }
         startIndex={viewer ? viewer.startIndex : 0}
+        grid={!!viewer && viewer.grid}
         onClose={() => setViewer(null)}
       />
 

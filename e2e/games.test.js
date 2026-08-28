@@ -14,6 +14,11 @@ const {
 // Tap a menu mode card, scrolling the menu if it's below the fold.
 const tapMode = (key) => tapScroll(`mode-${key}`, 'menu-scroll');
 
+// Let a screen finish animating in. Synchronization is disabled suite-wide, so
+// a view can pass a visibility check while its entrance is still running — and
+// a tap aimed at it can then miss.
+const settle = (ms = 450) => new Promise((r) => setTimeout(r, ms));
+
 describe('Game modes', () => {
   beforeAll(async () => {
     await device.launchApp({ newInstance: true });
@@ -185,5 +190,63 @@ describe('Game modes', () => {
     await visible('study-reveal');
     await tap('study-end');
     await visible('results-menu');
+  });
+
+  it('More photos: a grid first, then one full-screen with its credit', async () => {
+    // The button is about the SET, so it opens on the grid — landing on a
+    // single photo would hide the others behind a blind swipe.
+    //
+    // Wait for the menu to finish animating in first: synchronization is off
+    // suite-wide, so a row can pass a visibility check and still fail the tap's
+    // own hittability check while the entrance is running. The tests above this
+    // one get that time for free by following another test.
+    await visible('mode-smart');
+    await settle();
+    await tapMode('all');
+    await visible('study-reveal');
+    await tap('study-photos');
+    await visible('photo-grid');
+    // The viewer fades and scales in (Appear). Detox aims a tap at the cell's
+    // UNTRANSFORMED frame, so during that animation a tap on an off-centre cell
+    // lands in the gutter and quietly does nothing — the test then sits waiting
+    // for a full-screen photo that never opened. Same reason the tour spec
+    // settles before touching a freshly-navigated screen.
+    await settle();
+    // No photo is full-screen yet, so nothing to credit and nowhere to go back
+    // to: both belong to the layer above.
+    await expect(element(by.id('photo-credit'))).not.toExist();
+    await expect(element(by.id('photo-back'))).not.toExist();
+
+    // Cell 1 is a curated photo of the species, credited by the same path the
+    // real API takes: src/api.js files each photo's attribution as it parses.
+    //
+    // toExist + toHaveText rather than toBeVisible: the footer is
+    // pointerEvents="none" so it cannot swallow a pinch or a swipe on the photo
+    // underneath, and Detox's iOS visibility check is hit-test based, which
+    // reads an unhittable view as not visible.
+    await tap('photo-cell-1');
+    await exists('photo-credit');
+    await waitFor(element(by.id('photo-credit')))
+      .toHaveText('© Fixture Photographer 1, some rights reserved (CC BY)')
+      .withTimeout(TIMEOUT);
+
+    // Back goes up one layer, to the grid — not out of the viewer.
+    await tap('photo-back');
+    await visible('photo-grid');
+    await expect(element(by.id('photo-credit'))).not.toExist();
+
+    // Cell 0 is the card's own observation photo, whose credit comes from the
+    // card rather than from the photo parser — a different path to the same
+    // footer, and the one a cached deck relies on.
+    await tap('photo-cell-0');
+    await waitFor(element(by.id('photo-credit')))
+      .toHaveText('© e2e tester, some rights reserved (CC BY-NC)')
+      .withTimeout(TIMEOUT);
+    await tap('photo-back');
+    await visible('photo-grid');
+
+    // …and close leaves altogether, back to the card.
+    await tap('photo-close');
+    await visible('study-reveal');
   });
 });

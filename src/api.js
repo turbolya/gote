@@ -57,7 +57,7 @@ const FIELDS_OBSERVATION = {
 };
 
 const FIELDS_TAXON_PHOTOS = {
-  taxon_photos: { photo: { url: true, medium_url: true } },
+  taxon_photos: { photo: { url: true, medium_url: true, attribution: true } },
 };
 
 const FIELDS_TAXON_DETAIL = {
@@ -67,7 +67,7 @@ const FIELDS_TAXON_DETAIL = {
   wikipedia_url: true,
   wikipedia_summary: true,
   observations_count: true,
-  taxon_photos: { photo: { url: true, medium_url: true } },
+  taxon_photos: { photo: { url: true, medium_url: true, attribution: true } },
   ancestors: { rank: true, name: true, preferred_common_name: true },
 };
 
@@ -207,12 +207,18 @@ function fetchTaxaResults(idOrIds, { locale, fields, perPage } = {}) {
 }
 
 // Extract de-duplicated, size-normalized photo URLs from a taxon's curated
-// `taxon_photos`, capped to `max`.
+// `taxon_photos`, capped to `max`. Each photo's credit is filed away on the way
+// past (see rememberPhotoCredit) so the fullscreen viewer can name the
+// photographer without the URL lists having to carry it.
 function photoUrlsFrom(taxon, max) {
   const urls = ((taxon && taxon.taxon_photos) || [])
     .map((tp) => tp.photo)
     .filter((p) => p && (p.medium_url || p.url))
-    .map((p) => p.medium_url || toMediumPhoto(p.url));
+    .map((p) => {
+      const uri = p.medium_url || toMediumPhoto(p.url);
+      rememberPhotoCredit(uri, p.attribution);
+      return uri;
+    });
   return [...new Set(urls)].slice(0, max);
 }
 
@@ -233,9 +239,56 @@ export function toLargePhoto(url) {
 }
 
 // Downscale to the small variant — used for the Apple Watch mini-deck (tiny
-// screen, and the watch often loads over Bluetooth/cellular).
+// screen, and the watch often loads over Bluetooth/cellular), and for the
+// thumbnails in the fullscreen viewer's grid.
 export function toSmallPhoto(url) {
   return setPhotoSize(url, "small");
+}
+
+// --- photo credits -----------------------------------------------------------
+// Every iNaturalist photo is licensed by the person who took it, so anything
+// showing one full-screen has to say whose it is. The trouble is that a photo
+// travels through this app as a bare URL — galleries are URL lists, a card
+// carries one string — and threading a credit object through all of that would
+// touch every screen that has ever shown a picture.
+//
+// So credits are filed here as photos are parsed, and looked up by URL later.
+// The key drops the size segment, because the same photo is fetched as
+// square/small/medium/large in different places and the photographer is the
+// same in all of them.
+//
+// Bounded, and oldest-out: a long session browsing the Lexicon can meet a lot
+// of photos, and a credit nobody has asked about in two thousand photos is not
+// worth the bytes.
+const MAX_CREDITS = 2000;
+const photoCredits = new Map();
+
+function creditKey(url) {
+  return typeof url === "string" && url ? setPhotoSize(url, "*") : null;
+}
+
+/** File a photo's credit under its URL. No-op without one — a deck cached by an
+ *  older version has no credits, and those photos simply get no footer. */
+export function rememberPhotoCredit(url, attribution) {
+  const key = creditKey(url);
+  if (!key || !attribution) return;
+  if (!photoCredits.has(key) && photoCredits.size >= MAX_CREDITS) {
+    photoCredits.delete(photoCredits.keys().next().value); // insertion order
+  }
+  photoCredits.set(key, attribution);
+}
+
+/** The credit line for a photo URL, ready to show. Null when unknown. */
+export function photoCredit(url) {
+  return formatAttribution(photoCredits.get(creditKey(url)));
+}
+
+// iNat's attribution strings already carry the licence, e.g.
+// "(c) Ken-ichi Ueda, some rights reserved (CC BY)". Swap its ASCII (c) for a
+// real ©; anything else would be rewriting someone's licence text.
+export function formatAttribution(attribution) {
+  if (!attribution) return null;
+  return `© ${String(attribution).replace(/^\(c\)\s*/i, "")}`;
 }
 
 // Sentence-case a name: first letter uppercase, the rest lowercase. Unicode-
@@ -544,7 +597,11 @@ function commonName(taxon) {
  * @returns {Promise<string[]>} medium-size photo URLs
  */
 export async function fetchTaxonPhotos(taxonId, max = 8) {
-  if (IS_E2E) return fx.e2eTaxonPhotos(taxonId, max);
+  if (IS_E2E) {
+    const urls = fx.e2eTaxonPhotos(taxonId, max);
+    urls.forEach((u, i) => rememberPhotoCredit(u, fx.e2eAttribution(i)));
+    return urls;
+  }
   if (taxonId == null) return [];
   return cached(`photos:${taxonId}:${max}`, async () => {
     const [taxon] = await fetchTaxaResults(taxonId, {

@@ -53,6 +53,13 @@ export function e2eTaxonPhotos(taxonId, max = 8) {
   return [img(taxonId, 'a'), img(taxonId, 'b'), img(taxonId, 'c')].slice(0, max);
 }
 
+// Attribution for a fixture photo. Real photos carry one from iNaturalist and
+// the fullscreen viewer shows it; fixtures never go through that parsing, so
+// without this the credit footer would be untestable. src/api.js files these
+// exactly the way it files the real ones.
+export const e2eAttribution = (n) =>
+  `(c) Fixture Photographer ${n + 1}, some rights reserved (CC BY)`;
+
 // Curated photos for several taxa at once → { [taxonId]: [url, …] }.
 export function e2eTaxonPhotosByIds(ids = [], maxPer = 6) {
   const out = {};
