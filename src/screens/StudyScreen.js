@@ -494,7 +494,10 @@ export default function StudyScreen({
   const showVerify = !!verifyPair && verifyStreakNow >= VERIFY_STREAK_MIN;
 
   return (
-    <View style={styles.fsRoot} testID="study-screen">
+    // collapsable={false} for the same reason as PickImageScreen's root: the
+    // e2e suite waits on this view to know the screen is up, and a flattened
+    // container paints nothing for Detox to call visible.
+    <View style={styles.fsRoot} testID="study-screen" collapsable={false}>
       {/* E2E only: exposes the current card's answer (via accessibilityLabel,
           not visible text) so tests can tap the correct choice deterministically. */}
       {IS_E2E && !!answer && (

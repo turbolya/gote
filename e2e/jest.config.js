@@ -5,7 +5,8 @@ module.exports = {
   testMatch: ['<rootDir>/e2e/**/*.test.js'],
   testTimeout: 180000,
   maxWorkers: 1,
-  globalSetup: 'detox/runners/jest/globalSetup',
+  // Ours, which runs a couple of environment checks and then Detox's own.
+  globalSetup: '<rootDir>/e2e/globalSetup.js',
   globalTeardown: 'detox/runners/jest/globalTeardown',
   reporters: ['detox/runners/jest/reporter'],
   testEnvironment: 'detox/runners/jest/testEnvironment',

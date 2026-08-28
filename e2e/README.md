@@ -35,6 +35,23 @@ npx expo prebuild -p ios
 The Detox tooling (`detox`, `jest`, `@config-plugins/detox`) is already in
 `devDependencies`.
 
+## Preflight
+
+`npm run e2e:test` runs two checks before Detox starts (`e2e/preflight.js`),
+because both of these have cost this suite hours and neither says what it is:
+
+- **The app at `binaryPath` must be the one `npm run e2e:build` produced.** A
+  plain `xcodebuild` writes to the same `derivedDataPath`, so it is easy to
+  leave a non-E2E binary exactly where Detox looks for one — and then the app
+  talks to the real API, sits on the loading screen, and every spec times out
+  waiting for the menu. The build drops a marker beside the `.app`; the check
+  compares timestamps and tells you to rebuild.
+- **Only one simulator stays booted.** A second iOS runtime brings its own
+  `diagnosticd` and `apsd` and competes for the machine. Measured here, one
+  stray device took `browse` from 92s to 1088s — the suite does not fail
+  outright, it just creeps toward its 20s waits and goes red somewhere
+  different each run. Strays are shut down, with a line saying which and why.
+
 ## Build & run
 
 Release (recommended — the E2E env var is baked into the JS bundle):

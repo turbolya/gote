@@ -134,6 +134,20 @@ describe('Settings & statistics', () => {
   // until a real user taps the button — so it is worth driving the system alert
   // the test above declines to.
   it('resetting statistics empties the per-species list', async () => {
+    // Build the tally this test destroys instead of borrowing one from the
+    // tests above. A failed spec is retried once (e2e/setup.js), and a retry of
+    // a destructive test that depends on state it has already wiped can only
+    // fail again — turning one transient blip into a hard red plus a second,
+    // misleading error ("no elements found for stats-sort-incorrect").
+    await tapScroll('mode-flash', 'menu-scroll');
+    await tap('custom-start');
+    await visible('study-screen');
+    await tap('study-reveal');
+    await tap('study-grade-knew');
+    await tap('study-end');
+    await visible('results-menu');
+    await tap('results-menu');
+
     await tap('menu-stats');
     await tapScroll('stats-sort-incorrect', 'stats-scroll'); // list has rows
     await scrollToId('stats-reset', 'stats-scroll');

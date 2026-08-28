@@ -113,6 +113,13 @@ export default function PickImageScreen({
   return (
     <View
       testID="pick-screen"
+      // Not collapsable: this is the view the e2e suite waits for to know the
+      // screen is up, and a layout-only View gets flattened away by Fabric —
+      // its children are hoisted to the nearest surviving ancestor, leaving a
+      // hollow full-screen box behind them. Detox then measures a container
+      // that paints nothing, decides it is not visible, and times out on a
+      // screen that is plainly on display.
+      collapsable={false}
       style={[styles.root, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }]}
     >
       {/* E2E only: exposes the correct tile's taxonId so tests can tap it. */}

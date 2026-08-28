@@ -21,15 +21,19 @@ module.exports = {
       // app/widget (targets/), which then fail to compile against the iOS SDK.
       // Scheme/workspace are lowercase "gote" (the CNG project name); the scheme
       // name is case-sensitive to xcodebuild, so capital "Gote" fails.
+      // The marker is how e2e/preflight.js knows the app at binaryPath came
+      // from HERE and not from a plain xcodebuild into the same derivedDataPath
+      // — which would drop EXPO_PUBLIC_E2E and leave every spec waiting on a
+      // menu that never comes.
       build:
-        "EXPO_PUBLIC_E2E=1 xcodebuild -workspace ios/gote.xcworkspace -scheme gote -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath ios/build -quiet",
+        "EXPO_PUBLIC_E2E=1 xcodebuild -workspace ios/gote.xcworkspace -scheme gote -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath ios/build -quiet && touch ios/build/Build/Products/Debug-iphonesimulator/e2e-build.marker",
     },
     'ios.release': {
       type: 'ios.app',
       binaryPath: 'ios/build/Build/Products/Release-iphonesimulator/gote.app',
       // See the -destination + lowercase-scheme notes on ios.debug above.
       build:
-        "EXPO_PUBLIC_E2E=1 xcodebuild -workspace ios/gote.xcworkspace -scheme gote -configuration Release -destination 'generic/platform=iOS Simulator' -derivedDataPath ios/build -quiet",
+        "EXPO_PUBLIC_E2E=1 xcodebuild -workspace ios/gote.xcworkspace -scheme gote -configuration Release -destination 'generic/platform=iOS Simulator' -derivedDataPath ios/build -quiet && touch ios/build/Build/Products/Release-iphonesimulator/e2e-build.marker",
     },
   },
   devices: {
