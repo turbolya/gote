@@ -8,9 +8,22 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.42.6';
+export const APP_VERSION = '2.42.7';
 
 export const CHANGELOG = [
+  {
+    version: '2.42.7',
+    date: '2026-08-28',
+    changes: [
+      'The "more photos" button in a round now opens a grid of that species’ '
+        + 'photos instead of dropping you on one of them. Tap any photo to see it '
+        + 'full-screen and zoom in; going back returns to the grid.',
+      'A photo shown full-screen now credits the person who took it — '
+        + 'iNaturalist photos are licensed individually by their photographers.',
+      'While your observations download, the spinner is the gote newt rather '
+        + 'than a plain system one.',
+    ],
+  },
   {
     version: '2.42.6',
     date: '2026-08-27',
