@@ -8,8 +8,8 @@ cover anything it shouldn't?") that an assertion cannot make.
 [Keeping Testiny in sync](#keeping-testiny-in-sync) at the bottom. Edit the
 cases here, regenerate the CSV, re-import.
 
-Everything already covered by `npm test` (523 tutorial assertions) and
-`npm run e2e:test` (31 Detox specs) is deliberately **not** repeated here. What
+Everything already covered by `npm test` (1,634 tutorial assertions) and
+`npm run e2e:test` (34 Detox specs) is deliberately **not** repeated here. What
 follows is the residue: the things automation genuinely cannot reach.
 
 ## Format
@@ -81,6 +81,11 @@ fails loudly if it drifts, so the CSV can never quietly stop matching this file.
 Run this whole section in one sitting, on a real device, with a real iNaturalist
 account. The Detox suite walks the sequence, but never against the live API.
 
+At every step, before doing anything else, check that the bubble is actually
+drawn. A dimmed, sealed screen with no bubble on it is the worst state the tour
+has — running, blocking, and invisible — and it looks like the app has frozen
+rather than like a bug in the tour.
+
 ### GT-10 Step 2 scrolls the Settings row into view before pointing at it
 
 **Priority:** High
@@ -96,25 +101,28 @@ account. The Detox suite walks the sequence, but never against the live API.
 **Priority:** High
 **Preconditions:** Tour at step 2, Settings row spotlit.
 
-1. Tap the Settings row inside the spotlight.
+1. Once the menu has stopped moving, tap the Settings row inside the spotlight.
+2. Restart the tour and reach step 2 again, this time tapping the row the instant it is lit, while the menu is still scrolling.
 
-**Expected:** Settings opens on the first tap. The spotlight is a real hole, not a picture of one.
+**Expected:** Settings opens on the first tap, both times. The spotlight is a real hole, not a picture of one — and the hole must not lag the row it follows. A tap that lands while the list is still settling has to work: that is exactly the moment someone reaches for a control the tour has just brought into view.
 
-### GT-12 Controls outside the spotlight still work
+### GT-12 Everything outside the spotlight is sealed off
 
 **Priority:** High
-**Preconditions:** Tour at step 2 on the menu.
+**Preconditions:** Tour at step 2 on the menu, Settings row spotlit.
 
-1. Tap the green accuracy banner at the top (not spotlit).
+1. Tap the teal accuracy banner at the top (not spotlit).
+2. Drag the menu up and down, starting the drag outside the spotlight.
+3. Tap "Exit tutorial" in the bubble, then "Keep going".
 
-**Expected:** Statistics opens. The dim never swallows a tap — a tutorial must not trap the user on one control.
+**Expected:** Neither the tap nor the drag does anything: the banner does not open Statistics and the menu does not move. A step is modal on purpose — the only live things on screen are the spotlit control and the bubble's own buttons, so the step cannot be side-stepped or scrolled out from under. "Exit tutorial" still works, which is what stops sealing the screen from trapping anyone.
 
 ### GT-13 Step 3 leaves the username field AND the Save button usable
 
 **Priority:** High
 **Preconditions:** Tour at step 3, on Settings.
 
-1. Read the bubble ("Type your iNaturalist username and tap Save").
+1. Read the bubble ("Type your iNaturalist username and tap Save — or keep loarie for now if you have no account").
 2. Look at what the spotlight contains.
 3. Type your own iNaturalist username into the field.
 4. Tap Save.
@@ -157,10 +165,11 @@ account. The Detox suite walks the sequence, but never against the live API.
 
 1. Look at the bottom-left corner of the card.
 2. Tap the spotlit grid button.
-3. Swipe through the photos, then close the viewer.
-4. Tap "Next" in the bubble.
+3. Scroll the grid, then tap one of the photos.
+4. Tap back, then close the viewer.
+5. Tap "Next" in the bubble.
 
-**Expected:** The grid button is spotlit and the bubble sits above it, clear of the answer choices. Tapping it opens the photo viewer with more photos of that species. Closing it returns to the card with the bubble still up. "Next" advances to step 7.
+**Expected:** The grid button is spotlit and the bubble sits above it, clear of the answer choices. Tapping it opens a scrollable grid of that species' photos — the set, which is what the button is about. Tapping a photo opens it full-screen; back returns to the grid, close leaves the viewer, and the card is underneath with the bubble still up. "Next" advances to step 7. (The grid itself is covered in more detail by PH-01 to PH-04.)
 
 ### GT-18 The tour stays out of the way for the rest of the round
 
@@ -203,16 +212,27 @@ account. The Detox suite walks the sequence, but never against the live API.
 
 **Expected:** Step 11's spotlight is on the Sync row. Step 12's button reads "Done", not "Next". Tapping it removes the overlay entirely; Settings is left as normal, with nothing dimmed.
 
-### GT-22 Tapping the spotlit Sync row mid-step behaves sensibly
+### GT-22 Tapping the spotlit Sync row counts as doing the step
 
-**Priority:** Low
+**Priority:** Medium
 **Preconditions:** Tour at step 11, on Settings.
 
 1. Tap the spotlit "Sync across devices" row instead of tapping Next.
 2. Look at the Sync screen.
 3. Tap back to Settings.
 
-**Expected:** The Sync screen opens normally and the tutorial bar appears at the bottom reading "Tutorial · open Settings to continue". Going back restores step 11's bubble. This is expected behaviour, not a defect — the step lives on Settings, and the tour waits rather than following you.
+**Expected:** The Sync screen opens and the tour moves on to step 12. The bar on the Sync screen therefore reads "Tutorial · open Settings to continue" for step 12, and going back shows step 12's bubble ("That is the tour", with a Done button) — not step 11's again. Step 11 keeps its Next button because sync is opt-in, but opening the thing the step points at is doing the step.
+
+### GT-23 Opening Nearby from step 9 counts as doing it
+
+**Priority:** High
+**Preconditions:** Tour at step 9 on the menu, with the "Nearby species" row spotlit.
+
+1. Tap the spotlit "Nearby species" row instead of tapping Next.
+2. Look at the place-picking screen.
+3. Go back to the menu.
+
+**Expected:** Nearby opens and the tour moves on to step 10: the bar reads "Tutorial · go back to the menu to continue", and returning to the menu shows step 10 pointing at the Settings row. It must not still be asking for Nearby. The spotlight is the only live control on a sealed screen and every action step before this one has been advanced by tapping it, so tapping it here is the natural move — being sent back to the same row is a loop whose only exit is a button nobody has needed since step 1.
 
 ---
 
@@ -262,13 +282,13 @@ account. The Detox suite walks the sequence, but never against the live API.
 ### GT-34 Wandering off pauses the tour rather than losing it
 
 **Priority:** High
-**Preconditions:** Tour at a step that lives on the menu (e.g. step 2).
+**Preconditions:** Tour at step 5, on the Smart play screen with its Start button spotlit.
 
-1. Open the Lexicon from the menu.
+1. Force-quit the app and relaunch it. It reopens on the menu.
 2. Observe the bottom of the screen.
-3. Go back to the menu.
+3. Tap "Smart play" to go back.
 
-**Expected:** On the Lexicon a slim bar reads "Tutorial · go back to the menu to continue". Returning to the menu restores the bubble at the same step. The tour never simply vanishes with no way back to it.
+**Expected:** On the menu a slim bar reads "Tutorial · open Smart play to continue" — a bar, not a bubble, with nothing dimmed and nothing sealed, because the tour is not here. Tapping Smart play restores step 5's bubble. The tour never simply vanishes with no way back to it. (A relaunch is the way into this state: a step seals its own screen, so you cannot simply walk off one.)
 
 ---
 
@@ -362,6 +382,95 @@ account. The Detox suite walks the sequence, but never against the live API.
 
 ---
 
+## Photos — the grid and full screen
+
+The more-photos button belongs to every mode that shows a photo card, not only
+the one the guided tour walks through (GT-17). Run these on a real device: the
+photos come from the live iNaturalist API, and the credits are whatever the
+photographers actually chose.
+
+### PH-01 More photos opens a grid of the whole set
+
+**Priority:** High
+**Preconditions:** A round in progress in a mode that shows a photo card (Smart play, By name, Speedrun or Flash cards). Device online.
+
+1. Tap the grid button in the bottom-left corner of the card.
+2. Wait for the photos to arrive, then scroll the grid.
+
+**Expected:** A scrollable grid of that species' photos opens, the card's own photo among them, and a spinner covers the wait while they are fetched. It is a grid from the first frame — opening on a single photo with the rest hidden behind a swipe nobody was told about is the behaviour this replaced.
+
+### PH-02 A photo filling the screen says whose it is
+
+**Priority:** High
+**Preconditions:** The photo grid open (PH-01).
+
+1. Tap any photo in the grid.
+2. Read the line along the bottom of the screen.
+3. Swipe to the next photo and read it again.
+
+**Expected:** The photo opens full-screen, and a credit sits along the bottom beginning with "©", naming the photographer and the licence exactly as iNaturalist states them. Swiping to another photo swaps the credit for that photo's own. iNaturalist photos are licensed individually by the people who took them, so a full-screen photo with no credit is a licensing failure, not a cosmetic one.
+
+### PH-03 Back goes up a layer, close leaves
+
+**Priority:** Medium
+**Preconditions:** A photo open full-screen from the grid (PH-02).
+
+1. Tap the back control at the top left.
+2. From the grid, tap the close control.
+
+**Expected:** Back returns to the grid with the round still waiting underneath; close leaves the viewer altogether and lands back on the card. They are deliberately two controls: one X meaning "up a layer" here and "leave" there would be a coin toss every time.
+
+### PH-04 Double-tapping the card skips the grid
+
+**Priority:** Medium
+**Preconditions:** A round in progress with a photo card.
+
+1. Double-tap the photo on the card itself.
+2. Look for a back control.
+
+**Expected:** The photo opens full-screen directly, with no grid in between, and still carries its credit. There is no back control, because there is no grid to go back to — only close. That gesture means "bigger", not "show me the others".
+
+### PH-05 Zooming still works, and paging yields to it
+
+**Priority:** Medium
+**Preconditions:** A photo open full-screen (from PH-02 or PH-04).
+
+1. Pinch to zoom in, then drag around the photo.
+2. Drag horizontally while still zoomed in.
+3. Double-tap to zoom back out, then swipe sideways.
+
+**Expected:** Pinch zooms and the drag pans within the photo rather than flipping to the next one. Once zoomed back out, a sideways swipe pages to the next photo again.
+
+---
+
+## Loading
+
+### LD-01 The loading screen spins the newt, in teal
+
+**Priority:** Medium
+**Preconditions:** App freshly installed, or a username changed in Settings so the deck reloads. Device online.
+
+1. Watch the screen while the observations download.
+
+**Expected:** The spinner is the gote newt animation, tinted the brand teal, sitting above "Loading observations for <name>…", the "<n> of <total>" count, and the note that only the ~1,000 most recent observations are loaded. A plain grey system spinner may show for a moment on a first-ever launch while the animation is still decoding, and must give way to the newt — it is the fallback, not the spinner.
+
+---
+
+## Apple Watch
+
+### WA-01 The streak is marked with a newt, not a flame
+
+**Priority:** Medium
+**Preconditions:** A paired Apple Watch with the gote watch app installed, and a streak of at least one day synced to it.
+
+1. Open gote on the watch and look at the streak on its home screen.
+2. Add the gote streak complication to a watch face, in both a circular and a rectangular slot.
+3. Look at the accuracy gauge in the watch app.
+
+**Expected:** Every streak is marked with the small gote newt — teal on the app's home screen while the streak is running, dimmed when it is not. No flame appears anywhere: the flame is the generic fitness glyph, and it was replaced in the app and in both complication shapes. The accuracy gauge is labelled "acc" rather than carrying a glyph of its own.
+
+---
+
 ## Keeping Testiny in sync
 
 Testiny is where these run; this file is where they are written. The loop:
@@ -381,14 +490,20 @@ Testiny is where these run; this file is where they are written. The loop:
    Testiny's own field names (`Title`, `Precondition`, `Steps`, `Expected
    Result`, `Priority`, `Folder`), so the mapping should mostly be picked up for
    you.
-4. The **Folder** column carries a path taken from the `##` headings above
+4. Re-importing matches on **Title**, so a case whose title changes here arrives
+   as a new case and leaves the old one behind. Two so far: GT-12 was "Controls
+   outside the spotlight still work" and GT-22 was "Tapping the spotlit Sync row
+   mid-step behaves sensibly", and both now describe the opposite behaviour.
+   Delete that stale pair by hand after importing — the **Reference** column
+   (`GT-nn`) is what ties a case back to this file.
+5. The **Folder** column carries a path taken from the `##` headings above
    (`Guided tour/presentation` and so on), so the suite arrives with the same
-   shape it has here rather than as one flat list of 32. Re-importing updates
+   shape it has here rather than as one flat list. Re-importing updates
    existing cases when their **Title** matches and adds the rest, so the CSV can
    be re-imported after every edit rather than curated by hand. The **Reference**
    column carries the `GT-nn` id, which is how a case in Testiny is traced back
    to this file.
-5. Add the cases to whichever test run covers the release, and record results in
+6. Add the cases to whichever test run covers the release, and record results in
    Testiny as usual. Results live there; the cases live here.
 
 If your Testiny plan exposes the REST API and you would rather script step 3,
