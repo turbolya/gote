@@ -60,6 +60,14 @@ function parsePlan(markdown) {
 
   const finish = () => {
     if (!current) return;
+    // Trim what the wrapping logic assembled. A case whose prose starts on the
+    // line after its title picks up a leading space, which is invisible here,
+    // survives into the CSV, and — because Testiny trims on store — makes the
+    // push report that case as changed on every single run, for ever.
+    current.prose = current.prose.trim();
+    current.precondition = current.precondition.trim();
+    current.expected = current.expected.trim();
+    current.steps = current.steps.map((x) => x.trim());
     const where = `${current.id} ("${current.title}")`;
     if (!PRIORITIES.includes(current.priority)) {
       errors.push(`${where}: priority "${current.priority}" is not one of ${PRIORITIES.join('/')}`);
@@ -338,14 +346,19 @@ async function push(cases, { write }) {
   const project = projects.data.find((p) => p.project_key === PROJECT_KEY);
   if (!project) throw new Error(`no project with key ${PROJECT_KEY}`);
 
-  // The folder a case sits in is a mapping table, not a column, so it has to be
-  // joined on explicitly.
-  const remote = await api(key, 'POST', '/testcase/find?limit=2000', {
+  // Two reads, deliberately. The plain list is the authoritative set of cases;
+  // the joined one only supplies the folder each is in. Using the join alone
+  // loses any case that is in NO folder — which is a state this very script can
+  // produce, if a create succeeds and the mapping call after it fails — and a
+  // case missing from the read is a case the next run creates a second time.
+  const remote = await api(key, 'GET', `/testcase?projectId=${project.id}&limit=2000`);
+  const joined = await api(key, 'POST', '/testcase/find?limit=2000', {
     filter: { project_id: project.id },
     map: { entities: ['testcase', 'testcase_folder'] },
   });
-  // Cases still on the STEPS template keep their text in content_text, so the
-  // comparison below has to be able to see it.
+  const inFolder = new Map(
+    joined.data.map((r) => [r.id, (r.testcase_folder_testcase_values || {}).testcase_folder_id || null])
+  );
 
   const folders = await api(key, 'GET', `/testcase-folder?projectId=${project.id}&limit=500`);
   const folderId = new Map(folders.data.map((f) => [f.title, f.id]));
@@ -353,7 +366,7 @@ async function push(cases, { write }) {
   const byRef = new Map();
   const byTitle = new Map();
   for (const r of remote.data) {
-    r.folder_id = (r.testcase_folder_testcase_values || {}).testcase_folder_id || null;
+    r.folder_id = inFolder.get(r.id) || null;
     if (r.cf__testcaseid) byRef.set(r.cf__testcaseid, r);
     // Cases imported before the Reference column was mapped have no id at all;
     // their title is the only handle on them, and only until it changes.
@@ -426,7 +439,7 @@ async function push(cases, { write }) {
   for (const { case: c } of plan.create) {
     const made = await api(key, 'POST', '/testcase', { ...payload(c), project_id: project.id });
     await api(key, 'POST', '/testcase-folder/mapping/bulk/testcase?op=add_or_update',
-      [{ testcase_folder_id: folderId.get(c.folder), testcase_id: made.id }]);
+      [{ ids: { testcase_folder_id: folderId.get(c.folder), testcase_id: made.id } }]);
     console.log(`  created ${c.id} ${c.title}`);
   }
   for (const { case: c, remote: r } of plan.update) {
@@ -436,8 +449,19 @@ async function push(cases, { write }) {
     console.log(`  updated ${c.id} ${c.title}`);
   }
   for (const { case: c, remote: r, to } of plan.move) {
-    await api(key, 'POST', '/testcase-folder/mapping/bulk/testcase?op=add_or_update',
-      [{ testcase_folder_id: folderId.get(to), testcase_id: r.id }]);
+    // The ids go in an `ids` record — the mapping table's own shape, not a flat
+    // object. A flat one is a 400: "Expected record object at Mappings.0.ids".
+    //
+    // And a move is not an upsert. `add_or_update` inserts, so on a case that
+    // already sits in a folder it fails with "Key (testcase_id) already exists";
+    // the row has to be identified by the pair it currently is, and given the
+    // new folder in newIds. Only a case in no folder at all is an `add`.
+    const target = folderId.get(to);
+    await (r.folder_id
+      ? api(key, 'POST', '/testcase-folder/mapping/bulk/testcase?op=update',
+          [{ ids: { testcase_id: r.id, testcase_folder_id: r.folder_id }, newIds: { testcase_folder_id: target } }])
+      : api(key, 'POST', '/testcase-folder/mapping/bulk/testcase?op=add',
+          [{ ids: { testcase_folder_id: target, testcase_id: r.id } }]));
     console.log(`  moved ${c.id} → ${to}`);
   }
   console.log('\nDone.\n');
