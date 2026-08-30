@@ -12,7 +12,6 @@
 // Screens that go somewhere when you back out of them.
 export const BACK_TO = {
   settings: 'menu',
-  custom: 'menu',
   smart: 'menu',
   flash: 'menu',
   nearby: 'menu',

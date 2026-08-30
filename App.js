@@ -3,8 +3,8 @@
 // Flow (a small state machine, no navigation library needed):
 //
 //   loading ─► menu ─┬─► study ─► results ─► menu
-//      ▲             │     (all / 16 / custom / speedrun)
-//      │             ├─► custom ─► study ─► results
+//      ▲             │     (all / 16 / smart / speedrun)
+//      │             ├─► smart ──► study ─► results
 //      └─ settings ◄─┘   (set username & options, then (re)load the deck)
 //
 // Cards are a user's public iNaturalist observations: photo on the front,
@@ -167,7 +167,7 @@ const STALE_REFRESH_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 ExpoSplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function App() {
-  // loading | settings | menu | custom | study | results
+  // loading | settings | menu | smart | study | results
   const [screen, setScreen] = useState('loading');
   // Live "no connection" flag, used to pause the online-only features (Nearby,
   // observation updates). Forced off in the synthetic modes, which run against
@@ -415,7 +415,7 @@ export default function App() {
   const [correctCount, setCorrectCount] = useState(0);
   const [missed, setMissed] = useState([]);
   const [roundLabel, setRoundLabel] = useState('');
-  const [mode, setMode] = useState('all'); // all | 16 | custom | speedrun | pick
+  const [mode, setMode] = useState('all'); // all | 16 | smart | speedrun | pick
   const [lives, setLives] = useState(SPEEDRUN_LIVES);
   // Bumped whenever Speedrun loops back to index 0 on a reshuffle. With a
   // single-card deck the index and card id don't change on the loop, so the
@@ -921,14 +921,9 @@ export default function App() {
     [playableDeck, startRound]
   );
 
-  const startCustom = useCallback(
-    (groups, count, flaggedOnly) =>
-      startPicked(groups, count, 'custom', 'Custom game', flaggedOnly),
-    [startPicked]
-  );
-
-  // Flash cards: same picker as Custom, but played as a self-grade round
-  // (reveal the answer, then "I knew it" / "Missed it") instead of choices.
+  // Flash cards: the same picker Smart play uses, but played as a self-grade
+  // round (reveal the answer, then "I knew it" / "Missed it") instead of
+  // choices.
   const startFlash = useCallback(
     (groups, count, flaggedOnly) =>
       startPicked(groups, count, 'flash', 'Flash cards', flaggedOnly),
@@ -1189,7 +1184,6 @@ export default function App() {
       if (m === 'all') startAll();
       else if (m === 'speedrun') startSpeedrun();
       else if (m === 'pick') startPick();
-      else if (m === 'custom') setScreen('custom');
       else if (m === 'flash') setScreen('flash');
       else if (m === 'nearby') setScreen('nearby');
       else if (m === 'smart') setScreen('smart');
@@ -1649,7 +1643,7 @@ export default function App() {
             roundLabel={roundLabel}
             speedrun={mode === 'speedrun'}
             lives={lives}
-            choiceMode={['all', 'custom', 'speedrun', 'nearby'].includes(mode)}
+            choiceMode={['all', 'speedrun', 'nearby'].includes(mode)}
             answerMode={
               mode === 'smart'
                 ? formatForCard() === FORMAT.TYPED
@@ -1883,15 +1877,6 @@ export default function App() {
                 setScreen('menu');
               }
             }}
-          />
-        )}
-
-        {screen === 'custom' && (
-          <CustomScreen
-            deck={fullDeck}
-            flags={flags}
-            onStart={startCustom}
-            onBack={navBack}
           />
         )}
 

@@ -68,8 +68,11 @@ describe('Game modes', () => {
     await tap('results-menu');
   });
 
-  it('Custom game: toggle a group and start a multiple-choice round', async () => {
-    await tapMode('custom');
+  // The group picker used to be exercised through Custom game, which Smart play
+  // covered and which is gone from the menu. Smart play uses the same screen,
+  // so the picker is still tested — through the mode that still exists.
+  it('Smart play: toggle a group and start a round', async () => {
+    await tapMode('smart');
     await visible('custom-start');
     await tap('custom-group-Aves'); // off
     await tap('custom-group-Aves'); // on again

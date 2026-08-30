@@ -24,7 +24,6 @@ describe('Menu & navigation', () => {
       'mode-pick', // By picture
       'mode-speedrun',
       'mode-nearby',
-      'mode-custom',
       'mode-flash', // Learn
       'open-lexicon',
       'open-settings', // Settings

@@ -70,7 +70,7 @@ Know how to get back to zero — several cases need a fresh start.
     on the menu; the round shows up on the recent-games chart.
 - [ ] **TC-1.4 Swipe back works on every page with a back button.** Visit each
     page with a back chevron and swipe right starting **from the left edge**:
-    Settings, Custom game, Flash cards, Nearby species, Statistics, Lexicon, and
+    Settings, Smart play, Flash cards, Nearby species, Statistics, Lexicon, and
     the Settings sub-pages **What's new**, **Data & licensing** and **Sync across
     devices**. Also the overlays: a species detail page, a compare pair, a duel.
   - *Priority:* High
@@ -120,9 +120,7 @@ scores correctly, and returns to the menu cleanly.
   taxon-group filter, start.
   - *Expected:* the deck reflects species seen near that pin (not just your own
     records); on Android there's **no map** by design — GPS + radius slider only.
-- [ ] **TC-2.6 Mode: Custom game.** Choose a card count and taxon groups, start.
-  - *Expected:* the round honours the chosen count and groups.
-- [ ] **TC-2.7 Smart play - mixed questions.** Menu ▸ Smart play, leave
+- [ ] **TC-2.6 Smart play - mixed questions.** Menu ▸ Smart play, leave
     all four question types on, play 16 cards.
   - *Priority:* High
   - *Expected:* the question CHANGES between cards — a photo grid, a five-name
@@ -130,7 +128,7 @@ scores correctly, and returns to the menu cleanly.
     Species you have never met lean towards the photo grid; species you answer
     well start being asked from memory. The round never stalls between formats,
     and the card counter advances by exactly one each time.
-- [ ] **TC-2.8 Smart play - limiting the question types.** On the start
+- [ ] **TC-2.7 Smart play - limiting the question types.** On the start
     screen, turn off all but one type and play a few cards. Then try to turn off
     the last one.
   - *Priority:* High
@@ -138,7 +136,7 @@ scores correctly, and returns to the menu cleanly.
     (it stays ticked) rather than Start becoming disabled. Note: choosing only
     **Look-alike pairs** falls back to a name list for any species you have no
     recorded confusion for — there is no pair to ask about.
-- [ ] **TC-2.9 Typing from memory.** In a Smart play round, get a
+- [ ] **TC-2.8 Typing from memory.** In a Smart play round, get a
     "type the name" card. Try, in turn: the exact common name; the same name
     with wrong capitals and no accents; a one-letter typo; the scientific name;
     and a completely different species.
@@ -148,7 +146,7 @@ scores correctly, and returns to the menu cleanly.
     correct spelling. The different species is **rejected**. Long names wrap onto
     a second line rather than scrolling sideways. Check is greyed until you type
     something, and the field and the button are clearly different controls.
-- [ ] **TC-2.10 Group All / None shortcuts.** On any of Custom game,
+- [ ] **TC-2.9 Group All / None shortcuts.** On any of Smart play,
     Flash cards or Smart play, tap **None** then **All** beside Groups.
   - *Expected:* None clears every group and Start greys out reading "Select a
     group"; All restores them. Each shortcut greys out when it would do nothing.
@@ -256,7 +254,7 @@ scores correctly, and returns to the menu cleanly.
   - *Expected:* the streak increments by exactly 1; a missed day lapses it to 0
     while "longest" remembers the old run.
 - [ ] **TC-5.8 Species you mix up appears.** In a multiple-choice mode (By name
-    / Custom / Speedrun / By picture), deliberately pick the **same wrong
+    / Speedrun / By picture), deliberately pick the **same wrong
     look-alike** for a species **3+ times**, then open Statistics.
   - *Expected:* a **"Species you mix up"** card lists that pair — both species
     side by side (thumbnail + name) with "Mixed up N times". It does **not**
@@ -281,7 +279,7 @@ scores correctly, and returns to the menu cleanly.
     the same failure the streak had in 2.37.3. Your flagged species, settings and
     downloaded photos are untouched.
 - [ ] **TC-5.11 Just-in-time callout during play.** Keep picking the same wrong
-    look-alike for a species in a choice mode (By name / Custom / Speedrun / By
+    look-alike for a species in a choice mode (By name / Speedrun / By
     picture) until you've done it 3 times.
   - *Expected:* on that 3rd wrong pick, the answer reveal shows a red "You keep
     mixing these up — see them side by side" callout. Tapping it opens the
@@ -310,14 +308,14 @@ scores correctly, and returns to the menu cleanly.
     (and no callout) until you rebuild it. Resetting statistics clears both the
     mix-up and the recovery streak.
 - [ ] **TC-5.14 Spaced-repetition resurfacing.** Build up one or two mix-up pairs
-    (miss A as B 3+ times), then start several **Custom** rounds (a small card
+    (miss A as B 3+ times), then start several **Smart play** rounds (a small card
     count, from groups that include those species).
   - *Preconditions:* One or two mix-up pairs exist (missed 3+ times)
   - *Expected:* the confused species resurface noticeably more often than a plain
     random draw would give — and when one appears, its **look-alike partner tends
     to appear in the same round** (interleaved, not back-to-back). After you've
     told a pair apart several times running (its recovery streak climbs), it stops
-    dominating. With **no** mix-ups logged, Custom rounds look like a normal random
+    dominating. With **no** mix-ups logged, Smart play rounds look like a normal random
     sample (new players unaffected).
 - [ ] **TC-5.15 Your tell notes sync across devices.** With sync on and the same
     account on two devices, write a **Your tell** note for a pair on device A, then
@@ -339,7 +337,7 @@ scores correctly, and returns to the menu cleanly.
     that account's own flags, not the other's. With sync **off**, flags stay
     device-local.
 - [ ] **TC-5.17 One-card round cannot inflate accuracy.** Note the lifetime
-    accuracy % on the Statistics summary. Start a **Custom game of 1 card**,
+    accuracy % on the Statistics summary. Start a **Smart play round of 1 card**,
     answer it correctly, finish the round. Reopen Statistics.
   - *Preconditions:* Some existing play, so there is a lifetime accuracy to compare against
   - *Priority:* High
@@ -391,7 +389,7 @@ scores correctly, and returns to the menu cleanly.
 - [ ] **TC-6.4 Fresh photo once mastered.** Under Study options, turn on **"Fresh
     photo once mastered"**. Play a species you've already mastered (**5+ correct,
     80%+ accuracy** — check Statistics) in a self-photo mode (By name / Flash /
-    Custom / Speedrun / Nearby).
+    Speedrun / Nearby).
   - *Preconditions:* A species is mastered (5+ correct, 80%+ accuracy)
   - *Expected:* that card shows a **random official (iNaturalist) photo**, not your
     own observation shot, and the photo varies across repeat appearances. Non-
@@ -413,7 +411,7 @@ scores correctly, and returns to the menu cleanly.
 ## 7. Offline & resilience
 
 > Behaviour recap: after a deck loads online, gote prefetches a pack of its
-> photos. Offline, the deck-local modes (By name, Speedrun, Custom, Flash) play
+> photos. Offline, the deck-local modes (By name, Speedrun, Smart play, Flash) play
 > only from downloaded cards; the online-only modes (Nearby, By picture) and
 > observation updates are paused.
 
@@ -421,12 +419,12 @@ scores correctly, and returns to the menu cleanly.
   minute (let the offline pack warm), then turn on airplane mode and return to
   the menu.
   - *Expected:* an amber "You're offline…" banner; **Nearby** and **By
-    picture** are dimmed ("Needs a connection"); **By name / Speedrun / Custom
+    picture** are dimmed ("Needs a connection"); **By name / Speedrun / Smart play
     / Flash** stay tappable.
   - *Preconditions:* Deck loaded
   - *Priority:* High
 - [ ] **TC-7.2 Play a deck-local mode offline.** Start By name (and Speedrun /
-  Custom / Flash).
+  Smart play / Flash).
   - *Expected:* real cards with photos — **no blank/broken images**; scoring
     and stats update locally; no crash.
   - *Preconditions:* Offline with a warmed pack
