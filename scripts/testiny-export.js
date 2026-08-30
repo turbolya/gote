@@ -211,6 +211,238 @@ function validate({ cases, errors }) {
 const SOURCE = path.join(root, 'docs', 'MANUAL-TESTS.md');
 const OUT = path.join(root, 'testiny-cases.csv');
 
+// --- pushing to Testiny ------------------------------------------------------
+//
+// The CSV importer can only ever CREATE. It detects an existing case by folder
+// and title, and all that detection decides is whether a match is skipped or
+// duplicated — so an edit here has to be retyped in the web UI, and the two
+// copies drift. That is how 41 of 84 titles came to disagree.
+//
+// The API has what the importer lacks: every case carries its reference in a
+// custom field (`cf__testcaseid`), which survives a rename, and PUT can change a
+// case in place. So this pushes the markdown over the top of Testiny — creating
+// what is missing, updating what differs, and moving what has changed folder.
+//
+//   TESTINY_API_KEY=… node scripts/testiny-export.js --push           plan only
+//   TESTINY_API_KEY=… node scripts/testiny-export.js --push --write   do it
+//
+// Dry by default, and deliberately: --push prints what it would do and changes
+// nothing. Nothing here deletes, either. A case in Testiny that the markdown no
+// longer has is reported and left alone — it may be a rename this run cannot
+// see, and an automated delete of someone's test case is not a thing to be
+// clever about.
+
+const API = 'https://app.testiny.io/api/v1';
+const PROJECT_KEY = 'GOTE';
+// Testiny stores priority as a number; the names are ours.
+const PRIORITY_NUMBER = { High: 1, Medium: 2, Low: 3 };
+
+// Testiny's text fields are not text. They hold a Slate document —
+// {"t":"slate","v":1,"c":[{"t":"p","children":[{"text":"…"}]}]} — so a plain
+// string written into one would be stored as a broken document, and a plain
+// string COMPARED with one differs every single time, which would report all
+// 105 cases as needing an update on every run. Both directions have to go
+// through these two.
+const slate = (text) => JSON.stringify({
+  t: 'slate',
+  v: 1,
+  c: String(text || '')
+    .split('\n')
+    .map((line) => ({ t: 'p', children: [{ text: line }] })),
+});
+
+// Pull the words back out of one, for comparison. Walks the tree rather than
+// assuming paragraphs: a case edited in the web UI can hold tables (the STEPS
+// template writes one), lists, or marked-up runs.
+function plain(value) {
+  if (!value) return '';
+  let doc;
+  try {
+    doc = JSON.parse(value);
+  } catch {
+    return String(value).trim(); // already plain, e.g. a field never touched by the editor
+  }
+  const lines = [];
+  const walk = (node, into) => {
+    if (typeof node.text === 'string') into.push(node.text);
+    for (const child of node.children || node.c || []) {
+      if (child.t === 'p' || child.t === 'tr' || child.t === 'td') {
+        const buf = [];
+        walk(child, buf);
+        const joined = buf.join('').trim();
+        if (joined) lines.push(joined);
+      } else {
+        walk(child, into);
+      }
+    }
+  };
+  walk(doc, []);
+  return lines.join('\n').trim();
+}
+// The fields this file owns. Anything else on a Testiny case — its status, its
+// automation link, whatever someone set in the UI — is left alone.
+const OWNED = ['title', 'precondition_text', 'steps_text', 'expected_result_text', 'priority'];
+
+async function api(key, method, route, body) {
+  const res = await fetch(`${API}${route}`, {
+    method,
+    headers: { 'X-Api-Key': key, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`${method} ${route} → ${res.status} ${text.slice(0, 300)}`);
+  return text ? JSON.parse(text) : null;
+}
+
+// What the markdown says a case should look like, as plain text. Kept plain so
+// it can be compared with what plain() pulls back out of Testiny; slate() wraps
+// it only on the way out.
+function wanted(c) {
+  return {
+    title: c.title,
+    precondition_text: c.precondition || '',
+    steps_text: [c.prose, ...c.steps.map((s, i) => `${i + 1}. ${s}`)].filter(Boolean).join('\n'),
+    expected_result_text: c.expected,
+    priority: PRIORITY_NUMBER[c.priority],
+  };
+}
+
+// …and the same thing as Testiny wants it written. Everything is normalised to
+// the TEXT template: our source is steps-plus-one-expectation, which is exactly
+// what TEXT holds, whereas the STEPS template is a table wanting an expectation
+// per row — the 19 August import faked that by putting the whole expectation in
+// the first row. One template is also one code path.
+function payload(c) {
+  const w = wanted(c);
+  return {
+    title: w.title,
+    template: 'TEXT',
+    precondition_text: slate(w.precondition_text),
+    steps_text: slate(w.steps_text),
+    expected_result_text: slate(w.expected_result_text),
+    content_text: null, // what the STEPS template used; cleared on the way to TEXT
+    priority: w.priority,
+    cf__testcaseid: c.id,
+  };
+}
+
+async function push(cases, { write }) {
+  const key = process.env.TESTINY_API_KEY;
+  if (!key) {
+    console.error('\nTESTINY_API_KEY is not set. The key is in the launch handbook,');
+    console.error('deliberately not in this repo.\n');
+    process.exit(1);
+  }
+
+  const projects = await api(key, 'GET', '/project');
+  const project = projects.data.find((p) => p.project_key === PROJECT_KEY);
+  if (!project) throw new Error(`no project with key ${PROJECT_KEY}`);
+
+  // The folder a case sits in is a mapping table, not a column, so it has to be
+  // joined on explicitly.
+  const remote = await api(key, 'POST', '/testcase/find?limit=2000', {
+    filter: { project_id: project.id },
+    map: { entities: ['testcase', 'testcase_folder'] },
+  });
+  // Cases still on the STEPS template keep their text in content_text, so the
+  // comparison below has to be able to see it.
+
+  const folders = await api(key, 'GET', `/testcase-folder?projectId=${project.id}&limit=500`);
+  const folderId = new Map(folders.data.map((f) => [f.title, f.id]));
+
+  const byRef = new Map();
+  const byTitle = new Map();
+  for (const r of remote.data) {
+    r.folder_id = (r.testcase_folder_testcase_values || {}).testcase_folder_id || null;
+    if (r.cf__testcaseid) byRef.set(r.cf__testcaseid, r);
+    // Cases imported before the Reference column was mapped have no id at all;
+    // their title is the only handle on them, and only until it changes.
+    if (!byTitle.has(r.title)) byTitle.set(r.title, r);
+  }
+
+  const plan = { folders: [], create: [], update: [], move: [], orphan: [] };
+  const matched = new Set();
+
+  for (const name of new Set(cases.map((c) => c.folder))) {
+    if (!folderId.has(name)) plan.folders.push(name);
+  }
+
+  for (const c of cases) {
+    const want = wanted(c);
+    const found = byRef.get(c.id) || byTitle.get(c.title);
+    if (!found) {
+      plan.create.push({ case: c, want });
+      continue;
+    }
+    matched.add(found.id);
+    const changed = OWNED.filter((f) => {
+      if (f === 'priority') return found[f] !== want[f];
+      if (f === 'title') return (found[f] || '') !== want[f];
+      // The STEPS template keeps everything in content_text, so a case still on
+      // it reads as empty here — which is a real difference, not a false one.
+      return plain(found[f] || found.content_text) !== want[f];
+    });
+    if (found.template !== 'TEXT') changed.push(`template ${found.template}→TEXT`);
+    // A case matched by title but carrying no reference gets stamped with one,
+    // so the next run matches on the id and a rename stops being a new case.
+    if (!found.cf__testcaseid) changed.push('cf__testcaseid');
+    if (changed.length) plan.update.push({ case: c, remote: found, want, changed });
+    const target = folderId.get(c.folder);
+    if (target && found.folder_id !== target) {
+      plan.move.push({ case: c, remote: found, to: c.folder });
+    } else if (!target) {
+      plan.move.push({ case: c, remote: found, to: c.folder, pending: true });
+    }
+  }
+  for (const r of remote.data) {
+    if (!matched.has(r.id)) plan.orphan.push(r);
+  }
+
+  const n = (a) => String(a.length).padStart(3);
+  console.log(`\nTestiny project ${project.project_key} (id ${project.id}) — ${remote.data.length} cases there, ${cases.length} here\n`);
+  console.log(`${n(plan.folders)} folders to create`);
+  for (const f of plan.folders) console.log(`      + ${f}`);
+  console.log(`${n(plan.create)} cases to create`);
+  for (const c of plan.create) console.log(`      + ${c.case.id.padEnd(9)} [${c.case.folder}] ${c.case.title}`);
+  console.log(`${n(plan.update)} cases to update`);
+  for (const u of plan.update) console.log(`      ~ ${u.case.id.padEnd(9)} ${u.case.title}\n          ${u.changed.join(', ')}`);
+  console.log(`${n(plan.move)} cases to move`);
+  for (const m of plan.move) console.log(`      → ${m.case.id.padEnd(9)} ${m.case.title} → ${m.to}`);
+  console.log(`${n(plan.orphan)} in Testiny but not here (left alone)`);
+  for (const o of plan.orphan) console.log(`      ? id=${o.id} "${o.title}"`);
+
+  if (!write) {
+    console.log('\nDry run — nothing was changed. Add --write to apply.\n');
+    return;
+  }
+
+  for (const name of plan.folders) {
+    const made = await api(key, 'POST', '/testcase-folder', {
+      project_id: project.id, title: name, testcase_folder_parent_id: 0,
+    });
+    folderId.set(name, made.id);
+    console.log(`  created folder ${name}`);
+  }
+  for (const { case: c } of plan.create) {
+    const made = await api(key, 'POST', '/testcase', { ...payload(c), project_id: project.id });
+    await api(key, 'POST', '/testcase-folder/mapping/bulk/testcase?op=add_or_update',
+      [{ testcase_folder_id: folderId.get(c.folder), testcase_id: made.id }]);
+    console.log(`  created ${c.id} ${c.title}`);
+  }
+  for (const { case: c, remote: r } of plan.update) {
+    // _etag is Testiny's optimistic lock: send the one we read, and the write is
+    // refused if someone changed the case in the UI in the meantime.
+    await api(key, 'PUT', `/testcase/${r.id}`, { ...payload(c), _etag: r._etag });
+    console.log(`  updated ${c.id} ${c.title}`);
+  }
+  for (const { case: c, remote: r, to } of plan.move) {
+    await api(key, 'POST', '/testcase-folder/mapping/bulk/testcase?op=add_or_update',
+      [{ testcase_folder_id: folderId.get(to), testcase_id: r.id }]);
+    console.log(`  moved ${c.id} → ${to}`);
+  }
+  console.log('\nDone.\n');
+}
+
 const rel = path.relative(root, SOURCE);
 const { cases, errors } = validate(parsePlan(fs.readFileSync(SOURCE, 'utf8')));
 
@@ -223,7 +455,12 @@ if (errors.length) {
 
 const byFolder = cases.reduce((acc, c) => ({ ...acc, [c.folder]: (acc[c.folder] || 0) + 1 }), {});
 
-if (process.argv.includes('--check')) {
+if (process.argv.includes('--push')) {
+  push(cases, { write: process.argv.includes('--write') }).catch((e) => {
+    console.error(`\n${e.message}\n`);
+    process.exit(1);
+  });
+} else if (process.argv.includes('--check')) {
   console.log(`\nManual test cases: ${cases.length} valid`);
   for (const [f, n] of Object.entries(byFolder)) console.log(`  ${n}  ${f}`);
   console.log('');
