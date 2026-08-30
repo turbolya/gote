@@ -169,7 +169,7 @@ scores correctly, and returns to the menu cleanly.
   1. Tap any photo in the grid.
   2. Read the line along the bottom of the screen.
   3. Swipe to the next photo and read it again.
-  - *Preconditions:* The photo grid open (PH-01).
+  - *Preconditions:* The photo grid open (TC-3.1).
   - *Priority:* High
   - *Expected:* The photo opens full-screen, and a credit sits along the bottom
     beginning with "©", naming the photographer and the licence exactly as
@@ -180,7 +180,7 @@ scores correctly, and returns to the menu cleanly.
 - [ ] **TC-3.3 Back goes up a layer, close leaves.**
   1. Tap the back control at the top left.
   2. From the grid, tap the close control.
-  - *Preconditions:* A photo open full-screen from the grid (PH-02).
+  - *Preconditions:* A photo open full-screen from the grid (TC-3.2).
   - *Expected:* Back returns to the grid with the round still waiting
     underneath; close leaves the viewer altogether and lands back on the card.
     They are deliberately two controls: one X meaning "up a layer" here and
@@ -197,7 +197,7 @@ scores correctly, and returns to the menu cleanly.
   1. Pinch to zoom in, then drag around the photo.
   2. Drag horizontally while still zoomed in.
   3. Double-tap to zoom back out, then swipe sideways.
-  - *Preconditions:* A photo open full-screen (from PH-02 or PH-04).
+  - *Preconditions:* A photo open full-screen (from TC-3.2 or TC-3.4).
   - *Expected:* Pinch zooms and the drag pans within the photo rather than
     flipping to the next one. Once zoomed back out, a sideways swipe pages to
     the next photo again. ---
@@ -223,7 +223,7 @@ scores correctly, and returns to the menu cleanly.
   - *Expected:* accuracy %, cards answered, species seen, a daily streak card, a
     recent-games chart, and a running accuracy-trend line — all consistent with
     what you just played. The trend line **ends on the accuracy % shown in the
-    summary**, not merely near it (see TC-4.15).
+    summary**, not merely near it (see TC-5.17).
 - [ ] **TC-5.2 Per-species table.** Check the by-species table (success %, correct,
     incorrect) and its sort/filter, including the **"My observations"** filter.
   - *Expected:* tallies match play; a single wrong answer moves the right row.
@@ -268,7 +268,7 @@ scores correctly, and returns to the menu cleanly.
     and the Stats row now reads **"Your tell ✓"**. Clearing the note removes the
     mark.
 - [ ] **TC-5.10 Reset clears confusions and their notes.** With a mix-up
-    pair on the Stats page and a **"Your tell"** note written for it (TC-4.7),
+    pair on the Stats page and a **"Your tell"** note written for it (TC-5.9),
     reset statistics. On a synced account, then force a sync and reopen the pair
     — and check Device B too.
   - *Preconditions:* A mix-up pair on the Stats page with a Your tell note written for it; ideally sync on with a second device
@@ -488,7 +488,7 @@ of its cases cannot be reached again without deleting the app.
 - [ ] **TC-8.2 The tour does not reappear once it has been seen.**
   1. Force-quit the app.
   2. Relaunch it.
-  - *Preconditions:* GT-01 completed, then the tour finished or exited.
+  - *Preconditions:* TC-8.1 completed, then the tour finished or exited.
   - *Priority:* High
   - *Expected:* The menu appears with no bubble and no tutorial bar. This holds
     for every subsequent launch.
@@ -600,15 +600,18 @@ of its cases cannot be reached again without deleting the app.
     photos — the set, which is what the button is about. Tapping a photo opens
     it full-screen; back returns to the grid, close leaves the viewer, and the
     card is underneath with the bubble still up. "Next" advances to step 7.
-    (The grid itself is covered in more detail by PH-01 to PH-04.)
+    (The grid itself is covered in more detail by TC-3.1 to TC-3.5.)
 - [ ] **TC-9.9 The tour stays out of the way for the rest of the round.**
   1. Answer every remaining card in the round.
   2. Pass through the results screen back to the menu.
   - *Preconditions:* Step 6 dismissed, round still in progress.
   - *Priority:* High
-  - *Expected:* No bubble and no tutorial bar appear at any point during the
-    round, or on results. The tour reappears only once you are back on the
-    menu, at step 7. A coach mark on top of a card being answered is a bug.
+  - *Expected:* No bubble and no tutorial bar appear at any point while cards
+    are being answered — a coach mark on top of a card is a bug. On the results
+    screen the slim tutorial bar DOES come back, naming the menu as where to go
+    next: results is the one moment mid-round where the user is idle and
+    choosing what to do, and a tour that vanishes there reads as a tour that has
+    died. Back on the menu, step 7's bubble is up.
 - [ ] **TC-9.10 Step 7 opens Statistics from the banner.**
   1. Tap the spotlit accuracy banner.
   - *Preconditions:* Tour at step 7 on the menu.
@@ -936,7 +939,7 @@ of its cases cannot be reached again without deleting the app.
     totals are unchanged.
 - [ ] **TC-17.3 Sign-in warning is honest.** Re-read the sign-in confirmation copy.
   - *Expected:* it clearly says settings are **replaced** but history is **merged
-    and kept** — matching what actually happens in TC-8.1.
+    and kept** — matching what actually happens in TC-14.1.
 
 ---
 
@@ -958,9 +961,9 @@ of its cases cannot be reached again without deleting the app.
   - *Expected:* no crash; it behaves as a signed-out / fresh account (note the
     exact behaviour).
   - *Preconditions:* Another device signed into that account
-- [ ] **TC-18.4 Re-attaching the address after a delete.** After TC-12.1, turn
+- [ ] **TC-18.4 Re-attaching the address after a delete.** After TC-18.1, turn
     sync on again and try **Sign in** with the same email address.
-  - *Preconditions:* TC-12.1 completed - the synced account was deleted
+  - *Preconditions:* TC-18.1 completed - the synced account was deleted
   - *Expected:* sign-in **fails** — that user no longer exists, and the app never
     silently creates one. The way back is **Connect this device** (which attaches
     the address to a fresh account), not Sign in. Confirm the error message says
@@ -1092,9 +1095,9 @@ A case is a checklist item, so the document stays something a human walks
 through:
 
 ```markdown
-## 4. Stats, Lexicon & streak
+## 5. Stats, Lexicon & streak
 
-- [ ] **TC-4.1 Statistics screen.** Open Statistics after a few rounds.
+- [ ] **TC-5.1 Statistics screen.** Open Statistics after a few rounds.
   - *Preconditions:* a couple of rounds played
   - *Priority:* High
   - *Expected:* every tile is populated…
@@ -1107,19 +1110,16 @@ through:
   no gaps and no letter suffixes: an id says where the case is, and nothing
   else. The `# Part n` dividers are for the reader and carry no cases of their
   own.
-- Renumbering is cheap, so do it rather than living with a gap. The push matches
-  a case on its title when the id has moved, and rewrites the id — so a renumber
-  lands as an update, not as 124 new cases. What it must not do is renumber and
-  retitle the same case in one run: then nothing links old to new.
-- The bold `TC-n.m Title.` is the id and the title. **Titles are stable keys** —
-  Testiny detects an existing case by folder and title, so renaming one creates
-  a second copy rather than updating the first. Renumbering a section renames
-  its folder, which does the same to every case in it.
+- The bold `TC-n.m Title.` is the id and the title. Change either one freely,
+  but **not both in the same run**: the push matches a renumbered case by its
+  title and a renamed one by its id, so a case that changes both at once has
+  nothing linking it to its old self, and lands as a new case beside an orphan.
+  Renumbering is otherwise cheap — do it rather than live with a gap.
 - The steps are either prose after the bold title, as above, or a numbered list
   indented under it when the case is a sequence:
 
   ```markdown
-  - [ ] **TC-17.2 The highlighted control can be tapped through the dim.**
+  - [ ] **TC-9.2 The highlighted control can be tapped through the dim.**
     1. Once the menu has stopped moving, tap the Settings row.
     2. Restart the tour and tap the row while the menu is still scrolling.
     - *Expected:* Settings opens on the first tap, both times.
