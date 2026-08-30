@@ -231,14 +231,22 @@ const OUT = path.join(root, 'testiny-cases.csv');
 // case in place. So this pushes the markdown over the top of Testiny — creating
 // what is missing, updating what differs, and moving what has changed folder.
 //
-//   TESTINY_API_KEY=… node scripts/testiny-export.js --push           plan only
-//   TESTINY_API_KEY=… node scripts/testiny-export.js --push --write   do it
+//   TESTINY_API_KEY=… node scripts/testiny-export.js --push            plan only
+//   TESTINY_API_KEY=… node scripts/testiny-export.js --push --write    do it
+//   TESTINY_API_KEY=… node scripts/testiny-export.js --push --write --prune
+//                                        …and delete whatever the markdown
+//                                        does not have, cases and folders both
 //
 // Dry by default, and deliberately: --push prints what it would do and changes
-// nothing. Nothing here deletes, either. A case in Testiny that the markdown no
-// longer has is reported and left alone — it may be a rename this run cannot
-// see, and an automated delete of someone's test case is not a thing to be
-// clever about.
+// nothing.
+//
+// Deleting is separate again, behind --prune, because a case in Testiny the
+// markdown does not have is ambiguous: it may be a rename this run cannot see
+// (a case renumbered AND retitled at once has nothing linking it to its
+// replacement), or a case someone wrote in the web UI on purpose. Without
+// --prune those are reported and left. With it, Testiny ends up holding exactly
+// what the markdown says and nothing else — which is the point of the exercise,
+// but is not a thing to do by accident.
 
 const API = 'https://app.testiny.io/api/v1';
 const PROJECT_KEY = 'GOTE';
@@ -334,7 +342,7 @@ function payload(c) {
   };
 }
 
-async function push(cases, { write }) {
+async function push(cases, { write, prune }) {
   const key = process.env.TESTINY_API_KEY;
   if (!key) {
     console.error('\nTESTINY_API_KEY is not set. The key is in the launch handbook,');
@@ -373,7 +381,28 @@ async function push(cases, { write }) {
     if (!byTitle.has(r.title)) byTitle.set(r.title, r);
   }
 
-  const plan = { folders: [], create: [], update: [], move: [], orphan: [] };
+  // Match on TITLE first, id second — not the other way round.
+  //
+  // Renumbering a section shifts ids wholesale, and a freed id is immediately
+  // some other case's: TC-3.1 was "Starter set (no account)" before the sections
+  // were reordered and is "More photos opens a grid" after. Matching on the id
+  // first would have written the photos case over the top of the starter-set
+  // one, and left the real starter-set case looking like a create. Titles are
+  // validated unique on both sides and do not move when numbers do, so they are
+  // the stable handle; the id is what catches a RENAMED case, where no title
+  // matches. A case renamed and renumbered in the same run matches neither, and
+  // that is why the format notes say not to do both at once.
+  const taken = new Set();
+  const match = (c) => {
+    const byName = byTitle.get(c.title);
+    if (byName && !taken.has(byName.id)) return byName;
+    const byId = byRef.get(c.id);
+    // …and only if that case is not itself the rightful match for another one.
+    if (byId && !taken.has(byId.id) && !cases.some((o) => o !== c && o.title === byId.title)) return byId;
+    return null;
+  };
+
+  const plan = { folders: [], create: [], update: [], move: [], orphan: [], emptyFolders: [] };
   const matched = new Set();
 
   for (const name of new Set(cases.map((c) => c.folder))) {
@@ -382,11 +411,12 @@ async function push(cases, { write }) {
 
   for (const c of cases) {
     const want = wanted(c);
-    const found = byRef.get(c.id) || byTitle.get(c.title);
+    const found = match(c);
     if (!found) {
       plan.create.push({ case: c, want });
       continue;
     }
+    taken.add(found.id);
     matched.add(found.id);
     const changed = OWNED.filter((f) => {
       if (f === 'priority') return found[f] !== want[f];
@@ -396,9 +426,11 @@ async function push(cases, { write }) {
       return plain(found[f] || found.content_text) !== want[f];
     });
     if (found.template !== 'TEXT') changed.push(`template ${found.template}→TEXT`);
-    // A case matched by title but carrying no reference gets stamped with one,
-    // so the next run matches on the id and a rename stops being a new case.
-    if (!found.cf__testcaseid) changed.push('cf__testcaseid');
+    // The reference has to be written back whenever it differs, not only when it
+    // is missing: a renumber is precisely the case where Testiny still holds the
+    // old id, and leaving it there would mean the two sides disagree about what
+    // a case is called the moment the numbering changes.
+    if ((found.cf__testcaseid || '') !== c.id) changed.push('cf__testcaseid');
     if (changed.length) plan.update.push({ case: c, remote: found, want, changed });
     const target = folderId.get(c.folder);
     if (target && found.folder_id !== target) {
@@ -409,6 +441,12 @@ async function push(cases, { write }) {
   }
   for (const r of remote.data) {
     if (!matched.has(r.id)) plan.orphan.push(r);
+  }
+  // Folders the markdown does not name. Moving cases out of a folder leaves it
+  // behind, and a tree full of empty folders is its own kind of mess.
+  const named = new Set(cases.map((c) => c.folder));
+  for (const f of folders.data) {
+    if (!named.has(f.title)) plan.emptyFolders.push(f);
   }
 
   const n = (a) => String(a.length).padStart(3);
@@ -421,8 +459,11 @@ async function push(cases, { write }) {
   for (const u of plan.update) console.log(`      ~ ${u.case.id.padEnd(9)} ${u.case.title}\n          ${u.changed.join(', ')}`);
   console.log(`${n(plan.move)} cases to move`);
   for (const m of plan.move) console.log(`      → ${m.case.id.padEnd(9)} ${m.case.title} → ${m.to}`);
-  console.log(`${n(plan.orphan)} in Testiny but not here (left alone)`);
-  for (const o of plan.orphan) console.log(`      ? id=${o.id} "${o.title}"`);
+  const fate = prune ? 'TO DELETE' : 'left alone — add --prune to delete';
+  console.log(`${n(plan.orphan)} cases in Testiny but not here (${fate})`);
+  for (const o of plan.orphan) console.log(`      ${prune ? '-' : '?'} id=${o.id} "${o.title}"`);
+  console.log(`${n(plan.emptyFolders)} folders not named here (${fate})`);
+  for (const f of plan.emptyFolders) console.log(`      ${prune ? '-' : '?'} id=${f.id} "${f.title}"`);
 
   if (!write) {
     console.log('\nDry run — nothing was changed. Add --write to apply.\n');
@@ -464,6 +505,17 @@ async function push(cases, { write }) {
           [{ ids: { testcase_folder_id: target, testcase_id: r.id } }]));
     console.log(`  moved ${c.id} → ${to}`);
   }
+  if (prune) {
+    for (const o of plan.orphan) {
+      await api(key, 'DELETE', `/testcase/${o.id}`);
+      console.log(`  deleted case "${o.title}"`);
+    }
+    // After the moves, not before: a folder still holding cases cannot go.
+    for (const f of plan.emptyFolders) {
+      await api(key, 'DELETE', `/testcase-folder/${f.id}`);
+      console.log(`  deleted folder "${f.title}"`);
+    }
+  }
   console.log('\nDone.\n');
 }
 
@@ -480,7 +532,10 @@ if (errors.length) {
 const byFolder = cases.reduce((acc, c) => ({ ...acc, [c.folder]: (acc[c.folder] || 0) + 1 }), {});
 
 if (process.argv.includes('--push')) {
-  push(cases, { write: process.argv.includes('--write') }).catch((e) => {
+  push(cases, {
+    write: process.argv.includes('--write'),
+    prune: process.argv.includes('--prune'),
+  }).catch((e) => {
     console.error(`\n${e.message}\n`);
     process.exit(1);
   });

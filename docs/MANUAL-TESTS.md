@@ -34,9 +34,11 @@ follows is the residue: the things automation genuinely cannot reach.
   **nor** `EXPO_PUBLIC_SHOTS` set (they enable an offline fixture deck and fake
   seeded stats). If your streak is "12 days" and species look canned on a fresh
   install, you're on a SHOTS build — rebuild without it.
-- **Run order:** Part 7's tour cases want a **fresh install**, so do those
-  first if you are testing the tour at all. Then Part 1 on one device, Parts
-  2–4 with two devices. Part 5 needs an Apple Watch paired to Device A.
+- **Run order:** top to bottom. Parts 1 and 2 are one device, and Part 2 wants
+  that device freshly installed — the tour runs once and several of its cases
+  cannot be reached again afterwards, so do it before Part 1 has wandered
+  around the app. Part 3 needs two devices, Part 4 an Apple Watch paired to
+  Device A, and Part 5 the actual store build.
 
 ## Clean-state recipes
 
@@ -51,7 +53,7 @@ Know how to get back to zero — several cases need a fresh start.
 
 ---
 
-# Part 1 — Single device: features
+# Part 1 — Single device: the basics
 
 ## 1. First run & core loop
 
@@ -120,7 +122,6 @@ scores correctly, and returns to the menu cleanly.
     records); on Android there's **no map** by design — GPS + radius slider only.
 - [ ] **TC-2.6 Mode: Custom game.** Choose a card count and taxon groups, start.
   - *Expected:* the round honours the chosen count and groups.
-
 - [ ] **TC-2.7 Smart play - mixed questions.** Menu ▸ Smart play, leave
     all four question types on, play 16 cards.
   - *Priority:* High
@@ -152,32 +153,81 @@ scores correctly, and returns to the menu cleanly.
   - *Expected:* None clears every group and Start greys out reading "Select a
     group"; All restores them. Each shortcut greys out when it would do nothing.
 
-## 3. Deck sources & account
+## 3. Photos & the fullscreen viewer
 
-- [ ] **TC-3.1 Starter set (no account).** With no iNaturalist username set,
+- [ ] **TC-3.1 More photos opens a grid of the whole set.**
+  1. Tap the grid button in the bottom-left corner of the card.
+  2. Wait for the photos to arrive, then scroll the grid.
+  - *Preconditions:* A round in progress in a mode that shows a photo card
+    (Smart play, By name, Speedrun or Flash cards). Device online.
+  - *Priority:* High
+  - *Expected:* A scrollable grid of that species' photos opens, the card's own
+    photo among them, and a spinner covers the wait while they are fetched. It
+    is a grid from the first frame — opening on a single photo with the rest
+    hidden behind a swipe nobody was told about is the behaviour this replaced.
+- [ ] **TC-3.2 A photo filling the screen says whose it is.**
+  1. Tap any photo in the grid.
+  2. Read the line along the bottom of the screen.
+  3. Swipe to the next photo and read it again.
+  - *Preconditions:* The photo grid open (PH-01).
+  - *Priority:* High
+  - *Expected:* The photo opens full-screen, and a credit sits along the bottom
+    beginning with "©", naming the photographer and the licence exactly as
+    iNaturalist states them. Swiping to another photo swaps the credit for that
+    photo's own. iNaturalist photos are licensed individually by the people who
+    took them, so a full-screen photo with no credit is a licensing failure,
+    not a cosmetic one.
+- [ ] **TC-3.3 Back goes up a layer, close leaves.**
+  1. Tap the back control at the top left.
+  2. From the grid, tap the close control.
+  - *Preconditions:* A photo open full-screen from the grid (PH-02).
+  - *Expected:* Back returns to the grid with the round still waiting
+    underneath; close leaves the viewer altogether and lands back on the card.
+    They are deliberately two controls: one X meaning "up a layer" here and
+    "leave" there would be a coin toss every time.
+- [ ] **TC-3.4 Double-tapping the card skips the grid.**
+  1. Double-tap the photo on the card itself.
+  2. Look for a back control.
+  - *Preconditions:* A round in progress with a photo card.
+  - *Expected:* The photo opens full-screen directly, with no grid in between,
+    and still carries its credit. There is no back control, because there is no
+    grid to go back to — only close. That gesture means "bigger", not "show me
+    the others".
+- [ ] **TC-3.5 Zooming still works, and paging yields to it.**
+  1. Pinch to zoom in, then drag around the photo.
+  2. Drag horizontally while still zoomed in.
+  3. Double-tap to zoom back out, then swipe sideways.
+  - *Preconditions:* A photo open full-screen (from PH-02 or PH-04).
+  - *Expected:* Pinch zooms and the drag pans within the photo rather than
+    flipping to the next one. Once zoomed back out, a sideways swipe pages to
+    the next photo again. ---
+
+## 4. Deck sources & account
+
+- [ ] **TC-4.1 Starter set (no account).** With no iNaturalist username set,
   play from the starter deck.
   - *Expected:* works offline-ish, no account needed.
   - *Preconditions:* No iNaturalist username set
-- [ ] **TC-3.2 Own observations.** Set an iNaturalist username and switch to
+- [ ] **TC-4.2 Own observations.** Set an iNaturalist username and switch to
   studying your own observations.
   - *Expected:* the deck rebuilds from that account's observations; changing the
     username reloads the deck (not stale cards from the previous account).
-- [ ] **TC-3.3 Language / locale.** Change the language/locale.
+- [ ] **TC-4.3 Language / locale.** Change the language/locale.
   - *Expected:* common names switch language; the deck refreshes for the new
     locale (no leftover names in the old language).
 
-## 4. Stats, Lexicon & streak
+## 5. Stats, Lexicon & streak
 
-- [ ] **TC-4.1 Statistics screen.** Play several rounds, open Statistics.
+- [ ] **TC-5.1 Statistics screen.** Play several rounds, open Statistics.
   - *Preconditions:* Played several rounds
   - *Expected:* accuracy %, cards answered, species seen, a daily streak card, a
     recent-games chart, and a running accuracy-trend line — all consistent with
     what you just played. The trend line **ends on the accuracy % shown in the
     summary**, not merely near it (see TC-4.15).
-- [ ] **TC-4.2 Per-species table.** Check the by-species table (success %, correct,
+- [ ] **TC-5.2 Per-species table.** Check the by-species table (success %, correct,
     incorrect) and its sort/filter, including the **"My observations"** filter.
   - *Expected:* tallies match play; a single wrong answer moves the right row.
-- [ ] **TC-4.2a Score and question-type breakdown.** Play rounds
+- [ ] **TC-5.3 Score and question-type breakdown.** Play rounds
     in several formats, then open Statistics.
   - *Preconditions:* Rounds played in several question formats
   - *Priority:* High
@@ -188,36 +238,36 @@ scores correctly, and returns to the menu cleanly.
     number further down is expected, not a bug. Play a **Flash cards** round:
     accuracy and the breakdown both change, but the **Score does not move** —
     self-graded answers do not score.
-- [ ] **TC-4.2b Explanations live behind the i buttons.** On Statistics, tap the ⓘ
+- [ ] **TC-5.4 Explanations live behind the i buttons.** On Statistics, tap the ⓘ
     in the corner of each card.
   - *Expected:* every card is figures only until you tap its ⓘ, which expands
     the explanation in place and turns the icon into a ✕. Opening a second card's
     ⓘ **closes the first** — only one at a time. The streak card still shows
     "Best: N" without tapping, since that is a figure rather than an explanation.
-- [ ] **TC-4.3 Lexicon.** Open the Lexicon (list of species seen); filter by how
+- [ ] **TC-5.5 Lexicon.** Open the Lexicon (list of species seen); filter by how
     well known.
   - *Expected:* every species you've met appears; search works.
-- [ ] **TC-4.4 Streak - same day.** Play again the same day.
+- [ ] **TC-5.6 Streak - same day.** Play again the same day.
   - *Expected:* the streak does **not** double-count one calendar day.
-- [ ] **TC-4.5 Streak - day rollover.** Play today, play again after
+- [ ] **TC-5.7 Streak - day rollover.** Play today, play again after
     local midnight (or nudge the device clock forward a day).
   - *Preconditions:* Optional/slow - needs a day change or clock nudge
   - *Priority:* Low
   - *Expected:* the streak increments by exactly 1; a missed day lapses it to 0
     while "longest" remembers the old run.
-- [ ] **TC-4.6 Species you mix up appears.** In a multiple-choice mode (By name
+- [ ] **TC-5.8 Species you mix up appears.** In a multiple-choice mode (By name
     / Custom / Speedrun / By picture), deliberately pick the **same wrong
     look-alike** for a species **3+ times**, then open Statistics.
   - *Expected:* a **"Species you mix up"** card lists that pair — both species
     side by side (thumbnail + name) with "Mixed up N times". It does **not**
     appear below the 3× threshold.
-- [ ] **TC-4.7 Compare + my tell note persists.** Tap a mix-up pair.
+- [ ] **TC-5.9 Compare + my tell note persists.** Tap a mix-up pair.
   - *Preconditions:* A mix-up pair exists
   - *Expected:* a side-by-side comparison opens (both photos + names). Type a
     note in **"Your tell"**, go back, reopen the pair → the note is still there,
     and the Stats row now reads **"Your tell ✓"**. Clearing the note removes the
     mark.
-- [ ] **TC-4.8 Reset clears confusions and their notes.** With a mix-up
+- [ ] **TC-5.10 Reset clears confusions and their notes.** With a mix-up
     pair on the Stats page and a **"Your tell"** note written for it (TC-4.7),
     reset statistics. On a synced account, then force a sync and reopen the pair
     — and check Device B too.
@@ -230,7 +280,7 @@ scores correctly, and returns to the menu cleanly.
     every pull, so a note that reappears means the deletion isn't propagating —
     the same failure the streak had in 2.37.3. Your flagged species, settings and
     downloaded photos are untouched.
-- [ ] **TC-4.9 Just-in-time callout during play.** Keep picking the same wrong
+- [ ] **TC-5.11 Just-in-time callout during play.** Keep picking the same wrong
     look-alike for a species in a choice mode (By name / Custom / Speedrun / By
     picture) until you've done it 3 times.
   - *Expected:* on that 3rd wrong pick, the answer reveal shows a red "You keep
@@ -238,7 +288,7 @@ scores correctly, and returns to the menu cleanly.
     comparison overlay for that pair; closing it returns to the round where you
     left off. A first/second mistake shows **no** callout; a correct answer never
     does.
-- [ ] **TC-4.10 A/B duel drill.** Open a mix-up pair (from Statistics or the
+- [ ] **TC-5.12 A/B duel drill.** Open a mix-up pair (from Statistics or the
     in-round callout) and tap **"Drill this pair"**.
   - *Preconditions:* A mix-up pair exists
   - *Expected:* a two-choice drill opens — one photo at a time with two name
@@ -249,7 +299,7 @@ scores correctly, and returns to the menu cleanly.
     Missing repeatedly ends after 20 questions with a **"Good progress"** finish.
     Photos vary between questions (not the same image every time); offline it
     still runs using the stored thumbnail.
-- [ ] **TC-4.11 Verify the fix (re-seed + recovery callout).** Build up a mix-up
+- [ ] **TC-5.13 Verify the fix (re-seed + recovery callout).** Build up a mix-up
     pair (miss A as B **3+ times** in a choice mode), then keep playing **By name**
     and watch for that species to come up again.
   - *Preconditions:* A mix-up pair exists (missed 3+ times in a choice mode)
@@ -259,7 +309,7 @@ scores correctly, and returns to the menu cleanly.
     callout appears on the answer reveal. Missing the pair again clears the run
     (and no callout) until you rebuild it. Resetting statistics clears both the
     mix-up and the recovery streak.
-- [ ] **TC-4.12 Spaced-repetition resurfacing.** Build up one or two mix-up pairs
+- [ ] **TC-5.14 Spaced-repetition resurfacing.** Build up one or two mix-up pairs
     (miss A as B 3+ times), then start several **Custom** rounds (a small card
     count, from groups that include those species).
   - *Preconditions:* One or two mix-up pairs exist (missed 3+ times)
@@ -269,7 +319,7 @@ scores correctly, and returns to the menu cleanly.
     told a pair apart several times running (its recovery streak climbs), it stops
     dominating. With **no** mix-ups logged, Custom rounds look like a normal random
     sample (new players unaffected).
-- [ ] **TC-4.13 Your tell notes sync across devices.** With sync on and the same
+- [ ] **TC-5.15 Your tell notes sync across devices.** With sync on and the same
     account on two devices, write a **Your tell** note for a pair on device A, then
     sync device B.
   - *Preconditions:* Sync on, same account on two devices
@@ -279,7 +329,7 @@ scores correctly, and returns to the menu cleanly.
     removes it on the other after a sync. Notes for *different* pairs written on the
     two devices before syncing both survive (neither clobbers the other). With sync
     **off**, notes stay device-local as before.
-- [ ] **TC-4.14 Flagged species sync across devices.** With sync on and the same
+- [ ] **TC-5.16 Flagged species sync across devices.** With sync on and the same
     account on two devices, flag a species on device A, then sync device B.
   - *Preconditions:* Sync on, same account on two devices
   - *Expected:* the species shows as flagged on device B. Unflagging it on either
@@ -288,7 +338,7 @@ scores correctly, and returns to the menu cleanly.
     Flags are **per account** — switching to a different iNaturalist username shows
     that account's own flags, not the other's. With sync **off**, flags stay
     device-local.
-- [ ] **TC-4.15 One-card round cannot inflate accuracy.** Note the lifetime
+- [ ] **TC-5.17 One-card round cannot inflate accuracy.** Note the lifetime
     accuracy % on the Statistics summary. Start a **Custom game of 1 card**,
     answer it correctly, finish the round. Reopen Statistics.
   - *Preconditions:* Some existing play, so there is a lifetime accuracy to compare against
@@ -301,7 +351,7 @@ scores correctly, and returns to the menu cleanly.
     one should move the line noticeably. Rounds played before 2.37.0 have no
     recorded size and fall back to your average round length, so the very oldest
     bars are approximate — the endpoint is still exact.
-- [ ] **TC-4.16 Success % ranking discounts thin samples.** Precondition: at
+- [ ] **TC-5.18 Success % ranking discounts thin samples.** Precondition: at
     least one species answered correctly **exactly once**, and one with a long
     record at high-but-imperfect accuracy (say 28 correct / 2 incorrect).
     Statistics → sort by **Success %**.
@@ -312,7 +362,7 @@ scores correctly, and returns to the menu cleanly.
     28/2 species despite a raw 100% vs 93%. A short note under the sort chips
     explains the ranking. Species never answered at all stay at the bottom.
     Sorting by **Correct** or **Incorrect** is unaffected (raw counts).
-- [ ] **TC-4.17 Reset really resets the streak on a synced device.**
+- [ ] **TC-5.19 Reset really resets the streak on a synced device.**
     Precondition: sync **on**, a multi-day streak, and a second device on the
     same account with play to contribute. On the synced device: Statistics ▸
     **Reset statistics**. Confirm the streak reads 0. Now force a sync (relaunch,
@@ -326,19 +376,19 @@ scores correctly, and returns to the menu cleanly.
     too (they always did, which is what made the old bug look like flakiness
     rather than a bug).
 
-## 5. Settings & theming
+## 6. Settings & theming
 
-- [ ] **TC-5.1 Theme switch.** Switch theme Light / Dark / System.
+- [ ] **TC-6.1 Theme switch.** Switch theme Light / Dark / System.
   - *Expected:* the whole app re-themes immediately; text stays legible in both;
     "System" follows the OS toggle live.
-- [ ] **TC-5.2 Filters.** Toggle each of: one-card-per-species, research-grade
+- [ ] **TC-6.2 Filters.** Toggle each of: one-card-per-species, research-grade
   only, species-only.
   - *Expected:* each visibly changes which cards appear.
-- [ ] **TC-5.3 Persistence across restart.** Force-quit and reopen.
+- [ ] **TC-6.3 Persistence across restart.** Force-quit and reopen.
   - *Priority:* High
   - *Expected:* username, language, theme, filters and all stats are exactly as
     left.
-- [ ] **TC-5.4 Fresh photo once mastered.** Under Study options, turn on **"Fresh
+- [ ] **TC-6.4 Fresh photo once mastered.** Under Study options, turn on **"Fresh
     photo once mastered"**. Play a species you've already mastered (**5+ correct,
     80%+ accuracy** — check Statistics) in a self-photo mode (By name / Flash /
     Custom / Speedrun / Nearby).
@@ -349,7 +399,7 @@ scores correctly, and returns to the menu cleanly.
     card shows your own photo as before. Offline (or a species with no official
     photos) falls back to your own photo. "By picture" mode is unchanged (it
     already uses official photos).
-- [ ] **TC-5.5 Only species named in your language.** Set the language to one with
+- [ ] **TC-6.5 Only species named in your language.** Set the language to one with
     gaps (e.g. **Hungarian**), then under **Species name language** turn on
     **"Only species named in <language>"**.
   - *Expected:* the toggle **names the chosen language** and relabels live when you
@@ -360,14 +410,14 @@ scores correctly, and returns to the menu cleanly.
     across a force-quit, and — with sync on — rides to the other device. Off by
     default.
 
-## 6. Offline & resilience
+## 7. Offline & resilience
 
 > Behaviour recap: after a deck loads online, gote prefetches a pack of its
 > photos. Offline, the deck-local modes (By name, Speedrun, Custom, Flash) play
 > only from downloaded cards; the online-only modes (Nearby, By picture) and
 > observation updates are paused.
 
-- [ ] **TC-6.1 Prime then go offline.** With a deck loaded, play online for a
+- [ ] **TC-7.1 Prime then go offline.** With a deck loaded, play online for a
   minute (let the offline pack warm), then turn on airplane mode and return to
   the menu.
   - *Expected:* an amber "You're offline…" banner; **Nearby** and **By
@@ -375,73 +425,383 @@ scores correctly, and returns to the menu cleanly.
     / Flash** stay tappable.
   - *Preconditions:* Deck loaded
   - *Priority:* High
-- [ ] **TC-6.2 Play a deck-local mode offline.** Start By name (and Speedrun /
+- [ ] **TC-7.2 Play a deck-local mode offline.** Start By name (and Speedrun /
   Custom / Flash).
   - *Expected:* real cards with photos — **no blank/broken images**; scoring
     and stats update locally; no crash.
   - *Preconditions:* Offline with a warmed pack
   - *Priority:* High
-- [ ] **TC-6.3 Online-only modes blocked not broken.** Tap Nearby and By
+- [ ] **TC-7.3 Online-only modes blocked not broken.** Tap Nearby and By
   picture while offline.
   - *Expected:* they don't start (disabled); no dead screen or spinner-forever.
   - *Preconditions:* Offline
   - *Priority:* High
-- [ ] **TC-6.4 Update paused offline.** Settings → the Observations row.
+- [ ] **TC-7.4 Update paused offline.** Settings → the Observations row.
   - *Expected:* "Offline — reconnect to update" and the Update button is
     disabled.
   - *Preconditions:* Offline
-- [ ] **TC-6.5 Fresh install offline (empty pack).** Delete the app, reinstall,
+- [ ] **TC-7.5 Fresh install offline (empty pack).** Delete the app, reinstall,
   and open it in airplane mode (nothing downloaded yet).
   - *Expected:* the banner says to connect once to load your deck, and the play
     modes are disabled rather than dealing blank cards.
   - *Preconditions:* Nothing downloaded
   - *Priority:* High
-- [ ] **TC-6.6 Empty cache clears the offline pack.** Online, Settings →
+- [ ] **TC-7.6 Empty cache clears the offline pack.** Online, Settings →
   "Empty" (downloaded photos), then go offline.
   - *Expected:* the deck-local modes are now treated as having nothing
     downloaded (empty-pack state), consistent with the photos actually being
     gone.
   - *Preconditions:* Online
-- [ ] **TC-6.7 Reconnect.** Turn networking back on.
+- [ ] **TC-7.7 Reconnect.** Turn networking back on.
   - *Expected:* the banner clears; all modes re-enable; new decks/images load
     again.
   - *Preconditions:* Was offline
-- [ ] **TC-6.8 Backgrounding.** Background mid-round, return after a while.
+- [ ] **TC-7.8 Backgrounding.** Background mid-round, return after a while.
   - *Expected:* state is intact or recovers gracefully; no lost progress for a
     finished round.
 
 ---
 
-# Part 2 — Cross-device sync (two devices)
 
 > Needs a sync-capable build on **both** devices. Enable sync on each at:
 > **Settings ▸ Devices ▸ Sync across devices.** Off by default —
 > "Sync is off. Everything stays on this device."
 
-## 7. Turning sync on & linking
+---
 
-- [ ] **TC-7.1 Enable sync on A.** On Device A, turn sync on.
+# Part 2 — The guided tour
+
+The tour runs once, on a fresh install, so **do this part first** — several
+of its cases cannot be reached again without deleting the app.
+
+## 8. Tour: first run & lifecycle
+
+- [ ] **TC-8.1 The tour starts by itself on a first-ever launch.**
+  1. Launch the app and wait for the deck to finish loading.
+  2. Observe the menu.
+  - *Preconditions:* App deleted from the device and reinstalled, so no saved
+    data exists. Device online.
+  - *Priority:* High
+  - *Expected:* The tour opens on its own at step "1 of 12", titled "Welcome to
+    gote". The rest of the screen is dimmed. No spotlight ring is shown,
+    because this step points at nothing in particular.
+- [ ] **TC-8.2 The tour does not reappear once it has been seen.**
+  1. Force-quit the app.
+  2. Relaunch it.
+  - *Preconditions:* GT-01 completed, then the tour finished or exited.
+  - *Priority:* High
+  - *Expected:* The menu appears with no bubble and no tutorial bar. This holds
+    for every subsequent launch.
+- [ ] **TC-8.3 The tour resumes where it left off after a force-quit.**
+  1. Note the step number in the bubble.
+  2. Force-quit the app from the app switcher.
+  3. Relaunch it.
+  - *Preconditions:* Tour running, stopped part-way (e.g. at step 4).
+  - *Priority:* High
+  - *Expected:* The tour is at the same step number as before. If that step
+    lives on a screen other than the menu, the tutorial bar appears instead,
+    naming the screen to go to.
+- [ ] **TC-8.4 Resetting statistics does not restart the tour.**
+  1. Open Statistics and scroll to the bottom.
+  2. Tap "Reset statistics" and confirm.
+  3. Return to the menu, then force-quit and relaunch.
+  - *Preconditions:* Tour finished or exited. Some rounds played.
+  - *Expected:* Statistics are cleared, and the tour stays away. Having been
+    shown around is not a score.
+- [ ] **TC-8.5 Tour progress does not travel between devices.**
+  1. Install and launch the app on device B, and turn sync on with the same
+     account.
+  2. Wait for the sync to complete.
+  - *Preconditions:* Two devices signed into the same sync account. Tour
+    finished on device A. Device B has never had the app installed.
+  - *Expected:* Device B still runs the tour on its first launch. "Have I been
+    shown around this phone" is a property of the device, not the account. ---
+
+## 9. Tour: the twelve steps
+
+- [ ] **TC-9.1 Step 2 scrolls the Settings row into view before pointing at it.**
+  1. Without scrolling the menu yourself, tap "Next".
+  2. Watch the menu.
+  - *Preconditions:* Tour at step 1 on the menu.
+  - *Priority:* High
+  - *Expected:* The menu scrolls on its own until the Settings row is visible
+    in the upper half of the screen, the row is lit inside the spotlight, and
+    the bubble ("Start here") sits beside it with its arrow pointing at the
+    row. The row starts below the fold on every phone, so a bubble pointing
+    off-screen here is a failure.
+- [ ] **TC-9.2 The highlighted control can be tapped through the dim.**
+  1. Once the menu has stopped moving, tap the Settings row inside the
+     spotlight.
+  2. Restart the tour and reach step 2 again, this time tapping the row the
+     instant it is lit, while the menu is still scrolling.
+  - *Preconditions:* Tour at step 2, Settings row spotlit.
+  - *Priority:* High
+  - *Expected:* Settings opens on the first tap, both times. The spotlight is a
+    real hole, not a picture of one — and the hole must not lag the row it
+    follows. A tap that lands while the list is still settling has to work:
+    that is exactly the moment someone reaches for a control the tour has just
+    brought into view.
+- [ ] **TC-9.3 Everything outside the spotlight is sealed off.**
+  1. Tap the teal accuracy banner at the top (not spotlit).
+  2. Drag the menu up and down, starting the drag outside the spotlight.
+  3. Tap "Exit tutorial" in the bubble, then "Keep going".
+  - *Preconditions:* Tour at step 2 on the menu, Settings row spotlit.
+  - *Priority:* High
+  - *Expected:* Neither the tap nor the drag does anything: the banner does not
+    open Statistics and the menu does not move. A step is modal on purpose —
+    the only live things on screen are the spotlit control and the bubble's own
+    buttons, so the step cannot be side-stepped or scrolled out from under.
+    "Exit tutorial" still works, which is what stops sealing the screen from
+    trapping anyone.
+- [ ] **TC-9.4 Step 3 leaves the username field AND the Save button usable.**
+  1. Read the bubble ("Type your iNaturalist username and tap Save — or keep
+     loarie for now if you have no account").
+  2. Look at what the spotlight contains.
+  3. Type your own iNaturalist username into the field.
+  4. Tap Save.
+  - *Preconditions:* Tour at step 3, on Settings.
+  - *Priority:* High
+  - *Expected:* The spotlight covers the field, its hint line and the Save
+    button together — everything the bubble mentions is lit and reachable, and
+    the bubble sits clear of all of it. Typing works with the keyboard up, the
+    deck reloads, and the app returns to the menu with the tour advanced to
+    step 4.
+- [ ] **TC-9.5 The keyboard does not leave the bubble stranded.**
+  1. Tap the username field so the keyboard rises.
+  2. Watch the bubble and the spotlight.
+  - *Preconditions:* Tour at step 3, on Settings.
+  - *Expected:* Both follow the field as the screen shifts, staying attached to
+    it. Neither is left behind at the old position or hidden behind the
+    keyboard.
+- [ ] **TC-9.6 Backing out of Settings without saving still moves the tour on.**
+  1. Do not type anything. Tap "Menu" at the top left.
+  - *Preconditions:* Tour at step 3, on Settings.
+  - *Expected:* The tour advances to step 4 and points at Smart play. Choosing
+    to keep the demo account is a decision, not a failure to comply.
+- [ ] **TC-9.7 Steps 4 and 5 lead into a real round.**
+  1. Tap the spotlit "Smart play" row.
+  2. On the Smart play screen, note where the bubble sits, then tap the spotlit
+     Start button.
+  - *Preconditions:* Tour at step 4 on the menu, device online.
+  - *Priority:* High
+  - *Expected:* Step 5 points at Start with the bubble above it (Start sits at
+    the bottom of the screen). Tapping Start begins a round and the tour
+    advances to step 6.
+- [ ] **TC-9.8 Step 6 points at the more-photos button during a live round.**
+  1. Look at the bottom-left corner of the card.
+  2. Tap the spotlit grid button.
+  3. Scroll the grid, then tap one of the photos.
+  4. Tap back, then close the viewer.
+  5. Tap "Next" in the bubble.
+  - *Preconditions:* Tour at step 6, a Smart play round in progress.
+  - *Priority:* High
+  - *Expected:* The grid button is spotlit and the bubble sits above it, clear
+    of the answer choices. Tapping it opens a scrollable grid of that species'
+    photos — the set, which is what the button is about. Tapping a photo opens
+    it full-screen; back returns to the grid, close leaves the viewer, and the
+    card is underneath with the bubble still up. "Next" advances to step 7.
+    (The grid itself is covered in more detail by PH-01 to PH-04.)
+- [ ] **TC-9.9 The tour stays out of the way for the rest of the round.**
+  1. Answer every remaining card in the round.
+  2. Pass through the results screen back to the menu.
+  - *Preconditions:* Step 6 dismissed, round still in progress.
+  - *Priority:* High
+  - *Expected:* No bubble and no tutorial bar appear at any point during the
+    round, or on results. The tour reappears only once you are back on the
+    menu, at step 7. A coach mark on top of a card being answered is a bug.
+- [ ] **TC-9.10 Step 7 opens Statistics from the banner.**
+  1. Tap the spotlit accuracy banner.
+  - *Preconditions:* Tour at step 7 on the menu.
+  - *Expected:* Statistics opens and the tour advances to step 8, whose bubble
+    is centred (it describes the whole screen rather than one control).
+- [ ] **TC-9.11 Step 9 does not force the location permission.**
+  1. Read the bubble about Nearby species.
+  2. Tap "Next" without tapping the Nearby row.
+  - *Preconditions:* Tour at step 9 on the menu, location permission not yet
+    granted.
+  - *Priority:* High
+  - *Expected:* The tour advances to step 10 with no permission prompt. Nobody
+    should have to grant location access to finish a tutorial.
+- [ ] **TC-9.12 Step 11 points at Sync, and step 12 ends the tour.**
+  1. Tap the spotlit Settings row.
+  2. Read step 11, pointing at "Sync across devices".
+  3. Tap "Next".
+  4. Read step 12 and tap "Done".
+  - *Preconditions:* Tour at step 10 on the menu.
+  - *Priority:* High
+  - *Expected:* Step 11's spotlight is on the Sync row. Step 12's button reads
+    "Done", not "Next". Tapping it removes the overlay entirely; Settings is
+    left as normal, with nothing dimmed.
+- [ ] **TC-9.13 Tapping the spotlit Sync row counts as doing the step.**
+  1. Tap the spotlit "Sync across devices" row instead of tapping Next.
+  2. Look at the Sync screen.
+  3. Tap back to Settings.
+  - *Preconditions:* Tour at step 11, on Settings.
+  - *Expected:* The Sync screen opens and the tour moves on to step 12. The bar
+    on the Sync screen therefore reads "Tutorial · open Settings to continue"
+    for step 12, and going back shows step 12's bubble ("That is the tour",
+    with a Done button) — not step 11's again. Step 11 keeps its Next button
+    because sync is opt-in, but opening the thing the step points at is doing
+    the step.
+- [ ] **TC-9.14 Opening Nearby from step 9 counts as doing it.**
+  1. Tap the spotlit "Nearby species" row instead of tapping Next.
+  2. Look at the place-picking screen.
+  3. Go back to the menu.
+  - *Preconditions:* Tour at step 9 on the menu, with the "Nearby species" row
+    spotlit.
+  - *Priority:* High
+  - *Expected:* Nearby opens and the tour moves on to step 10: the bar reads
+    "Tutorial · go back to the menu to continue", and returning to the menu
+    shows step 10 pointing at the Settings row. It must not still be asking for
+    Nearby. The spotlight is the only live control on a sealed screen and every
+    action step before this one has been advanced by tapping it, so tapping it
+    here is the natural move — being sent back to the same row is a loop whose
+    only exit is a button nobody has needed since step 1. ---
+
+## 10. Tour: exiting, restarting, wandering
+
+- [ ] **TC-10.1 Exiting asks first, and can be declined.**
+  1. Tap "Exit tutorial" in the bubble.
+  2. Read the dialog.
+  3. Tap "Keep going".
+  - *Preconditions:* Tour running at any step.
+  - *Priority:* High
+  - *Expected:* The dialog is titled "Exit the tutorial?" and says "You can
+    start it again any time from Settings." Tapping "Keep going" returns to the
+    same step, unchanged.
+- [ ] **TC-10.2 Exiting for good sticks.**
+  1. Tap "Exit tutorial", then "Exit" in the dialog.
+  2. Force-quit and relaunch the app.
+  - *Preconditions:* Tour running.
+  - *Priority:* High
+  - *Expected:* The overlay disappears immediately, and the tour does not come
+    back on relaunch.
+- [ ] **TC-10.3 The tour can be restarted from Settings.**
+  1. Open Settings and scroll to the "About" section.
+  2. Tap "Take the tutorial".
+  - *Preconditions:* Tour finished or exited.
+  - *Priority:* High
+  - *Expected:* The app returns to the menu and the tour opens at step 1 of 12.
+    It starts from the beginning, not from wherever it was abandoned.
+- [ ] **TC-10.4 Every step offers a way out.**
+  1. Walk the tour from step 1 to step 12, and at each step confirm an exit
+     control is present before advancing.
+  2. On any step whose screen you are not currently on, confirm the tutorial
+     bar's ✕ also offers the exit.
+  - *Preconditions:* Fresh tour.
+  - *Priority:* High
+  - *Expected:* "Exit tutorial" appears on all twelve bubbles, and the tutorial
+    bar carries a ✕ that opens the same confirmation. There is no step where
+    the tour cannot be left.
+- [ ] **TC-10.5 Wandering off pauses the tour rather than losing it.**
+  1. Force-quit the app and relaunch it. It reopens on the menu.
+  2. Observe the bottom of the screen.
+  3. Tap "Smart play" to go back.
+  - *Preconditions:* Tour at step 5, on the Smart play screen with its Start
+    button spotlit.
+  - *Priority:* High
+  - *Expected:* On the menu a slim bar reads "Tutorial · open Smart play to
+    continue" — a bar, not a bubble, with nothing dimmed and nothing sealed,
+    because the tour is not here. Tapping Smart play restores step 5's bubble.
+    The tour never simply vanishes with no way back to it. (A relaunch is the
+    way into this state: a step seals its own screen, so you cannot simply walk
+    off one.) ---
+
+## 11. Tour: presentation
+
+- [ ] **TC-11.1 Small phone.**
+  1. Walk all twelve steps.
+  - *Preconditions:* iPhone SE (or the smallest supported device). Fresh tour.
+  - *Priority:* High
+  - *Expected:* Every bubble is fully on screen, clear of the notch/status bar
+    and the home indicator, and never covers the control it points at. On this
+    screen some bubbles sit above their target rather than below — that is
+    correct, not a defect.
+- [ ] **TC-11.2 Large phone and iPad.**
+  1. Walk all twelve steps on each device.
+  - *Preconditions:* iPhone Pro Max and an iPad. Fresh tour on each.
+  - *Expected:* The bubble stays a readable width rather than stretching the
+    full width of an iPad, remains centred on its target, and the arrow points
+    at the target on every step.
+- [ ] **TC-11.3 Dark mode.**
+  1. Walk several steps, including one over a photo (step 6, in a round).
+  - *Preconditions:* Settings → Appearance set to Dark. Fresh tour.
+  - *Expected:* The bubble text is legible, the spotlight ring is visible
+    against the dimmed background, and the "Next" button's label reads clearly
+    on its fill. Nothing is grey-on-grey.
+- [ ] **TC-11.4 Large system text.**
+  1. Walk several steps, including the longest bodies (steps 1, 3 and 11).
+  - *Preconditions:* iOS Settings → Display & Brightness → Text Size raised to
+    a large setting. Fresh tour.
+  - *Expected:* The text grows, the bubble grows with it, and it stays on
+    screen and clear of its target. Text is not clipped mid-sentence.
+- [ ] **TC-11.5 VoiceOver.**
+  1. Swipe through the elements on a step with a spotlight.
+  - *Preconditions:* VoiceOver on. Fresh tour.
+  - *Priority:* Low
+  - *Expected:* The step's title and body are announced, and the "Exit
+    tutorial" and "Next" buttons are reachable and announced as buttons. ---
+
+## 12. Tour: edge conditions
+
+- [ ] **TC-12.1 Offline during the round step.**
+  1. Start the round and reach step 6.
+  - *Preconditions:* Tour at step 5 on the Smart play screen. Put the device in
+    aeroplane mode before starting the round.
+  - *Expected:* The more-photos button is hidden offline, so the step has
+    nothing to point at: the bubble is centred with no spotlight and no arrow,
+    and "Next" still advances. It must not point at an empty corner or freeze
+    the tour.
+- [ ] **TC-12.2 Build without sync credentials.**
+  1. Reach step 11.
+  - *Preconditions:* A build where the Sync row is absent from Settings.
+  - *Priority:* Low
+  - *Expected:* The bubble is centred with no spotlight rather than pointing at
+    nothing, and "Next" advances to step 12.
+- [ ] **TC-12.3 Backgrounding mid-step.**
+  1. Swipe to the home screen, wait ten seconds, and return to the app.
+  - *Preconditions:* Tour running at a spotlit step.
+  - *Expected:* The same step is shown with the bubble and spotlight correctly
+    positioned. Neither is left at a stale position.
+- [ ] **TC-12.4 The tour after an account change.**
+  1. Save a new username and let the deck reload.
+  2. Return to the menu.
+  - *Preconditions:* Tour finished. A different iNaturalist username saved in
+    Settings.
+  - *Priority:* Low
+  - *Expected:* The tour does not restart. It is a property of the install, not
+    the account. ---
+
+---
+
+---
+
+# Part 3 — Cross-device sync (two devices)
+
+## 13. Turning sync on & linking
+
+- [ ] **TC-13.1 Enable sync on A.** On Device A, turn sync on.
   - *Preconditions:* Sync-capable build; Device A
   - *Expected:* copy changes to "Sync is on. Your progress is backed up…"; nothing
     else visibly breaks; play still instant.
-- [ ] **TC-7.2 First upload.** After enabling, play a round on A, wait a moment.
+- [ ] **TC-13.2 First upload.** After enabling, play a round on A, wait a moment.
   - *Preconditions:* Sync just enabled
   - *Expected:* no error. (Under the hood A's current stats + settings upload.)
-- [ ] **TC-7.3 Add an email to A.** Choose **Connect this device**, enter your
+- [ ] **TC-13.3 Add an email to A.** Choose **Connect this device**, enter your
     email, submit.
   - *Priority:* High
   - *Expected:* a **6-digit code** arrives by email; the screen asks for it and
     offers **Resend** (with a short cooldown before it re-enables).
-- [ ] **TC-7.4 Confirm the code.** Enter the 6-digit code.
+- [ ] **TC-13.4 Confirm the code.** Enter the 6-digit code.
   - *Priority:* High
   - *Expected:* A shows "This device is connected. Sign in with the same address
     on your other devices." A wrong/short code is rejected with a clear message.
-- [ ] **TC-7.5 Resend code.** Trigger Resend, use the newest code.
+- [ ] **TC-13.5 Resend code.** Trigger Resend, use the newest code.
   - *Expected:* the latest code works; the cooldown prevents spamming.
 
-## 8. Sharing progress A -> B
+## 14. Sharing progress A → B
 
-- [ ] **TC-8.1 Sign in on B.** On Device B (with some of its **own** local play),
+- [ ] **TC-14.1 Sign in on B.** On Device B (with some of its **own** local play),
     go to Sync, choose **"I already have gote elsewhere"**, enter the **same**
     email, and confirm the code.
   - *Preconditions:* Device B has its own local play; same email as A
@@ -456,16 +816,16 @@ scores correctly, and returns to the menu cleanly.
     history is merged and kept, with a confirm step. After: 'Signed in. Your
     progress from both devices has been merged.'; B totals = A + B; B shows A's
     settings.
-- [ ] **TC-8.2 Stats merge is additive.** Compare lifetime "answered" on B
+- [ ] **TC-14.2 Stats merge is additive.** Compare lifetime "answered" on B
   before vs after.
   - *Expected:* it went **up** by A's totals, not replaced by them.
   - *Priority:* High
-- [ ] **TC-8.3 A picks up B's play.** Play a round on B, then relaunch A.
+- [ ] **TC-14.3 A picks up B's play.** Play a round on B, then relaunch A.
   - *Preconditions:* Both signed into same account
   - *Priority:* High
   - *Expected:* A's totals grow to include B's new round (append-only merge; no
     double-count on repeated relaunches).
-- [ ] **TC-8.4 Confusions sync A -> B.** On A, build a confusion (pick the same
+- [ ] **TC-14.4 Confusions sync A -> B.** On A, build a confusion (pick the same
     wrong look-alike for a species 3+ times in a choice mode). Relaunch B (same
     account).
   - *Preconditions:* Both signed into same account
@@ -474,7 +834,7 @@ scores correctly, and returns to the menu cleanly.
     same confusion on both devices sums, never double-counts a single device's).
     The **"my tell" note itself does NOT cross over** — notes are device-local by
     design.
-- [ ] **TC-8.5 Chart and streak reach a new device.** Precondition:
+- [ ] **TC-14.5 Chart and streak reach a new device.** Precondition:
     Device A has **several days** of play from **before** sync was turned on — its
     accuracy chart has many bars and its streak spans multiple days. Turn sync on
     and add an email on A, then on a **fresh** Device B sign in to the same account.
@@ -490,7 +850,7 @@ scores correctly, and returns to the menu cleanly.
     ends on the same accuracy % as A's rather than drifting — check both devices
     show the same number under the hero. Bars A played before 2.37.0 carry no
     size and fall back to the average, which is expected.
-- [ ] **TC-8.6 Sync off and on does not inflate totals.**
+- [ ] **TC-14.6 Sync off and on does not inflate totals.**
     **The regression test for the worst sync bug found so far — run it on every
     build.** With both devices signed into one account and their totals agreed,
     write down "cards answered" on **both**. On device B: Settings ▸ Devices ▸
@@ -504,13 +864,13 @@ scores correctly, and returns to the menu cleanly.
     grew too because B re-uploaded its history on each pass. Toggling sync was
     the fastest way to corrupt the data, which is why this is worth repeating
     rather than trying once.
-- [ ] **TC-8.7 Repeated syncs change nothing.** On either device, force several
+- [ ] **TC-14.7 Repeated syncs change nothing.** On either device, force several
     syncs in a row (relaunch a few times; play nothing in between).
   - *Preconditions:* Sync on, some history
   - *Priority:* High
   - *Expected:* lifetime totals, streak and the chart are identical every time.
     Any drift at all means events are being applied more than once.
-- [ ] **TC-8.8 Retrieval signals are being recorded.** Nothing in the
+- [ ] **TC-14.8 Retrieval signals are being recorded.** Nothing in the
     UI shows these, so this is checked in the data. With sync on, play a round of
     **By name** at a normal pace, then in the Supabase dashboard open the newest
     `events` row and look inside its `species` blob.
@@ -526,31 +886,31 @@ scores correctly, and returns to the menu cleanly.
     over a minute before answering: that answer must **not** raise `msCount` (a
     pause that long describes an interruption, not recall).
 
-## 9. Settings sync
+## 15. Settings sync
 
-- [ ] **TC-9.1 Change on A appears on B.** With both signed into the same
+- [ ] **TC-15.1 Change on A appears on B.** With both signed into the same
     account: change the **theme** (and language) on A. Relaunch B.
   - *Preconditions:* Both signed into same account
   - *Priority:* High
   - *Expected:* B adopts the new theme/language on start.
-- [ ] **TC-9.2 Last change wins.** Change theme on B, then on A, then relaunch B.
+- [ ] **TC-15.2 Last change wins.** Change theme on B, then on A, then relaunch B.
   - *Preconditions:* Both signed into same account
   - *Priority:* High
   - *Expected:* B ends on **A's** later choice (most-recent change wins); no
     setting is silently lost.
-- [ ] **TC-9.3 Studied account not clobbered.** Confirm the username/deck you
+- [ ] **TC-15.3 Studied account not clobbered.** Confirm the username/deck you
     study behaves per design after a settings sync (note anything surprising).
   - *Expected:* Behaves per design; note anything surprising.
 
-## 10. Concurrent / offline
+## 16. Concurrent / offline devices
 
-- [ ] **TC-10.1 Both play same day.** Play a round on A and a round on B the same
+- [ ] **TC-16.1 Both play same day.** Play a round on A and a round on B the same
     day (same account). Relaunch both.
   - *Preconditions:* Both signed into same account
   - *Priority:* High
   - *Expected:* totals = the **sum** of both; the streak counts the day **once**
     (not twice).
-- [ ] **TC-10.2 Offline catch-up.** Put B in airplane mode, play a few rounds,
+- [ ] **TC-16.2 Offline catch-up.** Put B in airplane mode, play a few rounds,
     bring it back online and relaunch.
   - *Priority:* High
   - *Expected:* B's offline rounds reach the server and show up on A; nothing is
@@ -558,11 +918,9 @@ scores correctly, and returns to the menu cleanly.
 
 ---
 
-# Part 3 — Linking edge cases & warnings
+## 17. Linking edge cases
 
-## 11. Linking edge cases
-
-- [ ] **TC-11.1 Email already in use.** On a fresh Device C, choose **Connect this
+- [ ] **TC-17.1 Email already in use.** On a fresh Device C, choose **Connect this
     device** (the *link*, not sign-in path) with an email already tied to another
     account.
   - *Preconditions:* Fresh Device C; email already tied to another account
@@ -570,46 +928,44 @@ scores correctly, and returns to the menu cleanly.
   - *Expected:* "That address is already used by another device. Choose 'I already
     have gote elsewhere' to sign in with it." — i.e. it steers you to sign-in, and
     does **not** silently overwrite.
-- [ ] **TC-11.2 Link keeps local data (lossless).** On an anonymous synced device,
+- [ ] **TC-17.2 Link keeps local data (lossless).** On an anonymous synced device,
     use **Connect this device** with a **new** email.
   - *Preconditions:* Anonymous synced device
   - *Expected:* copy notes your on-device play "stays with you — connecting keeps
     it and adds a backup"; no warning about replacement (link is lossless), and
     totals are unchanged.
-- [ ] **TC-11.3 Sign-in warning is honest.** Re-read the sign-in confirmation copy.
+- [ ] **TC-17.3 Sign-in warning is honest.** Re-read the sign-in confirmation copy.
   - *Expected:* it clearly says settings are **replaced** but history is **merged
     and kept** — matching what actually happens in TC-8.1.
 
 ---
 
-# Part 4 — Account deletion
+## 18. Account deletion
 
-## 12. Account deletion
-
-- [ ] **TC-12.1 Delete flow.** Settings ▸ Devices ▸ Sync ▸ **Delete synced
+- [ ] **TC-18.1 Delete flow.** Settings ▸ Devices ▸ Sync ▸ **Delete synced
     account** → confirm at the "Delete synced account?" prompt.
   - *Priority:* High
   - *Expected:* success message ("Your account and all synced data have been
     deleted…"); the app stays usable with local data.
-- [ ] **TC-12.2 Server really cleared.** In the Supabase dashboard, check
+- [ ] **TC-18.2 Server really cleared.** In the Supabase dashboard, check
     **Authentication ▸ Users** and the `events` / `settings` tables for that user.
   - *Preconditions:* Supabase dashboard access
   - *Priority:* High
   - *Expected:* the user and all their rows are gone (cascade). If it 500s, check
     the `SUPABASE_SERVICE_ROLE_KEY` secret on the delete-account function.
-- [ ] **TC-12.3 Other device after deletion.** On the other device signed into
+- [ ] **TC-18.3 Other device after deletion.** On the other device signed into
   that account, try to sync after deletion.
   - *Expected:* no crash; it behaves as a signed-out / fresh account (note the
     exact behaviour).
   - *Preconditions:* Another device signed into that account
-- [ ] **TC-12.4 Re-attaching the address after a delete.** After TC-12.1, turn
+- [ ] **TC-18.4 Re-attaching the address after a delete.** After TC-12.1, turn
     sync on again and try **Sign in** with the same email address.
   - *Preconditions:* TC-12.1 completed - the synced account was deleted
   - *Expected:* sign-in **fails** — that user no longer exists, and the app never
     silently creates one. The way back is **Connect this device** (which attaches
     the address to a fresh account), not Sign in. Confirm the error message says
     something a user can act on rather than a raw server string.
-- [ ] **TC-12.5 Data deleted on the server outside the app.** With sync
+- [ ] **TC-18.5 Data deleted on the server outside the app.** With sync
     on and history uploaded, delete that user's rows **straight from the `events`
     table** in the Supabase dashboard — the rows only, leaving the user in
     **Authentication ▸ Users**. Then open the app and let it sync (relaunch, or
@@ -625,28 +981,30 @@ scores correctly, and returns to the menu cleanly.
 
 ---
 
-# Part 5 — Apple Watch
+---
 
-## 13. Apple Watch
+# Part 4 — Apple Watch
+
+## 19. Apple Watch
 
 > Watch paired to Device A; gote installed on the watch (via TestFlight).
 
-- [ ] **TC-13.1 Wrist round.** Play a quick quiz on the watch.
+- [ ] **TC-19.1 Wrist round.** Play a quick quiz on the watch.
   - *Preconditions:* Watch paired to A; gote installed on the watch
   - *Expected:* photo-first quiz; Crown zoom and drag-pan work; correct/incorrect
     reveal (green/red); a session summary at the end.
-- [ ] **TC-13.2 Wrist play counts into phone stats.** Open the phone afterwards.
+- [ ] **TC-19.2 Wrist play counts into phone stats.** Open the phone afterwards.
   - *Priority:* High
   - *Expected:* the wrist round's answers count into lifetime totals, per-species
     tallies, the accuracy chart, and today's streak.
-- [ ] **TC-13.3 Complications.** Add the Accuracy and Streak complications to a
+- [ ] **TC-19.3 Complications.** Add the Accuracy and Streak complications to a
   watch face.
   - *Expected:* they show current accuracy % and streak; the **Streak**
     complication shows the **gote newt** glyph (not a generic flame). Both
     refresh after play (allow for watchOS refresh cadence).
-- [ ] **TC-13.4 Phone -> watch update.** Play on the phone, then open the watch home.
+- [ ] **TC-19.4 Phone -> watch update.** Play on the phone, then open the watch home.
   - *Expected:* the watch's shown stats catch up to the phone.
-- [ ] **TC-13.5 Complication refreshes in the background.** With a gote complication
+- [ ] **TC-19.5 Complication refreshes in the background.** With a gote complication
     on the **active** watch face, play a round on the **phone** and then **do not
     open the watch app**. Glance at the watch face after a short while.
   - *Preconditions:* A gote complication is on the active watch face
@@ -657,7 +1015,7 @@ scores correctly, and returns to the menu cleanly.
     streak frozen at yesterday's number — until the watch app was next opened.
 
 ---
-- [ ] **TC-13.6 The newt on the watch app's own screens.**
+- [ ] **TC-19.6 The newt on the watch app's own screens.**
   1. Open gote on the watch and look at the streak on its home screen.
   2. Let the streak lapse (or check on a watch whose streak is zero) and look
      again.
@@ -669,29 +1027,30 @@ scores correctly, and returns to the menu cleanly.
     generic fitness glyph the app deliberately does not borrow. The accuracy
     gauge is labelled "acc" and carries no glyph of its own. ---
 
-# Part 6 — Store-build sanity (before submission)
+---
 
-## 14. Store-build sanity
+# Part 5 — Store-build sanity (before submission)
 
-- [ ] **TC-14.1 No test flags.** Fresh install of the actual store/TestFlight
+## 20. Store-build sanity
+
+- [ ] **TC-20.1 No test flags.** Fresh install of the actual store/TestFlight
   build.
   - *Expected:* stats start at zero and species are real — i.e. `SHOTS` and
     `E2E` are **off**.
   - *Preconditions:* Fresh install of the store/TestFlight build
   - *Priority:* High
-- [ ] **TC-14.2 No debug affordances.** No debug buttons/menus are reachable.
+- [ ] **TC-20.2 No debug affordances.** No debug buttons/menus are reachable.
   - *Expected:* None are reachable.
-- [ ] **TC-14.3 Legal & links.** Settings ▸ Legal / "Your data" opens; the privacy
+- [ ] **TC-20.3 Legal & links.** Settings ▸ Legal / "Your data" opens; the privacy
     link loads `https://goteapp.com/PRIVACY.html`; the Ko-fi link opens.
   - *Expected:* The privacy link loads https://goteapp.com/PRIVACY.html; the
     Ko-fi link opens.
-- [ ] **TC-14.4 Crash-free pass.** Run one round in each mode back-to-back without
+- [ ] **TC-20.4 Crash-free pass.** Run one round in each mode back-to-back without
     a crash.
 
 ---
   - *Expected:* No crash.
 
-# Part 7 — Photos and the guided tour
 
 Newer ground than Parts 1–6, which is why it sits at the end rather than being
 threaded through them: renumbering the sections above would rename their Testiny
@@ -700,366 +1059,17 @@ install**, before anything else has touched the app — the tour only ever runs
 once, and several of its cases cannot be reached afterwards without deleting the
 app again.
 
-## 15. Photos & the fullscreen viewer
-
-- [ ] **TC-15.1 More photos opens a grid of the whole set.**
-  1. Tap the grid button in the bottom-left corner of the card.
-  2. Wait for the photos to arrive, then scroll the grid.
-  - *Preconditions:* A round in progress in a mode that shows a photo card
-    (Smart play, By name, Speedrun or Flash cards). Device online.
-  - *Priority:* High
-  - *Expected:* A scrollable grid of that species' photos opens, the card's own
-    photo among them, and a spinner covers the wait while they are fetched. It
-    is a grid from the first frame — opening on a single photo with the rest
-    hidden behind a swipe nobody was told about is the behaviour this replaced.
-- [ ] **TC-15.2 A photo filling the screen says whose it is.**
-  1. Tap any photo in the grid.
-  2. Read the line along the bottom of the screen.
-  3. Swipe to the next photo and read it again.
-  - *Preconditions:* The photo grid open (PH-01).
-  - *Priority:* High
-  - *Expected:* The photo opens full-screen, and a credit sits along the bottom
-    beginning with "©", naming the photographer and the licence exactly as
-    iNaturalist states them. Swiping to another photo swaps the credit for that
-    photo's own. iNaturalist photos are licensed individually by the people who
-    took them, so a full-screen photo with no credit is a licensing failure,
-    not a cosmetic one.
-- [ ] **TC-15.3 Back goes up a layer, close leaves.**
-  1. Tap the back control at the top left.
-  2. From the grid, tap the close control.
-  - *Preconditions:* A photo open full-screen from the grid (PH-02).
-  - *Expected:* Back returns to the grid with the round still waiting
-    underneath; close leaves the viewer altogether and lands back on the card.
-    They are deliberately two controls: one X meaning "up a layer" here and
-    "leave" there would be a coin toss every time.
-- [ ] **TC-15.4 Double-tapping the card skips the grid.**
-  1. Double-tap the photo on the card itself.
-  2. Look for a back control.
-  - *Preconditions:* A round in progress with a photo card.
-  - *Expected:* The photo opens full-screen directly, with no grid in between,
-    and still carries its credit. There is no back control, because there is no
-    grid to go back to — only close. That gesture means "bigger", not "show me
-    the others".
-- [ ] **TC-15.5 Zooming still works, and paging yields to it.**
-  1. Pinch to zoom in, then drag around the photo.
-  2. Drag horizontally while still zoomed in.
-  3. Double-tap to zoom back out, then swipe sideways.
-  - *Preconditions:* A photo open full-screen (from PH-02 or PH-04).
-  - *Expected:* Pinch zooms and the drag pans within the photo rather than
-    flipping to the next one. Once zoomed back out, a sideways swipe pages to
-    the next photo again. ---
-
-## 16. Guided tour — first run & lifecycle
-
-- [ ] **TC-16.1 The tour starts by itself on a first-ever launch.**
-  1. Launch the app and wait for the deck to finish loading.
-  2. Observe the menu.
-  - *Preconditions:* App deleted from the device and reinstalled, so no saved
-    data exists. Device online.
-  - *Priority:* High
-  - *Expected:* The tour opens on its own at step "1 of 12", titled "Welcome to
-    gote". The rest of the screen is dimmed. No spotlight ring is shown,
-    because this step points at nothing in particular.
-- [ ] **TC-16.2 The tour does not reappear once it has been seen.**
-  1. Force-quit the app.
-  2. Relaunch it.
-  - *Preconditions:* GT-01 completed, then the tour finished or exited.
-  - *Priority:* High
-  - *Expected:* The menu appears with no bubble and no tutorial bar. This holds
-    for every subsequent launch.
-- [ ] **TC-16.3 The tour resumes where it left off after a force-quit.**
-  1. Note the step number in the bubble.
-  2. Force-quit the app from the app switcher.
-  3. Relaunch it.
-  - *Preconditions:* Tour running, stopped part-way (e.g. at step 4).
-  - *Priority:* High
-  - *Expected:* The tour is at the same step number as before. If that step
-    lives on a screen other than the menu, the tutorial bar appears instead,
-    naming the screen to go to.
-- [ ] **TC-16.4 Resetting statistics does not restart the tour.**
-  1. Open Statistics and scroll to the bottom.
-  2. Tap "Reset statistics" and confirm.
-  3. Return to the menu, then force-quit and relaunch.
-  - *Preconditions:* Tour finished or exited. Some rounds played.
-  - *Expected:* Statistics are cleared, and the tour stays away. Having been
-    shown around is not a score.
-- [ ] **TC-16.5 Tour progress does not travel between devices.**
-  1. Install and launch the app on device B, and turn sync on with the same
-     account.
-  2. Wait for the sync to complete.
-  - *Preconditions:* Two devices signed into the same sync account. Tour
-    finished on device A. Device B has never had the app installed.
-  - *Expected:* Device B still runs the tour on its first launch. "Have I been
-    shown around this phone" is a property of the device, not the account. ---
-
-## 17. Guided tour — walking the twelve steps
-
-- [ ] **TC-17.1 Step 2 scrolls the Settings row into view before pointing at it.**
-  1. Without scrolling the menu yourself, tap "Next".
-  2. Watch the menu.
-  - *Preconditions:* Tour at step 1 on the menu.
-  - *Priority:* High
-  - *Expected:* The menu scrolls on its own until the Settings row is visible
-    in the upper half of the screen, the row is lit inside the spotlight, and
-    the bubble ("Start here") sits beside it with its arrow pointing at the
-    row. The row starts below the fold on every phone, so a bubble pointing
-    off-screen here is a failure.
-- [ ] **TC-17.2 The highlighted control can be tapped through the dim.**
-  1. Once the menu has stopped moving, tap the Settings row inside the
-     spotlight.
-  2. Restart the tour and reach step 2 again, this time tapping the row the
-     instant it is lit, while the menu is still scrolling.
-  - *Preconditions:* Tour at step 2, Settings row spotlit.
-  - *Priority:* High
-  - *Expected:* Settings opens on the first tap, both times. The spotlight is a
-    real hole, not a picture of one — and the hole must not lag the row it
-    follows. A tap that lands while the list is still settling has to work:
-    that is exactly the moment someone reaches for a control the tour has just
-    brought into view.
-- [ ] **TC-17.3 Everything outside the spotlight is sealed off.**
-  1. Tap the teal accuracy banner at the top (not spotlit).
-  2. Drag the menu up and down, starting the drag outside the spotlight.
-  3. Tap "Exit tutorial" in the bubble, then "Keep going".
-  - *Preconditions:* Tour at step 2 on the menu, Settings row spotlit.
-  - *Priority:* High
-  - *Expected:* Neither the tap nor the drag does anything: the banner does not
-    open Statistics and the menu does not move. A step is modal on purpose —
-    the only live things on screen are the spotlit control and the bubble's own
-    buttons, so the step cannot be side-stepped or scrolled out from under.
-    "Exit tutorial" still works, which is what stops sealing the screen from
-    trapping anyone.
-- [ ] **TC-17.4 Step 3 leaves the username field AND the Save button usable.**
-  1. Read the bubble ("Type your iNaturalist username and tap Save — or keep
-     loarie for now if you have no account").
-  2. Look at what the spotlight contains.
-  3. Type your own iNaturalist username into the field.
-  4. Tap Save.
-  - *Preconditions:* Tour at step 3, on Settings.
-  - *Priority:* High
-  - *Expected:* The spotlight covers the field, its hint line and the Save
-    button together — everything the bubble mentions is lit and reachable, and
-    the bubble sits clear of all of it. Typing works with the keyboard up, the
-    deck reloads, and the app returns to the menu with the tour advanced to
-    step 4.
-- [ ] **TC-17.5 The keyboard does not leave the bubble stranded.**
-  1. Tap the username field so the keyboard rises.
-  2. Watch the bubble and the spotlight.
-  - *Preconditions:* Tour at step 3, on Settings.
-  - *Expected:* Both follow the field as the screen shifts, staying attached to
-    it. Neither is left behind at the old position or hidden behind the
-    keyboard.
-- [ ] **TC-17.6 Backing out of Settings without saving still moves the tour on.**
-  1. Do not type anything. Tap "Menu" at the top left.
-  - *Preconditions:* Tour at step 3, on Settings.
-  - *Expected:* The tour advances to step 4 and points at Smart play. Choosing
-    to keep the demo account is a decision, not a failure to comply.
-- [ ] **TC-17.7 Steps 4 and 5 lead into a real round.**
-  1. Tap the spotlit "Smart play" row.
-  2. On the Smart play screen, note where the bubble sits, then tap the spotlit
-     Start button.
-  - *Preconditions:* Tour at step 4 on the menu, device online.
-  - *Priority:* High
-  - *Expected:* Step 5 points at Start with the bubble above it (Start sits at
-    the bottom of the screen). Tapping Start begins a round and the tour
-    advances to step 6.
-- [ ] **TC-17.8 Step 6 points at the more-photos button during a live round.**
-  1. Look at the bottom-left corner of the card.
-  2. Tap the spotlit grid button.
-  3. Scroll the grid, then tap one of the photos.
-  4. Tap back, then close the viewer.
-  5. Tap "Next" in the bubble.
-  - *Preconditions:* Tour at step 6, a Smart play round in progress.
-  - *Priority:* High
-  - *Expected:* The grid button is spotlit and the bubble sits above it, clear
-    of the answer choices. Tapping it opens a scrollable grid of that species'
-    photos — the set, which is what the button is about. Tapping a photo opens
-    it full-screen; back returns to the grid, close leaves the viewer, and the
-    card is underneath with the bubble still up. "Next" advances to step 7.
-    (The grid itself is covered in more detail by PH-01 to PH-04.)
-- [ ] **TC-17.9 The tour stays out of the way for the rest of the round.**
-  1. Answer every remaining card in the round.
-  2. Pass through the results screen back to the menu.
-  - *Preconditions:* Step 6 dismissed, round still in progress.
-  - *Priority:* High
-  - *Expected:* No bubble and no tutorial bar appear at any point during the
-    round, or on results. The tour reappears only once you are back on the
-    menu, at step 7. A coach mark on top of a card being answered is a bug.
-- [ ] **TC-17.10 Step 7 opens Statistics from the banner.**
-  1. Tap the spotlit accuracy banner.
-  - *Preconditions:* Tour at step 7 on the menu.
-  - *Expected:* Statistics opens and the tour advances to step 8, whose bubble
-    is centred (it describes the whole screen rather than one control).
-- [ ] **TC-17.11 Step 9 does not force the location permission.**
-  1. Read the bubble about Nearby species.
-  2. Tap "Next" without tapping the Nearby row.
-  - *Preconditions:* Tour at step 9 on the menu, location permission not yet
-    granted.
-  - *Priority:* High
-  - *Expected:* The tour advances to step 10 with no permission prompt. Nobody
-    should have to grant location access to finish a tutorial.
-- [ ] **TC-17.12 Step 11 points at Sync, and step 12 ends the tour.**
-  1. Tap the spotlit Settings row.
-  2. Read step 11, pointing at "Sync across devices".
-  3. Tap "Next".
-  4. Read step 12 and tap "Done".
-  - *Preconditions:* Tour at step 10 on the menu.
-  - *Priority:* High
-  - *Expected:* Step 11's spotlight is on the Sync row. Step 12's button reads
-    "Done", not "Next". Tapping it removes the overlay entirely; Settings is
-    left as normal, with nothing dimmed.
-- [ ] **TC-17.13 Tapping the spotlit Sync row counts as doing the step.**
-  1. Tap the spotlit "Sync across devices" row instead of tapping Next.
-  2. Look at the Sync screen.
-  3. Tap back to Settings.
-  - *Preconditions:* Tour at step 11, on Settings.
-  - *Expected:* The Sync screen opens and the tour moves on to step 12. The bar
-    on the Sync screen therefore reads "Tutorial · open Settings to continue"
-    for step 12, and going back shows step 12's bubble ("That is the tour",
-    with a Done button) — not step 11's again. Step 11 keeps its Next button
-    because sync is opt-in, but opening the thing the step points at is doing
-    the step.
-- [ ] **TC-17.14 Opening Nearby from step 9 counts as doing it.**
-  1. Tap the spotlit "Nearby species" row instead of tapping Next.
-  2. Look at the place-picking screen.
-  3. Go back to the menu.
-  - *Preconditions:* Tour at step 9 on the menu, with the "Nearby species" row
-    spotlit.
-  - *Priority:* High
-  - *Expected:* Nearby opens and the tour moves on to step 10: the bar reads
-    "Tutorial · go back to the menu to continue", and returning to the menu
-    shows step 10 pointing at the Settings row. It must not still be asking for
-    Nearby. The spotlight is the only live control on a sealed screen and every
-    action step before this one has been advanced by tapping it, so tapping it
-    here is the natural move — being sent back to the same row is a loop whose
-    only exit is a button nobody has needed since step 1. ---
-
-## 18. Guided tour — exiting, restarting, wandering
-
-- [ ] **TC-18.1 Exiting asks first, and can be declined.**
-  1. Tap "Exit tutorial" in the bubble.
-  2. Read the dialog.
-  3. Tap "Keep going".
-  - *Preconditions:* Tour running at any step.
-  - *Priority:* High
-  - *Expected:* The dialog is titled "Exit the tutorial?" and says "You can
-    start it again any time from Settings." Tapping "Keep going" returns to the
-    same step, unchanged.
-- [ ] **TC-18.2 Exiting for good sticks.**
-  1. Tap "Exit tutorial", then "Exit" in the dialog.
-  2. Force-quit and relaunch the app.
-  - *Preconditions:* Tour running.
-  - *Priority:* High
-  - *Expected:* The overlay disappears immediately, and the tour does not come
-    back on relaunch.
-- [ ] **TC-18.3 The tour can be restarted from Settings.**
-  1. Open Settings and scroll to the "About" section.
-  2. Tap "Take the tutorial".
-  - *Preconditions:* Tour finished or exited.
-  - *Priority:* High
-  - *Expected:* The app returns to the menu and the tour opens at step 1 of 12.
-    It starts from the beginning, not from wherever it was abandoned.
-- [ ] **TC-18.4 Every step offers a way out.**
-  1. Walk the tour from step 1 to step 12, and at each step confirm an exit
-     control is present before advancing.
-  2. On any step whose screen you are not currently on, confirm the tutorial
-     bar's ✕ also offers the exit.
-  - *Preconditions:* Fresh tour.
-  - *Priority:* High
-  - *Expected:* "Exit tutorial" appears on all twelve bubbles, and the tutorial
-    bar carries a ✕ that opens the same confirmation. There is no step where
-    the tour cannot be left.
-- [ ] **TC-18.5 Wandering off pauses the tour rather than losing it.**
-  1. Force-quit the app and relaunch it. It reopens on the menu.
-  2. Observe the bottom of the screen.
-  3. Tap "Smart play" to go back.
-  - *Preconditions:* Tour at step 5, on the Smart play screen with its Start
-    button spotlit.
-  - *Priority:* High
-  - *Expected:* On the menu a slim bar reads "Tutorial · open Smart play to
-    continue" — a bar, not a bubble, with nothing dimmed and nothing sealed,
-    because the tour is not here. Tapping Smart play restores step 5's bubble.
-    The tour never simply vanishes with no way back to it. (A relaunch is the
-    way into this state: a step seals its own screen, so you cannot simply walk
-    off one.) ---
-
-## 19. Guided tour — presentation
-
-- [ ] **TC-19.1 Small phone.**
-  1. Walk all twelve steps.
-  - *Preconditions:* iPhone SE (or the smallest supported device). Fresh tour.
-  - *Priority:* High
-  - *Expected:* Every bubble is fully on screen, clear of the notch/status bar
-    and the home indicator, and never covers the control it points at. On this
-    screen some bubbles sit above their target rather than below — that is
-    correct, not a defect.
-- [ ] **TC-19.2 Large phone and iPad.**
-  1. Walk all twelve steps on each device.
-  - *Preconditions:* iPhone Pro Max and an iPad. Fresh tour on each.
-  - *Expected:* The bubble stays a readable width rather than stretching the
-    full width of an iPad, remains centred on its target, and the arrow points
-    at the target on every step.
-- [ ] **TC-19.3 Dark mode.**
-  1. Walk several steps, including one over a photo (step 6, in a round).
-  - *Preconditions:* Settings → Appearance set to Dark. Fresh tour.
-  - *Expected:* The bubble text is legible, the spotlight ring is visible
-    against the dimmed background, and the "Next" button's label reads clearly
-    on its fill. Nothing is grey-on-grey.
-- [ ] **TC-19.4 Large system text.**
-  1. Walk several steps, including the longest bodies (steps 1, 3 and 11).
-  - *Preconditions:* iOS Settings → Display & Brightness → Text Size raised to
-    a large setting. Fresh tour.
-  - *Expected:* The text grows, the bubble grows with it, and it stays on
-    screen and clear of its target. Text is not clipped mid-sentence.
-- [ ] **TC-19.5 VoiceOver.**
-  1. Swipe through the elements on a step with a spotlight.
-  - *Preconditions:* VoiceOver on. Fresh tour.
-  - *Priority:* Low
-  - *Expected:* The step's title and body are announced, and the "Exit
-    tutorial" and "Next" buttons are reachable and announced as buttons. ---
-
-## 20. Guided tour — edge conditions
-
-- [ ] **TC-20.1 Offline during the round step.**
-  1. Start the round and reach step 6.
-  - *Preconditions:* Tour at step 5 on the Smart play screen. Put the device in
-    aeroplane mode before starting the round.
-  - *Expected:* The more-photos button is hidden offline, so the step has
-    nothing to point at: the bubble is centred with no spotlight and no arrow,
-    and "Next" still advances. It must not point at an empty corner or freeze
-    the tour.
-- [ ] **TC-20.2 Build without sync credentials.**
-  1. Reach step 11.
-  - *Preconditions:* A build where the Sync row is absent from Settings.
-  - *Priority:* Low
-  - *Expected:* The bubble is centred with no spotlight rather than pointing at
-    nothing, and "Next" advances to step 12.
-- [ ] **TC-20.3 Backgrounding mid-step.**
-  1. Swipe to the home screen, wait ten seconds, and return to the app.
-  - *Preconditions:* Tour running at a spotlit step.
-  - *Expected:* The same step is shown with the bubble and spotlight correctly
-    positioned. Neither is left at a stale position.
-- [ ] **TC-20.4 The tour after an account change.**
-  1. Save a new username and let the deck reload.
-  2. Return to the menu.
-  - *Preconditions:* Tour finished. A different iNaturalist username saved in
-    Settings.
-  - *Priority:* Low
-  - *Expected:* The tour does not restart. It is a property of the install, not
-    the account. ---
-
 ---
 
 # Sign-off
 
 | Part | Area | Result | Tester | Date | Build |
 |---|---|---|---|---|---|
-| 1 | Single-device features | ☐ | | | |
-| 2 | Cross-device sync | ☐ | | | |
-| 3 | Linking edge cases | ☐ | | | |
-| 4 | Account deletion | ☐ | | | |
-| 5 | Apple Watch | ☐ | | | |
-| 6 | Store-build sanity | ☐ | | | |
-| 7 | Photos & guided tour | ☐ | | | |
+| 1 | Single device: the basics | ☐ | | | |
+| 2 | The guided tour | ☐ | | | |
+| 3 | Cross-device sync | ☐ | | | |
+| 4 | Apple Watch | ☐ | | | |
+| 5 | Store-build sanity | ☐ | | | |
 
 **Blocking bugs found:** _none / list them (and add to BUGS.md)_
 
@@ -1092,8 +1102,15 @@ through:
 ```
 
 - The `## ` heading is the Testiny **folder**, verbatim — including its number.
-  The `# Part n` dividers are for the reader; several parts carry no cases of
-  their own, which is why each has a `## ` heading under it.
+  Sections are numbered **1..n straight through the file**, in reading order,
+  and cases within one are `TC-<section>.<n>`, also straight through. There are
+  no gaps and no letter suffixes: an id says where the case is, and nothing
+  else. The `# Part n` dividers are for the reader and carry no cases of their
+  own.
+- Renumbering is cheap, so do it rather than living with a gap. The push matches
+  a case on its title when the id has moved, and rewrites the id — so a renumber
+  lands as an update, not as 124 new cases. What it must not do is renumber and
+  retitle the same case in one run: then nothing links old to new.
 - The bold `TC-n.m Title.` is the id and the title. **Titles are stable keys** —
   Testiny detects an existing case by folder and title, so renaming one creates
   a second copy rather than updating the first. Renumbering a section renames
