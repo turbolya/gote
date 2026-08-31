@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.42.7';
+export const APP_VERSION = '2.42.8';
 
 export const CHANGELOG = [
+  {
+    version: '2.42.8',
+    date: '2026-08-31',
+    changes: [
+      'Custom game has left the menu. It let you pick a card count and some '
+        + 'groups and then dealt a plain multiple-choice round; Smart play uses '
+        + 'the same picker and varies the question by what you already know, so '
+        + 'it does everything Custom did and more. Nothing you have played is '
+        + 'affected — past rounds, stats and streaks are untouched.',
+    ],
+  },
   {
     version: '2.42.7',
     date: '2026-08-28',
