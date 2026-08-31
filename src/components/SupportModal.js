@@ -1,6 +1,11 @@
 // A gentle support popup shown on a small fraction of launches: invites an
 // App Store rating and offers a "Buy me a coffee" (Ko-fi) donation.
 //
+// Kept short on purpose. It interrupts someone who came to play, so it has one
+// sentence to say what it wants and one line of small print to be honest about
+// the money — anything longer is a paragraph nobody reads standing between them
+// and the app.
+//
 // Links are configured in src/constants.js; when one isn't set yet (e.g. the
 // App Store listing), we explain that rather than open a dead URL.
 
@@ -54,8 +59,7 @@ export default function SupportModal({ visible, onClose }) {
             </Text>
           </View>
           <Text style={styles.body}>
-            If it’s helping you learn species, a quick rating means a lot — and
-            keeps gote free for everyone.
+            Consider leaving a review, or buying me a coffee.
           </Text>
 
           <View style={styles.stars}>
@@ -71,8 +75,8 @@ export default function SupportModal({ visible, onClose }) {
             <Text style={styles.kofiText}>Buy me a coffee</Text>
           </Pressable>
           <Text style={styles.kofiNote}>
-            gote is free — donations just help keep it that way and don’t unlock
-            any features.
+            gote is free, but developing it costs money. A small donation helps
+            it keep growing.
           </Text>
 
           <Pressable style={styles.later} onPress={onClose} testID="support-later">
