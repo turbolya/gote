@@ -92,7 +92,7 @@ export default function SupportModal({ visible, onClose }) {
             >
               review
             </Text>
-            , or buying me a{' '}
+            ,{'\n'}or buying me a{' '}
             <Text
               style={styles.link}
               onPress={donate}
@@ -146,12 +146,11 @@ const makeStyles = (colors) => StyleSheet.create({
     lineHeight: 21,
     marginTop: 18,
   },
-  // The asks, inside the sentence. Underlined as well as coloured: colour alone
-  // is not a link to someone who cannot see it as a colour.
+  // The asks, inside the sentence. Teal and bold against muted grey body text —
+  // the only colour in the card, on the only two words that do anything.
   link: {
     color: colors.primary,
     fontWeight: '800',
-    textDecorationLine: 'underline',
   },
   kofiNote: {
     fontSize: 11.5,
