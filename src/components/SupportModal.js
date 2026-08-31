@@ -1,10 +1,15 @@
 // A gentle support popup shown on a small fraction of launches: invites an
-// App Store rating and offers a "Buy me a coffee" (Ko-fi) donation.
+// App Store review and offers a "Buy me a coffee" (Ko-fi) donation.
 //
-// Kept short on purpose. It interrupts someone who came to play, so it has one
-// sentence to say what it wants and one line of small print to be honest about
-// the money — anything longer is a paragraph nobody reads standing between them
-// and the app.
+// Kept small on purpose, in what it says and in what it puts on screen. It
+// interrupts someone who came to play, so it gets one sentence, one line of
+// small print about the money, and no furniture: the two things it asks for are
+// links inside that sentence rather than a row of stars and a filled button,
+// which between them took more room than the message and read as a demand.
+//
+// Every way out is one people reach for: the ✕, a tap anywhere outside the
+// card, and the system back gesture on Android (onRequestClose). A popup nobody
+// asked for should be trivially dismissable.
 //
 // Links are configured in src/constants.js; when one isn't set yet (e.g. the
 // App Store listing), we explain that rather than open a dead URL.
@@ -46,8 +51,23 @@ export default function SupportModal({ visible, onClose }) {
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.card}>
+      {/* Tapping the dim closes it — the first thing anyone tries on a popup. */}
+      <Pressable style={styles.backdrop} onPress={onClose} testID="support-backdrop">
+        {/* Claims the touch so a press inside the card never reaches the
+            backdrop's dismiss. A View rather than a Pressable: there is nothing
+            to press here, only something not to fall through. */}
+        <View style={styles.card} onStartShouldSetResponder={() => true}>
+          <Pressable
+            style={styles.close}
+            onPress={onClose}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            testID="support-close"
+          >
+            <Icon name="close" size={20} color={colors.muted} />
+          </Pressable>
+
           <View style={styles.titleRow}>
             <Image
               source={require('../../assets/gote.png')}
@@ -58,32 +78,38 @@ export default function SupportModal({ visible, onClose }) {
               Enjoying <Text style={styles.titleBrand}>gote</Text>?
             </Text>
           </View>
+
+          {/* The two asks ARE the two words. Nested Text keeps them inside the
+              sentence, so this reads as a line of prose rather than as a form
+              with buttons to get past. */}
           <Text style={styles.body}>
-            Consider leaving a review, or buying me a coffee.
+            Consider leaving a{' '}
+            <Text
+              style={styles.link}
+              onPress={rate}
+              accessibilityRole="link"
+              testID="support-review"
+            >
+              review
+            </Text>
+            , or buying me a{' '}
+            <Text
+              style={styles.link}
+              onPress={donate}
+              accessibilityRole="link"
+              testID="support-kofi"
+            >
+              coffee
+            </Text>
+            .
           </Text>
 
-          <View style={styles.stars}>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <Pressable key={i} onPress={rate} hitSlop={6} testID={`support-star-${i}`}>
-                <Icon name="star" size={34} color="#F5B301" style={styles.star} />
-              </Pressable>
-            ))}
-          </View>
-
-          <Pressable style={styles.kofi} onPress={donate} testID="support-kofi">
-            <Icon name="cafe-outline" size={18} color={colors.onPrimary} />
-            <Text style={styles.kofiText}>Buy me a coffee</Text>
-          </Pressable>
           <Text style={styles.kofiNote}>
             gote is free, but developing it costs money. A small donation helps
             it keep growing.
           </Text>
-
-          <Pressable style={styles.later} onPress={onClose} testID="support-later">
-            <Text style={styles.laterText}>Maybe later</Text>
-          </Pressable>
         </View>
-      </View>
+      </Pressable>
     </Modal>
   );
 }
@@ -102,6 +128,7 @@ const makeStyles = (colors) => StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 24,
     padding: 24,
+    paddingTop: 30, // room for the ✕ sitting above the title
     alignItems: 'center',
   },
   // Header: the teal-tinted newt mark in front of the title (gote.png is a
@@ -119,20 +146,13 @@ const makeStyles = (colors) => StyleSheet.create({
     lineHeight: 21,
     marginTop: 18,
   },
-  stars: { flexDirection: 'row', gap: 6, marginTop: 18, marginBottom: 4 },
-  star: {},
-  kofi: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.primary,
-    borderRadius: 14,
-    paddingVertical: 13,
-    width: '100%',
-    marginTop: 18,
+  // The asks, inside the sentence. Underlined as well as coloured: colour alone
+  // is not a link to someone who cannot see it as a colour.
+  link: {
+    color: colors.primary,
+    fontWeight: '800',
+    textDecorationLine: 'underline',
   },
-  kofiText: { color: colors.onPrimary, fontSize: 16, fontWeight: '800' },
   kofiNote: {
     fontSize: 11.5,
     color: colors.muted,
@@ -141,6 +161,7 @@ const makeStyles = (colors) => StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 8,
   },
-  later: { paddingVertical: 12, marginTop: 4 },
-  laterText: { color: colors.muted, fontSize: 15, fontWeight: '600' },
+  // Top-right, clear of the title row, which is centred and short enough not to
+  // reach it.
+  close: { position: 'absolute', top: 10, right: 10, padding: 8 },
 });
