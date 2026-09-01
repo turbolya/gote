@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.42.8';
+export const APP_VERSION = '2.42.9';
 
 export const CHANGELOG = [
+  {
+    version: '2.42.9',
+    date: '2026-09-01',
+    changes: [
+      'The occasional “Enjoying gote?” popup is much smaller. It had a row of '
+        + 'stars, a big donation button and three lines of small print; it now '
+        + 'asks once, in a sentence, with “review” and “coffee” as links. Close '
+        + 'it with the ✕ or by tapping anywhere outside it.',
+    ],
+  },
   {
     version: '2.42.8',
     date: '2026-08-31',
