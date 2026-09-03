@@ -49,6 +49,17 @@ export function pickSimilarDistractors(answerCard, pool, count, rng = Math.rando
   return ranked.slice(0, count).map((x) => x.card);
 }
 
+// How deep into iNaturalist's curated photo list the correct tile may be drawn
+// from. The list comes back in curator rank order, so the front is the species
+// page's lead photo and its nearest equals; past about the fourth it turns into
+// detail shots — a leaf underside, a larva, a pressed specimen — which are
+// legitimately unnameable in a quarter-screen tile.
+//
+// Drawing from the whole list also made the answer systematically harder to
+// read than its distractors, which take each look-alike's top photo (below), so
+// the odd-looking tile was itself a hint.
+const PICK_PHOTO_DEPTH = 4;
+
 /**
  * Build the options for a "Pick the right one" round: one correct option (a
  * CURATED photo of the target taxon — never the user's own shot, which would be
@@ -62,7 +73,9 @@ export function pickSimilarDistractors(answerCard, pool, count, rng = Math.rando
  *
  * @param {object} args
  *   - card:          target card { taxonId, common, scientific }
- *   - correctPhotos: curated photo URLs for the target taxon (fetchTaxonPhotos)
+ *   - correctPhotos: curated photo URLs for the target taxon (fetchTaxonPhotos),
+ *                    in iNat's curated rank order — only the first
+ *                    PICK_PHOTO_DEPTH are eligible for the correct tile
  *   - similar:       [{ taxonId, name, common, photos:[url,…] }] — each similar
  *                    species with its OWN curated photos (fetchTaxonPhotosByIds)
  *   - total:         number of tiles (default 4)
@@ -87,8 +100,9 @@ export function buildPickRound({ card, correctPhotos = [], similar = [], total =
 
   const targetName = card.common || card.scientific;
 
-  // Correct tile: a random curated photo of the target.
-  const correctPhoto = shuffle(correctPhotos)[0];
+  // Correct tile: a random curated photo of the target, drawn from the front of
+  // the curated order (see PICK_PHOTO_DEPTH).
+  const correctPhoto = shuffle(correctPhotos.slice(0, PICK_PHOTO_DEPTH))[0];
 
   // Distractors: similar species (excluding the target taxon), each shown with
   // one of its OWN curated photos. De-dupe by photo URL so no two tiles match.

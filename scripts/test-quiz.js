@@ -129,6 +129,30 @@ t('buildPickRound: correct option uses a CURATED photo (not user photo)', () => 
   assert.equal(correct.taxonId, pickCard.taxonId);
 });
 
+t('buildPickRound: correct photo is drawn from the front of the curated list', () => {
+  // iNat returns taxon_photos in curator rank order, and past the first few
+  // they turn into detail shots — a larva, a leaf underside, a pressed
+  // specimen — that nobody can name in a quarter-screen tile. Only the front of
+  // the list is eligible (PICK_PHOTO_DEPTH in src/quiz.js).
+  const deep = ['c1.jpg', 'c2.jpg', 'c3.jpg', 'c4.jpg', 'c5.jpg', 'c6.jpg', 'c7.jpg', 'c8.jpg'];
+  const front = new Set(deep.slice(0, 4));
+  const seen = new Set();
+  for (let seed = 0; seed < 200; seed++) {
+    // A different deterministic stream per seed, so the shuffle lands
+    // everywhere it is able to.
+    let n = seed;
+    const rng = () => ((n = (n * 1103515245 + 12345) & 0x7fffffff) / 0x80000000);
+    const r = buildPickRound({ card: pickCard, correctPhotos: deep, similar, rng });
+    assert.ok(r, 'round built');
+    const photo = r.options.find((o) => o.correct).photo;
+    assert.ok(front.has(photo), 'drew ' + photo + ', from past the front of the list');
+    seen.add(photo);
+  }
+  // …and it still varies within the front, or the cap would be hiding a
+  // constant choice.
+  assert.ok(seen.size > 1, 'the draw still varies');
+});
+
 t('buildPickRound: EVERY tile uses an official curated photo', () => {
   const r = buildPickRound({ card: pickCard, correctPhotos: curated, similar, rng: rng0 });
   for (const o of r.options) {

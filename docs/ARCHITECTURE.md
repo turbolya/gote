@@ -149,7 +149,10 @@ stateDiagram-v2
 `StudyScreen` is one component with two grading styles (`choiceMode` vs.
 self-grade). Multiple-choice distractors come from `quiz.pickSimilarDistractors`
 (taxonomically similar species via shared ancestry). `PickImageScreen` rounds
-are built by `quiz.buildPickRound` from curated photos.
+are built by `quiz.buildPickRound` from curated photos: the correct tile is
+drawn from the first `PICK_PHOTO_DEPTH` of iNat's curated order, so it is
+never one of the deep detail shots (larva, pressed specimen) that trail a
+well-photographed species' list.
 
 ---
 
