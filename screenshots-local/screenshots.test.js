@@ -170,15 +170,14 @@ describe('App Store screenshots', () => {
 
   it('02 — name question (photo + choices)', async () => {
     // "By name" lost its menu entry to Smart play; the same question is now a
-    // Smart round narrowed to one type. The chip dance is deterministic because
-    // this build never restores a saved setup (see IS_SHOTS in App.js) — the
-    // picker always opens with every type on.
-    await tap('mode-smart');
-    await visible('custom-start');
-    await tap('smart-type-picture');
-    await tap('smart-type-pair');
-    await tap('smart-type-typed');
-    await tap('custom-start');
+    // Smart round narrowed to one type, straight off the menu card. The icon
+    // dance is deterministic because this build never restores a saved setup
+    // (see IS_SHOTS in App.js) — the card always opens with every type on.
+    await visible('mode-smart');
+    await tap('menu-type-picture');
+    await tap('menu-type-pair');
+    await tap('menu-type-typed');
+    await tap('smart-start');
     await visible('study-reveal');
     await hold(4500); // let the full-screen photo download + render
     await element(by.id('study-reveal')).tap(); // reveal the choices

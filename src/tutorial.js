@@ -25,7 +25,7 @@ export const ANCHORS = [
   'mode-nearby', // menu → Nearby species
   'settings-account', // settings → the username field, its hint and Save
   'settings-sync', // settings → Sync across devices
-  'custom-start', // the Smart play start screen → Start
+  'smart-start', // menu → the Smart play card's Start button
   'study-photos', // a card in play → the "more photos" grid button
 ];
 
@@ -56,8 +56,12 @@ export const STEPS = [
   // Saving a username reloads the deck and lands back on the menu; so does
   // simply backing out. Either way the user has moved on, and so does the tour.
   { id: 'username', screen: 'settings', anchor: 'settings-account', advance: { screen: 'menu' } },
-  { id: 'smart', screen: 'menu', anchor: 'mode-smart', advance: { screen: 'smart' } },
-  { id: 'smartStart', screen: 'smart', anchor: 'custom-start', advance: { screen: 'study' } },
+  // Both of these live on the menu now: Smart play is a card there rather than
+  // a row you tap through to a setup screen, so the tour points at the card and
+  // then at its own Start button. The step that used to be "go to the Smart
+  // play screen" has no navigation left to wait for, so it ends on a button.
+  { id: 'smart', screen: 'menu', anchor: 'mode-smart', advance: 'next' },
+  { id: 'smartStart', screen: 'menu', anchor: 'smart-start', advance: { screen: 'study' } },
   { id: 'morePhotos', screen: 'study', anchor: 'study-photos', advance: 'next' },
   { id: 'stats', screen: 'menu', anchor: 'menu-stats', advance: { screen: 'stats' } },
   { id: 'statsTour', screen: 'stats', anchor: null, advance: 'next' },

@@ -27,6 +27,7 @@ import { Appear } from '../components/anim';
 import { SPEEDRUN_LIVES, KOFI_URL } from '../constants';
 import { IS_E2E } from '../e2e/testMode';
 import { useAnchorRef, useTutorialScroller } from '../components/Tutorial';
+import SmartCard from '../components/SmartCard';
 
 // Modes that need a live network call to build a round, so they can't run
 // offline at all: Nearby, which is a place query. The rest play from the
@@ -213,6 +214,13 @@ export default function MenuScreen({
   watchTipDismissed,
   onDismissWatchTip,
   onSelectMode,
+  // Smart play is built on the card below rather than behind a row, so the menu
+  // needs the pieces the card is made of.
+  smartTypes = [],
+  smartSetup = null,
+  smartUnavailable = null,
+  onStartSmart,
+  onSmartOptions,
   onLexicon,
   onStats,
   onSettings,
@@ -269,7 +277,6 @@ export default function MenuScreen({
   const noOfflineCards = offline && deckCount === 0;
 
   const playModes = [
-    { key: 'smart', anchor: 'mode-smart', icon: 'sparkles-outline', accent: accents.rose, title: 'Smart play', sub: 'Mixed questions, picked for what you know' },
     { key: 'speedrun', icon: 'flash', accent: accents.amber, title: 'Speedrun', sub: `Endless cards — survive ${SPEEDRUN_LIVES} misses` },
     { key: 'nearby', anchor: 'mode-nearby', icon: 'compass-outline', accent: accents.teal, title: 'Nearby species', sub: 'Learn species typical to a place' },
   ];
@@ -316,7 +323,20 @@ export default function MenuScreen({
         )}
 
         <Text style={styles.section}>Play</Text>
-        <View style={styles.group}>
+        {/* Smart play is played from here, not navigated to — see SmartCard. It
+            sits above the other modes because it is the one most rounds start
+            from, and because a card among rows reads as the primary action. */}
+        <SmartCard
+          available={deckCount}
+          types={smartTypes}
+          initial={smartSetup}
+          unavailableTypes={smartUnavailable}
+          disabled={noOfflineCards}
+          disabledNote="No downloaded photos yet"
+          onStart={onStartSmart}
+          onOptions={onSmartOptions}
+        />
+        <View style={[styles.group, styles.groupAfterCard]}>
           {playModes.map(({ key, sub, ...rest }, i) => {
             // Two reasons a mode is unavailable offline:
             //  • Nearby needs a live API call (a place query), so it can't run
@@ -512,6 +532,7 @@ const makeStyles = (colors) => StyleSheet.create({
     marginLeft: 2,
   },
   group: {},
+  groupAfterCard: { marginTop: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 15 },
   rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   rowPressed: { opacity: 0.5 },

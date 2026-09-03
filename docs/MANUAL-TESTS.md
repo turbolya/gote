@@ -70,7 +70,7 @@ Know how to get back to zero — several cases need a fresh start.
     on the menu; the round shows up on the recent-games chart.
 - [ ] **TC-1.4 Swipe back works on every page with a back button.** Visit each
     page with a back chevron and swipe right starting **from the left edge**:
-    Settings, Smart play, Flash cards, Nearby species, Statistics, Lexicon, and
+    Settings, Smart play ⋯, Flash cards, Nearby species, Statistics, Lexicon, and
     the Settings sub-pages **What's new**, **Data & licensing** and **Sync across
     devices**. Also the overlays: a species detail page, a compare pair, a duel.
   - *Priority:* High
@@ -105,14 +105,15 @@ Run one full round of **each** mode. Expected for all: it starts, is playable,
 scores correctly, and returns to the menu cleanly.
 
 - [ ] **TC-2.1 Mode: name questions.** There is no **By name** row on the menu;
-    the round comes from **Smart play** with only *Choosing the name* left on.
+    the round comes from the **Smart play card** on the menu with only the
+    *name* icon left on.
     Play a full round: photo → pick the name.
   - *Expected:* No By name entry on the menu. The narrowed round asks a name
     question on **every** card, scores correctly, and returns to the menu
     cleanly.
 - [ ] **TC-2.2 Mode: photo questions.** There is no **By picture** row on the
-    menu either; the round comes from **Smart play** with only *Choosing the
-    photo* left on. Play a full round: name → pick the photo. Keep going long
+    menu either; the round comes from the **Smart play card** with only the
+    *photo* icon left on. Play a full round: name → pick the photo. Keep going long
     enough to pass a species with few look-alikes.
   - *Expected:* No By picture entry on the menu. Every card is a photo grid —
     a species that cannot make one is **skipped**, never quietly turned into a
@@ -128,20 +129,21 @@ scores correctly, and returns to the menu cleanly.
   taxon-group filter, start.
   - *Expected:* the deck reflects species seen near that pin (not just your own
     records); on Android there's **no map** by design — GPS + radius slider only.
-- [ ] **TC-2.6 Smart play - mixed questions.** Menu ▸ Smart play, leave
-    all four question types on, play 16 cards.
+- [ ] **TC-2.6 Smart play - mixed questions.** On the menu's Smart play card,
+    leave all four question icons on, drag the slider up to 16, and Start.
   - *Priority:* High
   - *Expected:* the question CHANGES between cards — a photo grid, a five-name
     list, and (once a species has a few answers behind it) typing the name.
     Species you have never met lean towards the photo grid; species you answer
     well start being asked from memory. The round never stalls between formats,
     and the card counter advances by exactly one each time.
-- [ ] **TC-2.7 Smart play - limiting the question types.** On the start
-    screen, turn off all but one type and play a few cards. Then try to turn off
-    the last one.
+- [ ] **TC-2.7 Smart play - limiting the question types.** On the menu card,
+    turn off all but one icon and play a few cards. Then try to turn off the
+    last one. Repeat behind the card's **⋯**, where the same types are chips
+    with labels.
   - *Priority:* High
-  - *Expected:* only that type comes up. The last chip **refuses** to switch off
-    (it stays ticked) rather than Start becoming disabled. Note: choosing only
+  - *Expected:* only that type comes up. The last one **refuses** to switch off
+    (it stays lit) rather than Start becoming disabled, on both surfaces. Note: choosing only
     **Look-alike pairs** falls back to a name list for any species you have no
     recorded confusion for — there is no pair to ask about.
 - [ ] **TC-2.8 Typing from memory.** In a Smart play round, get a
@@ -154,20 +156,34 @@ scores correctly, and returns to the menu cleanly.
     correct spelling. The different species is **rejected**. Long names wrap onto
     a second line rather than scrolling sideways. Check is greyed until you type
     something, and the field and the button are clearly different controls.
-- [ ] **TC-2.9 Group All / None shortcuts.** On either Smart play or
+- [ ] **TC-2.9 Group All / None shortcuts.** On Smart play ▸ **⋯** or on
     Flash cards, tap **None** then **All** beside Groups.
   - *Expected:* None clears every group and Start greys out reading "Select a
     group"; All restores them. Each shortcut greys out when it would do nothing.
-- [ ] **TC-2.10 The picker reopens where you left it.** In Smart play, turn off
-    all types but *Choosing the name*, pick one group, tap **Max**, and Start.
-    Quit the round, reopen Smart play. Then open it again after force-quitting
-    and relaunching the app. Separately: open Smart play, change the types,
-    press Back **without** starting, and reopen it.
+- [ ] **TC-2.10 The setup is remembered where you left it.** On Smart play ▸
+    **⋯**, turn off all types but *Choosing the name*, pick one group, tap
+    **Max**, and Start. Quit the round and look at the menu card. Then look
+    again after force-quitting and relaunching. Separately: open **⋯**, change
+    the types, press Back **without** starting, and look at the card again.
   - *Priority:* High
-  - *Expected:* both reopenings show the name-only, one-group, Max setup, so the
-    round is one tap from the menu — and **Max** means the whole of today's deck
-    even if the deck has grown since. The setup you backed out of without
-    starting is **not** remembered. Flash cards keeps its own separate setup.
+  - *Expected:* the card comes back showing name-only and the full card count,
+    both times, so the round is a single tap from the menu — and **Max** means
+    the whole of today's deck even if the deck has grown since. The setup you
+    backed out of without starting is **not** remembered. Flash cards keeps its
+    own separate setup. Note the card plays **every** group whatever ⋯ last
+    chose, because it has no group control of its own to show you.
+- [ ] **TC-2.11 Start a round from the menu card.** On a fresh install, look at
+    the Smart play card on the menu without opening anything else. Tap a
+    question icon off and on again, drag the slider, then Start. Also try it
+    with a deck smaller than 8 cards, and with the last icon left on.
+  - *Priority:* High
+  - *Expected:* all four icons start lit and the slider starts at **8** — or at
+    the deck size when that is under 8, never above it. An icon that is off is
+    clearly dimmer, not just differently outlined. The Start button and the
+    number beside the slider both track the slider as you drag. Start plays that
+    many cards of those types with no intervening screen. The last lit icon
+    refuses to switch off. Offline, the **photo** icon is dimmed and will not
+    light, and the round plays with the rest.
 
 ## 3. Photos & the fullscreen viewer
 

@@ -6,7 +6,6 @@ import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import Icon from '../components/Icon';
 import GroupIcon from '../components/GroupIcon';
 import ScreenHeader from '../components/ScreenHeader';
-import { useAnchorRef } from '../components/Tutorial';
 import { useColors, useThemedStyles, groupKey, groupLabel, groupIcon } from '../theme';
 import { restoreGroups, restoreTypes, restoreCount, packSetup } from '../roundsetup';
 
@@ -35,9 +34,6 @@ export default function CustomScreen({
 }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
-  // The guided tour points at Start on the Smart play screen; the other modes
-  // share this component and simply register the same anchor while they are up.
-  const startAnchor = useAnchorRef('custom-start');
   const isFlagged = (c) => !!(flags && flags.has(String(c.taxonId)));
 
   // Optionally restrict the whole picker to flagged species.
@@ -314,7 +310,6 @@ export default function CustomScreen({
 
       <View style={styles.footer}>
         <Pressable
-          ref={startAnchor}
           testID="custom-start"
           style={[styles.start, !canStart && styles.startDisabled]}
           disabled={!canStart}

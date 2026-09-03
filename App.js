@@ -106,11 +106,13 @@ import { scoreDelta } from './src/scoring';
 
 // The question types Smart play offers on its start screen. Labels match the
 // Statistics breakdown so the two screens name the same thing the same way.
+// `icon` is for the menu card, which shows these as icons alone — the labels
+// ride along as their accessibility names.
 const SMART_QUESTION_TYPES = [
-  { key: FORMAT.PICTURE, label: 'Choosing the photo' },
-  { key: FORMAT.NAME, label: 'Choosing the name' },
-  { key: FORMAT.PAIR, label: 'Look-alike pairs' },
-  { key: FORMAT.TYPED, label: 'Typing from memory' },
+  { key: FORMAT.PICTURE, label: 'Choosing the photo', icon: 'images-outline' },
+  { key: FORMAT.NAME, label: 'Choosing the name', icon: 'list-outline' },
+  { key: FORMAT.PAIR, label: 'Look-alike pairs', icon: 'git-compare-outline' },
+  { key: FORMAT.TYPED, label: 'Typing from memory', icon: 'create-outline' },
 ];
 import { shrunkRate, lifetimeRate } from './src/accuracy';
 import {
@@ -1787,6 +1789,15 @@ export default function App() {
                 saveWatchTipDismissed(true);
               }}
               onSelectMode={onSelectMode}
+              smartTypes={SMART_QUESTION_TYPES}
+              smartSetup={IS_SHOTS ? null : roundSetup.smart}
+              smartUnavailable={offline ? [FORMAT.PICTURE] : null}
+              // The card has no group or flagged-only control, so it starts on
+              // the whole deck. Everything narrower lives behind its ⋯.
+              onStartSmart={(types, count, setup) =>
+                startSmart([], count, false, types, setup)
+              }
+              onSmartOptions={() => setScreen('smart')}
               onLexicon={() => setScreen('lexicon')}
               onStats={() => setScreen('stats')}
               onSettings={() => {

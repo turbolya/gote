@@ -60,12 +60,18 @@ export function restoreTypes(saved, allTypes = [], unavailable = []) {
 
 // The card count, clamped to what the restored selection can actually offer.
 // Never returns 0: a picker showing zero cards has no legal Start.
-export function restoreCount(saved, available = 0) {
+//
+// `fallback` is what to open on with nothing remembered. The menu card asks for
+// a smaller one than the full picker — see CARD_COUNT in SmartCard.
+export function restoreCount(saved, available = 0, fallback = DEFAULT_COUNT) {
   const cap = Math.max(1, Math.floor(Number(available) || 0));
   const want = saved ? saved.count : null;
   if (want === MAX) return cap;
   const n = Math.floor(Number(want));
-  if (!Number.isFinite(n) || n < 1) return Math.min(DEFAULT_COUNT, cap);
+  if (!Number.isFinite(n) || n < 1) {
+    const f = Math.floor(Number(fallback));
+    return Math.min(Number.isFinite(f) && f > 0 ? f : DEFAULT_COUNT, cap);
+  }
   return Math.min(n, cap);
 }
 

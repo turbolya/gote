@@ -68,12 +68,12 @@ export const STEP_TEXT = {
 };
 
 // Shown in the slim bar when the tutorial is waiting on a screen the user is
-// not currently on — so the tour never simply vanishes with no way back to it.
+// not currently on. No entry for the Smart play options screen: both of its
+// steps moved onto the menu card, so no step lives there to wait for — so the tour never simply vanishes with no way back to it.
 // Keyed by the screen the step is waiting for.
 export const WAITING = {
   menu: 'Tutorial · go back to the menu to continue',
   settings: 'Tutorial · open Settings to continue',
-  smart: 'Tutorial · open Smart play to continue',
   study: 'Tutorial · start a round to continue',
   stats: 'Tutorial · open Statistics to continue',
 };

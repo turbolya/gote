@@ -15,6 +15,11 @@ export const CHANGELOG = [
     version: '2.43.0',
     date: '2026-09-03',
     changes: [
+      'Smart play is now played from the menu itself. Instead of a row that '
+        + 'took you to a setup screen, there is a card: four icons for the kinds '
+        + 'of question, a slider for how many cards, and Start. The ⋯ in its '
+        + 'corner still opens the full options — taxon groups, flagged species '
+        + 'only, and the presets — for the rounds that need them.',
       'By name and By picture have left the menu. Smart play asks both of those '
         + 'questions already — a photo and five names, or a name and four '
         + 'photos — and you can have nothing but one of them by turning the '

@@ -53,25 +53,26 @@ async function startTutorial() {
   await visible('tutorial-bubble');
 }
 
-// Leave the Smart play picker set to photo questions only, by starting such a
-// round and walking straight back out. Nothing about the round matters; the
-// point is the setup it persists, which the picker reopens on (src/roundsetup.js
-// — remembered on Start, which is why this has to start one rather than just
-// tick the chips).
+// Pin what the tour's own Start button will ask, by playing that round first
+// and walking straight back out. Nothing about the seeded round matters; the
+// point is the setup it persists, which the menu card reopens on
+// (src/roundsetup.js — remembered on Start, which is why this has to start one
+// rather than just tick the icons).
+//
+// Needed because the tour taps Start at step 5 and the format is otherwise a
+// weighted draw, so which SCREEN the round lands on would be a coin toss.
 //
 // Runs before the tour, on the fresh install each case already gets, so the
-// chips are in their default all-on state and turning three off is exact.
-async function seedPhotoOnlySetup() {
+// icons are in their default all-on state and turning some off is exact.
+async function seedRound(...typesToTurnOff) {
   await visible('mode-smart');
   await settle();
-  await tapScroll('mode-smart', 'menu-scroll');
-  await visible('custom-start');
-  await tap('smart-type-name');
-  await tap('smart-type-pair');
-  await tap('smart-type-typed');
-  await tap('custom-start');
-  await visible('pick-screen');
-  await tap('pick-end');
+  for (const key of typesToTurnOff) await tap(`menu-type-${key}`);
+  await tap('smart-start');
+  // A photo round lands on `pick`, anything else on `study`.
+  const screen = typesToTurnOff.includes('picture') ? 'study-reveal' : 'pick-screen';
+  await visible(screen);
+  await tap(typesToTurnOff.includes('picture') ? 'study-end' : 'pick-end');
   await visible('results-menu');
   await tap('results-menu');
   await visible('mode-smart');
@@ -160,8 +161,15 @@ describe('Guided tour', () => {
     // none does not fool), so the only ways off a step's screen here are the
     // spotlit control itself and a relaunch — which reopens on the menu.
     //
-    // So: walk to the step that waits for the Smart play screen, then relaunch.
-    // That is exactly the situation a user creates by wandering off.
+    // Steps 1-5 all live on the menu now, so the first step that can be waited
+    // FOR is 6 — "other pictures", which lives on a card in play. Walk to it,
+    // then relaunch: the app reopens on the menu, which is exactly the
+    // situation a user creates by wandering off mid-round.
+    //
+    // Seeded to a name round so step 5's Start lands on `study`, where step 6
+    // lives; a photo round would land on `pick` and never reach it.
+    await seedRound('picture');
+
     await startTutorial();
     await tap('tutorial-next'); // → 2, open Settings
     await tapSpotlight('open-settings'); // the tour scrolls it into view
@@ -171,8 +179,11 @@ describe('Guided tour', () => {
     await device.disableSynchronization();
     await atStep(4); // …which is what step 3 was waiting for
 
-    await tapSpotlight('mode-smart');
-    await atStep(5); // "tap Start", on the Smart play screen
+    await tap('tutorial-next'); // → 5, "tap Start" on the card
+    await atStep(5);
+    await tapSpotlight('smart-start');
+    await visible('study-reveal');
+    await atStep(6); // "other pictures", which lives on a card in play
 
     await device.launchApp({ newInstance: true });
     await device.disableSynchronization();
@@ -195,9 +206,10 @@ describe('Guided tour', () => {
     // Going back to where it was waiting brings the step back. (Settle first:
     // the alert's own dismissal animation still counts as covering the screen.)
     await settle();
-    await element(by.id('mode-smart')).tap();
+    await tap('smart-start');
+    await visible('study-reveal');
     await visible('tutorial-bubble');
-    await atStep(5);
+    await atStep(6);
   });
 
   // Both of the reports this spec grew from: screens where the tour drew
@@ -209,16 +221,16 @@ describe('Guided tour', () => {
     // the tour having died.
     //
     // The round this plays is a PHOTO round, and that is load-bearing. Step 5
-    // spotlights Start on the Smart play screen and advances when the study
-    // screen appears; a photo question lands on `pick` instead, which no step
-    // waits for. So the tour neither advances nor seals, and we get what the
-    // test needs: a real round in play with the tour merely waiting.
+    // spotlights Start on the menu card and advances when the study screen
+    // appears; a photo question lands on `pick` instead, which no step waits
+    // for. So the tour neither advances nor seals, and we get what the test
+    // needs: a real round in play with the tour merely waiting.
     //
     // Which format comes up is otherwise a weighted draw, so it is pinned the
-    // way a player would pin it — the picker reopens on the last setup that was
+    // way a player would pin it — the card reopens on the last setup that was
     // STARTED, so we start a photo-only round first and the tour's own Start
     // button inherits it.
-    await seedPhotoOnlySetup();
+    await seedRound('name', 'pair', 'typed');
 
     await startTutorial();
     await tap('tutorial-next'); // → 2, open Settings
@@ -228,11 +240,11 @@ describe('Guided tour', () => {
     await device.launchApp({ newInstance: true });
     await device.disableSynchronization();
     await atStep(4); // arriving on the menu satisfied step 3
-    await tapSpotlight('mode-smart');
-    await atStep(5); // lives on Smart play, spotlighting Start
+    await tap('tutorial-next'); // → 5, "tap Start" on the card
+    await atStep(5);
 
     // Tapped through the dimmed backdrop, like every other spotlit control.
-    await tapSpotlight('custom-start');
+    await tapSpotlight('smart-start');
     await visible('pick-screen');
     await exists('e2e-pick-answer'); // the round actually built
 

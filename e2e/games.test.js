@@ -20,23 +20,22 @@ const tapMode = (key) => tapScroll(`mode-${key}`, 'menu-scroll');
 const settle = (ms = 450) => new Promise((r) => setTimeout(r, ms));
 
 // The name round — photo → pick from five names — which used to be the "By
-// name" menu entry and is now reached by narrowing Smart play to one question
+// name" menu entry and is now the Smart play card narrowed to one question
 // type. Walked in full rather than shortcut to another mode that happens to ask
 // the same question, because this path IS the replacement and is the thing that
 // would quietly stop working.
 //
-// From a clean install on purpose: the picker remembers the last setup it was
-// STARTED with, so "turn three chips off" only means something from a known
+// From a clean install on purpose: the card reopens on the last setup it was
+// STARTED with, so "turn three icons off" only means something from a known
 // state.
 async function startNameRound() {
   await device.launchApp({ newInstance: true, delete: true });
   await device.disableSynchronization();
-  await tapMode('smart');
-  await visible('custom-start');
-  await tap('smart-type-picture');
-  await tap('smart-type-pair');
-  await tap('smart-type-typed');
-  await tap('custom-start');
+  await visible('mode-smart');
+  await tap('menu-type-picture');
+  await tap('menu-type-pair');
+  await tap('menu-type-typed');
+  await tap('smart-start');
 }
 
 // The photo round — a name at the top, four photos below — which used to be the
@@ -45,12 +44,11 @@ async function startNameRound() {
 async function startPhotoRound() {
   await device.launchApp({ newInstance: true, delete: true });
   await device.disableSynchronization();
-  await tapMode('smart');
-  await visible('custom-start');
-  await tap('smart-type-name');
-  await tap('smart-type-pair');
-  await tap('smart-type-typed');
-  await tap('custom-start');
+  await visible('mode-smart');
+  await tap('menu-type-name');
+  await tap('menu-type-pair');
+  await tap('menu-type-typed');
+  await tap('smart-start');
 }
 
 describe('Game modes', () => {
@@ -105,8 +103,10 @@ describe('Game modes', () => {
   // The group picker used to be exercised through Custom game, which Smart play
   // covered and which is gone from the menu. Smart play uses the same screen,
   // so the picker is still tested — through the mode that still exists.
-  it('Smart play: toggle a group and start a round', async () => {
-    await tapMode('smart');
+  it('Smart play options: toggle a group and start a round', async () => {
+    // The group picker lives behind the card's ⋯ now — the card itself carries
+    // only the question types, the count and Start.
+    await tap('smart-more');
     await visible('custom-start');
     await tap('custom-group-Aves'); // off
     await tap('custom-group-Aves'); // on again
@@ -150,8 +150,8 @@ describe('Game modes', () => {
     // earlier test in this file deliberately narrowed to name questions.
     await device.launchApp({ newInstance: true, delete: true });
     await device.disableSynchronization();
-    await tapMode('smart');
-    await tap('custom-start');
+    await visible('mode-smart');
+    await tap('smart-start'); // every type on, straight off the card
 
     // Smart play is the only mode whose next card may belong on a DIFFERENT
     // screen — a photo question renders on the pick screen, a name question on

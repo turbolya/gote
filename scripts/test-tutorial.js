@@ -260,6 +260,7 @@ head('the tour asks for the right things');
   eq('it sends the user to Settings for a username', byId.openSettings.advance, { screen: 'settings' });
   eq('the username step is on Settings', byId.username.screen, 'settings');
   eq('it then plays a smart round', byId.smartStart.advance, { screen: 'study' });
+  eq('started from the menu card itself', byId.smartStart.anchor, 'smart-start');
   eq('the alternative photos are shown in a round', byId.morePhotos.screen, 'study');
   eq('and pointed at the photos button', byId.morePhotos.anchor, 'study-photos');
   eq('statistics are opened, not just described', byId.stats.advance, { screen: 'stats' });
@@ -283,12 +284,13 @@ head('the tour asks for the right things');
   const NAVIGATES = {
     'open-settings': 'settings',
     'menu-stats': 'stats',
-    'mode-smart': 'smart',
     'mode-nearby': 'nearby',
     'settings-account': 'menu', // Save reloads the deck and lands back on the menu
     'settings-sync': 'sync',
-    'custom-start': 'study',
+    'smart-start': 'study',
     // 'study-photos' is absent on purpose: it opens an overlay, not a screen.
+    // 'mode-smart' likewise: it is the Smart play CARD, which is played from
+    // where it stands. Only its ⋯ navigates, and no step points at that.
   };
   eq(
     'every step pointing at a control that navigates advances on arriving there',

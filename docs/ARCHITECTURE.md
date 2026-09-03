@@ -110,9 +110,9 @@ stateDiagram-v2
   menu --> study: Speedrun
   menu --> study: Flash cards (self-grade)
   menu --> nearby: Nearby species (config)
-  menu --> smart: Smart play (picker)
-  smart --> pick: a photo question
-  smart --> study: any other question
+  menu --> pick: Smart play — a photo question
+  menu --> study: Smart play — any other question
+  menu --> smart: Smart play ⋯ (full picker)
   menu --> flash: Flash cards (picker)
   menu --> lexicon
   menu --> stats
@@ -149,6 +149,15 @@ stateDiagram-v2
 Smart play is the only mode whose screen changes between cards: `routeSmart`
 sends a photo question to `PickImageScreen` and everything else to
 `StudyScreen`.
+
+It is also the only mode with no menu row. `SmartCard` puts the whole common
+round — which question types, how many cards, Start — on the menu itself, and
+`screen: 'smart'` (the `CustomScreen` picker, reached by the card's ⋯) holds
+what will not fit: groups, flagged-only, count presets. The card's type toggles
+are icons alone; the labels live on the ⋯ screen and in their accessibility
+names. Both surfaces read and write the same remembered setup
+(`src/roundsetup.js`), except that the card always plays every group, since it
+shows no group control to narrow one.
 
 **By name** and **By picture** used to be menu entries of their own. Both are
 Smart play narrowed to one question type — the same screens and the same

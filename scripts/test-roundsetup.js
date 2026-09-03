@@ -125,6 +125,14 @@ t('restoreCount: the default is itself clamped on a tiny deck', () => {
   assert.equal(restoreCount(null, 5), 5);
 });
 
+t('restoreCount: the caller can ask for a different starting count', () => {
+  // The menu card opens on 8 where the full picker opens on 16.
+  assert.equal(restoreCount(null, 200, 8), 8);
+  assert.equal(restoreCount(null, 5, 8), 5); // …still clamped to a small deck
+  assert.equal(restoreCount({ count: 32 }, 200, 8), 32); // remembered beats it
+  assert.equal(restoreCount(null, 200, 0), DEFAULT_COUNT); // junk falls back
+});
+
 // --- packSetup ---
 
 t('packSetup: everything selected collapses to intentions', () => {

@@ -53,8 +53,10 @@ describe('Menu & navigation', () => {
     await visible('mode-smart');
   });
 
-  it('opens Smart play and shows its question-type picker', async () => {
-    await tapScroll('mode-smart', 'menu-scroll');
+  it('opens the Smart play options and shows its question-type picker', async () => {
+    // Smart play is played from the menu card; ⋯ is the way to everything the
+    // card has no room for.
+    await tapScroll('smart-more', 'menu-scroll');
     // The picker is CustomScreen with the question-type section added, so the
     // shared controls must still be there alongside the new ones.
     await visible('custom-groups-none');
@@ -66,7 +68,7 @@ describe('Menu & navigation', () => {
   });
 
   it('the group All / None shortcuts clear and restore the selection', async () => {
-    await tapScroll('mode-smart', 'menu-scroll');
+    await tapScroll('smart-more', 'menu-scroll');
     // With nothing selected the round cannot be built, so Start must say so
     // rather than silently starting on the whole deck.
     await tap('custom-groups-none');
@@ -78,7 +80,7 @@ describe('Menu & navigation', () => {
   });
 
   it('refuses to turn off the last question type', async () => {
-    await tapScroll('mode-smart', 'menu-scroll');
+    await tapScroll('smart-more', 'menu-scroll');
     // Three off leaves one; the fourth tap must be a no-op, because a round
     // with no possible question is not a state the player should reach.
     await tap('smart-type-picture');
