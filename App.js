@@ -78,6 +78,8 @@ import {
   saveWatchTipDismissed,
   loadTutorial,
   saveTutorial,
+  loadRoundSetup,
+  saveRoundSetup,
   addActiveDay,
 } from './src/storage';
 // NOTE the alias: this component already has its own `syncNow` (the
@@ -353,6 +355,37 @@ export default function App() {
     };
   }, []);
 
+  // Where the round picker should reopen. Loaded once at boot, so the Smart
+  // play and Flash cards screens can seed their state synchronously on first
+  // render — an async read inside the picker would either flash the defaults
+  // first or race the player's own first tap.
+  //
+  // Smart play is the only way to a name-only round now that By name has left
+  // the menu, so "one tap to replay what I played last time" is the thing that
+  // keeps that round as cheap as it used to be.
+  const [roundSetup, setRoundSetup] = useState({});
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const saved = await loadRoundSetup();
+      if (alive) setRoundSetup(saved);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Remember what a mode was last STARTED with. Fire-and-forget: failing to
+  // record a preference must never interrupt a round that is already beginning.
+  const rememberSetup = useCallback((key, setup) => {
+    if (!setup) return;
+    setRoundSetup((prev) => {
+      const next = { ...prev, [key]: setup };
+      saveRoundSetup(next);
+      return next;
+    });
+  }, []);
+
   // One place to change the tour, so persistence can never be forgotten at a
   // call site (exiting, finishing and every Next all come through here).
   const changeTutorial = useCallback((next) => {
@@ -415,7 +448,11 @@ export default function App() {
   const [correctCount, setCorrectCount] = useState(0);
   const [missed, setMissed] = useState([]);
   const [roundLabel, setRoundLabel] = useState('');
-  const [mode, setMode] = useState('all'); // all | 16 | smart | speedrun | pick
+  // smart | speedrun | pick | flash | nearby, plus 'all' — a plain
+  // multiple-choice name round. 'all' was the By name menu entry until Smart
+  // play absorbed it; the mode itself stays because "Revisiting missed cards"
+  // is one, whatever mode produced the misses.
+  const [mode, setMode] = useState('all');
   const [lives, setLives] = useState(SPEEDRUN_LIVES);
   // Bumped whenever Speedrun loops back to index 0 on a reshuffle. With a
   // single-card deck the index and card id don't change on the loop, so the
@@ -882,11 +919,6 @@ export default function App() {
   }, []);
 
   // --- mode launchers (each records how to replay itself) ---
-  const startAll = useCallback(() => {
-    replayRef.current = startAll;
-    startRound(playableDeck, 'all', '');
-  }, [playableDeck, startRound]);
-
   const startSpeedrun = useCallback(() => {
     replayRef.current = startSpeedrun;
     startRound(playableDeck, 'speedrun', '');
@@ -925,9 +957,11 @@ export default function App() {
   // round (reveal the answer, then "I knew it" / "Missed it") instead of
   // choices.
   const startFlash = useCallback(
-    (groups, count, flaggedOnly) =>
-      startPicked(groups, count, 'flash', 'Flash cards', flaggedOnly),
-    [startPicked]
+    (groups, count, flaggedOnly, _types, setup) => {
+      rememberSetup('flash', setup);
+      startPicked(groups, count, 'flash', 'Flash cards', flaggedOnly);
+    },
+    [startPicked, rememberSetup]
   );
 
   // --- "Nearby species" mode -------------------------------------------------
@@ -1149,7 +1183,8 @@ export default function App() {
   );
 
   const startSmart = useCallback(
-    (groups, count, flaggedOnly, chosenTypes) => {
+    (groups, count, flaggedOnly, chosenTypes, setup) => {
+      rememberSetup('smart', setup);
       let pool =
         groups && groups.length
           ? playableDeck.filter((c) => groups.includes(groupKey(c.iconic)))
@@ -1176,19 +1211,18 @@ export default function App() {
       replayRef.current = run;
       run();
     },
-    [playableDeck, startRound, planSmart]
+    [playableDeck, startRound, planSmart, rememberSetup]
   );
 
   const onSelectMode = useCallback(
     (m) => {
-      if (m === 'all') startAll();
-      else if (m === 'speedrun') startSpeedrun();
+      if (m === 'speedrun') startSpeedrun();
       else if (m === 'pick') startPick();
       else if (m === 'flash') setScreen('flash');
       else if (m === 'nearby') setScreen('nearby');
       else if (m === 'smart') setScreen('smart');
     },
-    [startAll, startSpeedrun, startPick]
+    [startSpeedrun, startPick]
   );
 
   const finishRound = useCallback(async (finalCorrect, finalMissed, total) => {
@@ -1886,6 +1920,11 @@ export default function App() {
             title="Smart play"
             flags={flags}
             questionTypes={SMART_QUESTION_TYPES}
+            // The screenshots build always opens on the defaults: those runs
+            // reuse a cached install rather than a fresh one, so a setup left
+            // behind by the previous run would quietly change what gets
+            // captured. Same reason the tour does not auto-start there.
+            initial={IS_SHOTS ? null : roundSetup.smart}
             onStart={startSmart}
             onBack={navBack}
           />
@@ -1896,6 +1935,7 @@ export default function App() {
             deck={fullDeck}
             title="Flash cards"
             flags={flags}
+            initial={IS_SHOTS ? null : roundSetup.flash}
             onStart={startFlash}
             onBack={navBack}
           />

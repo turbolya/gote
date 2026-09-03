@@ -8,6 +8,7 @@ import GroupIcon from '../components/GroupIcon';
 import ScreenHeader from '../components/ScreenHeader';
 import { useAnchorRef } from '../components/Tutorial';
 import { useColors, useThemedStyles, groupKey, groupLabel, groupIcon } from '../theme';
+import { restoreGroups, restoreTypes, restoreCount, packSetup } from '../roundsetup';
 
 const STEP = 4;
 const PRESETS = [8, 16, 32];
@@ -22,6 +23,10 @@ export default function CustomScreen({
   // all enabled to start. Absent for the other modes, which ask one kind of
   // question by definition and so have nothing to choose.
   questionTypes = null,
+  // The setup this mode was last STARTED with, or null. Restored rather than
+  // applied blindly — the deck it was saved against may have changed shape
+  // since (see src/roundsetup.js).
+  initial = null,
 }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -31,11 +36,13 @@ export default function CustomScreen({
   const isFlagged = (c) => !!(flags && flags.has(String(c.taxonId)));
 
   // Optionally restrict the whole picker to flagged species.
-  const [flaggedOnly, setFlaggedOnly] = useState(false);
+  const [flaggedOnly, setFlaggedOnly] = useState(() => !!(initial && initial.flaggedOnly));
   // Every type on by default: the mode's whole premise is that it picks for you,
-  // so narrowing it is the deliberate act, not the starting point.
+  // so narrowing it is the deliberate act, not the starting point. Once the
+  // player HAS narrowed it and played that round, it opens there instead —
+  // otherwise a one-type round is a fresh five taps every time.
   const [types, setTypes] = useState(
-    () => new Set((questionTypes || []).map((t) => t.key))
+    () => new Set(restoreTypes(initial, (questionTypes || []).map((t) => t.key)))
   );
   const toggleType = (key) => {
     setTypes((prev) => {
@@ -83,7 +90,9 @@ export default function CustomScreen({
   }, [baseDeck]);
 
   // Selected group keys (default: all groups selected).
-  const [selected, setSelected] = useState(() => new Set(groups.map((g) => g.key)));
+  const [selected, setSelected] = useState(
+    () => new Set(restoreGroups(initial, groups.map((g) => g.key)))
+  );
 
   const available = useMemo(
     () =>
@@ -91,7 +100,9 @@ export default function CustomScreen({
     [groups, selected]
   );
 
-  const [count, setCount] = useState(Math.min(16, deck.length) || 1);
+  // `available` is already in scope, so a remembered "Max" reopens as the whole
+  // of TODAY's deck rather than the number of cards there were last time.
+  const [count, setCount] = useState(() => restoreCount(initial, available));
 
   // Keep the requested count within what the current selection can offer.
   useEffect(() => {
@@ -285,7 +296,24 @@ export default function CustomScreen({
           style={[styles.start, !canStart && styles.startDisabled]}
           disabled={!canStart}
           onPress={() =>
-            onStart([...selected], Math.min(count, available), flaggedOnly, [...types])
+            onStart(
+              [...selected],
+              Math.min(count, available),
+              flaggedOnly,
+              [...types],
+              // What to reopen on next time. Emitted here, on Start, and
+              // nowhere else: a picker the player only looked at and backed out
+              // of should not change what they play next.
+              packSetup({
+                groups: [...selected],
+                allGroups: groups.map((g) => g.key),
+                types: [...types],
+                allTypes: (questionTypes || []).map((t) => t.key),
+                count,
+                available,
+                flaggedOnly,
+              })
+            )
           }
         >
           {canStart && <Icon name="play" size={18} color={colors.onPrimary} />}

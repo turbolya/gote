@@ -82,16 +82,16 @@ const step = async (label, fn) => {
 const reachMenu = async () => {
   const deadline = Date.now() + T;
   while (Date.now() < deadline) {
-    if (await present('support-later', 800)) {
-      await element(by.id('support-later')).tap();
+    if (await present('support-close', 800)) {
+      await element(by.id('support-close')).tap();
     }
-    if (await present('mode-all', 800)) {
+    if (await present('mode-smart', 800)) {
       await hold(1500); // hero + thumbnails
       return;
     }
     await hold(800);
   }
-  await visible('mode-all'); // last resort — surfaces a clear failure
+  await visible('mode-smart'); // last resort — surfaces a clear failure
 };
 
 // Relaunch to a clean menu. After the first download the account is cached, so
@@ -168,8 +168,17 @@ describe('App Store screenshots', () => {
     await shot('01-menu', 2500);
   });
 
-  it('02 — by name (photo + choices)', async () => {
-    await tap('mode-all');
+  it('02 — name question (photo + choices)', async () => {
+    // "By name" lost its menu entry to Smart play; the same question is now a
+    // Smart round narrowed to one type. The chip dance is deterministic because
+    // this build never restores a saved setup (see IS_SHOTS in App.js) — the
+    // picker always opens with every type on.
+    await tap('mode-smart');
+    await visible('custom-start');
+    await tap('smart-type-picture');
+    await tap('smart-type-pair');
+    await tap('smart-type-typed');
+    await tap('custom-start');
     await visible('study-reveal');
     await hold(4500); // let the full-screen photo download + render
     await element(by.id('study-reveal')).tap(); // reveal the choices

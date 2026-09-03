@@ -256,6 +256,9 @@ const DAY = 24 * 60 * 60 * 1000;
       // Having been shown around the app is not a score. Replaying the tour on
       // a reset would be a surprise, and it is one tap away in Settings anyway.
       '@gote/tutorial',
+      // Where the round picker reopens: a preference, not a score. Clearing the
+      // tallies is not a reason to forget that the player drills birds only.
+      '@gote/roundSetup',
     ]);
 
     const as = makeAsyncStorage(Object.fromEntries(allKeys.map((k) => [k, '"seeded"'])));

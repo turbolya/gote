@@ -8,9 +8,27 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.42.9';
+export const APP_VERSION = '2.43.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.43.0',
+    date: '2026-09-03',
+    changes: [
+      'By name has left the menu. Smart play asks the same question — a photo '
+        + 'and five names — and you can have nothing but that question by '
+        + 'turning the other types off on its start screen. Smart play now '
+        + 'reopens on whatever you last played, so a round you have set up once '
+        + 'is a tap away, and “Max” means the whole of your deck as it is today '
+        + 'rather than the size it was when you chose it. Nothing you have '
+        + 'played is affected.',
+      'By picture picks a clearer photo of the answer. It drew from the first '
+        + 'eight photos on the species page, and the later ones are often a '
+        + 'close-up of a leaf, a caterpillar or a museum specimen — impossible '
+        + 'in a small tile, and a giveaway besides, because the three wrong '
+        + 'tiles always showed their best photo.',
+    ],
+  },
   {
     version: '2.42.9',
     date: '2026-09-01',

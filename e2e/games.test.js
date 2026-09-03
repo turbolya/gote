@@ -19,6 +19,26 @@ const tapMode = (key) => tapScroll(`mode-${key}`, 'menu-scroll');
 // a tap aimed at it can then miss.
 const settle = (ms = 450) => new Promise((r) => setTimeout(r, ms));
 
+// The name round — photo → pick from five names — which used to be the "By
+// name" menu entry and is now reached by narrowing Smart play to one question
+// type. Walked in full rather than shortcut to another mode that happens to ask
+// the same question, because this path IS the replacement and is the thing that
+// would quietly stop working.
+//
+// From a clean install on purpose: the picker remembers the last setup it was
+// STARTED with, so "turn three chips off" only means something from a known
+// state.
+async function startNameRound() {
+  await device.launchApp({ newInstance: true, delete: true });
+  await device.disableSynchronization();
+  await tapMode('smart');
+  await visible('custom-start');
+  await tap('smart-type-picture');
+  await tap('smart-type-pair');
+  await tap('smart-type-typed');
+  await tap('custom-start');
+}
+
 describe('Game modes', () => {
   beforeAll(async () => {
     await device.launchApp({ newInstance: true });
@@ -30,8 +50,8 @@ describe('Game modes', () => {
     await device.disableSynchronization();
   });
 
-  it('All cards: answer correctly, then Play again, then finish to results', async () => {
-    await tapMode('all');
+  it('Name questions: answer correctly, then Play again, then finish to results', async () => {
+    await startNameRound();
     await visible('study-reveal');
 
     // Choices appear centered, not under the (bottom) Show-choices button.
@@ -50,7 +70,7 @@ describe('Game modes', () => {
     await tap('study-end');
     await visible('results-menu');
     await tap('results-menu');
-    await visible('mode-all');
+    await visible('mode-smart');
   });
 
   it('Flash cards: pick set, reveal, self-grade, reach results', async () => {
@@ -111,6 +131,11 @@ describe('Game modes', () => {
   });
 
   it('Smart play: routes each card to the screen its format belongs on', async () => {
+    // Clean install: this is the one test that needs EVERY question type on,
+    // and the picker now reopens on whatever was last started — which an
+    // earlier test in this file deliberately narrowed to name questions.
+    await device.launchApp({ newInstance: true, delete: true });
+    await device.disableSynchronization();
     await tapMode('smart');
     await tap('custom-start');
 
@@ -205,7 +230,9 @@ describe('Game modes', () => {
     // one get that time for free by following another test.
     await visible('mode-smart');
     await settle();
-    await tapMode('all');
+    // Speedrun rather than the name round above: this test only needs a study
+    // card with photos, and Speedrun is one tap and touches no saved setup.
+    await tapMode('speedrun');
     await visible('study-reveal');
     await tap('study-photos');
     await visible('photo-grid');

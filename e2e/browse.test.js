@@ -105,7 +105,7 @@ describe('Settings & statistics', () => {
     await tap('screen-back');
 
     await tap('settings-back');
-    await visible('mode-all');
+    await visible('mode-smart');
   });
 
   it('opens statistics and shows the reset control', async () => {
@@ -125,7 +125,7 @@ describe('Settings & statistics', () => {
     await scrollToId('stats-reset', 'stats-scroll');
     await expect(element(by.id('stats-reset'))).toBeVisible();
     await tap('screen-back');
-    await visible('mode-all');
+    await visible('mode-smart');
   });
 
   // Deliberately last in the file: it wipes the tallies every test above builds

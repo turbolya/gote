@@ -20,7 +20,6 @@ describe('Menu & navigation', () => {
     // Play, Learn, then Settings (top → bottom); scroll to reach lower ones.
     for (const id of [
       'mode-smart', // Smart play
-      'mode-all', // By name
       'mode-pick', // By picture
       'mode-speedrun',
       'mode-nearby',
@@ -45,14 +44,14 @@ describe('Menu & navigation', () => {
     await tapScroll('open-lexicon', 'menu-scroll');
     await visible('lexicon-search');
     await tap('screen-back');
-    await visible('mode-all');
+    await visible('mode-smart');
   });
 
   it('opens Statistics from the accuracy banner and returns', async () => {
     await tap('menu-stats');
     await waitFor(element(by.text('Statistics'))).toBeVisible().withTimeout(TIMEOUT);
     await tap('screen-back');
-    await visible('mode-all');
+    await visible('mode-smart');
   });
 
   it('opens Smart play and shows its question-type picker', async () => {
@@ -64,7 +63,7 @@ describe('Menu & navigation', () => {
       await visible(id);
     }
     await tap('screen-back');
-    await visible('mode-all');
+    await visible('mode-smart');
   });
 
   it('the group All / None shortcuts clear and restore the selection', async () => {
@@ -76,7 +75,7 @@ describe('Menu & navigation', () => {
     await tap('custom-groups-all');
     await waitFor(element(by.text('Select a group'))).not.toBeVisible().withTimeout(TIMEOUT);
     await tap('screen-back');
-    await visible('mode-all');
+    await visible('mode-smart');
   });
 
   it('refuses to turn off the last question type', async () => {
@@ -90,7 +89,7 @@ describe('Menu & navigation', () => {
     // Still startable: the last type survived.
     await waitFor(element(by.text('Select a group'))).not.toBeVisible().withTimeout(TIMEOUT);
     await tap('screen-back');
-    await visible('mode-all');
+    await visible('mode-smart');
   });
 
   it('Statistics explanations stay behind their ⓘ buttons', async () => {
@@ -99,14 +98,14 @@ describe('Menu & navigation', () => {
     // Closed by default — the page should read as figures first.
     await expect(element(by.id('stats-info-streak'))).toBeVisible();
     await tap('screen-back');
-    await visible('mode-all');
+    await visible('mode-smart');
   });
 
   it('opens Settings and returns', async () => {
     await tapScroll('open-settings', 'menu-scroll');
     await visible('settings-username');
     await tap('settings-back');
-    await visible('mode-all');
+    await visible('mode-smart');
   });
 
 });

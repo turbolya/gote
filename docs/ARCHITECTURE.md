@@ -107,11 +107,11 @@ stateDiagram-v2
   settings --> loading: Save (new account / language)
   settings --> menu: Save (filters only)
 
-  menu --> study: By name / Speedrun / Custom
+  menu --> study: Speedrun
   menu --> study: Flash cards (self-grade)
   menu --> pick: By picture
   menu --> nearby: Nearby species (config)
-  menu --> custom: Custom game (picker)
+  menu --> smart: Smart play (picker)
   menu --> flash: Flash cards (picker)
   menu --> lexicon
   menu --> stats
@@ -139,12 +139,19 @@ stateDiagram-v2
 
 | Menu item        | `mode`     | Screen            | Interaction                                  |
 |------------------|------------|-------------------|----------------------------------------------|
-| By name    | `all`      | `StudyScreen`     | Multiple choice (name options)               |
-| By picture     | `pick`     | `PickImageScreen` | Multiple choice (photo tiles)                |
+| Smart play       | `smart`    | both              | Format chosen per card (`smartmode.js`)      |
+| By picture       | `pick`     | `PickImageScreen` | Multiple choice (photo tiles)                |
 | Speedrun         | `speedrun` | `StudyScreen`     | Multiple choice, endless, 3 lives            |
 | Nearby species   | `nearby`   | `StudyScreen`     | Multiple choice (place-typical deck)         |
-| Custom game      | `custom`   | `StudyScreen`     | Multiple choice (filtered deck)              |
 | Flash cards      | `flash`    | `StudyScreen`     | Self-grade (reveal → "knew it / missed it")  |
+| —                | `all`      | `StudyScreen`     | Multiple choice (name options)               |
+
+`all` has no menu entry of its own. It was **By name** until Smart play absorbed
+it — narrowing the picker to "Choosing the name" asks the identical question
+through `answerMode`, and the picker reopens on the last setup that was actually
+started (`src/roundsetup.js`), so it stays roughly a tap away. The mode itself
+survives because "Revisiting missed cards" from the results screen is one,
+whatever mode produced the misses.
 
 `StudyScreen` is one component with two grading styles (`choiceMode` vs.
 self-grade). Multiple-choice distractors come from `quiz.pickSimilarDistractors`
@@ -362,10 +369,10 @@ photos the OS had quietly discarded, producing a round of grey placeholders.
   NetInfo-backed flag (offline only on an explicit `isConnected === false`;
   forced off in the E2E/SHOTS modes). It gates the features that genuinely need
   a live API call — **Nearby** (a place query) and **By picture** (curated
-  photos per round) are disabled offline. The deck-local modes (By name,
-  Speedrun, Custom, Flash) keep working: `App.js` derives a `playableDeck` by
-  filtering the deck to downloaded photos (the §7 manifest), so no round shows a
-  blank card. An `OfflineBanner` explains the state, and an empty state ("connect
+  photos per round) are disabled offline. The deck-local modes (Smart play
+  minus its photo questions, Speedrun, Flash) keep working: `App.js` derives a
+  `playableDeck` by filtering the deck to downloaded photos (the §7 manifest),
+  so no round shows a blank card. An `OfflineBanner` explains the state, and an empty state ("connect
   once to load your deck") shows when nothing is downloaded yet.
 - **Cross-device sync & data versioning** (`src/sync/*`): optional, strictly
   opt-in Supabase sync — an **append-only `events` log** for stats and confusions

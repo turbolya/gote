@@ -26,6 +26,7 @@ const K_FLAGS = '@gote/flags';
 // Device-local and deliberately not synced — "have I been shown around THIS
 // phone" is a property of the device, not of the account.
 const K_TUTORIAL = '@gote/tutorial';
+const K_ROUND_SETUP = '@gote/roundSetup';
 // Lifetime totals split by which question format the answer was given in:
 // { [format]: { answered, correct } }. Smart play asks the same species four
 // different ways and they are not equally hard, so a single blended accuracy
@@ -657,6 +658,34 @@ export async function loadWatchTipDismissed() {
 export async function saveWatchTipDismissed(dismissed) {
   try {
     await kv.setItem(K_WATCH_TIP, dismissed ? '1' : '0');
+  } catch {
+    /* ignore — best-effort */
+  }
+}
+
+// --- Round picker setup -----------------------------------------------------
+// The last round the player actually STARTED from the picker, per mode
+// ({ smart: {...}, flash: {...} }). Shape and every rule about it belong to
+// src/roundsetup.js, which normalizes whatever comes back — including nothing,
+// and including a record written against a deck that no longer exists.
+//
+// Kept out of prefs deliberately: prefs are synced between devices, and which
+// groups you drilled on the phone last night is not something the tablet should
+// inherit.
+
+export async function loadRoundSetup() {
+  try {
+    const raw = await kv.getItem(K_ROUND_SETUP);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {}; // unreadable or not valid JSON — open on the defaults
+  }
+}
+
+export async function saveRoundSetup(map) {
+  try {
+    await kv.setItem(K_ROUND_SETUP, JSON.stringify(map || {}));
   } catch {
     /* ignore — best-effort */
   }

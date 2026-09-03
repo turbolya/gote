@@ -268,7 +268,6 @@ export default function MenuScreen({
 
   const playModes = [
     { key: 'smart', anchor: 'mode-smart', icon: 'sparkles-outline', accent: accents.rose, title: 'Smart play', sub: 'Mixed questions, picked for what you know' },
-    { key: 'all', icon: 'albums-outline', accent: accents.green, title: 'By name', sub: 'See a photo, choose its name' },
     { key: 'pick', icon: 'apps-outline', accent: accents.blue, title: 'By picture', sub: 'See a name, choose its photo' },
     { key: 'speedrun', icon: 'flash', accent: accents.amber, title: 'Speedrun', sub: `Endless cards — survive ${SPEEDRUN_LIVES} misses` },
     { key: 'nearby', anchor: 'mode-nearby', icon: 'compass-outline', accent: accents.teal, title: 'Nearby species', sub: 'Learn species typical to a place' },

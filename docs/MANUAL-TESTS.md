@@ -104,8 +104,11 @@ Know how to get back to zero — several cases need a fresh start.
 Run one full round of **each** mode. Expected for all: it starts, is playable,
 scores correctly, and returns to the menu cleanly.
 
-- [ ] **TC-2.1 Mode: By name.** Play a full round: photo → pick the name.
-  - *Expected:* Starts, playable, scores correctly, returns to the menu
+- [ ] **TC-2.1 Mode: name questions.** There is no **By name** row on the menu;
+    the round comes from **Smart play** with only *Choosing the name* left on.
+    Play a full round: photo → pick the name.
+  - *Expected:* No By name entry on the menu. The narrowed round asks a name
+    question on **every** card, scores correctly, and returns to the menu
     cleanly.
 - [ ] **TC-2.2 Mode: By picture.** Play a full round: name → pick the photo.
   - *Expected:* Starts, playable, scores correctly, returns to the menu
@@ -146,10 +149,20 @@ scores correctly, and returns to the menu cleanly.
     correct spelling. The different species is **rejected**. Long names wrap onto
     a second line rather than scrolling sideways. Check is greyed until you type
     something, and the field and the button are clearly different controls.
-- [ ] **TC-2.9 Group All / None shortcuts.** On any of Smart play,
-    Flash cards or Smart play, tap **None** then **All** beside Groups.
+- [ ] **TC-2.9 Group All / None shortcuts.** On either Smart play or
+    Flash cards, tap **None** then **All** beside Groups.
   - *Expected:* None clears every group and Start greys out reading "Select a
     group"; All restores them. Each shortcut greys out when it would do nothing.
+- [ ] **TC-2.10 The picker reopens where you left it.** In Smart play, turn off
+    all types but *Choosing the name*, pick one group, tap **Max**, and Start.
+    Quit the round, reopen Smart play. Then open it again after force-quitting
+    and relaunching the app. Separately: open Smart play, change the types,
+    press Back **without** starting, and reopen it.
+  - *Priority:* High
+  - *Expected:* both reopenings show the name-only, one-group, Max setup, so the
+    round is one tap from the menu — and **Max** means the whole of today's deck
+    even if the deck has grown since. The setup you backed out of without
+    starting is **not** remembered. Flash cards keeps its own separate setup.
 
 ## 3. Photos & the fullscreen viewer
 
@@ -157,7 +170,7 @@ scores correctly, and returns to the menu cleanly.
   1. Tap the grid button in the bottom-left corner of the card.
   2. Wait for the photos to arrive, then scroll the grid.
   - *Preconditions:* A round in progress in a mode that shows a photo card
-    (Smart play, By name, Speedrun or Flash cards). Device online.
+    (Smart play, Speedrun or Flash cards). Device online.
   - *Priority:* High
   - *Expected:* A scrollable grid of that species' photos opens, the card's own
     photo among them, and a spinner covers the wait while they are fetched. It
@@ -253,7 +266,7 @@ scores correctly, and returns to the menu cleanly.
   - *Priority:* Low
   - *Expected:* the streak increments by exactly 1; a missed day lapses it to 0
     while "longest" remembers the old run.
-- [ ] **TC-5.8 Species you mix up appears.** In a multiple-choice mode (By name
+- [ ] **TC-5.8 Species you mix up appears.** In a multiple-choice mode (Smart play
     / Speedrun / By picture), deliberately pick the **same wrong
     look-alike** for a species **3+ times**, then open Statistics.
   - *Expected:* a **"Species you mix up"** card lists that pair — both species
@@ -279,7 +292,7 @@ scores correctly, and returns to the menu cleanly.
     the same failure the streak had in 2.37.3. Your flagged species, settings and
     downloaded photos are untouched.
 - [ ] **TC-5.11 Just-in-time callout during play.** Keep picking the same wrong
-    look-alike for a species in a choice mode (By name / Speedrun / By
+    look-alike for a species in a choice mode (Smart play / Speedrun / By
     picture) until you've done it 3 times.
   - *Expected:* on that 3rd wrong pick, the answer reveal shows a red "You keep
     mixing these up — see them side by side" callout. Tapping it opens the
@@ -298,7 +311,7 @@ scores correctly, and returns to the menu cleanly.
     Photos vary between questions (not the same image every time); offline it
     still runs using the stored thumbnail.
 - [ ] **TC-5.13 Verify the fix (re-seed + recovery callout).** Build up a mix-up
-    pair (miss A as B **3+ times** in a choice mode), then keep playing **By name**
+    pair (miss A as B **3+ times** in a choice mode), then keep playing **Smart play**
     and watch for that species to come up again.
   - *Preconditions:* A mix-up pair exists (missed 3+ times in a choice mode)
   - *Expected:* the old look-alike is now offered as one of the options (a
@@ -388,7 +401,7 @@ scores correctly, and returns to the menu cleanly.
     left.
 - [ ] **TC-6.4 Fresh photo once mastered.** Under Study options, turn on **"Fresh
     photo once mastered"**. Play a species you've already mastered (**5+ correct,
-    80%+ accuracy** — check Statistics) in a self-photo mode (By name / Flash /
+    80%+ accuracy** — check Statistics) in a self-photo mode (Smart play / Flash /
     Speedrun / Nearby).
   - *Preconditions:* A species is mastered (5+ correct, 80%+ accuracy)
   - *Expected:* that card shows a **random official (iNaturalist) photo**, not your
@@ -411,7 +424,7 @@ scores correctly, and returns to the menu cleanly.
 ## 7. Offline & resilience
 
 > Behaviour recap: after a deck loads online, gote prefetches a pack of its
-> photos. Offline, the deck-local modes (By name, Speedrun, Smart play, Flash) play
+> photos. Offline, the deck-local modes (Speedrun, Smart play, Flash) play
 > only from downloaded cards; the online-only modes (Nearby, By picture) and
 > observation updates are paused.
 
@@ -419,12 +432,12 @@ scores correctly, and returns to the menu cleanly.
   minute (let the offline pack warm), then turn on airplane mode and return to
   the menu.
   - *Expected:* an amber "You're offline…" banner; **Nearby** and **By
-    picture** are dimmed ("Needs a connection"); **By name / Speedrun / Smart play
+    picture** are dimmed ("Needs a connection"); **Speedrun / Smart play
     / Flash** stay tappable.
   - *Preconditions:* Deck loaded
   - *Priority:* High
-- [ ] **TC-7.2 Play a deck-local mode offline.** Start By name (and Speedrun /
-  Smart play / Flash).
+- [ ] **TC-7.2 Play a deck-local mode offline.** Start Speedrun (and Smart play /
+  Flash).
   - *Expected:* real cards with photos — **no blank/broken images**; scoring
     and stats update locally; no crash.
   - *Preconditions:* Offline with a warmed pack
@@ -873,7 +886,7 @@ of its cases cannot be reached again without deleting the app.
     Any drift at all means events are being applied more than once.
 - [ ] **TC-14.8 Retrieval signals are being recorded.** Nothing in the
     UI shows these, so this is checked in the data. With sync on, play a round of
-    **By name** at a normal pace, then in the Supabase dashboard open the newest
+    **Smart play** at a normal pace, then in the Supabase dashboard open the newest
     `events` row and look inside its `species` blob.
   - *Preconditions:* Sync on; access to the Supabase dashboard
   - *Expected:* each species carries `lastSeen` (a recent ms timestamp),
