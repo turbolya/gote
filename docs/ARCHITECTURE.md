@@ -109,9 +109,10 @@ stateDiagram-v2
 
   menu --> study: Speedrun
   menu --> study: Flash cards (self-grade)
-  menu --> pick: By picture
   menu --> nearby: Nearby species (config)
   menu --> smart: Smart play (picker)
+  smart --> pick: a photo question
+  smart --> study: any other question
   menu --> flash: Flash cards (picker)
   menu --> lexicon
   menu --> stats
@@ -140,18 +141,30 @@ stateDiagram-v2
 | Menu item        | `mode`     | Screen            | Interaction                                  |
 |------------------|------------|-------------------|----------------------------------------------|
 | Smart play       | `smart`    | both              | Format chosen per card (`smartmode.js`)      |
-| By picture       | `pick`     | `PickImageScreen` | Multiple choice (photo tiles)                |
 | Speedrun         | `speedrun` | `StudyScreen`     | Multiple choice, endless, 3 lives            |
 | Nearby species   | `nearby`   | `StudyScreen`     | Multiple choice (place-typical deck)         |
 | Flash cards      | `flash`    | `StudyScreen`     | Self-grade (reveal → "knew it / missed it")  |
 | —                | `all`      | `StudyScreen`     | Multiple choice (name options)               |
 
-`all` has no menu entry of its own. It was **By name** until Smart play absorbed
-it — narrowing the picker to "Choosing the name" asks the identical question
-through `answerMode`, and the picker reopens on the last setup that was actually
-started (`src/roundsetup.js`), so it stays roughly a tap away. The mode itself
-survives because "Revisiting missed cards" from the results screen is one,
-whatever mode produced the misses.
+Smart play is the only mode whose screen changes between cards: `routeSmart`
+sends a photo question to `PickImageScreen` and everything else to
+`StudyScreen`.
+
+**By name** and **By picture** used to be menu entries of their own. Both are
+Smart play narrowed to one question type — the same screens and the same
+questions — and the picker reopens on the last setup that was actually started
+(`src/roundsetup.js`), so either is about a tap away. Two details of the old
+modes are preserved rather than lost in the merge:
+
+- A photos-only round **skips** a card whose photo grid cannot be built (too few
+  look-alikes with curated photos), exactly as By picture did. A *mixed* round
+  downgrades that card to a name list instead, because there the plan decided
+  the format in advance and skipping would pull the deck out of step with it.
+- The photo question cannot run offline, so its chip is greyed in the picker
+  the way the By picture row used to be greyed on the menu.
+
+The `all` mode itself survives with no menu entry: "Revisiting missed cards"
+from the results screen is one, whatever mode produced the misses.
 
 `StudyScreen` is one component with two grading styles (`choiceMode` vs.
 self-grade). Multiple-choice distractors come from `quiz.pickSimilarDistractors`
@@ -299,7 +312,7 @@ iNaturalist caps clients at ~**60 requests/minute**. Mitigations:
   `429` up to 3× honoring `Retry-After`.
 - **In-memory taxon cache** (`taxonCache` Map, keys `photos:`/`similar:`/`detail:`):
   per-taxon results are stable, so they're memoized for the session (cleared on
-  language change). This makes "By picture" (several taxa per round) cheap on
+  language change). This makes photo questions (several taxa per round) cheap on
   repeats.
 - **Gameplay makes zero network calls** in the photo/self-grade modes — rounds
   run off the cached deck and pre-fetched images.
@@ -368,9 +381,10 @@ photos the OS had quietly discarded, producing a round of grey placeholders.
 - **Connectivity & offline** (`net.js` → `useIsOffline`): a conservative,
   NetInfo-backed flag (offline only on an explicit `isConnected === false`;
   forced off in the E2E/SHOTS modes). It gates the features that genuinely need
-  a live API call — **Nearby** (a place query) and **By picture** (curated
-  photos per round) are disabled offline. The deck-local modes (Smart play
-  minus its photo questions, Speedrun, Flash) keep working: `App.js` derives a
+  a live API call — **Nearby** (a place query) is disabled offline, as is Smart
+  play's **photo question** (curated photos for four species per card), which
+  greys out in the picker rather than taking the whole mode with it. The
+  deck-local modes (the rest of Smart play, Speedrun, Flash) keep working: `App.js` derives a
   `playableDeck` by filtering the deck to downloaded photos (the §7 manifest),
   so no round shows a blank card. An `OfflineBanner` explains the state, and an empty state ("connect
   once to load your deck") shows when nothing is downloaded yet.

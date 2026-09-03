@@ -15,13 +15,20 @@ export const CHANGELOG = [
     version: '2.43.0',
     date: '2026-09-03',
     changes: [
-      'By name has left the menu. Smart play asks the same question — a photo '
-        + 'and five names — and you can have nothing but that question by '
-        + 'turning the other types off on its start screen. Smart play now '
-        + 'reopens on whatever you last played, so a round you have set up once '
-        + 'is a tap away, and “Max” means the whole of your deck as it is today '
-        + 'rather than the size it was when you chose it. Nothing you have '
-        + 'played is affected.',
+      'By name and By picture have left the menu. Smart play asks both of those '
+        + 'questions already — a photo and five names, or a name and four '
+        + 'photos — and you can have nothing but one of them by turning the '
+        + 'other types off on its start screen. Smart play now reopens on '
+        + 'whatever you last played, so a round you have set up once is a tap '
+        + 'away, and “Max” means the whole of your deck as it is today rather '
+        + 'than the size it was when you chose it. Nothing you have played is '
+        + 'affected.',
+      'A photo-only round skips a species that has too few look-alikes to build '
+        + 'a grid from, rather than slipping a name question in among the '
+        + 'photos — which is what By picture always did. And because that '
+        + 'question needs to fetch photos for four species per card, it is the '
+        + 'one that greys out when you are offline; the rest of Smart play '
+        + 'plays on.',
       'By picture picks a clearer photo of the answer. It drew from the first '
         + 'eight photos on the species page, and the later ones are often a '
         + 'close-up of a leaf, a caterpillar or a museum specimen — impossible '

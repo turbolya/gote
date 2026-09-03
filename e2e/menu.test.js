@@ -20,7 +20,6 @@ describe('Menu & navigation', () => {
     // Play, Learn, then Settings (top → bottom); scroll to reach lower ones.
     for (const id of [
       'mode-smart', // Smart play
-      'mode-pick', // By picture
       'mode-speedrun',
       'mode-nearby',
       'mode-flash', // Learn

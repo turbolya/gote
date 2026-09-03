@@ -110,9 +110,14 @@ scores correctly, and returns to the menu cleanly.
   - *Expected:* No By name entry on the menu. The narrowed round asks a name
     question on **every** card, scores correctly, and returns to the menu
     cleanly.
-- [ ] **TC-2.2 Mode: By picture.** Play a full round: name → pick the photo.
-  - *Expected:* Starts, playable, scores correctly, returns to the menu
-    cleanly.
+- [ ] **TC-2.2 Mode: photo questions.** There is no **By picture** row on the
+    menu either; the round comes from **Smart play** with only *Choosing the
+    photo* left on. Play a full round: name → pick the photo. Keep going long
+    enough to pass a species with few look-alikes.
+  - *Expected:* No By picture entry on the menu. Every card is a photo grid —
+    a species that cannot make one is **skipped**, never quietly turned into a
+    name list. If the deck runs out of species that can, the screen says
+    "Not enough look-alike data to play right now" with a way on.
 - [ ] **TC-2.3 Mode: Speedrun.** Play a round; it is timed — confirm it **ends after 3 misses** and shows a
   result.
   - *Expected:* Timed; ends after 3 misses; shows a result.
@@ -267,7 +272,7 @@ scores correctly, and returns to the menu cleanly.
   - *Expected:* the streak increments by exactly 1; a missed day lapses it to 0
     while "longest" remembers the old run.
 - [ ] **TC-5.8 Species you mix up appears.** In a multiple-choice mode (Smart play
-    / Speedrun / By picture), deliberately pick the **same wrong
+    / Speedrun), deliberately pick the **same wrong
     look-alike** for a species **3+ times**, then open Statistics.
   - *Expected:* a **"Species you mix up"** card lists that pair — both species
     side by side (thumbnail + name) with "Mixed up N times". It does **not**
@@ -408,8 +413,8 @@ scores correctly, and returns to the menu cleanly.
     own observation shot, and the photo varies across repeat appearances. Non-
     mastered species still show your own photo. With the setting **off**, every
     card shows your own photo as before. Offline (or a species with no official
-    photos) falls back to your own photo. "By picture" mode is unchanged (it
-    already uses official photos).
+    photos) falls back to your own photo. Photo questions are unchanged (they
+    already use official photos).
 - [ ] **TC-6.5 Only species named in your language.** Set the language to one with
     gaps (e.g. **Hungarian**), then under **Species name language** turn on
     **"Only species named in <language>"**.
@@ -425,15 +430,18 @@ scores correctly, and returns to the menu cleanly.
 
 > Behaviour recap: after a deck loads online, gote prefetches a pack of its
 > photos. Offline, the deck-local modes (Speedrun, Smart play, Flash) play
-> only from downloaded cards; the online-only modes (Nearby, By picture) and
+> only from downloaded cards; Nearby, Smart play's photo question, and
 > observation updates are paused.
 
 - [ ] **TC-7.1 Prime then go offline.** With a deck loaded, play online for a
   minute (let the offline pack warm), then turn on airplane mode and return to
   the menu.
-  - *Expected:* an amber "You're offline…" banner; **Nearby** and **By
-    picture** are dimmed ("Needs a connection"); **Speedrun / Smart play
-    / Flash** stay tappable.
+  - *Expected:* an amber "You're offline…" banner; **Nearby** is dimmed
+    ("Needs a connection"); **Speedrun / Smart play / Flash** stay tappable.
+    Open Smart play: *Choosing the photo* is greyed and will not tick, with a
+    line saying it needs a connection, and the other three still work. If you
+    had left the picker on photos only, it opens on the types that CAN run
+    rather than on a round it cannot ask.
   - *Preconditions:* Deck loaded
   - *Priority:* High
 - [ ] **TC-7.2 Play a deck-local mode offline.** Start Speedrun (and Smart play /

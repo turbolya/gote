@@ -461,12 +461,18 @@ export default function App() {
   // card. Including this in the key forces the reset.
   const [loopNonce, setLoopNonce] = useState(0);
 
-  // "Pick the right one" mode: each round's options are fetched per-card.
+  // The photo-grid question: each round's options are fetched per-card. Reached
+  // from Smart play, which is the only mode that asks it since By picture left
+  // the menu.
   const [pickRound, setPickRound] = useState(null);
   const [pickLoading, setPickLoading] = useState(false);
   const [pickError, setPickError] = useState(null);
   // Guards against a slow fetch landing after the user already moved on.
   const pickReqRef = useRef(0);
+  // Whether the current round was narrowed to photo questions ONLY — the round
+  // By picture used to be. Changes what happens to a card that cannot build a
+  // grid; see routeSmart.
+  const photosOnlyRef = useRef(false);
 
   // Per-species tallies for the statistics page. `speciesRef` is the live copy
   // we mutate as cards are graded; `speciesStats` is the snapshot for display.
@@ -1067,27 +1073,6 @@ export default function App() {
     if (onExhausted) onExhausted();
   }, [locale]);
 
-  const startPick = useCallback(() => {
-    replayRef.current = startPick;
-    finishedRef.current = false;
-    roundDeltaRef.current = {}; // see startRound
-    confusionDeltaRef.current = {};
-    formatDeltaRef.current = {};
-
-    const roundDeck = shuffle(fullDeck);
-    setMode('pick');
-    setRoundLabel('Pick the right one');
-    setDeck(roundDeck);
-    setRoundPool(roundDeck); // for a multiple-choice revisit of missed cards
-    setIndex(0);
-    setCorrectCount(0);
-    setMissed([]);
-    setScreen('pick');
-    prepPickRound(roundDeck, 0, () => {
-      setPickError('Not enough look-alike data to play right now.');
-    });
-  }, [fullDeck, prepPickRound]);
-
   // Look-alikes this player has actually confused with a species. Declared
   // HERE, above its first consumer: planSmart and pairPartnerFor both list it in
   // their dependency arrays, which are evaluated during render, so declaring it
@@ -1171,6 +1156,25 @@ export default function App() {
         return;
       }
       setScreen('pick');
+
+      // A round the player narrowed to photos only is what By picture used to
+      // be, and it behaves like it did: a card with too few look-alikes is
+      // SKIPPED, and the round moves on to one that works. Downgrading it to a
+      // name list would answer a question they explicitly turned off.
+      //
+      // In a mixed round the opposite is right. There the plan decided this
+      // card's format in advance, so jumping to a different card would pull the
+      // deck out of step with the plan; the card is downgraded in place and the
+      // round keeps its shape.
+      if (photosOnlyRef.current) {
+        prepPickRound(cards, i, () => {
+          // Nothing left in the deck that can make a photo round. Same message
+          // By picture showed, and the screen's Skip button ends it.
+          setPickError('Not enough look-alike data to play right now.');
+        });
+        return;
+      }
+
       prepPickRound(cards, i, () => {
         // Downgrade this one card and hand it back to the study screen.
         const plan = [...(formatPlanRef.current || [])];
@@ -1185,6 +1189,12 @@ export default function App() {
   const startSmart = useCallback(
     (groups, count, flaggedOnly, chosenTypes, setup) => {
       rememberSetup('smart', setup);
+      // Read by routeSmart, which runs from callbacks that would otherwise
+      // close over a stale copy.
+      photosOnlyRef.current =
+        Array.isArray(chosenTypes) &&
+        chosenTypes.length === 1 &&
+        chosenTypes[0] === FORMAT.PICTURE;
       let pool =
         groups && groups.length
           ? playableDeck.filter((c) => groups.includes(groupKey(c.iconic)))
@@ -1217,12 +1227,11 @@ export default function App() {
   const onSelectMode = useCallback(
     (m) => {
       if (m === 'speedrun') startSpeedrun();
-      else if (m === 'pick') startPick();
       else if (m === 'flash') setScreen('flash');
       else if (m === 'nearby') setScreen('nearby');
       else if (m === 'smart') setScreen('smart');
     },
-    [startSpeedrun, startPick]
+    [startSpeedrun]
   );
 
   const finishRound = useCallback(async (finalCorrect, finalMissed, total) => {
@@ -1306,7 +1315,6 @@ export default function App() {
   const formatForCard = useCallback(
     (i = index) => {
       if (formatPlan && formatPlan[i]) return formatPlan[i];
-      if (mode === 'pick') return FORMAT.PICTURE;
       if (mode === 'flash') return FORMAT.FLASH;
       return FORMAT.NAME;
     },
@@ -1920,6 +1928,10 @@ export default function App() {
             title="Smart play"
             flags={flags}
             questionTypes={SMART_QUESTION_TYPES}
+            // The photo grid needs four other species' pictures fetched live,
+            // so it is the one question that cannot run offline. By picture used
+            // to be dimmed on the menu for exactly this; now the chip is.
+            unavailableTypes={offline ? [FORMAT.PICTURE] : null}
             // The screenshots build always opens on the defaults: those runs
             // reuse a cached install rather than a fresh one, so a setup left
             // behind by the previous run would quietly change what gets

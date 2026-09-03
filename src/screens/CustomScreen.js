@@ -27,6 +27,11 @@ export default function CustomScreen({
   // applied blindly — the deck it was saved against may have changed shape
   // since (see src/roundsetup.js).
   initial = null,
+  // Question types that cannot run right now whatever the player picks — the
+  // photo grid offline, which needs four other species' pictures fetched live.
+  // Shown, but not selectable: hiding them would make the offline picker look
+  // like a different screen.
+  unavailableTypes = null,
 }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -41,21 +46,34 @@ export default function CustomScreen({
   // so narrowing it is the deliberate act, not the starting point. Once the
   // player HAS narrowed it and played that round, it opens there instead —
   // otherwise a one-type round is a fresh five taps every time.
+  const blocked = useMemo(() => new Set(unavailableTypes || []), [unavailableTypes]);
   const [types, setTypes] = useState(
-    () => new Set(restoreTypes(initial, (questionTypes || []).map((t) => t.key)))
+    () => new Set(restoreTypes(initial, (questionTypes || []).map((t) => t.key), unavailableTypes))
   );
   const toggleType = (key) => {
+    if (blocked.has(key)) return;
     setTypes((prev) => {
       // Refuse to turn off the last one rather than letting the player reach a
       // round with no possible question. Disabling Start instead would be a
-      // dead end they have to reason their way out of.
-      if (prev.size === 1 && prev.has(key)) return prev;
+      // dead end they have to reason their way out of. Counted over the types
+      // that can actually run, so a blocked one is not the "last" survivor.
+      const on = [...prev].filter((k) => !blocked.has(k));
+      if (on.length === 1 && on[0] === key) return prev;
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
     });
   };
+
+  // What the round will actually be asked in. A type blocked since the setup
+  // was saved (the connection dropped while the picker was open) is not passed
+  // on as if the player had chosen it.
+  const activeTypes = useMemo(() => {
+    const on = [...types].filter((k) => !blocked.has(k));
+    if (on.length) return on;
+    return (questionTypes || []).map((t) => t.key).filter((k) => !blocked.has(k));
+  }, [types, blocked, questionTypes]);
 
   // How many distinct flagged species exist in this deck (for the toggle label).
   const flaggedCount = useMemo(() => {
@@ -226,16 +244,18 @@ export default function CustomScreen({
             <Text style={[styles.label, { marginTop: 28 }]}>Question types</Text>
             <View style={styles.typeWrap}>
               {questionTypes.map((t) => {
-                const on = types.has(t.key);
+                const off = blocked.has(t.key);
+                const on = !off && types.has(t.key);
                 return (
                   <Pressable
                     key={t.key}
                     testID={`smart-type-${t.key}`}
                     onPress={() => toggleType(t.key)}
-                    style={[styles.typeChip, on && styles.typeChipOn]}
+                    disabled={off}
+                    style={[styles.typeChip, on && styles.typeChipOn, off && styles.typeChipOff]}
                   >
                     <Icon
-                      name={on ? 'checkmark-circle' : 'ellipse-outline'}
+                      name={off ? 'cloud-offline-outline' : on ? 'checkmark-circle' : 'ellipse-outline'}
                       size={17}
                       color={on ? colors.primary : colors.muted}
                     />
@@ -249,6 +269,9 @@ export default function CustomScreen({
             <Text style={styles.typeHint}>
               All on lets the round pick whichever fits each species best. Turn
               some off to drill one kind — the last one can’t be turned off.
+              {blocked.size > 0
+                ? ' Choosing the photo needs a connection: it fetches four other species’ photos for every card.'
+                : ''}
             </Text>
           </>
         )}
@@ -300,14 +323,14 @@ export default function CustomScreen({
               [...selected],
               Math.min(count, available),
               flaggedOnly,
-              [...types],
+              activeTypes,
               // What to reopen on next time. Emitted here, on Start, and
               // nowhere else: a picker the player only looked at and backed out
               // of should not change what they play next.
               packSetup({
                 groups: [...selected],
                 allGroups: groups.map((g) => g.key),
-                types: [...types],
+                types: activeTypes,
                 allTypes: (questionTypes || []).map((t) => t.key),
                 count,
                 available,
@@ -353,6 +376,7 @@ const makeStyles = (colors) => StyleSheet.create({
     backgroundColor: colors.card,
   },
   typeChipOn: { borderColor: colors.primary, backgroundColor: colors.faint },
+  typeChipOff: { opacity: 0.45 },
   typeChipText: { fontSize: 14, color: colors.muted, fontWeight: '600' },
   typeChipTextOn: { color: colors.text, fontWeight: '700' },
   typeHint: { fontSize: 12, color: colors.muted, marginTop: 8, lineHeight: 17 },

@@ -15,7 +15,7 @@
 // That is a constraint on the test, not on the user — the tour scrolls its own
 // target into view, which is what makes tapping it directly work here.
 const { by, device, element, expect, waitFor } = require('detox');
-const { visible, tap, tapScroll, TIMEOUT } = require('./helpers');
+const { visible, exists, tap, tapScroll, TIMEOUT } = require('./helpers');
 
 // Let a freshly-navigated screen finish animating in.
 //
@@ -27,6 +27,21 @@ async function settle(ms = 450) {
   await new Promise((r) => setTimeout(r, ms));
 }
 
+// Tap a control the tour is pointing at, through the dimmed backdrop.
+//
+// The settle is the point of the helper. Detox's toBeVisible passes at 75%, and
+// the tour scrolls its target into view on the step's first measurement — so a
+// row that is already three-quarters on screen satisfies `visible` while the
+// tour is still moving it. Detox then aims the tap at where the row WAS, the
+// row travels out from under it, and the touch lands on the sealed band beside
+// the spotlight instead. Nothing is wrong with the overlay when this happens:
+// let it come to rest and the same tap works, which is all a real finger does.
+async function tapSpotlight(id) {
+  await visible(id);
+  await settle();
+  await element(by.id(id)).tap();
+}
+
 // Settings → Take the tutorial. Lands back on the menu with step 1 up.
 async function startTutorial() {
   await visible('mode-smart');
@@ -36,6 +51,31 @@ async function startTutorial() {
   await settle();
   await tapScroll('settings-tutorial', 'settings-scroll');
   await visible('tutorial-bubble');
+}
+
+// Leave the Smart play picker set to photo questions only, by starting such a
+// round and walking straight back out. Nothing about the round matters; the
+// point is the setup it persists, which the picker reopens on (src/roundsetup.js
+// — remembered on Start, which is why this has to start one rather than just
+// tick the chips).
+//
+// Runs before the tour, on the fresh install each case already gets, so the
+// chips are in their default all-on state and turning three off is exact.
+async function seedPhotoOnlySetup() {
+  await visible('mode-smart');
+  await settle();
+  await tapScroll('mode-smart', 'menu-scroll');
+  await visible('custom-start');
+  await tap('smart-type-name');
+  await tap('smart-type-pair');
+  await tap('smart-type-typed');
+  await tap('custom-start');
+  await visible('pick-screen');
+  await tap('pick-end');
+  await visible('results-menu');
+  await tap('results-menu');
+  await visible('mode-smart');
+  await settle();
 }
 
 // The progress line is styled uppercase, and textTransform happens natively —
@@ -109,7 +149,7 @@ describe('Guided tour', () => {
     // Exit as the only way out.
     await expect(element(by.id('tutorial-block')).atIndex(0)).toExist();
     // …and the spotlight is still a hole, not a picture of one.
-    await element(by.id('open-settings')).tap();
+    await tapSpotlight('open-settings');
     await visible('settings-username');
     await atStep(3);
   });
@@ -124,16 +164,14 @@ describe('Guided tour', () => {
     // That is exactly the situation a user creates by wandering off.
     await startTutorial();
     await tap('tutorial-next'); // → 2, open Settings
-    await visible('open-settings'); // the tour scrolls it into view
-    await element(by.id('open-settings')).tap();
+    await tapSpotlight('open-settings'); // the tour scrolls it into view
     await atStep(3); // the username step, on Settings
 
     await device.launchApp({ newInstance: true }); // reopens on the menu…
     await device.disableSynchronization();
     await atStep(4); // …which is what step 3 was waiting for
 
-    await visible('mode-smart');
-    await element(by.id('mode-smart')).tap();
+    await tapSpotlight('mode-smart');
     await atStep(5); // "tap Start", on the Smart play screen
 
     await device.launchApp({ newInstance: true });
@@ -169,34 +207,37 @@ describe('Guided tour', () => {
     // Results used to be a QUIET_SCREEN, so the tour vanished on the one screen
     // where the user stops and decides what to do next — indistinguishable from
     // the tour having died.
-    // Getting to a menu where the tour is WAITING takes some care: every step
-    // that lives on the menu seals it, and relaunching at step 3 lands on the
-    // menu, which is the very arrival step 3 is waiting for. So walk to step 5,
-    // which lives on the Smart play screen, and come back.
+    //
+    // The round this plays is a PHOTO round, and that is load-bearing. Step 5
+    // spotlights Start on the Smart play screen and advances when the study
+    // screen appears; a photo question lands on `pick` instead, which no step
+    // waits for. So the tour neither advances nor seals, and we get what the
+    // test needs: a real round in play with the tour merely waiting.
+    //
+    // Which format comes up is otherwise a weighted draw, so it is pinned the
+    // way a player would pin it — the picker reopens on the last setup that was
+    // STARTED, so we start a photo-only round first and the tour's own Start
+    // button inherits it.
+    await seedPhotoOnlySetup();
+
     await startTutorial();
     await tap('tutorial-next'); // → 2, open Settings
-    await visible('open-settings');
-    await element(by.id('open-settings')).tap();
+    await tapSpotlight('open-settings');
     await atStep(3);
 
     await device.launchApp({ newInstance: true });
     await device.disableSynchronization();
     await atStep(4); // arriving on the menu satisfied step 3
-    await visible('mode-smart');
-    await element(by.id('mode-smart')).tap();
-    await atStep(5); // lives on Smart play
+    await tapSpotlight('mode-smart');
+    await atStep(5); // lives on Smart play, spotlighting Start
 
-    await device.launchApp({ newInstance: true });
-    await device.disableSynchronization();
-    await visible('mode-smart');
-    await visible('tutorial-waiting'); // …so the menu is only waiting, unsealed
-    await expect(element(by.id('tutorial-block')).atIndex(0)).not.toExist();
-
-    // "By picture" lands on `pick`, which no step waits for — so the tour does
-    // not advance, and we can play a round without the seal getting in the way.
-    await tapScroll('mode-pick', 'menu-scroll');
+    // Tapped through the dimmed backdrop, like every other spotlit control.
+    await tapSpotlight('custom-start');
     await visible('pick-screen');
-    // `pick` is a round in play, so the tour is deliberately silent here.
+    await exists('e2e-pick-answer'); // the round actually built
+
+    // A round in play, so the tour is deliberately silent — and crucially not
+    // sealed: it has not advanced, it is simply somewhere it is not needed.
     await expect(element(by.id('tutorial-waiting'))).not.toExist();
     await expect(element(by.id('tutorial-bubble'))).not.toExist();
     await expect(element(by.id('tutorial-block')).atIndex(0)).not.toExist();

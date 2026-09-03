@@ -42,8 +42,16 @@ export function restoreGroups(saved, allGroups = []) {
 
 // Same, for the question types. `allTypes` is empty for the modes that ask one
 // kind of question by definition, and then there is nothing to restore.
-export function restoreTypes(saved, allTypes = []) {
-  const all = list(allTypes) || [];
+//
+// `unavailable` is for types that cannot run right now for a reason that has
+// nothing to do with what the player wants — offline, where the photo grid
+// needs four other species' pictures fetched live. Those are dropped from the
+// restored set rather than silently kept, because a selection that cannot
+// produce the round it names is worse than no selection: the round starts and
+// quietly asks something else.
+export function restoreTypes(saved, allTypes = [], unavailable = []) {
+  const off = new Set(list(unavailable) || []);
+  const all = (list(allTypes) || []).filter((k) => !off.has(k));
   const want = saved ? list(saved.types) : null;
   if (!want) return all;
   const kept = want.filter((k) => all.includes(k));

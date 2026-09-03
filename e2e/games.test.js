@@ -39,6 +39,20 @@ async function startNameRound() {
   await tap('custom-start');
 }
 
+// The photo round — a name at the top, four photos below — which used to be the
+// "By picture" menu entry. Same shape as startNameRound, and clean-installed for
+// the same reason.
+async function startPhotoRound() {
+  await device.launchApp({ newInstance: true, delete: true });
+  await device.disableSynchronization();
+  await tapMode('smart');
+  await visible('custom-start');
+  await tap('smart-type-name');
+  await tap('smart-type-pair');
+  await tap('smart-type-typed');
+  await tap('custom-start');
+}
+
 describe('Game modes', () => {
   beforeAll(async () => {
     await device.launchApp({ newInstance: true });
@@ -120,8 +134,8 @@ describe('Game modes', () => {
     await visible('results-menu');
   });
 
-  it('Pick the right one: match the correct photo', async () => {
-    await tapMode('pick');
+  it('Photo questions: match the correct photo', async () => {
+    await startPhotoRound();
     await visible('pick-screen');
     await exists('e2e-pick-answer'); // round loaded
     await tapCorrectPhoto();

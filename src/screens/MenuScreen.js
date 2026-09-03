@@ -29,9 +29,11 @@ import { IS_E2E } from '../e2e/testMode';
 import { useAnchorRef, useTutorialScroller } from '../components/Tutorial';
 
 // Modes that need a live network call to build a round, so they can't run
-// offline at all: Nearby (a place query) and By picture (curated photos per
-// round). The rest play from the already-loaded deck.
-const ONLINE_ONLY = new Set(['nearby', 'pick']);
+// offline at all: Nearby, which is a place query. The rest play from the
+// already-loaded deck. (Smart play's photo-grid question needs the network too,
+// but only that one question — its own picker greys the chip out rather than
+// the whole mode.)
+const ONLINE_ONLY = new Set(['nearby']);
 
 // The hero gradient is the brand teal in both themes (white text reads well on
 // it either way), so it's intentionally not theme-dependent. Three stops give it
@@ -268,7 +270,6 @@ export default function MenuScreen({
 
   const playModes = [
     { key: 'smart', anchor: 'mode-smart', icon: 'sparkles-outline', accent: accents.rose, title: 'Smart play', sub: 'Mixed questions, picked for what you know' },
-    { key: 'pick', icon: 'apps-outline', accent: accents.blue, title: 'By picture', sub: 'See a name, choose its photo' },
     { key: 'speedrun', icon: 'flash', accent: accents.amber, title: 'Speedrun', sub: `Endless cards — survive ${SPEEDRUN_LIVES} misses` },
     { key: 'nearby', anchor: 'mode-nearby', icon: 'compass-outline', accent: accents.teal, title: 'Nearby species', sub: 'Learn species typical to a place' },
   ];
@@ -318,8 +319,8 @@ export default function MenuScreen({
         <View style={styles.group}>
           {playModes.map(({ key, sub, ...rest }, i) => {
             // Two reasons a mode is unavailable offline:
-            //  • Nearby / By picture need live API calls (a place query, or
-            //    curated photos per round), so they can't run at all.
+            //  • Nearby needs a live API call (a place query), so it can't run
+            //    at all.
             //  • The deck-local modes CAN run offline, but only from cards whose
             //    photos are downloaded — if none are, there's nothing to play.
             const onlineOnly = offline && ONLINE_ONLY.has(key);

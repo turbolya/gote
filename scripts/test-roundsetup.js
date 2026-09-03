@@ -78,6 +78,20 @@ t('restoreTypes: no question types offered means nothing to restore', () => {
   assert.deepEqual(restoreTypes({ types: ['name'] }, []), []);
 });
 
+t('restoreTypes: a type that cannot run now is dropped', () => {
+  // Offline, the photo grid needs four other species' pictures fetched live.
+  assert.deepEqual(restoreTypes({ types: ['name', 'picture'] }, ALL_TYPES, ['picture']), ['name']);
+});
+
+t('restoreTypes: an all-unavailable selection falls back to what CAN run', () => {
+  // Never the whole list: it would put the impossible type straight back.
+  assert.deepEqual(
+    restoreTypes({ types: ['picture'] }, ALL_TYPES, ['picture']),
+    ['name', 'pair', 'typed']
+  );
+  assert.deepEqual(restoreTypes(null, ALL_TYPES, ['picture']), ['name', 'pair', 'typed']);
+});
+
 t('restoreTypes: unknown types are dropped, all-gone falls back to all', () => {
   assert.deepEqual(restoreTypes({ types: ['name', 'morse'] }, ALL_TYPES), ['name']);
   assert.deepEqual(restoreTypes({ types: ['morse'] }, ALL_TYPES), ALL_TYPES);
