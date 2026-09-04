@@ -322,7 +322,12 @@ export default function MenuScreen({
           />
         )}
 
-        <Text style={styles.section}>Play</Text>
+        {/* The three section labels (Play / Learn / Settings) are gone: they
+            named what the rows under them plainly are, and on a menu this short
+            they were three lines of shouting above nine words of content. The
+            grouping they carried is carried by a rule instead — except here,
+            where there is nothing above to be separated from. */}
+        <View style={styles.firstGroup} />
         {/* Smart play is played from here, not navigated to — see SmartCard. It
             sits above the other modes because it is the one most rounds start
             from, and because a card among rows reads as the primary action. */}
@@ -361,13 +366,13 @@ export default function MenuScreen({
           })}
         </View>
 
-        <Text style={styles.section}>Learn</Text>
+        <View style={styles.sectionRule} />
         <View style={styles.group}>
           <Row first index={0} testID="mode-flash" icon="documents-outline" accent={accents.indigo} title="Flash cards" sub={noOfflineCards ? 'No downloaded photos yet' : 'Reveal the answer, then grade yourself'} disabled={noOfflineCards} onPress={() => onSelectMode('flash')} />
           <Row index={1} testID="open-lexicon" icon="library-outline" accent={accents.teal} title="Lexicon" sub="Browse all your species" onPress={onLexicon} />
         </View>
 
-        <Text style={styles.section}>Settings</Text>
+        <View style={styles.sectionRule} />
         <View style={styles.group}>
           <Row first testID="open-settings" anchor="open-settings" icon="settings-outline" accent={accents.slate} title="Settings" sub="Account, language and study options" onPress={onSettings} />
         </View>
@@ -521,16 +526,21 @@ const makeStyles = (colors) => StyleSheet.create({
   },
 
   // Minimal sections
-  section: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.primaryDark,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+  // The rule between sections. Deliberately the SAME hairline as the divider
+  // between two rows (rowDivider), so the menu has one line weight rather than
+  // a hierarchy of strokes competing with the hero. What makes it read as a
+  // section break instead of a row break is the air around it — about the
+  // height the section label used to take, so the rhythm of the page is
+  // unchanged by their removal.
+  sectionRule: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
     marginTop: 22,
-    marginBottom: 4,
-    marginLeft: 2,
+    marginBottom: 21,
   },
+  // What the "Play" label used to hold open above the first card. Without it
+  // the card would start hard against the hero.
+  firstGroup: { height: 14 },
   group: {},
   groupAfterCard: { marginTop: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 15 },

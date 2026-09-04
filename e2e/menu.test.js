@@ -16,8 +16,10 @@ describe('Menu & navigation', () => {
     await device.disableSynchronization();
   });
 
-  it('lands on the menu with every entry across the three sections', async () => {
-    // Play, Learn, then Settings (top → bottom); scroll to reach lower ones.
+  it('lands on the menu with every entry, top to bottom', async () => {
+    // The three groups used to be labelled Play / Learn / Settings; they are
+    // separated by a rule now, so this walks the entries themselves rather than
+    // any heading. Scroll to reach the lower ones.
     for (const id of [
       'mode-smart', // Smart play
       'mode-speedrun',

@@ -15,6 +15,9 @@ export const CHANGELOG = [
     version: '2.43.1',
     date: '2026-09-04',
     changes: [
+      'The menu has lost its PLAY, LEARN and SETTINGS headings. They named what '
+        + 'the rows under them plainly are, so the groups are simply separated '
+        + 'by a thin line now and the whole menu is shorter.',
       'The tutorial now asks which language you want species names in, right '
         + 'after it opens Settings and before it asks for your iNaturalist '
         + 'username — which is the useful order, because the name language '
