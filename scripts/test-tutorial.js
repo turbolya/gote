@@ -253,12 +253,22 @@ head('the tour asks for the right things');
   // Spelled out rather than derived: this IS the tour, and changing it should
   // be a visible diff, not an accident.
   eq('the order', STEPS.map((s) => s.id), [
-    'welcome', 'openSettings', 'username', 'smart', 'smartStart',
+    'welcome', 'openSettings', 'language', 'username', 'smart', 'smartStart',
     'morePhotos', 'stats', 'statsTour', 'nearby', 'openSettings2', 'sync', 'done',
   ]);
   const byId = Object.fromEntries(STEPS.map((s) => [s.id, s]));
   eq('it sends the user to Settings for a username', byId.openSettings.advance, { screen: 'settings' });
+  eq('the language step is on Settings', byId.language.screen, 'settings');
   eq('the username step is on Settings', byId.username.screen, 'settings');
+  // The language decides what the deck loaded by the username is LABELLED in,
+  // so asking for it second would mean fetching that deck twice.
+  ok(
+    'the language is asked before the username',
+    STEPS.findIndex((s) => s.id === 'language') < STEPS.findIndex((s) => s.id === 'username')
+  );
+  // Optional, deliberately: most people keep the default, and an arrival-shaped
+  // step would make changing a setting the only way past it.
+  eq('and it can be passed without changing anything', byId.language.advance, 'next');
   eq('it then plays a smart round', byId.smartStart.advance, { screen: 'study' });
   eq('started from the menu card itself', byId.smartStart.anchor, 'smart-start');
   eq('the alternative photos are shown in a round', byId.morePhotos.screen, 'study');
@@ -310,7 +320,14 @@ head('a user who wanders off is not lost');
   eq('wandering does not advance it', currentStep(onScreen(s, 'lexicon')).id, 'openSettings');
   eq('nor does arriving somewhere else entirely', currentStep(onScreen(s, 'changelog')).id, 'openSettings');
   s = onScreen(s, 'settings');
-  eq('arriving where it points does', currentStep(s).id, 'username');
+  eq('arriving where it points does', currentStep(s).id, 'language');
+  // The language step ends on a button, so leaving Settings does NOT pass it.
+  // That is not a trap: the bar on the menu says where to go back to, which is
+  // the same contract every other button step on a non-menu screen has.
+  eq('a button step is not passed by leaving', currentStep(onScreen(s, 'menu')).id, 'language');
+  eq('and the bar says where to go back to', view(onScreen(s, 'menu'), 'menu').text, WAITING.settings);
+  s = advance(s); // read it, tapped Next
+  eq('past the language step is the username', currentStep(s).id, 'username');
   // Backing out of Settings without saving still moves the tour on — the user
   // has plainly decided to keep the demo account.
   s = onScreen(s, 'menu');

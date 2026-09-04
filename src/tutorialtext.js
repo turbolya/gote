@@ -25,6 +25,10 @@ export const STEP_TEXT = {
     title: 'Start here',
     body: 'Open Settings — first we will point gote at your own observations.',
   },
+  language: {
+    title: 'Your language',
+    body: 'Species names come from iNaturalist — choose the language you want them in.',
+  },
   username: {
     title: 'Your species',
     body: `Type your iNaturalist username and tap Save — or keep ${DEFAULT_USERNAME} for now if you have no account.`,

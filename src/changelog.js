@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.43.0';
+export const APP_VERSION = '2.43.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.43.1',
+    date: '2026-09-04',
+    changes: [
+      'The tutorial now asks which language you want species names in, right '
+        + 'after it opens Settings and before it asks for your iNaturalist '
+        + 'username — which is the useful order, because the name language '
+        + 'decides what the deck your username loads will be labelled in. You '
+        + 'can tap past it and keep English.',
+    ],
+  },
   {
     version: '2.43.0',
     date: '2026-09-03',

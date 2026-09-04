@@ -517,7 +517,7 @@ of its cases cannot be reached again without deleting the app.
   - *Preconditions:* App deleted from the device and reinstalled, so no saved
     data exists. Device online.
   - *Priority:* High
-  - *Expected:* The tour opens on its own at step "1 of 12", titled "Welcome to
+  - *Expected:* The tour opens on its own at step "1 of 13", titled "Welcome to
     gote". The rest of the screen is dimmed. No spotlight ring is shown,
     because this step points at nothing in particular.
 - [ ] **TC-8.2 The tour does not reappear once it has been seen.**
@@ -531,7 +531,7 @@ of its cases cannot be reached again without deleting the app.
   1. Note the step number in the bubble.
   2. Force-quit the app from the app switcher.
   3. Relaunch it.
-  - *Preconditions:* Tour running, stopped part-way (e.g. at step 4).
+  - *Preconditions:* Tour running, stopped part-way (e.g. at step 5).
   - *Priority:* High
   - *Expected:* The tour is at the same step number as before. If that step
     lives on a screen other than the menu, the tutorial bar appears instead,
@@ -552,7 +552,7 @@ of its cases cannot be reached again without deleting the app.
   - *Expected:* Device B still runs the tour on its first launch. "Have I been
     shown around this phone" is a property of the device, not the account. ---
 
-## 9. Tour: the twelve steps
+## 9. Tour: the thirteen steps
 
 - [ ] **TC-9.1 Step 2 scrolls the Settings row into view before pointing at it.**
   1. Without scrolling the menu yourself, tap "Next".
@@ -588,113 +588,131 @@ of its cases cannot be reached again without deleting the app.
     buttons, so the step cannot be side-stepped or scrolled out from under.
     "Exit tutorial" still works, which is what stops sealing the screen from
     trapping anyone.
-- [ ] **TC-9.4 Step 3 leaves the username field AND the Save button usable.**
+- [ ] **TC-9.4 Step 4 leaves the username field AND the Save button usable.**
   1. Read the bubble ("Type your iNaturalist username and tap Save — or keep
      loarie for now if you have no account").
   2. Look at what the spotlight contains.
   3. Type your own iNaturalist username into the field.
   4. Tap Save.
-  - *Preconditions:* Tour at step 3, on Settings.
+  - *Preconditions:* Tour at step 4, on Settings.
   - *Priority:* High
   - *Expected:* The spotlight covers the field, its hint line and the Save
     button together — everything the bubble mentions is lit and reachable, and
     the bubble sits clear of all of it. Typing works with the keyboard up, the
     deck reloads, and the app returns to the menu with the tour advanced to
-    step 4.
+    step 5.
 - [ ] **TC-9.5 The keyboard does not leave the bubble stranded.**
   1. Tap the username field so the keyboard rises.
   2. Watch the bubble and the spotlight.
-  - *Preconditions:* Tour at step 3, on Settings.
+  - *Preconditions:* Tour at step 4, on Settings.
   - *Expected:* Both follow the field as the screen shifts, staying attached to
     it. Neither is left behind at the old position or hidden behind the
     keyboard.
 - [ ] **TC-9.6 Backing out of Settings without saving still moves the tour on.**
   1. Do not type anything. Tap "Menu" at the top left.
-  - *Preconditions:* Tour at step 3, on Settings.
-  - *Expected:* The tour advances to step 4 and points at Smart play. Choosing
+  - *Preconditions:* Tour at step 4, on Settings.
+  - *Expected:* The tour advances to step 5 and points at Smart play. Choosing
     to keep the demo account is a decision, not a failure to comply.
-- [ ] **TC-9.7 Steps 4 and 5 lead into a real round.**
-  1. Tap the spotlit "Smart play" row.
-  2. On the Smart play screen, note where the bubble sits, then tap the spotlit
-     Start button.
-  - *Preconditions:* Tour at step 4 on the menu, device online.
+- [ ] **TC-9.7 Steps 5 and 6 lead into a real round.**
+  1. Read step 5, pointing at the Smart play card, and tap "Next".
+  2. Note where step 6's bubble sits, then tap the spotlit Start button on the
+     card.
+  - *Preconditions:* Tour at step 5 on the menu, device online.
   - *Priority:* High
-  - *Expected:* Step 5 points at Start with the bubble above it (Start sits at
+  - *Expected:* Step 6 points at Start with the bubble above it (Start sits at
     the bottom of the screen). Tapping Start begins a round and the tour
-    advances to step 6.
-- [ ] **TC-9.8 Step 6 points at the more-photos button during a live round.**
+    advances to step 7.
+- [ ] **TC-9.8 Step 7 points at the more-photos button during a live round.**
   1. Look at the bottom-left corner of the card.
   2. Tap the spotlit grid button.
   3. Scroll the grid, then tap one of the photos.
   4. Tap back, then close the viewer.
   5. Tap "Next" in the bubble.
-  - *Preconditions:* Tour at step 6, a Smart play round in progress.
+  - *Preconditions:* Tour at step 7, a Smart play round in progress.
   - *Priority:* High
   - *Expected:* The grid button is spotlit and the bubble sits above it, clear
     of the answer choices. Tapping it opens a scrollable grid of that species'
     photos — the set, which is what the button is about. Tapping a photo opens
     it full-screen; back returns to the grid, close leaves the viewer, and the
-    card is underneath with the bubble still up. "Next" advances to step 7.
+    card is underneath with the bubble still up. "Next" advances to step 8.
     (The grid itself is covered in more detail by TC-3.1 to TC-3.5.)
 - [ ] **TC-9.9 The tour stays out of the way for the rest of the round.**
   1. Answer every remaining card in the round.
   2. Pass through the results screen back to the menu.
-  - *Preconditions:* Step 6 dismissed, round still in progress.
+  - *Preconditions:* Step 7 dismissed, round still in progress.
   - *Priority:* High
   - *Expected:* No bubble and no tutorial bar appear at any point while cards
     are being answered — a coach mark on top of a card is a bug. On the results
     screen the slim tutorial bar DOES come back, naming the menu as where to go
     next: results is the one moment mid-round where the user is idle and
     choosing what to do, and a tour that vanishes there reads as a tour that has
-    died. Back on the menu, step 7's bubble is up.
-- [ ] **TC-9.10 Step 7 opens Statistics from the banner.**
+    died. Back on the menu, step 8's bubble is up.
+- [ ] **TC-9.10 Step 8 opens Statistics from the banner.**
   1. Tap the spotlit accuracy banner.
-  - *Preconditions:* Tour at step 7 on the menu.
-  - *Expected:* Statistics opens and the tour advances to step 8, whose bubble
+  - *Preconditions:* Tour at step 8 on the menu.
+  - *Expected:* Statistics opens and the tour advances to step 9, whose bubble
     is centred (it describes the whole screen rather than one control).
-- [ ] **TC-9.11 Step 9 does not force the location permission.**
+- [ ] **TC-9.11 Step 10 does not force the location permission.**
   1. Read the bubble about Nearby species.
   2. Tap "Next" without tapping the Nearby row.
-  - *Preconditions:* Tour at step 9 on the menu, location permission not yet
+  - *Preconditions:* Tour at step 10 on the menu, location permission not yet
     granted.
   - *Priority:* High
-  - *Expected:* The tour advances to step 10 with no permission prompt. Nobody
+  - *Expected:* The tour advances to step 11 with no permission prompt. Nobody
     should have to grant location access to finish a tutorial.
-- [ ] **TC-9.12 Step 11 points at Sync, and step 12 ends the tour.**
+- [ ] **TC-9.12 Step 12 points at Sync, and step 13 ends the tour.**
   1. Tap the spotlit Settings row.
-  2. Read step 11, pointing at "Sync across devices".
+  2. Read step 12, pointing at "Sync across devices".
   3. Tap "Next".
-  4. Read step 12 and tap "Done".
-  - *Preconditions:* Tour at step 10 on the menu.
+  4. Read step 13 and tap "Done".
+  - *Preconditions:* Tour at step 11 on the menu.
   - *Priority:* High
-  - *Expected:* Step 11's spotlight is on the Sync row. Step 12's button reads
+  - *Expected:* Step 12's spotlight is on the Sync row. Step 13's button reads
     "Done", not "Next". Tapping it removes the overlay entirely; Settings is
     left as normal, with nothing dimmed.
 - [ ] **TC-9.13 Tapping the spotlit Sync row counts as doing the step.**
   1. Tap the spotlit "Sync across devices" row instead of tapping Next.
   2. Look at the Sync screen.
   3. Tap back to Settings.
-  - *Preconditions:* Tour at step 11, on Settings.
-  - *Expected:* The Sync screen opens and the tour moves on to step 12. The bar
+  - *Preconditions:* Tour at step 12, on Settings.
+  - *Expected:* The Sync screen opens and the tour moves on to step 13. The bar
     on the Sync screen therefore reads "Tutorial · open Settings to continue"
-    for step 12, and going back shows step 12's bubble ("That is the tour",
-    with a Done button) — not step 11's again. Step 11 keeps its Next button
+    for step 13, and going back shows step 13's bubble ("That is the tour",
+    with a Done button) — not step 12's again. Step 12 keeps its Next button
     because sync is opt-in, but opening the thing the step points at is doing
     the step.
-- [ ] **TC-9.14 Opening Nearby from step 9 counts as doing it.**
+- [ ] **TC-9.14 Opening Nearby from step 10 counts as doing it.**
   1. Tap the spotlit "Nearby species" row instead of tapping Next.
   2. Look at the place-picking screen.
   3. Go back to the menu.
-  - *Preconditions:* Tour at step 9 on the menu, with the "Nearby species" row
+  - *Preconditions:* Tour at step 10 on the menu, with the "Nearby species" row
     spotlit.
   - *Priority:* High
-  - *Expected:* Nearby opens and the tour moves on to step 10: the bar reads
+  - *Expected:* Nearby opens and the tour moves on to step 11: the bar reads
     "Tutorial · go back to the menu to continue", and returning to the menu
-    shows step 10 pointing at the Settings row. It must not still be asking for
+    shows step 11 pointing at the Settings row. It must not still be asking for
     Nearby. The spotlight is the only live control on a sealed screen and every
     action step before this one has been advanced by tapping it, so tapping it
     here is the natural move — being sent back to the same row is a loop whose
     only exit is a button nobody has needed since step 1. ---
+- [ ] **TC-9.15 Step 3 asks for a name language before the username.**
+  1. Arrive on Settings from step 2 and watch what the tour does next.
+  2. Read the bubble ("Species names come from iNaturalist — choose the
+     language you want them in").
+  3. Open the picker, choose a language, then tap "Next".
+  4. Restart the tour, reach step 3 again, and this time tap "Next" without
+     touching the picker.
+  5. Reach step 3 once more, then leave Settings with "Menu" instead.
+  - *Preconditions:* Tour at step 2 on the menu.
+  - *Priority:* High
+  - *Expected:* The Settings screen **scrolls down on its own** to the "Species
+    name language" section and spotlights the heading, its explanation and the
+    picker together — the section starts well below the fold. The picker opens
+    and works through the spotlight. "Next" moves to step 4, the username step,
+    which means Settings scrolls back **up**. Skipping without changing the
+    language is allowed — this step must never require a change. Leaving
+    Settings does **not** pass it: the menu shows the bar reading "Tutorial ·
+    open Settings to continue", and going back shows step 3 again.
 
 ## 10. Tour: exiting, restarting, wandering
 
@@ -719,28 +737,28 @@ of its cases cannot be reached again without deleting the app.
   2. Tap "Take the tutorial".
   - *Preconditions:* Tour finished or exited.
   - *Priority:* High
-  - *Expected:* The app returns to the menu and the tour opens at step 1 of 12.
+  - *Expected:* The app returns to the menu and the tour opens at step 1 of 13.
     It starts from the beginning, not from wherever it was abandoned.
 - [ ] **TC-10.4 Every step offers a way out.**
-  1. Walk the tour from step 1 to step 12, and at each step confirm an exit
+  1. Walk the tour from step 1 to step 13, and at each step confirm an exit
      control is present before advancing.
   2. On any step whose screen you are not currently on, confirm the tutorial
      bar's ✕ also offers the exit.
   - *Preconditions:* Fresh tour.
   - *Priority:* High
-  - *Expected:* "Exit tutorial" appears on all twelve bubbles, and the tutorial
+  - *Expected:* "Exit tutorial" appears on all thirteen bubbles, and the tutorial
     bar carries a ✕ that opens the same confirmation. There is no step where
     the tour cannot be left.
 - [ ] **TC-10.5 Wandering off pauses the tour rather than losing it.**
   1. Force-quit the app and relaunch it. It reopens on the menu.
   2. Observe the bottom of the screen.
   3. Tap "Smart play" to go back.
-  - *Preconditions:* Tour at step 5, on the Smart play screen with its Start
+  - *Preconditions:* Tour at step 6, on the Smart play screen with its Start
     button spotlit.
   - *Priority:* High
   - *Expected:* On the menu a slim bar reads "Tutorial · open Smart play to
     continue" — a bar, not a bubble, with nothing dimmed and nothing sealed,
-    because the tour is not here. Tapping Smart play restores step 5's bubble.
+    because the tour is not here. Tapping Smart play restores step 6's bubble.
     The tour never simply vanishes with no way back to it. (A relaunch is the
     way into this state: a step seals its own screen, so you cannot simply walk
     off one.) ---
@@ -748,7 +766,7 @@ of its cases cannot be reached again without deleting the app.
 ## 11. Tour: presentation
 
 - [ ] **TC-11.1 Small phone.**
-  1. Walk all twelve steps.
+  1. Walk all thirteen steps.
   - *Preconditions:* iPhone SE (or the smallest supported device). Fresh tour.
   - *Priority:* High
   - *Expected:* Every bubble is fully on screen, clear of the notch/status bar
@@ -756,13 +774,13 @@ of its cases cannot be reached again without deleting the app.
     screen some bubbles sit above their target rather than below — that is
     correct, not a defect.
 - [ ] **TC-11.2 Large phone and iPad.**
-  1. Walk all twelve steps on each device.
+  1. Walk all thirteen steps on each device.
   - *Preconditions:* iPhone Pro Max and an iPad. Fresh tour on each.
   - *Expected:* The bubble stays a readable width rather than stretching the
     full width of an iPad, remains centred on its target, and the arrow points
     at the target on every step.
 - [ ] **TC-11.3 Dark mode.**
-  1. Walk several steps, including one over a photo (step 6, in a round).
+  1. Walk several steps, including one over a photo (step 7, in a round).
   - *Preconditions:* Settings → Appearance set to Dark. Fresh tour.
   - *Expected:* The bubble text is legible, the spotlight ring is visible
     against the dimmed background, and the "Next" button's label reads clearly
@@ -783,19 +801,19 @@ of its cases cannot be reached again without deleting the app.
 ## 12. Tour: edge conditions
 
 - [ ] **TC-12.1 Offline during the round step.**
-  1. Start the round and reach step 6.
-  - *Preconditions:* Tour at step 5 on the Smart play screen. Put the device in
+  1. Start the round and reach step 7.
+  - *Preconditions:* Tour at step 6 on the Smart play screen. Put the device in
     aeroplane mode before starting the round.
   - *Expected:* The more-photos button is hidden offline, so the step has
     nothing to point at: the bubble is centred with no spotlight and no arrow,
     and "Next" still advances. It must not point at an empty corner or freeze
     the tour.
 - [ ] **TC-12.2 Build without sync credentials.**
-  1. Reach step 11.
+  1. Reach step 12.
   - *Preconditions:* A build where the Sync row is absent from Settings.
   - *Priority:* Low
   - *Expected:* The bubble is centred with no spotlight rather than pointing at
-    nothing, and "Next" advances to step 12.
+    nothing, and "Next" advances to step 13.
 - [ ] **TC-12.3 Backgrounding mid-step.**
   1. Swipe to the home screen, wait ten seconds, and return to the app.
   - *Preconditions:* Tour running at a spotlit step.
@@ -1208,7 +1226,7 @@ Testiny is where these run; this file is where they are written. The loop:
 6. Add the cases to whichever test run covers the release, and record results in
    Testiny as usual. Results live there; the cases live here.
 
-If your Testiny plan exposes the REST API and you would rather script step 3,
+If your Testiny plan exposes the REST API and you would rather script step 4,
 the CSV is straightforward to POST as test cases — check the field names against
 your instance's API docs first, since they vary by version and by any custom
 fields your project has added.

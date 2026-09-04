@@ -177,6 +177,9 @@ export default function SettingsScreen({
   const { colors, accents } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const usernameAnchor = useAnchorRef('settings-account');
+  // The tour asks for a name language before it asks for a username, and this
+  // section sits well below the fold — see the scroller wired just below.
+  const languageAnchor = useAnchorRef('settings-language');
   // As on the menu: the tour points at Sync, which is most of a screen down.
   const scrollRef = useRef(null);
   const scrollOffset = useRef(0);
@@ -398,12 +401,17 @@ export default function SettingsScreen({
           />
         </View>
 
-        <Text style={styles.section}>Species name language</Text>
-        <Text style={styles.sectionHint}>
-          Common names come from iNaturalist in this language (the app itself
-          stays in English).
-        </Text>
-        <LanguageDropdown value={locale} onChange={setLocale} />
+        {/* Wrapped so the tour can spotlight the heading, the explanation and
+            the picker as one thing — lighting up the bare dropdown would point
+            at a control without the sentence that says what it changes. */}
+        <View ref={languageAnchor} testID="settings-language">
+          <Text style={styles.section}>Species name language</Text>
+          <Text style={styles.sectionHint}>
+            Common names come from iNaturalist in this language (the app itself
+            stays in English).
+          </Text>
+          <LanguageDropdown value={locale} onChange={setLocale} />
+        </View>
         <View style={[styles.card, styles.cardSpaced]}>
           <SwitchRow
             testID="setting-named-only"

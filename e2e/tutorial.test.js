@@ -88,7 +88,7 @@ async function seedRound(...typesToTurnOff) {
 // overlay never fades in. Detox treats an alpha-0 view as not visible, so this
 // is what tells "the tour moved on" from "the tour is there but nobody can see
 // it".
-async function atStep(n, total = 12) {
+async function atStep(n, total = 13) {
   await waitFor(element(by.id('tutorial-progress')))
     .toHaveText(`${n} OF ${total}`)
     .withTimeout(TIMEOUT);
@@ -151,8 +151,17 @@ describe('Guided tour', () => {
     await expect(element(by.id('tutorial-block')).atIndex(0)).toExist();
     // …and the spotlight is still a hole, not a picture of one.
     await tapSpotlight('open-settings');
-    await visible('settings-username');
     await atStep(3);
+    // Step 3 asks for a name language, and that section sits well down the
+    // Settings screen — so the same scroll-into-view the menu just did has to
+    // happen again here, on a DIFFERENT scroller (SettingsScreen's, not the
+    // menu's), which is the part worth a real device.
+    //
+    // Asserted on the picker rather than on the spotlit section around it: the
+    // spotlight is a rounded hole, so the section's square corners are always
+    // under the dim and it can never be 100% visible, which is the threshold
+    // Detox applies. The picker sits well inside the hole.
+    await visible('language-field');
   });
 
   it('waits, visibly, when the step is on a screen the user is not on', async () => {
@@ -161,29 +170,32 @@ describe('Guided tour', () => {
     // none does not fool), so the only ways off a step's screen here are the
     // spotlit control itself and a relaunch — which reopens on the menu.
     //
-    // Steps 1-5 all live on the menu now, so the first step that can be waited
-    // FOR is 6 — "other pictures", which lives on a card in play. Walk to it,
-    // then relaunch: the app reopens on the menu, which is exactly the
-    // situation a user creates by wandering off mid-round.
+    // Steps 3 and 4 live on Settings, and 5-6 back on the menu, so the first
+    // step that can be waited FOR from the menu is 7 — "other pictures", which
+    // lives on a card in play. Walk to it, then relaunch: the app reopens on
+    // the menu, which is exactly the situation a user creates by wandering off
+    // mid-round.
     //
-    // Seeded to a name round so step 5's Start lands on `study`, where step 6
+    // Seeded to a name round so step 6's Start lands on `study`, where step 7
     // lives; a photo round would land on `pick` and never reach it.
     await seedRound('picture');
 
     await startTutorial();
     await tap('tutorial-next'); // → 2, open Settings
     await tapSpotlight('open-settings'); // the tour scrolls it into view
-    await atStep(3); // the username step, on Settings
+    await atStep(3); // the name-language step, on Settings
+    await tap('tutorial-next'); // → 4, the username step, also on Settings
+    await atStep(4);
 
     await device.launchApp({ newInstance: true }); // reopens on the menu…
     await device.disableSynchronization();
-    await atStep(4); // …which is what step 3 was waiting for
+    await atStep(5); // …which is what step 4 was waiting for
 
-    await tap('tutorial-next'); // → 5, "tap Start" on the card
-    await atStep(5);
+    await tap('tutorial-next'); // → 6, "tap Start" on the card
+    await atStep(6);
     await tapSpotlight('smart-start');
     await visible('study-reveal');
-    await atStep(6); // "other pictures", which lives on a card in play
+    await atStep(7); // "other pictures", which lives on a card in play
 
     await device.launchApp({ newInstance: true });
     await device.disableSynchronization();
@@ -209,7 +221,7 @@ describe('Guided tour', () => {
     await tap('smart-start');
     await visible('study-reveal');
     await visible('tutorial-bubble');
-    await atStep(6);
+    await atStep(7);
   });
 
   // Both of the reports this spec grew from: screens where the tour drew
@@ -235,13 +247,15 @@ describe('Guided tour', () => {
     await startTutorial();
     await tap('tutorial-next'); // → 2, open Settings
     await tapSpotlight('open-settings');
-    await atStep(3);
+    await atStep(3); // the name-language step
+    await tap('tutorial-next'); // → 4, the username step
+    await atStep(4);
 
     await device.launchApp({ newInstance: true });
     await device.disableSynchronization();
-    await atStep(4); // arriving on the menu satisfied step 3
-    await tap('tutorial-next'); // → 5, "tap Start" on the card
-    await atStep(5);
+    await atStep(5); // arriving on the menu satisfied step 4
+    await tap('tutorial-next'); // → 6, "tap Start" on the card
+    await atStep(6);
 
     // Tapped through the dimmed backdrop, like every other spotlit control.
     await tapSpotlight('smart-start');

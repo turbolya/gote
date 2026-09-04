@@ -23,6 +23,7 @@ export const ANCHORS = [
   'menu-stats', // menu → the hero banner (opens Statistics)
   'mode-smart', // menu → Smart play
   'mode-nearby', // menu → Nearby species
+  'settings-language', // settings → the species-name language section
   'settings-account', // settings → the username field, its hint and Save
   'settings-sync', // settings → Sync across devices
   'smart-start', // menu → the Smart play card's Start button
@@ -53,6 +54,12 @@ export const ANCHORS = [
 export const STEPS = [
   { id: 'welcome', screen: 'menu', anchor: null, advance: 'next' },
   { id: 'openSettings', screen: 'menu', anchor: 'open-settings', advance: { screen: 'settings' } },
+  // Language before username, because the name language decides what the deck
+  // that the username loads will be LABELLED in — set it afterwards and the
+  // deck has to be fetched again. A button, not an arrival: most people are
+  // happy with the default, and a step that cannot be passed without changing a
+  // setting is a step that makes them change it for no reason.
+  { id: 'language', screen: 'settings', anchor: 'settings-language', advance: 'next' },
   // Saving a username reloads the deck and lands back on the menu; so does
   // simply backing out. Either way the user has moved on, and so does the tour.
   { id: 'username', screen: 'settings', anchor: 'settings-account', advance: { screen: 'menu' } },

@@ -52,7 +52,7 @@ export default function LanguageDropdown({ value, onChange }) {
 
   return (
     <>
-      <Pressable style={styles.field} onPress={() => setOpen(true)}>
+      <Pressable testID="language-field" style={styles.field} onPress={() => setOpen(true)}>
         <View style={styles.flex}>
           <Text style={styles.fieldText}>{selected.name}</Text>
           {subtitle && <Text style={styles.fieldSub}>{subtitle}</Text>}
