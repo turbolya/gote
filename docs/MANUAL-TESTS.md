@@ -293,6 +293,17 @@ scores correctly, and returns to the menu cleanly.
   - *Expected:* a **"Species you mix up"** card lists that pair — both species
     side by side (thumbnail + name) with "Mixed up N times". It does **not**
     appear below the 3× threshold.
+- [ ] **TC-5.8b Mix-ups from photo questions are named.** In a **photo-only**
+    Smart round (only *Choosing the photo* on), keep picking the same wrong tile
+    for the same species until you have done it 3 times. The wrong tiles are
+    iNaturalist look-alikes, so the species you pick is usually **not** one of
+    your own observations. Open Statistics.
+  - *Priority:* High
+  - *Expected:* the pair appears under **Species you mix up**, named and with a
+    photo, even though the species you picked is not in your deck. Before
+    2.43.2 these pairs were counted and then silently dropped, so the card could
+    stay empty however many rounds you played. Old mix-ups recorded before the
+    fix are named too, the first time Statistics is opened **online**.
 - [ ] **TC-5.9 Compare + my tell note persists.** Tap a mix-up pair.
   - *Preconditions:* A mix-up pair exists
   - *Expected:* a side-by-side comparison opens (both photos + names). Type a

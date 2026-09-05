@@ -19,7 +19,7 @@ import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonThumbs } from '../api';
 import { AnimatedBar, animateNextLayout } from '../components/anim';
 import { RecentGamesChart, AccuracyTrendChart } from '../components/charts';
-import { topConfusionPairs, pairKey } from '../confusions';
+import { topConfusionPairs, pairKey, speciesInfo } from '../confusions';
 import { shrunkRate, lifetimeRate, SHRINK_M } from '../accuracy';
 import { speciesKey } from '../mastery';
 import { scoreFrom, potentialFrom, weightedRate, WEIGHTS } from '../scoring';
@@ -148,7 +148,7 @@ function NemesisCell({ info }) {
   );
 }
 
-export default function StatsScreen({ species, cards = [], confusions = {}, confusionNotes = {}, onCompare, lifetime, statsByFormat = {}, history = [], historyCounts = [], streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
+export default function StatsScreen({ species, cards = [], confusions = {}, confusionNotes = {}, seenSpecies = {}, onCompare, lifetime, statsByFormat = {}, history = [], historyCounts = [], streak, flags, onToggleFlag, onBack, onSelect, onReset }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const [sort, setSort] = useState('pct');
@@ -230,26 +230,25 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
     [species, cardByKey]
   );
 
-  // Top "you mix these up" pairs, with each species resolved to a name + thumb
-  // from the deck or the per-species tallies. Pairs we can't name locally (e.g. a
-  // By-picture distractor never seen as a card) are dropped for now — they'll
-  // resolve once confusions carry names / sync. Direction is folded together.
+  // Top "you mix these up" pairs, each species resolved to a name + thumb.
+  //
+  // Three sources, richest first (confusions.speciesInfo): the current deck,
+  // the per-species tallies, then the directory of species met only as an
+  // OPTION. That last one is what makes photo-question pairs drawable at all —
+  // their wrong tiles are iNaturalist look-alikes, so the species you picked is
+  // usually one you have never observed and appears in neither of the first
+  // two. Pairs still unnameable are dropped rather than shown as bare ids.
+  // Direction is folded together.
   const nemesis = useMemo(() => {
-    const info = (key) => {
-      const dc = cardByKey[key];
-      if (dc) return { name: dc.common || dc.scientific, sci: dc.scientific, image: dc.image || null };
-      const s = species && species[key];
-      if (s && (s.name || s.sci)) return { name: s.name || s.sci, sci: s.sci || '', image: s.image || null };
-      return null;
-    };
+    const sources = { cards: cardByKey, species: species || {}, seen: seenSpecies || {} };
     const out = [];
     for (const p of topConfusionPairs(confusions, { min: 3, limit: 8 })) {
-      const a = info(p.a);
-      const b = info(p.b);
+      const a = speciesInfo(p.a, sources);
+      const b = speciesInfo(p.b, sources);
       if (a && b) out.push({ pairKey: pairKey(p.a, p.b), count: p.count, a, b, aKey: String(p.a), bKey: String(p.b) });
     }
     return out;
-  }, [confusions, cardByKey, species]);
+  }, [confusions, cardByKey, species, seenSpecies]);
 
   // Apply the "my observations" filter (default on).
   const filtered = useMemo(

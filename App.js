@@ -34,6 +34,7 @@ import {
   fetchUpdatedCards,
   fetchTaxonPhotos,
   fetchTaxonPhotosByIds,
+  fetchTaxonNames,
   fetchSimilarSpecies,
   fetchNearbyCards,
   applyFilters,
@@ -80,6 +81,8 @@ import {
   saveTutorial,
   loadRoundSetup,
   saveRoundSetup,
+  loadSeenSpecies,
+  saveSeenSpecies,
   addActiveDay,
 } from './src/storage';
 // NOTE the alias: this component already has its own `syncNow` (the
@@ -96,7 +99,7 @@ import {
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME } from './src/constants';
 import { buildPickRound } from './src/quiz';
 import { addConfusion, displayNotes } from './src/sync/merge';
-import { pairCount, pairKey, nemesisPartners } from './src/confusions';
+import { pairCount, pairKey, nemesisPartners, speciesEntry } from './src/confusions';
 import { verifyStreak, recordVerifyWin, recordVerifyMiss } from './src/verify';
 import { scheduleDeck } from './src/schedule';
 import { isMastered, speciesKey } from './src/mastery';
@@ -316,6 +319,8 @@ export default function App() {
   // "Drill this pair"). null = no drill open.
   const [duelPair, setDuelPair] = useState(null);
   const [confusionNotes, setConfusionNotes] = useState({});
+  // The display copy of seenSpeciesRef — Statistics reads this.
+  const [seenSpecies, setSeenSpecies] = useState({});
 
   // Species the user has flagged, as a Set of taxon-id strings, scoped to the
   // current account. Mirrored in a ref so the game launchers (which filter by
@@ -497,6 +502,12 @@ export default function App() {
   // a former-nemesis pair. Device-local (like the "my tell" notes), so it rides
   // a ref + its own storage rather than the synced events log.
   const confusionWinsRef = useRef({});
+  // Names and photos for species met only as an OPTION — the look-alikes on a
+  // photo grid, which come from iNaturalist rather than from the player's deck.
+  // Without this a confusion recorded against one of them is a pair of taxon
+  // ids the statistics screen cannot label, so it silently drops the whole row
+  // (see src/storage.js loadSeenSpecies).
+  const seenSpeciesRef = useRef({});
 
   // How to restart the current mode (used by the "Play again" button).
   const replayRef = useRef(() => {});
@@ -761,6 +772,10 @@ export default function App() {
       loadConfusionNotes().then((n) => setConfusionNotes(displayNotes(n)));
       loadConfusionWins().then((w) => {
         confusionWinsRef.current = w || {};
+      });
+      loadSeenSpecies().then((d) => {
+        seenSpeciesRef.current = d || {};
+        setSeenSpecies(d || {});
       });
       const [savedUser, savedStats, savedFormats, savedPrefs, savedSpecies, savedCache, savedHistory, savedHistoryN, savedStreak, savedWatchTip] =
         await Promise.all([
@@ -1244,8 +1259,11 @@ export default function App() {
     // Persist the per-species tallies accumulated during the round.
     saveSpeciesStats(speciesRef.current);
     setSpeciesStats({ ...speciesRef.current });
-    // Persist any confusions recorded during the round (mixed-up look-alikes).
+    // Persist any confusions recorded during the round (mixed-up look-alikes),
+    // and the names that make them drawable.
     saveConfusions(confusionRef.current);
+    saveSeenSpecies(seenSpeciesRef.current);
+    setSeenSpecies({ ...seenSpeciesRef.current });
     // Record this game's accuracy for the menu chart, and count today toward
     // the daily streak (both skip empty rounds).
     // Kept as a promise because the chart bar it creates has to ride along on the
@@ -1370,12 +1388,76 @@ export default function App() {
     // tally keys or the stats screen can't resolve a pair back to its cards.
     const ck = speciesKey(correctCard);
     const chk = speciesKey(chosenCard);
+    // Remember what both species are CALLED, while we still have the objects.
+    // The matrix keeps only ids, and the one the player chose is often an
+    // iNaturalist look-alike that is in no deck and has no tally — so this is
+    // the only moment its name and photo are in hand. Both sides, not just the
+    // chosen one: a Nearby round's card is not in the deck either.
+    for (const [key, obj] of [[ck, correctCard], [chk, chosenCard]]) {
+      const entry = speciesEntry(obj);
+      if (key && entry && !seenSpeciesRef.current[key]) {
+        seenSpeciesRef.current = { ...seenSpeciesRef.current, [key]: entry };
+      }
+    }
     confusionRef.current = addConfusion(confusionRef.current, ck, chk);
     confusionDeltaRef.current = addConfusion(confusionDeltaRef.current, ck, chk);
     // Relapse on this pair — the fix isn't holding, so drop any recovery run.
     confusionWinsRef.current = recordVerifyMiss(confusionWinsRef.current, pairKey(ck, chk));
     saveConfusionWins(confusionWinsRef.current);
   }, []);
+
+  // Name the species in old confusions that nothing local can name.
+  //
+  // A confusion is two taxon ids. When the species the player PICKED came from a
+  // photo grid, it is one of iNaturalist's look-alikes for the target — not
+  // their observation, so it is in no deck and has no tally, and the pair was
+  // counted and ranked and then dropped for want of a label. Confusions recorded
+  // from now on carry their names (recordConfusion), but the ones already on the
+  // device do not, and re-earning them is not a reasonable thing to ask.
+  //
+  // So: when Statistics opens, look up whatever is still unnameable. Bounded by
+  // the number of pairs the list can show, batched 30 to a request, cached by
+  // the api layer, and best-effort — a failure leaves the row out, exactly as
+  // today.
+  useEffect(() => {
+    if (screen !== 'stats' || offline) return undefined;
+    let alive = true;
+    (async () => {
+      const conf = confusionRef.current || {};
+      const inDeck = new Set(fullDeck.map((c) => speciesKey(c)).filter(Boolean));
+      const wanted = new Set();
+      for (const ck of Object.keys(conf)) {
+        wanted.add(ck);
+        for (const chk of Object.keys(conf[ck] || {})) wanted.add(chk);
+      }
+      const missing = [...wanted].filter(
+        (k) =>
+          k &&
+          !seenSpeciesRef.current[k] &&
+          !speciesRef.current[k] &&
+          !inDeck.has(k)
+      );
+      if (!missing.length) return;
+      const found = await fetchTaxonNames(missing, locale);
+      if (!alive) return;
+      const next = { ...seenSpeciesRef.current };
+      let added = 0;
+      for (const [key, info] of Object.entries(found || {})) {
+        const entry = speciesEntry(info);
+        if (entry && !next[key]) {
+          next[key] = entry;
+          added += 1;
+        }
+      }
+      if (!added) return;
+      seenSpeciesRef.current = next;
+      setSeenSpecies(next);
+      saveSeenSpecies(next);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [screen, offline, locale, fullDeck]);
 
   // Live symmetric confusion count for a pair, for the just-in-time play callout.
   // Reads the ref so it's always current within a round (state props can be stale).
@@ -1977,6 +2059,7 @@ export default function App() {
             cards={fullDeck}
             confusions={confusionRef.current}
             confusionNotes={confusionNotes}
+            seenSpecies={seenSpecies}
             onCompare={(item) => setComparePair(item)}
             lifetime={lifetime}
             statsByFormat={statsByFormat}

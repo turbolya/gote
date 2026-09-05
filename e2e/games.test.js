@@ -4,6 +4,7 @@ const {
   visible,
   exists,
   tap,
+  scrollToId,
   tapScroll,
   typeInto,
   tapCorrectChoice,
@@ -18,6 +19,9 @@ const tapMode = (key) => tapScroll(`mode-${key}`, 'menu-scroll');
 // a view can pass a visibility check while its entrance is still running — and
 // a tap aimed at it can then miss.
 const settle = (ms = 450) => new Promise((r) => setTimeout(r, ms));
+
+// The look-alike in the fixtures that is NOT one of the player's own species.
+const STRANGER = 9001;
 
 // The name round — photo → pick from five names — which used to be the "By
 // name" menu entry and is now the Smart play card narrowed to one question
@@ -142,6 +146,59 @@ describe('Game modes', () => {
     await waitFor(element(by.text('Correct!'))).toBeVisible().withTimeout(TIMEOUT);
     await tap('pick-end');
     await visible('results-menu');
+  });
+
+  it('a look-alike you keep picking reaches "Species you mix up"', async () => {
+    // The regression this guards: a confusion is stored as two taxon ids, and
+    // the wrong tiles on a photo grid are iNaturalist look-alikes rather than
+    // the player's own species (see e2eSimilar). Nothing local could name the
+    // one they picked, so the pair was counted, ranked, and then dropped — the
+    // card never appeared however many rounds were played.
+    //
+    // Three full photo rounds over the eight-card fixture deck, always picking
+    // the same stranger. Rounds are the whole deck, so every species is shown
+    // exactly once per round and every pair lands on three — the floor at which
+    // a mix-up counts as systematic (CONFUSION_HINT_MIN).
+    await device.launchApp({ newInstance: true, delete: true });
+    await device.disableSynchronization();
+
+    for (let round = 0; round < 3; round++) {
+      await visible('mode-smart');
+      await settle();
+      if (round === 0) {
+        // Photo questions only. Remembered afterwards, so later rounds just
+        // press Start — tapping the chips again would turn them back on.
+        await tap('menu-type-name');
+        await tap('menu-type-pair');
+        await tap('menu-type-typed');
+      }
+      await tap('smart-start');
+      for (let card = 0; card < 8; card++) {
+        await visible('pick-screen');
+        await exists('e2e-pick-answer');
+        await tap(`pick-tile-${STRANGER}`);
+        await settle(300);
+        if (card < 7) await tap('pick-next');
+      }
+      await tap('pick-end');
+      await visible('results-menu');
+      await tap('results-menu');
+    }
+
+    await visible('mode-smart');
+    await tap('menu-stats');
+    // The card sits below the charts, so scroll to it rather than asserting on
+    // whatever the first screenful happens to hold. (The heading itself is no
+    // good as a matcher: it is styled uppercase and textTransform happens
+    // natively, so Detox reads "SPECIES YOU MIX UP".)
+    await scrollToId('stats-confusion-0', 'stats-scroll');
+    await visible('stats-confusion-0');
+    // …and the row NAMES the stranger. This is the assertion that fails without
+    // the directory: the pair is counted either way, but an unnameable species
+    // means the row — and with it the whole card — is dropped.
+    await waitFor(element(by.text('Stranger Robin')).atIndex(0))
+      .toBeVisible()
+      .withTimeout(TIMEOUT);
   });
 
   it('Smart play: routes each card to the screen its format belongs on', async () => {

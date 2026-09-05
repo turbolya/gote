@@ -7,7 +7,7 @@ const { execFileSync } = require('child_process');
 const src = path.join(__dirname, '..', 'src', 'confusions.js');
 
 const script = `
-import { topConfusionPairs, pairKey, pairCount, CONFUSION_HINT_MIN } from ${JSON.stringify(src)};
+import { topConfusionPairs, pairKey, pairCount, CONFUSION_HINT_MIN, speciesEntry, speciesInfo } from ${JSON.stringify(src)};
 
 let passed = 0, failed = 0;
 function eq(name, actual, expected) {
@@ -66,6 +66,51 @@ console.log('\\npairCount');
   eq('a self-pair is zero', pairCount({ A: { A: 9 } }, 'A', 'A'), 0);
   eq('junk is zero', pairCount(null, 'A', 'B'), 0);
   eq('the hint floor is a positive integer', Number.isInteger(CONFUSION_HINT_MIN) && CONFUSION_HINT_MIN > 0, true);
+}
+
+console.log('\\nspeciesEntry / speciesInfo');
+{
+  // A deck card.
+  eq('a card', speciesEntry({ taxonId: 1, common: 'Monarch', scientific: 'Danaus plexippus', image: 'own.jpg' }),
+     { name: 'Monarch', sci: 'Danaus plexippus', image: 'own.jpg' });
+
+  // One tile of a photo grid: a name and a curated photo, no scientific name.
+  eq('a photo tile', speciesEntry({ taxonId: 2, name: 'Viceroy', photo: 'cur.jpg' }),
+     { name: 'Viceroy', sci: null, image: 'cur.jpg' });
+
+  // A per-species tally, which spells the scientific name differently.
+  eq('a tally', speciesEntry({ name: 'Queen', sci: 'Danaus gilippus', image: null }),
+     { name: 'Queen', sci: 'Danaus gilippus', image: null });
+
+  // A name is the one field a row cannot do without.
+  eq('no name is no entry', speciesEntry({ taxonId: 3, image: 'x.jpg' }), null);
+  eq('junk is no entry', speciesEntry(null), null);
+
+  // Falls back to the scientific name when there is no common one.
+  eq('scientific only', speciesEntry({ scientific: 'Bombus sp' }),
+     { name: 'Bombus sp', sci: 'Bombus sp', image: null });
+}
+
+console.log('\\nspeciesInfo resolution order');
+{
+  const sources = {
+    cards:   { '1': { common: 'Monarch', scientific: 'Danaus plexippus', image: 'own.jpg' } },
+    species: { '1': { name: 'Stale', sci: 'Stale sp', image: 'tally.jpg' },
+               '2': { name: 'Queen', sci: 'Danaus gilippus', image: 'tally2.jpg' } },
+    seen:    { '1': { name: 'Older', photo: 'seen.jpg' },
+               '3': { name: 'Viceroy', photo: 'tile.jpg' } },
+  };
+  // Deck wins: it has the player's own photo and the freshest naming.
+  eq('deck first', speciesInfo('1', sources).image, 'own.jpg');
+  // Then the tallies — a species answered in a Nearby round, say.
+  eq('tally second', speciesInfo('2', sources).name, 'Queen');
+  // Then the directory: the look-alike from a photo grid that is in no deck and
+  // has no tally. This is the case that used to make a whole pair vanish.
+  eq('directory last', speciesInfo('3', sources), { name: 'Viceroy', sci: null, image: 'tile.jpg' });
+  // Genuinely unknown stays unknown rather than inventing a label.
+  eq('unknown is null', speciesInfo('9', sources), null);
+  eq('no key is null', speciesInfo(null, sources), null);
+  eq('no sources is null', speciesInfo('1'), null);
 }
 
 console.log('\\n' + passed + ' passed, ' + failed + ' failed');

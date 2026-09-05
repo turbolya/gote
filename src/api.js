@@ -807,6 +807,12 @@ export async function fetchTaxonPhotosByIds(ids, maxPer = 6) {
   return out;
 }
 
+const FIELDS_TAXON_NAMES = {
+  name: true,
+  preferred_common_name: true,
+  default_photo: { square_url: true, medium_url: true, url: true },
+};
+
 const FIELDS_TAXON_THUMB = {
   default_photo: {
     square_url: true,
@@ -850,6 +856,50 @@ export async function fetchTaxonThumbs(ids) {
       out[t.id] = url;
       taxonCache.set(`thumb:${t.id}`, url);
     }
+  }
+  return out;
+}
+
+/**
+ * Batch-fetch names and a thumbnail for taxa the app knows only by id.
+ *
+ * The caller is the "Species you mix up" list: a confusion is stored as two
+ * taxon ids, and when the species the player PICKED is an iNaturalist look-alike
+ * rather than one of their own observations, nothing local can name it. This is
+ * how such a pair gets a label after the fact.
+ *
+ * Returns a map { [taxonId]: { name, sci, image } }; ids that don't resolve are
+ * simply absent. Best-effort: {} on error, because an unnamed pair is a missing
+ * row, never a broken screen.
+ *
+ * @param {Array<number|string>} ids
+ * @param {string} locale  language for common names (matches the deck's locale)
+ */
+export async function fetchTaxonNames(ids, locale) {
+  if (IS_E2E) return fx.e2eTaxonNames(ids);
+  const list = [...new Set((ids || []).filter((x) => x != null))].map(String);
+  const out = {};
+  try {
+    for (let i = 0; i < list.length; i += 30) {
+      const chunk = list.slice(i, i + 30);
+      const results = await fetchTaxaResults(chunk, {
+        fields: FIELDS_TAXON_NAMES,
+        perPage: 30,
+        locale,
+      });
+      for (const t of results) {
+        if (!t || t.id == null) continue;
+        const p = t.default_photo;
+        out[String(t.id)] = {
+          name: commonName(t) || t.name || null,
+          sci: t.name || null,
+          image:
+            (p && (p.square_url || p.medium_url || (p.url && toMediumPhoto(p.url)))) || null,
+        };
+      }
+    }
+  } catch {
+    /* best-effort — an unnamed pair just stays out of the list */
   }
   return out;
 }

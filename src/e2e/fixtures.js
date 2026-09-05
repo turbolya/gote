@@ -74,11 +74,40 @@ export function e2eTaxonThumbs(ids = []) {
   return out;
 }
 
+// Names + thumbnail for arbitrary taxon ids — the backfill that lets an old
+// confusion against a species outside the deck still be drawn. Ids that are not
+// fixture cards still resolve, because the real lookup does too: that is the
+// whole point of asking iNaturalist rather than the deck.
+export function e2eTaxonNames(ids = []) {
+  const out = {};
+  for (const id of ids) {
+    const card = E2E_CARDS.find((c) => String(c.taxonId) === String(id));
+    out[id] = {
+      name: card ? card.common : `Species ${id}`,
+      sci: card ? card.scientific : `Taxon ${id}`,
+      image: img(id, 'thumb'),
+    };
+  }
+  return out;
+}
+
 // "Similar species" distractor pool for "Pick the right one": four other taxa.
+export const E2E_STRANGER = { taxonId: 9001, name: 'Erithacus alienus', common: 'Stranger Robin' };
+
 export function e2eSimilar(taxonId) {
-  return E2E_CARDS.filter((c) => c.taxonId !== taxonId)
-    .slice(0, 4)
+  const own = E2E_CARDS.filter((c) => c.taxonId !== taxonId)
+    .slice(0, 2)
     .map((c) => ({ taxonId: c.taxonId, name: c.scientific, common: c.common }));
+  // …and one look-alike that is NOT one of the player's own species.
+  //
+  // That is the normal case in the real app and it used to be the broken one:
+  // iNaturalist's "similar species" are whatever people confuse the target
+  // with, not whatever you happen to have photographed. Pick one of those by
+  // mistake and the confusion is recorded against a taxon that is in no deck
+  // and has no tally — which the statistics screen could not name, so it
+  // dropped the whole pair. Fixtures that only ever returned the player's own
+  // cards could not see that. Exactly three, so every one is used as a tile.
+  return [...own, { ...E2E_STRANGER }];
 }
 
 // Full detail for the Lexicon detail page.

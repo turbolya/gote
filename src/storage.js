@@ -20,6 +20,7 @@ const K_CONFUSION_NOTES = '@gote/confusionNotes';
 // "Verify the fix" recovery streaks: pairKey → consecutive correct answers on a
 // former-nemesis pair (reset on relapse). Device-local, like the notes.
 const K_CONFUSION_WINS = '@gote/confusionWins';
+const K_SEEN_SPECIES = '@gote/seenSpecies';
 const K_CACHE = '@gote/obscache';
 const K_FLAGS = '@gote/flags';
 // Guided-tour progress: { status: 'new' | 'running' | 'done', step: <index> }.
@@ -405,7 +406,7 @@ export async function resetStatistics(now = Date.now()) {
   try {
     await kv.multiRemove([
       K_STATS, K_FORMATS, K_SPECIES, K_HISTORY, K_HISTORY_N, K_BARS, K_STREAK, K_DAYS,
-      K_CONFUSIONS, K_CONFUSION_WINS,
+      K_CONFUSIONS, K_CONFUSION_WINS, K_SEEN_SPECIES,
     ]);
   } catch {
     /* ignore */
@@ -660,6 +661,38 @@ export async function saveWatchTipDismissed(dismissed) {
     await kv.setItem(K_WATCH_TIP, dismissed ? '1' : '0');
   } catch {
     /* ignore — best-effort */
+  }
+}
+
+// --- Seen-species directory --------------------------------------------------
+// { [speciesKey]: { name, sci, image } } for species the player has met as an
+// OPTION rather than as a card of their own — the look-alikes on a photo grid,
+// which come from iNaturalist's "similar species" and are usually nothing the
+// player has ever observed.
+//
+// It exists so the "Species you mix up" list can draw a pair. A confusion is
+// stored as two taxon ids and a count; with no deck card and no tally to name
+// the second id, the pair was counted, ranked, and then dropped for want of a
+// label — see src/confusions.js speciesInfo, which reads this last.
+//
+// Written only for species that actually turn up in a confusion, so it stays
+// small, and cleared with the statistics: it names nothing else.
+
+export async function loadSeenSpecies() {
+  try {
+    const raw = await kv.getItem(K_SEEN_SPECIES);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function saveSeenSpecies(map) {
+  try {
+    await kv.setItem(K_SEEN_SPECIES, JSON.stringify(map || {}));
+  } catch {
+    /* ignore — best-effort; a missing name only costs a row its picture */
   }
 }
 

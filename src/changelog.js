@@ -8,9 +8,23 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.43.1';
+export const APP_VERSION = '2.43.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.43.2',
+    date: '2026-09-05',
+    changes: [
+      'Fixed: "Species you mix up" could stay empty however many rounds you '
+        + 'played. A photo question\u2019s wrong tiles are iNaturalist\u2019s '
+        + 'look-alikes for the species, so the one you pick is usually not '
+        + 'something you have observed yourself — and the app had no name for '
+        + 'it, so it counted the mix-up and then dropped it from the list. It '
+        + 'now remembers what those species are called. Mix-ups recorded before '
+        + 'this update are named too, the first time you open Statistics with a '
+        + 'connection.',
+    ],
+  },
   {
     version: '2.43.1',
     date: '2026-09-04',
