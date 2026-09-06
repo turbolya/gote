@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.43.2';
+export const APP_VERSION = '2.43.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.43.3',
+    date: '2026-09-06',
+    changes: [
+      'The menu has lost the thin lines between its rows. The spacing is '
+        + 'unchanged, so nothing has moved — there is just less drawn on the '
+        + 'screen, and the one remaining line marks where a group of rows ends.',
+    ],
+  },
   {
     version: '2.43.2',
     date: '2026-09-05',

@@ -4,7 +4,8 @@
 // Design: a full-bleed green hero banner that fills the top edge-to-edge (under
 // the status bar) with the account + lifetime accuracy and a background chart of
 // recent games. On scroll it collapses up into a pinned compact banner. Below it,
-// clean minimal sections — flat lists with hairline dividers and accent icons.
+// clean minimal sections — flat lists of accent-icon rows, held apart by spacing
+// alone, with a single hairline rule between one group and the next.
 
 import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, Pressable, Animated, Easing, Image, Linking, StyleSheet } from 'react-native';
@@ -166,7 +167,7 @@ function AccuracyBars({ data = [], counts = [], lifetime = null }) {
 // One tappable list row (game mode / Lexicon / Settings). Top-level (stable
 // identity) so incidental re-renders don't replay the entrance animation.
 // Staggers in via `index`, and springs down slightly while pressed.
-function Row({ icon, accent, title, sub, onPress, testID, first, index = 0, disabled, anchor }) {
+function Row({ icon, accent, title, sub, onPress, testID, index = 0, disabled, anchor }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   // Rows the guided tour points at (see ANCHORS in src/tutorial.js). A no-op
@@ -187,7 +188,6 @@ function Row({ icon, accent, title, sub, onPress, testID, first, index = 0, disa
           onPressOut={() => !disabled && to(1)}
           style={({ pressed }) => [
             styles.row,
-            !first && styles.rowDivider,
             pressed && styles.rowPressed,
             disabled && styles.rowDisabled,
           ]}
@@ -357,7 +357,6 @@ export default function MenuScreen({
                 {...rest}
                 sub={off ? offSub : sub}
                 disabled={off}
-                first={i === 0}
                 index={i}
                 testID={`mode-${key}`}
                 onPress={() => onSelectMode(key)}
@@ -368,13 +367,13 @@ export default function MenuScreen({
 
         <View style={styles.sectionRule} />
         <View style={styles.group}>
-          <Row first index={0} testID="mode-flash" icon="documents-outline" accent={accents.indigo} title="Flash cards" sub={noOfflineCards ? 'No downloaded photos yet' : 'Reveal the answer, then grade yourself'} disabled={noOfflineCards} onPress={() => onSelectMode('flash')} />
+          <Row index={0} testID="mode-flash" icon="documents-outline" accent={accents.indigo} title="Flash cards" sub={noOfflineCards ? 'No downloaded photos yet' : 'Reveal the answer, then grade yourself'} disabled={noOfflineCards} onPress={() => onSelectMode('flash')} />
           <Row index={1} testID="open-lexicon" icon="library-outline" accent={accents.teal} title="Lexicon" sub="Browse all your species" onPress={onLexicon} />
         </View>
 
         <View style={styles.sectionRule} />
         <View style={styles.group}>
-          <Row first testID="open-settings" anchor="open-settings" icon="settings-outline" accent={accents.slate} title="Settings" sub="Account, language and study options" onPress={onSettings} />
+          <Row testID="open-settings" anchor="open-settings" icon="settings-outline" accent={accents.slate} title="Settings" sub="Account, language and study options" onPress={onSettings} />
         </View>
 
         {/* Quiet support link at the very bottom — deliberately low-key. */}
@@ -526,12 +525,13 @@ const makeStyles = (colors) => StyleSheet.create({
   },
 
   // Minimal sections
-  // The rule between sections. Deliberately the SAME hairline as the divider
-  // between two rows (rowDivider), so the menu has one line weight rather than
-  // a hierarchy of strokes competing with the hero. What makes it read as a
-  // section break instead of a row break is the air around it — about the
-  // height the section label used to take, so the rhythm of the page is
-  // unchanged by their removal.
+  // The rule between sections — now the only line on the menu. Rows used to be
+  // divided by the same hairline; without them the groups are held apart by
+  // their spacing alone, which is enough at this row height and leaves the rule
+  // to do one job: saying where one group ends and the next begins.
+  //
+  // The air around it is about the height the section label used to take, so
+  // the rhythm of the page has survived both the labels and the dividers going.
   sectionRule: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,
@@ -544,7 +544,6 @@ const makeStyles = (colors) => StyleSheet.create({
   group: {},
   groupAfterCard: { marginTop: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 15 },
-  rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   rowPressed: { opacity: 0.5 },
   rowDisabled: { opacity: 0.45 },
   rowIcon: { width: 28, textAlign: 'center' },
