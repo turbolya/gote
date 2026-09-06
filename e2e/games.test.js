@@ -148,7 +148,7 @@ describe('Game modes', () => {
     await visible('results-menu');
   });
 
-  it('a look-alike you keep picking reaches "Species you mix up"', async () => {
+  it('a look-alike you keep picking reaches "Species you mix up", and its photos open', async () => {
     // The regression this guards: a confusion is stored as two taxon ids, and
     // the wrong tiles on a photo grid are iNaturalist look-alikes rather than
     // the player's own species (see e2eSimilar). Nothing local could name the
@@ -199,6 +199,34 @@ describe('Game modes', () => {
     await waitFor(element(by.text('Stranger Robin')).atIndex(0))
       .toBeVisible()
       .withTimeout(TIMEOUT);
+
+    // Continued here rather than in a test of its own: getting a confused pair
+    // on screen costs three full rounds, and "Tell them apart" is only
+    // reachable through one.
+    await tap('stats-confusion-0');
+    await waitFor(element(by.text('Tell them apart'))).toBeVisible().withTimeout(TIMEOUT);
+    await settle();
+
+    // Either species' photo opens that species' curated set — the same grid the
+    // more-photos button opens during a round. Telling two look-alikes apart
+    // from one thumbnail each is the hard way round.
+    await tap('compare-photo-a');
+    await visible('photo-grid');
+    await settle();
+    // …and a cell goes full-screen, credited, like everywhere else photos open.
+    await tap('photo-cell-1');
+    await exists('photo-credit');
+    await tap('photo-back');
+    await visible('photo-grid');
+    await tap('photo-close');
+    // Back on the compare page, not dumped somewhere else.
+    await waitFor(element(by.text('Tell them apart'))).toBeVisible().withTimeout(TIMEOUT);
+
+    // The species that is NOT one of the player's own opens its set too — it is
+    // only a taxon id here, so its photos have to come from the network.
+    await tap('compare-photo-b');
+    await visible('photo-grid');
+    await tap('photo-close');
   });
 
   it('Smart play: routes each card to the screen its format belongs on', async () => {

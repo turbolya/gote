@@ -304,6 +304,17 @@ scores correctly, and returns to the menu cleanly.
     2.43.2 these pairs were counted and then silently dropped, so the card could
     stay empty however many rounds you played. Old mix-ups recorded before the
     fix are named too, the first time Statistics is opened **online**.
+- [ ] **TC-5.8c Photos open from "Tell them apart".** Open a pair from
+    **Species you mix up**, then tap each species' photo in turn (the small grid
+    badge in its corner). Open one photo full-screen, go back to the grid, close.
+    Try it with the connection off too.
+  - *Priority:* Medium
+  - *Expected:* each photo opens that species' curated gallery — the same grid
+    the more-photos button opens during a round — titled with the species name
+    and with a credit on each full-screen photo. Closing returns to **Tell them
+    apart**, with your note intact. It works for the species that is not one of
+    your own observations too. Offline, the photo still opens full-screen on its
+    own, without a grid.
 - [ ] **TC-5.9 Compare + my tell note persists.** Tap a mix-up pair.
   - *Preconditions:* A mix-up pair exists
   - *Expected:* a side-by-side comparison opens (both photos + names). Type a

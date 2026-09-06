@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.43.3';
+export const APP_VERSION = '2.43.4';
 
 export const CHANGELOG = [
+  {
+    version: '2.43.4',
+    date: '2026-09-06',
+    changes: [
+      'On "Tell them apart", tapping either species\u2019 photo now opens that '
+        + 'species\u2019 photos — the same gallery the grid button opens during '
+        + 'a round. Two look-alikes are hard to separate from one picture each, '
+        + 'and the difference that settles it is often in a detail the single '
+        + 'thumbnail does not happen to show.',
+    ],
+  },
   {
     version: '2.43.3',
     date: '2026-09-06',

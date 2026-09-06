@@ -1670,6 +1670,7 @@ export default function App() {
           <CompareScreen
             pair={comparePair}
             initialNote={confusionNotes[comparePair.pairKey] || ''}
+            offline={offline}
             onSaveNote={(pairKey, text) => {
               // Persist (stamped now) then mirror to the settings row so the note
               // syncs across devices. pushSettings is a no-op when sync is off.
