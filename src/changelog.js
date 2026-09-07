@@ -15,6 +15,8 @@ export const CHANGELOG = [
     version: '2.43.4',
     date: '2026-09-06',
     changes: [
+      'The "Finding look-alikes…" wait in a photo round now shows the newt, '
+        + 'like every other wait in the app, instead of a plain system spinner.',
       'On "Tell them apart", tapping either species\u2019 photo now opens that '
         + 'species\u2019 photos — the same gallery the grid button opens during '
         + 'a round. Two look-alikes are hard to separate from one picture each, '

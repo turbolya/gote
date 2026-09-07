@@ -221,6 +221,11 @@ describe('Game modes', () => {
     await tap('photo-close');
     // Back on the compare page, not dumped somewhere else.
     await waitFor(element(by.text('Tell them apart'))).toBeVisible().withTimeout(TIMEOUT);
+    // Settle before touching it again: the viewer leaves on an opacity spring,
+    // and an alpha-0 view still covers the screen while that runs — the tap
+    // below lands on it and Detox reports the photo as not hittable. Same
+    // reason the tour spec settles after its confirmation alert.
+    await settle();
 
     // The species that is NOT one of the player's own opens its set too — it is
     // only a taxon id here, so its photos have to come from the network.

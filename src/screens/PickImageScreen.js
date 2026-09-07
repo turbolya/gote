@@ -14,12 +14,11 @@ import {
   View,
   Text,
   Pressable,
-  ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
-import LoadingImage from '../components/LoadingImage';
+import LoadingImage, { Spinner } from '../components/LoadingImage';
 import PhotoViewer from '../components/PhotoViewer';
 import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonPhotos } from '../api';
@@ -182,7 +181,13 @@ export default function PickImageScreen({
             </>
           ) : (
             <>
-              <ActivityIndicator size="large" color={colors.primary} />
+              {/* The newt, not a system spinner: this wait is one of the
+                  longest in the app (curated photos for the target plus a
+                  similar-species lookup plus a batch of their photos), and it
+                  is the app's own background behind it — so the teal artwork,
+                  like the loading screen, rather than the white one that sits
+                  on photos. */}
+              <Spinner size={72} teal color={colors.primary} />
               <Text style={styles.loadingText}>Finding look-alikes…</Text>
             </>
           )}
