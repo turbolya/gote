@@ -8,9 +8,21 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.43.4';
+export const APP_VERSION = '2.43.5';
 
 export const CHANGELOG = [
+  {
+    version: '2.43.5',
+    date: '2026-09-13',
+    changes: [
+      'Fixed: a streak that had ended kept showing on the Apple Watch and on '
+        + 'the watch face. The phone only talks to the watch when something on '
+        + 'the phone changes, and a day going by without a round changes '
+        + 'nothing — so the wrist was never told. It now knows which day your '
+        + 'streak was last counted on and lets it run out by itself, even with '
+        + 'the app closed.',
+    ],
+  },
   {
     version: '2.43.4',
     date: '2026-09-06',

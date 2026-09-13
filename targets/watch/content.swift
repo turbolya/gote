@@ -32,7 +32,9 @@ struct ComplicationsShowcase: View {
   @EnvironmentObject var store: WatchStore
 
   private var accuracy: Int { store.snapshot.accuracy ?? 0 }
-  private var streak: Int { store.snapshot.streak }
+  // liveStreak, never the raw `streak`: the phone stops pushing the moment a day
+  // goes by without a round, so the stored number outlives the streak itself.
+  private var streak: Int { store.snapshot.liveStreak }
 
   var body: some View {
     ScrollView {
@@ -118,9 +120,9 @@ struct HomeView: View {
               // Same newt as the Streak complication, so the app and the watch
               // face agree on what a streak looks like.
               newtGlyph(14)
-                .foregroundStyle(store.snapshot.streak > 0 ? goteTeal : .secondary)
-              Text(store.snapshot.streak > 0
-                ? "\(store.snapshot.streak)-day streak"
+                .foregroundStyle(store.snapshot.liveStreak > 0 ? goteTeal : .secondary)
+              Text(store.snapshot.liveStreak > 0
+                ? "\(store.snapshot.liveStreak)-day streak"
                 : "No streak yet")
                 .font(.footnote.weight(.semibold))
                 .lineLimit(1)

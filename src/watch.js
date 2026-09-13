@@ -30,8 +30,17 @@ const DECK_LIMIT = 240;
 let lastSent = null;
 
 // Build and push the watch snapshot. `streak` is the DISPLAY streak (from
-// streakStatus: { count, longest }), so a lapsed streak shows 0 on the wrist
-// just like it does on the phone.
+// streakStatus: { count, longest, day }), so a lapsed streak shows 0 on the
+// wrist just like it does on the phone.
+//
+// `day` matters more than it looks. The count alone is only true at the moment
+// it is sent: this push happens when the phone's stats change, and a day going
+// by without a round changes nothing on the phone — the stored streak record is
+// untouched, so the effect that calls this never re-runs. Send a bare number
+// and the wrist keeps showing it until the app is next opened, which is exactly
+// what the complication exists to save you from doing. With the day attached
+// the watch can age the streak out on its own; see goteLiveStreak in
+// targets/watch/store.swift and targets/watch-widget/index.swift.
 export function pushWatchSnapshot({ lifetime, streak, deck }) {
   if (Platform.OS !== 'ios') return;
 
@@ -58,6 +67,10 @@ export function pushWatchSnapshot({ lifetime, streak, deck }) {
   // Only set accuracy once something has been played — the watch shows a
   // placeholder until then (mirrors the phone hero's behaviour).
   if (answered > 0) context.accuracy = Math.round((correct / answered) * 100);
+  // Same reason this is conditional rather than defaulted to null: the context
+  // is sent as a property list, which has no null, and an unset key is the
+  // shape the watch already expects for "not known".
+  if (streak && streak.day) context.streakDay = streak.day;
 
   const json = JSON.stringify(context);
   if (json === lastSent) return;

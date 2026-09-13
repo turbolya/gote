@@ -1104,6 +1104,21 @@ of its cases cannot be reached again without deleting the app.
     streak is running and dimmed when it is not — never a flame, which is the
     generic fitness glyph the app deliberately does not borrow. The accuracy
     gauge is labelled "acc" and carries no glyph of its own. ---
+- [ ] **TC-19.7 A streak that ends while the phone stays shut.**
+  1. Play a round so the watch shows a streak of 1 or more (open the watch app
+     once to be sure it has the number).
+  2. Do **not** play again, and do **not** open the phone app, for two whole
+     calendar days — the streak should still show on day 2 and be gone on day 3.
+  3. On day 3, look at the Streak complication on the watch face FIRST, then
+     open the watch app, then finally open the phone.
+  - *Preconditions:* A paired Apple Watch with the gote watch app and the Streak
+    complication on the active face; a streak of at least one day
+  - *Priority:* High
+  - *Expected:* the complication reads 0 / "no streak" on day 3 **before**
+    anything is opened — the watch works this out from the day the streak was
+    counted on, it is not waiting to be told. The watch app agrees, and so does
+    the phone. "Best" is unchanged throughout. (Shortcut for testing: set the
+    watch and phone clocks forward two days rather than waiting.)
 
 ---
 

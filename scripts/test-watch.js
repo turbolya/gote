@@ -55,6 +55,34 @@ function loadStorage(asyncStorage) {
   return m.exports;
 }
 
+// src/watch.js reaches for three things a plain node run has none of: React
+// Native's Platform, the native watch-bridge module, and api.js (which itself
+// pulls in the network stack). Stub all three and the payload builder — the
+// part that actually decides what the wrist is told — becomes testable.
+// Returns { watch, sent } where `sent` collects every pushed context.
+function loadWatch() {
+  const file = path.join(__dirname, '..', 'src/watch.js');
+  const code = babel.transformFileSync(file, {
+    plugins: ['@babel/plugin-transform-modules-commonjs'],
+  }).code;
+  const sent = [];
+  const fakeRequire = (id) => {
+    if (id === 'react-native') return { __esModule: true, Platform: { OS: 'ios' } };
+    if (id === '../modules/watch-bridge') {
+      return {
+        __esModule: true,
+        updateWatchContext: (ctx) => sent.push(ctx),
+        subscribeWatchResults: () => () => {},
+      };
+    }
+    if (id === './api') return { __esModule: true, toSmallPhoto: (u) => u };
+    return require(id);
+  };
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', code)(m, m.exports, fakeRequire);
+  return { watch: m.exports, sent };
+}
+
 let pass = 0;
 let fail = 0;
 const results = [];
@@ -325,6 +353,82 @@ const DAY = 24 * 60 * 60 * 1000;
     assert.strictEqual(kept.length, 500);
     assert.strictEqual(kept[0], 'r100', 'drops the oldest 100');
     assert.strictEqual(kept[499], 'r599', 'keeps the newest');
+  });
+
+  // --- the wrist has to be able to age the streak out by itself ---------------
+  // The phone pushes when the phone's stats change. A day going by with no round
+  // changes nothing there, so nothing is pushed — and before this the watch kept
+  // rendering the last number it was handed until the app was next opened.
+  await test('streakStatus carries the day the streak was counted on', async () => {
+    const s = loadStorage(makeAsyncStorage());
+    const at = new Date(2026, 8, 10, 12, 0, 0).getTime(); // 2026-09-10, local
+    const rec = { current: 2, longest: 5, lastActiveDay: '2026-09-10' };
+    assert.deepStrictEqual(s.streakStatus(rec, at), {
+      count: 2, state: 'done', longest: 5, day: '2026-09-10',
+    });
+  });
+
+  await test('streakStatus: still counted the day after, gone the day after that', async () => {
+    const s = loadStorage(makeAsyncStorage());
+    const rec = { current: 2, longest: 5, lastActiveDay: '2026-09-10' };
+    // The 11th: yesterday's play still counts, and the day rides along.
+    const d11 = s.streakStatus(rec, new Date(2026, 8, 11, 9, 0, 0).getTime());
+    assert.strictEqual(d11.count, 2, 'alive the next day');
+    assert.strictEqual(d11.state, 'atRisk');
+    assert.strictEqual(d11.day, '2026-09-10');
+    // The 12th: broken — and the day is STILL reported, because it is what the
+    // zero was decided from.
+    const d12 = s.streakStatus(rec, new Date(2026, 8, 12, 9, 0, 0).getTime());
+    assert.strictEqual(d12.count, 0, 'lapsed after a missed day');
+    assert.strictEqual(d12.state, 'broken');
+    assert.strictEqual(d12.day, '2026-09-10');
+  });
+
+  await test('streakStatus: a player who has never finished a round has no day', async () => {
+    const s = loadStorage(makeAsyncStorage());
+    const out = s.streakStatus({ current: 0, longest: 0, lastActiveDay: null });
+    assert.strictEqual(out.count, 0);
+    assert.strictEqual(out.day, null);
+  });
+
+  await test('the watch snapshot carries streakDay, so the wrist can expire it', async () => {
+    const { watch, sent } = loadWatch();
+    watch.pushWatchSnapshot({
+      lifetime: { answered: 10, correct: 8 },
+      streak: { count: 2, longest: 5, day: '2026-09-10' },
+      deck: [],
+    });
+    assert.strictEqual(sent.length, 1, 'one context pushed');
+    assert.strictEqual(sent[0].streak, 2);
+    assert.strictEqual(sent[0].streakDay, '2026-09-10');
+  });
+
+  await test('the snapshot OMITS streakDay rather than sending null', async () => {
+    // The context travels as a property list, which has no null — an unset key
+    // is the shape the watch already treats as "not known".
+    const { watch, sent } = loadWatch();
+    watch.pushWatchSnapshot({
+      lifetime: { answered: 0, correct: 0 },
+      streak: { count: 0, longest: 0, day: null },
+      deck: [],
+    });
+    assert.strictEqual(sent.length, 1);
+    assert.ok(!('streakDay' in sent[0]), 'no null streakDay in the payload');
+    assert.strictEqual(sent[0].streak, 0);
+  });
+
+  await test('a lapsed streak is pushed as 0, with the day that lapsed it', async () => {
+    // What the phone sends the moment it IS opened after a missed day — the
+    // count is already zero here; streakDay is what lets the watch reach the
+    // same answer on its own before that happens.
+    const st = loadStorage(makeAsyncStorage());
+    const rec = { current: 2, longest: 5, lastActiveDay: '2026-09-10' };
+    const display = st.streakStatus(rec, new Date(2026, 8, 12, 9, 0, 0).getTime());
+    const { watch, sent } = loadWatch();
+    watch.pushWatchSnapshot({ lifetime: { answered: 1, correct: 1 }, streak: display, deck: [] });
+    assert.strictEqual(sent[0].streak, 0);
+    assert.strictEqual(sent[0].streakDay, '2026-09-10');
+    assert.strictEqual(sent[0].streakBest, 5, 'best survives a lapse');
   });
 
   console.log(results.join('\n'));

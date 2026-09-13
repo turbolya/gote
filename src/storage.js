@@ -582,13 +582,24 @@ export async function recordStreakDay(now = Date.now()) {
 
 // Display state for "now" from a stored streak: 'done' (already counted today),
 // 'atRisk' (counted yesterday, not yet today), or 'broken' (gap → shows 0).
+//
+// `day` is the day the streak was last counted on, passed through so a consumer
+// that cannot re-run this function later can still work out when the streak
+// lapses. The Apple Watch is exactly that: the phone pushes it a snapshot and
+// then, if nobody plays, never pushes again — nothing on the phone changes when
+// a day simply passes — so the wrist has to be able to age the number out by
+// itself. See src/watch.js and goteLiveStreak in targets/watch/store.swift.
+//
+// It is present even when the streak is already broken (count 0), because it
+// still says which day the 0 was decided from.
 export function streakStatus(streak, now = Date.now()) {
   const longest = (streak && streak.longest) || 0;
-  if (!streak || !streak.lastActiveDay) return { count: 0, state: 'broken', longest };
+  const day = (streak && streak.lastActiveDay) || null;
+  if (!day) return { count: 0, state: 'broken', longest, day: null };
   const d = new Date(now);
-  if (streak.lastActiveDay === dayKey(d)) return { count: streak.current, state: 'done', longest };
-  if (streak.lastActiveDay === prevDayKey(d)) return { count: streak.current, state: 'atRisk', longest };
-  return { count: 0, state: 'broken', longest };
+  if (day === dayKey(d)) return { count: streak.current, state: 'done', longest, day };
+  if (day === prevDayKey(d)) return { count: streak.current, state: 'atRisk', longest, day };
+  return { count: 0, state: 'broken', longest, day };
 }
 
 // --- Active days (for cross-device streaks) ----------------------------------

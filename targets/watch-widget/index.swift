@@ -2,7 +2,14 @@
 // complications — "Accuracy" (lifetime accuracy) and "Streak" (daily streak) —
 // so either (or both) can be placed on a watch face. Both read the snapshot
 // the watch app persists to the shared app-group defaults; the app reloads the
-// timelines whenever a new snapshot arrives, so `.never` refresh is enough.
+// timelines whenever a new snapshot arrives.
+//
+// The streak needs one thing more than a reload, though. The phone only pushes
+// when something on the phone changes, and a day passing with no round changes
+// nothing there — so "your streak ended" is an event NOBODY sends. The timeline
+// therefore carries a second entry at the moment the streak lapses, which is
+// the only reason the face can correct itself while the app, the watch app and
+// the phone all stay shut.
 
 import SwiftUI
 import WidgetKit
@@ -14,28 +21,61 @@ struct GoteEntry: TimelineEntry {
   let date: Date
   let accuracy: Int? // nil until something has been played
   let answered: Int
-  let streak: Int
+  let streak: Int // already aged — see loadEntry
   let streakBest: Int
+  let streakDay: String? // local YYYY-MM-DD the streak was last counted on
+}
+
+// The instant a streak last counted on `day` stops counting: the start of the
+// second day after it. Counted Monday → alive all Tuesday → gone at Wednesday
+// 00:00. Calendar arithmetic, so month ends and DST are not special cases.
+//
+// Mirrors goteStreakLapse / goteLiveStreak in targets/watch/store.swift, which
+// is a separate target and cannot be imported here, and streakStatus in
+// src/storage.js on the phone.
+private func streakLapse(_ day: String) -> Date? {
+  let parts = day.split(separator: "-").compactMap { Int($0) }
+  guard parts.count == 3 else { return nil }
+  var c = DateComponents()
+  c.year = parts[0]
+  c.month = parts[1]
+  c.day = parts[2]
+  let cal = Calendar.current
+  guard let d = cal.date(from: c) else { return nil }
+  return cal.date(byAdding: .day, value: 2, to: cal.startOfDay(for: d))
+}
+
+private func liveStreak(_ count: Int, _ day: String?) -> Int {
+  guard count > 0 else { return 0 }
+  guard let day, let lapse = streakLapse(day) else { return count }
+  return Date() < lapse ? count : 0
 }
 
 private func loadEntry() -> GoteEntry {
   let defaults = UserDefaults(suiteName: appGroup)
   if let data = defaults?.data(forKey: snapshotKey),
      let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+    let day = obj["streakDay"] as? String
     return GoteEntry(
       date: .now,
       accuracy: obj["accuracy"] as? Int,
       answered: obj["answered"] as? Int ?? 0,
-      streak: obj["streak"] as? Int ?? 0,
-      streakBest: obj["streakBest"] as? Int ?? 0
+      streak: liveStreak(obj["streak"] as? Int ?? 0, day),
+      streakBest: obj["streakBest"] as? Int ?? 0,
+      streakDay: day
     )
   }
-  return GoteEntry(date: .now, accuracy: nil, answered: 0, streak: 0, streakBest: 0)
+  return GoteEntry(
+    date: .now, accuracy: nil, answered: 0, streak: 0, streakBest: 0, streakDay: nil
+  )
 }
 
 struct GoteProvider: TimelineProvider {
   func placeholder(in context: Context) -> GoteEntry {
-    GoteEntry(date: .now, accuracy: 83, answered: 1680, streak: 12, streakBest: 21)
+    GoteEntry(
+      date: .now, accuracy: 83, answered: 1680, streak: 12, streakBest: 21,
+      streakDay: nil
+    )
   }
 
   func getSnapshot(in context: Context, completion: @escaping (GoteEntry) -> Void) {
@@ -43,7 +83,20 @@ struct GoteProvider: TimelineProvider {
   }
 
   func getTimeline(in context: Context, completion: @escaping (Timeline<GoteEntry>) -> Void) {
-    completion(Timeline(entries: [loadEntry()], policy: .never))
+    let now = loadEntry()
+    var entries = [now]
+    // …and the moment it lapses, so the face zeroes itself with nothing running.
+    // Only worth an entry while the streak is still alive and the lapse is
+    // ahead of us; once it has passed, `now` already reads 0.
+    if now.streak > 0, let day = now.streakDay, let lapse = streakLapse(day), lapse > .now {
+      entries.append(
+        GoteEntry(
+          date: lapse, accuracy: now.accuracy, answered: now.answered,
+          streak: 0, streakBest: now.streakBest, streakDay: day
+        )
+      )
+    }
+    completion(Timeline(entries: entries, policy: .never))
   }
 }
 

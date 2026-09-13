@@ -3,12 +3,50 @@
 // watch-face complication (targets/watch-widget) read it.
 //
 // Snapshot shape (see src/watch.js on the phone side):
-//   { v, accuracy?, correct, answered, streak, streakBest,
+//   { v, accuracy?, correct, answered, streak, streakBest, streakDay?,
 //     deck: [{ id, name, sci, image }] }
 
 import Foundation
 import WatchConnectivity
 import WidgetKit
+
+// MARK: - Streak freshness
+
+// The instant a streak last counted on `day` (local YYYY-MM-DD) stops counting:
+// the start of the second day after it. Counted Monday → still alive all
+// Tuesday → gone at Wednesday 00:00. Built through Calendar rather than by
+// adding seconds, so month ends and DST are not special cases.
+func goteStreakLapse(_ day: String) -> Date? {
+  let parts = day.split(separator: "-").compactMap { Int($0) }
+  guard parts.count == 3 else { return nil }
+  var c = DateComponents()
+  c.year = parts[0]
+  c.month = parts[1]
+  c.day = parts[2]
+  let cal = Calendar.current
+  guard let d = cal.date(from: c) else { return nil }
+  return cal.date(byAdding: .day, value: 2, to: cal.startOfDay(for: d))
+}
+
+// What a streak counted on `day` is worth right now. Mirrors streakStatus in
+// src/storage.js: alive if it was counted today or yesterday, zero after that.
+//
+// The watch needs its own copy of this rule because the phone only pushes when
+// something on the phone changes, and a day passing with no round changes
+// nothing — the stored streak record is untouched. Without this the wrist kept
+// showing the last number it was sent, for as long as the app went unopened.
+//
+// No day (an older phone build, or a player who has never finished a round)
+// falls back to trusting the number as sent, which is what used to happen
+// always.
+//
+// Mirrored in targets/watch-widget/index.swift, which is a separate target and
+// cannot import this file.
+func goteLiveStreak(_ count: Int, _ day: String?) -> Int {
+  guard count > 0 else { return 0 }
+  guard let day, let lapse = goteStreakLapse(day) else { return count }
+  return Date() < lapse ? count : 0
+}
 
 struct WatchCard: Identifiable, Codable, Equatable {
   let id: Int
@@ -23,11 +61,20 @@ struct Snapshot: Codable, Equatable {
   var answered: Int
   var streak: Int
   var streakBest: Int
+  // The local day the streak was last counted on, YYYY-MM-DD. Optional: a
+  // snapshot persisted by an older build has no such key, and decoding one must
+  // not fail.
+  var streakDay: String?
   var deck: [WatchCard]
 
   static let empty = Snapshot(
-    accuracy: nil, correct: 0, answered: 0, streak: 0, streakBest: 0, deck: []
+    accuracy: nil, correct: 0, answered: 0, streak: 0, streakBest: 0,
+    streakDay: nil, deck: []
   )
+
+  // The streak as it stands NOW, rather than when the phone last spoke. Every
+  // display must go through this — see goteLiveStreak.
+  var liveStreak: Int { goteLiveStreak(streak, streakDay) }
 }
 
 final class WatchStore: NSObject, ObservableObject {
@@ -82,6 +129,7 @@ final class WatchStore: NSObject, ObservableObject {
         answered: context["answered"] as? Int ?? 0,
         streak: context["streak"] as? Int ?? 0,
         streakBest: context["streakBest"] as? Int ?? 0,
+        streakDay: context["streakDay"] as? String,
         deck: hasDeck ? parsedDeck : self.snapshot.deck
       )
       guard snap != self.snapshot else { return }
@@ -145,6 +193,11 @@ extension WatchStore {
     snap.answered = 1627
     snap.streak = 12
     snap.streakBest = 21
+    // Dated to today, so the demo streak is alive by the same rule as a real
+    // one rather than by goteLiveStreak's no-day fallback.
+    let f = DateFormatter()
+    f.dateFormat = "yyyy-MM-dd"
+    snap.streakDay = f.string(from: Date())
     if snap.deck.isEmpty {
       let names: [(Int, String, String)] = [
         (12727, "American Robin", "Turdus migratorius"),
