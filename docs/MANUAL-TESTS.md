@@ -98,6 +98,19 @@ Know how to get back to zero — several cases need a fresh start.
     loaded. A plain grey system spinner may show for a moment on a first-ever
     launch while the animation is still decoding, and must give way to the newt
     — it is the fallback, not the spinner. ---
+- [ ] **TC-1.6 The menu reads as three groups with nothing shouting.**
+  1. Scroll the whole menu, top to bottom, in both themes.
+  2. Count the horizontal rules.
+  - *Priority:* Medium
+  - *Expected:* No PLAY / LEARN / SETTINGS headings anywhere — the groups are
+    separated by a **thin horizontal rule** and by the space around it. Exactly
+    **two** rules: one above Flash cards, one above Settings. None above the
+    Smart play card (there is nothing before it to separate it from), and none
+    between rows inside a group — Speedrun sits directly above Nearby species
+    with only spacing between them, likewise Flash cards above Lexicon. The
+    rules are the same weight and colour in both themes and sit clear of the
+    hero banner. Order: the Smart play card, then Speedrun and Nearby species;
+    then Flash cards and Lexicon; then Settings. ---
 
 ## 2. Game modes
 
@@ -184,6 +197,18 @@ scores correctly, and returns to the menu cleanly.
     many cards of those types with no intervening screen. The last lit icon
     refuses to switch off. Offline, the **photo** icon is dimmed and will not
     light, and the round plays with the rest.
+- [ ] **TC-2.12 The look-alikes wait shows the newt.**
+  1. Start a photo-only Smart play round and watch the screen between cards,
+     before the four photos appear.
+  - *Preconditions:* Device online, ideally on a slow connection where the wait
+    is long enough to see
+  - *Priority:* Medium
+  - *Expected:* the wait under "Which one is …" shows the gote newt animation in
+    teal above "Finding look-alikes…", not a plain grey system spinner. This is
+    the longest wait in a round — it fetches photos for the answer and for
+    several look-alikes — so it is the one most likely to be seen. A grey
+    spinner may flash for an instant on the first round after launch while the
+    animation decodes, and must give way to the newt.
 
 ## 3. Photos & the fullscreen viewer
 
@@ -774,16 +799,18 @@ of its cases cannot be reached again without deleting the app.
 - [ ] **TC-10.5 Wandering off pauses the tour rather than losing it.**
   1. Force-quit the app and relaunch it. It reopens on the menu.
   2. Observe the bottom of the screen.
-  3. Tap "Smart play" to go back.
-  - *Preconditions:* Tour at step 6, on the Smart play screen with its Start
-    button spotlit.
+  3. Tap **Start** on the Smart play card to begin a round again.
+  - *Preconditions:* Tour at step 7 (the more-photos step), with a round in
+    progress. Steps 5 and 6 both live on the menu now that Smart play is played
+    from a card there, so neither can be walked away from — step 7, on the round
+    itself, is the first that can.
   - *Priority:* High
-  - *Expected:* On the menu a slim bar reads "Tutorial · open Smart play to
+  - *Expected:* On the menu a slim bar reads "Tutorial · start a round to
     continue" — a bar, not a bubble, with nothing dimmed and nothing sealed,
-    because the tour is not here. Tapping Smart play restores step 6's bubble.
-    The tour never simply vanishes with no way back to it. (A relaunch is the
-    way into this state: a step seals its own screen, so you cannot simply walk
-    off one.) ---
+    because the tour is not here. Starting a round restores step 7's bubble. The
+    tour never simply vanishes with no way back to it. (A relaunch is the way
+    into this state: a step seals its own screen, so you cannot simply walk off
+    one.) ---
 
 ## 11. Tour: presentation
 
@@ -824,8 +851,8 @@ of its cases cannot be reached again without deleting the app.
 
 - [ ] **TC-12.1 Offline during the round step.**
   1. Start the round and reach step 7.
-  - *Preconditions:* Tour at step 6 on the Smart play screen. Put the device in
-    aeroplane mode before starting the round.
+  - *Preconditions:* Tour at step 6, on the menu with the Smart play card's
+    Start button spotlit. Put the device in aeroplane mode before tapping it.
   - *Expected:* The more-photos button is hidden offline, so the step has
     nothing to point at: the bubble is centred with no spotlight and no arrow,
     and "Next" still advances. It must not point at an empty corner or freeze
