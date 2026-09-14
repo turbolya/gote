@@ -167,6 +167,21 @@ describe('App Store screenshots', () => {
     }
     await reachMenu(); // menu after the account's deck downloads (handles popup)
 
+    // Dismiss the Apple Watch tip before anything is captured. It earns its
+    // place in the app, but in the App Store set it eats about a fifth of the
+    // menu and pushes the Smart play card — the thing 01-menu is about — down
+    // the screen. The dismissal is persisted, so this one tap keeps every later
+    // screen clear of it too.
+    //
+    // Presence-checked rather than assumed: WatchTip renders on iPhone only, so
+    // on the iPad pass there is deliberately nothing here to tap.
+    await step('dismiss the watch tip', async () => {
+      if (await present('watch-tip-dismiss', 4000)) {
+        await element(by.id('watch-tip-dismiss')).tap();
+        await hold(400); // let it animate out before the first capture
+      }
+    });
+
     // Seed some history so the hero, Statistics and streak look alive: grade a
     // few flash cards, then End the round to reach Results (08).
     await step('seed stats (flash cards)', async () => {
