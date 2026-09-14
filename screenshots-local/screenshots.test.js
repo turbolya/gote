@@ -12,16 +12,41 @@ const { device, element, by, waitFor } = require('detox');
 const SETTLE = Math.max(1, Number(process.env.SHOTS_SETTLE) || 1);
 const T = 180000 * SETTLE; // waitFor timeout (real downloads + image loads)
 
-// Tell Detox to ignore network when deciding if the app is "idle" — the live app
-// is always loading something (downloads, images, background sync), which would
-// otherwise keep Detox waiting forever. The app still fetches; we gate content
-// with explicit hold() delays before each screenshot.
+// Detox waits for the app to go idle before launchApp resolves, and this build
+// talks to the REAL iNaturalist API — it is downloading ~1,000 observations
+// from the moment it starts, so it never idles and the launch hangs forever
+// ("The app is busy with the following tasks…", repeating until the run is
+// killed). disableSynchronization() cannot help: it only runs once launchApp
+// has returned, which is the call that never does.
+//
+// So synchronization has to be off BEFORE the first frame, which is what these
+// launch arguments do. Both values are STRINGS on purpose: Detox's iOS side
+// reads them out of NSUserDefaults (Detox/DetoxInit.m), and a JS number is not
+// picked up — passing 0 instead of '0' leaves synchronization on and the launch
+// hangs exactly as before, with nothing to say why.
+//
+// The blacklist is the same idea applied to the network: set at launch it
+// covers the first-run download, where setURLBlacklist() would arrive too late.
+//
+// What made this surface only now: the loading screen got an ANIMATED newt in
+// 2.42.x (2026-08-27), six days after the last good capture. An animated image
+// keeps the main run loop awake, so the app never idles while it downloads —
+// and the first run sits on that screen for the whole deck.
+//
+// The unit suite needs none of this: its fixtures make the app settle at once.
+const NO_SYNC = {
+  launchArgs: { detoxEnableSynchronization: '0', detoxURLBlacklistRegex: '.*' },
+};
+
 const detach = async () => {
   try {
     await device.setURLBlacklist(['.*']);
   } catch {
     /* older Detox: ignore */
   }
+  // The blacklist stops network traffic counting towards "busy" for the rest of
+  // the run; the disable is belt and braces for anything that re-enables sync
+  // after launch. Content is gated by explicit hold() delays, not by Detox.
   await device.disableSynchronization();
 };
 const USER = process.env.SHOTS_USER || 'mate_koch';
@@ -98,7 +123,11 @@ const reachMenu = async () => {
 // this is fast — and it's far more reliable than navigating back through every
 // screen (which could strand us off-menu if a screen stays busy).
 const goMenu = async () => {
-  await device.launchApp({ newInstance: true, permissions: { location: 'inuse' } });
+  await device.launchApp({
+    newInstance: true,
+    permissions: { location: 'inuse' },
+    ...NO_SYNC,
+  });
   await detach();
   await reachMenu();
 };
@@ -107,14 +136,22 @@ describe('App Store screenshots', () => {
   beforeAll(async () => {
     await device.launchApp({
       newInstance: true,
-      delete: true, // clean slate so first-run lands on Settings
+      delete: true, // clean slate: a first run downloads the default account
       permissions: { location: 'inuse' },
+      ...NO_SYNC,
     });
     // Ignore network for idle + disable auto-sync (the live app never idles).
     await detach();
 
-    // First run downloads the default account, then lands on Settings — switch
-    // it to the real account we want in the screenshots.
+    // A first run downloads the default account (loarie) and lands on the MENU.
+    // It used to land on Settings, which is where this script used to expect to
+    // find the username field; that changed in 2.42.5 so the tour could open on
+    // the menu rather than nagging from a screen the user had not seen yet. So
+    // wait out the download on the menu, then walk to Settings ourselves.
+    await reachMenu();
+    await tapMenuRow('open-settings');
+
+    // Switch to the real account we want in the screenshots.
     await visible('settings-username');
     // Use clearText + typeText (not replaceText) so React Native's onChangeText
     // actually fires and the username state updates — otherwise the submit keeps
@@ -181,7 +218,7 @@ describe('App Store screenshots', () => {
     await visible('study-reveal');
     await hold(4500); // let the full-screen photo download + render
     await element(by.id('study-reveal')).tap(); // reveal the choices
-    await shot('02-by-name', 1500);
+    await shot('02-name-question', 1500);
   });
 
   it('03 — lexicon, 04 — species detail', async () => {

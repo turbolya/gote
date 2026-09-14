@@ -18,8 +18,11 @@ node_modules/
 /build/
 
 # NOTE: screenshots-local/ IS tracked — it's the App Store screenshot tooling.
-# Only its OUTPUT is kept out of the repo: the PNGs are written to the separate
-# gote-launch folder, so there is nothing to ignore here.
+# Only its OUTPUT is kept out of the repo: the finished PNGs are written to the
+# separate gote-launch folder. Detox also drops its own per-run artifact tree
+# here when --artifacts-location is not pointed elsewhere (a one-off debugging
+# run, say), so that gets ignored rather than committed by accident.
+screenshots-local/out/
 
 # Expo
 .expo/

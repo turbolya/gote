@@ -41,16 +41,45 @@ mkdir -p "$OUT"
 cd "$REPO" || exit 1
 
 # --- device list (one per App Store family) -----------------------------------
+# Given as FAMILIES, not exact simulator names. Apple revises the chip in the
+# name every year — "iPad Pro 13-inch (M4)" became "(M5)" — and the old exact
+# name then matched nothing, so the run quietly skipped the iPad and produced a
+# screenshot set with a required device missing. Each family is resolved below
+# to whatever is actually installed.
+resolve_device() {
+  xcrun simctl list devices available \
+    | sed -E 's/^ +//; s/ \([0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}\).*$//' \
+    | awk -v p="$1" 'index($0,p)==1 && (length($0)==length(p) || substr($0,length(p)+1,2)==" (") { print; exit }'
+}
+
 if [ -n "${SHOTS_DEVICE:-}" ]; then
-  DEVICES=("$SHOTS_DEVICE")
+  FAMILIES=("$SHOTS_DEVICE")
 elif [ -n "${SHOTS_DEVICES:-}" ]; then
-  IFS=$'\n' read -rd '' -a DEVICES <<< "$SHOTS_DEVICES"
+  IFS=$'\n' read -rd '' -a FAMILIES <<< "$SHOTS_DEVICES"
 else
-  DEVICES=(
-    "iPhone 17 Pro Max"        # 6.9" iPhone (required)
-    "iPhone 17"                # standard iPhone
-    "iPad Pro 13-inch (M4)"    # 13" iPad (required while supportsTablet is on)
+  FAMILIES=(
+    "iPhone 17 Pro Max"   # 6.9" iPhone (required)
+    "iPhone 17"           # standard iPhone
+    "iPad Pro 13-inch"    # 13" iPad (required while supportsTablet is on)
   )
+fi
+
+DEVICES=()
+MISSING=()
+for FAM in "${FAMILIES[@]}"; do
+  RESOLVED="$(resolve_device "$FAM")"
+  if [ -n "$RESOLVED" ]; then
+    DEVICES+=("$RESOLVED")
+    [ "$RESOLVED" = "$FAM" ] || echo "   $FAM → $RESOLVED"
+  else
+    MISSING+=("$FAM")
+  fi
+done
+if [ "${#MISSING[@]}" -gt 0 ]; then
+  echo "✗ no simulator installed for: ${MISSING[*]}"
+  echo "  Install it in Xcode ▸ Settings ▸ Components, or set SHOTS_DEVICES."
+  echo "  Refusing to run a partial set — the App Store listing needs every family."
+  exit 1
 fi
 
 # --- look up a nice species for the detail screenshot (best-effort) -----------
@@ -89,10 +118,6 @@ npx detox build -c ios.shots --config-path "$CONFIG" || { echo "✗ build failed
 # Set SHOTS_APPEARANCES="light" to skip the dark pass and halve the runtime.
 APPEARANCES="${SHOTS_APPEARANCES:-light dark}"
 for DEVICE in "${DEVICES[@]}"; do
-  if ! xcrun simctl list devices available | grep -q "$DEVICE ("; then
-    echo "⚠️  skip (simulator not installed): $DEVICE"
-    continue
-  fi
   SLUG="$(echo "$DEVICE" | tr '[:upper:] ' '[:lower:]-' | tr -cd 'a-z0-9-')"
   # UDID of the first matching available device — needed to set its appearance.
   UDID="$(xcrun simctl list devices available | grep -m1 "$DEVICE (" \
