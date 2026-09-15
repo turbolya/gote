@@ -5,10 +5,11 @@ welcome.
 
 ## Licensing of contributions
 
-**By submitting a pull request you agree that your contribution is licensed
-under the [GNU Affero General Public License v3.0](LICENSE) *together with* the
-[app-store additional permission](LICENSE-EXCEPTION), on the same terms as the
-rest of the project.**
+**By submitting a pull request you agree to both of the following.**
+
+**1. Your contribution is licensed under the [GNU Affero General Public License
+v3.0](LICENSE) *together with* the [app-store additional
+permission](LICENSE-EXCEPTION), on the same terms as the rest of the project.**
 
 That second half matters. gote ships through the Apple App Store and Google
 Play, whose terms conflict with parts of the AGPL-3.0 — the permission in
@@ -17,8 +18,53 @@ license. The permission has to cover *every* copyright holder in the codebase,
 so a contribution offered under the plain AGPL-3.0 alone can't be merged; it
 would make the app undistributable through the stores it's built for.
 
-Nothing here asks you to assign copyright. You keep it — you're granting the
-same licence the project already runs on.
+**2. You additionally grant the project maintainer a perpetual, worldwide,
+non-exclusive, royalty-free, irrevocable licence to reproduce, modify, publicly
+perform and display, sublicense and distribute your contribution and works
+based on it — including under licence terms other than the AGPL-3.0, and
+including as part of a proprietary or store-distributed binary. You confirm you
+are legally entitled to grant this: the contribution is your own work, or you
+have the rights to submit it, and it is not encumbered by an employer or by a
+third party's licence.**
+
+### Why the second grant exists
+
+The app stores are the awkward case again, from the other direction. Publishing
+a binary through them means accepting terms — device limits, store signing —
+that the AGPL-3.0 would otherwise forbid imposing on the people who receive it.
+There are two ways to reconcile that, and the project keeps both open:
+
+- `LICENSE-EXCEPTION`, which lets *anyone* redistribute gote through a store;
+  and
+- the maintainer's own position as a copyright holder, which lets *them* ship a
+  store build under the store's standard end-user licence.
+
+The second route only works while the maintainer holds the rights to the whole
+codebase. Without grant 2, every merged contribution would carve out a piece
+they could not relicense, and the route would close quietly — one pull request
+at a time, with nobody noticing until a store's terms changed and it was too
+late to react.
+
+### What this does NOT do
+
+- **You keep your copyright.** This is a licence you grant, not an assignment.
+  You remain free to use, relicense and republish your own contribution however
+  you like, including in other projects.
+- **It does not make gote proprietary.** The source stays AGPL-3.0 here, and
+  every obligation of that licence continues to apply to the project as
+  published. Grant 2 is about what the maintainer *may* do, not a statement
+  that they will.
+- **It does not let the maintainer relicense your work on its own.** The grant
+  covers use of your contribution as part of gote.
+
+If you are not comfortable with grant 2, please say so in the pull request
+rather than quietly skipping it. A contribution can still be discussed, and
+small fixes can often be reimplemented independently — what cannot happen is
+merging it while the question is unresolved.
+
+> Not lawyer-vetted. This wording is adapted from the shape common to
+> contributor licence agreements in open-source projects, and is part of what
+> the pre-release legal review is meant to check.
 
 ## Before you open a pull request
 
