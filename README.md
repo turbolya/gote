@@ -119,5 +119,30 @@ binaries). It covers distribution only — every copyleft obligation above stays
 in force.
 
 Contributions are accepted under the AGPL-3.0 **plus** that permission, so it
-keeps covering the whole work as the codebase grows — see
-[CONTRIBUTING.md](CONTRIBUTING.md).
+keeps covering the whole work as the codebase grows. Contributors also grant the
+maintainer a licence to distribute their work under other terms — see
+[CONTRIBUTING.md](CONTRIBUTING.md) for what that does and does not mean.
+
+### The App Store build
+
+**What you install from the App Store is not licensed to you under the
+AGPL-3.0.** It is distributed by the copyright holder under Apple's standard
+end-user licence agreement, like any other app on the store. Installing it gives
+you no rights to its source.
+
+That is not a contradiction, and nothing above is a fiction. A licence is a
+grant the copyright holder makes to other people; it does not bind the holder,
+who remains free to distribute the same work on different terms. So gote is
+published here as free software under the AGPL-3.0, and also shipped as a
+store binary under the store's own terms. This is why the grant in
+CONTRIBUTING.md matters: it keeps that second route open as other people's code
+enters the project.
+
+**The source you are reading is the real thing.** It is the same code the store
+build is made from, and it stays under the AGPL-3.0 for you and everyone else:
+you may build it, change it, run it, and share it on those terms, including
+onto your own device. What you cannot do is take Apple's binary and treat it as
+an AGPL artefact.
+
+If you want gote as free software, use this repository. If you want it as a
+convenience with automatic updates, use the store. They are the same program.
