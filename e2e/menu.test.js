@@ -34,6 +34,60 @@ describe('Menu & navigation', () => {
     await visible('menu-stats');
   });
 
+  // --- the recent-observations film strip -------------------------------------
+
+  it('shows the five most recent observations as a film strip', async () => {
+    // Fixture cards are dated 2024-05-01 upward by index, so the newest five are
+    // the last five — daisy (1008) newest, blackbird (1004) fifth. Asserting the
+    // OLDEST three are absent is the half that catches a strip showing
+    // everything, or showing the wrong end of the deck.
+    await visible('recent-strip');
+    for (const id of [1008, 1007, 1006, 1005, 1004]) {
+      await visible(`recent-photo-${id}`);
+    }
+    for (const id of [1003, 1002, 1001]) {
+      await expect(element(by.id(`recent-photo-${id}`))).not.toExist();
+    }
+  });
+
+  it('a strip photo opens a popup that names it, and closes three ways', async () => {
+    await tap('recent-photo-1008');
+    await visible('recent-popup-close');
+    // The popup is what puts a name to the picture — the strip deliberately does
+    // not, so this is the whole point of tapping.
+    await waitFor(element(by.text('Common Daisy'))).toBeVisible().withTimeout(TIMEOUT);
+    await waitFor(element(by.text('Bellis perennis'))).toBeVisible().withTimeout(TIMEOUT);
+
+    // 1. the ✕
+    await tap('recent-popup-close');
+    await waitFor(element(by.id('recent-popup-close'))).not.toBeVisible().withTimeout(TIMEOUT);
+    await visible('mode-smart'); // back on the menu, nothing navigated
+
+    // 2. a tap outside the card. The backdrop fills the screen and the card
+    //    sits in the middle of it, so aim near the top edge — inside the
+    //    backdrop, clear of the card.
+    await tap('recent-photo-1007');
+    await visible('recent-popup-close');
+    await element(by.id('recent-popup-backdrop')).tapAtPoint({ x: 30, y: 40 });
+    await waitFor(element(by.id('recent-popup-close'))).not.toBeVisible().withTimeout(TIMEOUT);
+    await visible('mode-smart');
+  });
+
+  it('the popup\'s info button opens that species in the Lexicon', async () => {
+    await tap('recent-photo-1005');
+    await visible('recent-popup-close');
+    await tap('recent-popup-info');
+    // The species page itself…
+    await visible('detail-hero');
+    await waitFor(element(by.text('Monarch'))).toBeVisible().withTimeout(TIMEOUT);
+    // …and behind it the Lexicon, so closing the page leaves you browsing
+    // rather than back where you started.
+    await tap('detail-back');
+    await visible('lexicon-search');
+    await tap('screen-back');
+    await visible('mode-smart');
+  });
+
   it('shows the lowercase "gote" brand wordmark on the hero', async () => {
     // The hero logotype is the rounded Fredoka wordmark, set lowercase.
     await waitFor(element(by.id('menu-wordmark')))

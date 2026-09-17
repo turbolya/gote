@@ -106,6 +106,7 @@ import { isMastered, speciesKey } from './src/mastery';
 import { recordRecall } from './src/recall';
 import { FORMAT, chooseFormat, ALL_FORMATS } from './src/smartmode';
 import { scoreDelta } from './src/scoring';
+import { recentCards } from './src/recent';
 
 // The question types Smart play offers on its start screen. Labels match the
 // Statistics breakdown so the two screens name the same thing the same way.
@@ -156,6 +157,7 @@ import SyncScreen from './src/screens/SyncScreen';
 import NearbyConfigScreen from './src/screens/NearbyConfigScreen';
 import SplashScreen from './src/components/SplashScreen';
 import SupportModal from './src/components/SupportModal';
+import ObservationPopup from './src/components/ObservationPopup';
 import SwipeBackView from './src/components/SwipeBackView';
 import { backTarget } from './src/navigation';
 import { Appear } from './src/components/anim';
@@ -312,6 +314,8 @@ export default function App() {
   // so that screen stays mounted and its scroll position and filters are
   // preserved when the detail page is dismissed. null = no detail open.
   const [detailCard, setDetailCard] = useState(null);
+  // The observation whose popup is open on the menu's film strip, or null.
+  const [recentCard, setRecentCard] = useState(null);
   // The confused pair currently open in the side-by-side comparison overlay, and
   // the player's "my tell" notes (keyed by confusions.js pairKey).
   const [comparePair, setComparePair] = useState(null);
@@ -899,6 +903,12 @@ export default function App() {
       loadConfusionNotes().then((n) => setConfusionNotes(displayNotes(n)));
     });
   }, [fullDeck, username]);
+
+  // The film strip's five. Taken from the filtered deck rather than the raw
+  // cache, so it honours the display settings the player chose — "one card per
+  // species" in particular, which is on by default and stops the strip showing
+  // the same bird five times from one afternoon.
+  const recent = useMemo(() => recentCards(fullDeck, 5), [fullDeck]);
 
   // Keep the paired Apple Watch in sync: push the lifetime accuracy, streak,
   // and a mini-deck whenever they change (deduped inside pushWatchSnapshot).
@@ -1872,6 +1882,8 @@ export default function App() {
                 saveWatchTipDismissed(true);
               }}
               onSelectMode={onSelectMode}
+              recent={recent}
+              onSelectRecent={setRecentCard}
               smartTypes={SMART_QUESTION_TYPES}
               smartSetup={IS_SHOTS ? null : roundSetup.smart}
               smartUnavailable={offline ? [FORMAT.PICTURE] : null}
@@ -1892,6 +1904,21 @@ export default function App() {
           </Appear>
           {showSplash && <SplashScreen onDone={() => setShowSplash(false)} onLayout={hideNativeSplash} />}
           <SupportModal visible={showSupport} onClose={() => setShowSupport(false)} />
+          {/* The film strip's card. "More info" hands over to the species page,
+              which lives in the OTHER render branch (detailCard, below) — so it
+              has to leave the menu to be seen at all. It goes to the Lexicon
+              rather than nowhere: closing the species page then leaves you
+              browsing the list it came from, which is where someone who asked
+              for more about a species was heading anyway. */}
+          <ObservationPopup
+            card={recentCard}
+            onClose={() => setRecentCard(null)}
+            onMoreInfo={(card) => {
+              setRecentCard(null);
+              setScreen('lexicon');
+              setDetailCard(card);
+            }}
+          />
           <TutorialOverlay />
         </TutorialProvider>
         </SafeAreaProvider>

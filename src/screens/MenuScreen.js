@@ -28,6 +28,7 @@ import { Appear } from '../components/anim';
 import { SPEEDRUN_LIVES, KOFI_URL } from '../constants';
 import { IS_E2E } from '../e2e/testMode';
 import { useAnchorRef, useTutorialScroller } from '../components/Tutorial';
+import RecentStrip from '../components/RecentStrip';
 import SmartCard from '../components/SmartCard';
 
 // Modes that need a live network call to build a round, so they can't run
@@ -214,6 +215,10 @@ export default function MenuScreen({
   watchTipDismissed,
   onDismissWatchTip,
   onSelectMode,
+  // The five most recent observations, as a film strip above everything you can
+  // play. Empty (or absent) hides the row entirely — see RecentStrip.
+  recent = [],
+  onSelectRecent,
   // Smart play is built on the card below rather than behind a row, so the menu
   // needs the pieces the card is made of.
   smartTypes = [],
@@ -321,6 +326,13 @@ export default function MenuScreen({
             }
           />
         )}
+
+        {/* Newest sightings first, straight under the hero. Above the Smart
+            play card because it is the one part of the menu that changes on its
+            own — the reason to glance at this screen rather than tap through
+            it — and below the two notices, which are transient and say
+            something the strip cannot (that the app is offline, say). */}
+        <RecentStrip cards={recent} onSelect={onSelectRecent} />
 
         {/* The three section labels (Play / Learn / Settings) are gone: they
             named what the rows under them plainly are, and on a menu this short
