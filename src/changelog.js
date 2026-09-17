@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.43.5';
+export const APP_VERSION = '2.44.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.44.0',
+    date: '2026-09-17',
+    changes: [
+      'Your five most recent observations now sit at the top of the menu, as a '
+        + 'row of photos. Tap one to see it bigger with its name, and the ⓘ '
+        + 'takes you to that species in the Lexicon. Photos only in the row '
+        + 'itself — naming them there would give away the answer to the games '
+        + 'below it.',
+    ],
+  },
   {
     version: '2.43.5',
     date: '2026-09-13',

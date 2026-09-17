@@ -11,7 +11,7 @@
 const assert = require('assert');
 const plugin = require('../plugins/withXcode26Build');
 
-const { patchPodfile, shouldApply, MARKER } = plugin;
+const { patchPodfile, patchPodfileFloor, shouldApply, MARKER, FLOOR_MARKER } = plugin;
 
 // A Podfile shaped like the one Expo generates.
 const PODFILE = `require File.join(File.dirname(\`node --print "require.resolve('expo/package.json')"\`), "scripts/autolinking")
@@ -43,6 +43,49 @@ function test(name, fn) {
     console.log('  FAIL', name, '\n       ', e.message);
   }
 }
+
+// --- the Xcode 27 deployment-target floor ---------------------------------------
+
+test('the deployment floor is injected into the post_install block', () => {
+  const out = patchPodfileFloor(PODFILE);
+  assert.ok(out.includes(FLOOR_MARKER), 'marker present');
+  assert.ok(out.includes("IPHONEOS_DEPLOYMENT_TARGET"), 'the setting is there');
+  const at = out.indexOf(FLOOR_MARKER);
+  const opens = out.indexOf('post_install do |installer|');
+  const closes = out.indexOf('react_native_post_install');
+  assert.ok(at > opens && at < closes, 'and it sits INSIDE post_install');
+});
+
+test('the floor raises only what is below it', () => {
+  // The generated Ruby must not touch a pod that already targets 15.1 or
+  // higher — lowering anything would be worse than the error it fixes.
+  const out = patchPodfileFloor(PODFILE);
+  assert.ok(out.includes('current.to_f < 15.1'), 'guarded on the current value');
+  assert.ok(!/=\s*'1[0-4]\./.test(out), 'never assigns a target below 15');
+});
+
+test('the floor patch is idempotent', () => {
+  const once = patchPodfileFloor(PODFILE);
+  const twice = patchPodfileFloor(once);
+  assert.strictEqual(twice, once, 'idempotent');
+  assert.strictEqual(once.split(FLOOR_MARKER).length - 1, 1, 'exactly one copy');
+});
+
+test('both hooks can live in the same Podfile', () => {
+  // They are applied by separate mods on the same file, so the second must not
+  // disturb the first.
+  const out = patchPodfileFloor(patchPodfile(PODFILE));
+  assert.ok(out.includes(MARKER), 'fmt fix survives');
+  assert.ok(out.includes(FLOOR_MARKER), 'floor survives');
+});
+
+test('the floor shouts if the Podfile template moves', () => {
+  assert.throws(
+    () => patchPodfileFloor('target "gote" do\nend\n'),
+    /post_install/,
+    'a missing anchor must fail loudly, not silently drop the fix'
+  );
+});
 
 console.log('\nXcode 26 config plugin\n');
 

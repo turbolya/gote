@@ -1,8 +1,16 @@
-// Make a LOCAL iOS build work on Xcode 26 / Apple clang 21.
+// Keep an iOS build working on current Xcode.
 //
-// Two things break there, and both have to be fixed in the generated `ios/`
-// tree — which `expo prebuild` regenerates, so hand-applying them lasts exactly
-// until the next clean prebuild. That is what this plugin is for.
+// The name is historical: it started as the Xcode 26 fix and has since had to
+// cover Xcode 27 as well. Everything here has to be fixed in the generated
+// `ios/` tree — which `expo prebuild` regenerates, so hand-applying any of it
+// lasts exactly until the next clean prebuild. That is what this plugin is for.
+//
+// Note the two halves apply differently, on purpose. The Xcode 26 fixes are
+// workarounds for whatever compiler is on THIS machine, so they are skipped on
+// the cloud builder, whose Xcode is pinned older. The deployment-target floor
+// below is not a workaround at all — it is stale metadata that any Xcode 27+
+// rejects — so it applies everywhere, or cloud builds break the day EAS bumps
+// its image.
 //
 //   1. Prebuilt React Native core + Xcode 26 fails to link: "SwiftUICore not an
 //      allowed client" with the debug dylib on, or missing facebook::react::
@@ -48,6 +56,49 @@ const HOOK = `
     end
 `;
 
+// --- Xcode 27: the deployment-target floor --------------------------------------
+
+// Xcode 27 refuses to build a target whose IPHONEOS_DEPLOYMENT_TARGET is below
+// 15.0. Several pods still declare 11.0–13.4 in their podspecs — mostly on the
+// generated resource-bundle targets nobody sets by hand — and the build fails
+// with one error per offender before a line is compiled.
+//
+// The app itself has been 15.1 since SDK 54, so this raises stale pod metadata
+// to what the app already requires. It lowers nothing and cannot change the
+// minimum iOS version the store sees.
+const FLOOR_MARKER = '# [gote] deployment-target floor';
+
+const FLOOR_HOOK = `
+    ${FLOOR_MARKER} — see plugins/withXcode26Build.js.
+    # Xcode 27 rejects any target below iOS 15.0, and several pods still ship
+    # podspecs declaring 11.0-13.4. Raise those to the app's own minimum; pods
+    # already at or above it are left alone.
+    installer.pods_project.targets.each do |t|
+      t.build_configurations.each do |cfg|
+        current = cfg.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+        if current && current.to_f < 15.1
+          cfg.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+        end
+      end
+    end
+`;
+
+// Insert the floor hook. Same anchoring as patchPodfile, and same reason for
+// being loud if the template moves: a build that silently loses this fails much
+// later with a wall of unrelated-looking errors.
+function patchPodfileFloor(contents) {
+  if (contents.includes(FLOOR_MARKER)) return contents;
+  const anchor = /(post_install do \|installer\|\n)/;
+  if (!anchor.test(contents)) {
+    throw new Error(
+      '[withXcode26Build] no `post_install do |installer|` block in the Podfile — ' +
+        'the generated template changed, so the deployment-target floor would be ' +
+        'silently dropped.'
+    );
+  }
+  return contents.replace(anchor, `$1${FLOOR_HOOK}`);
+}
+
 // Should the workaround apply to this build?
 //
 // Deliberately a function of the environment rather than of the machine: the
@@ -79,6 +130,17 @@ function patchPodfile(contents) {
 }
 
 const withXcode26Build = (config) => {
+  // Unconditional: see the note at the top. This one is not about the local
+  // compiler, so gating it would hide the problem until EAS moves to Xcode 27.
+  config = withDangerousMod(config, [
+    'ios',
+    (cfg) => {
+      const podfile = path.join(cfg.modRequest.platformProjectRoot, 'Podfile');
+      fs.writeFileSync(podfile, patchPodfileFloor(fs.readFileSync(podfile, 'utf8')));
+      return cfg;
+    },
+  ]);
+
   if (!shouldApply()) return config;
 
   config = withPodfileProperties(config, (cfg) => {
@@ -104,5 +166,7 @@ module.exports = withXcode26Build;
 // Exported for scripts/test-plugin.js — the string transform is the part worth
 // testing, and it can be tested without running a prebuild.
 module.exports.patchPodfile = patchPodfile;
+module.exports.patchPodfileFloor = patchPodfileFloor;
+module.exports.FLOOR_MARKER = FLOOR_MARKER;
 module.exports.shouldApply = shouldApply;
 module.exports.MARKER = MARKER;
