@@ -8,9 +8,21 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.44.2';
+export const APP_VERSION = '2.44.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.44.3',
+    date: '2026-09-18',
+    changes: [
+      'The row of recent photos on the menu now shows your ten newest '
+        + 'observations instead of five. At the end of the row, ⋯ opens the '
+        + 'Lexicon with your most recent species first, carrying on where the '
+        + 'row stops.',
+      'The Lexicon can now be sorted by most recent as well as A–Z. The '
+        + 'control is at the right, just under the filters.',
+    ],
+  },
   {
     version: '2.44.2',
     date: '2026-09-18',
