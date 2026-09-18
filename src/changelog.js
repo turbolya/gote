@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.44.0';
+export const APP_VERSION = '2.44.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.44.1',
+    date: '2026-09-18',
+    changes: [
+      'Fixed: on iOS 27 the app closed the moment it opened. iOS 27 requires '
+        + 'apps to use the newer way of managing their windows, and gote now '
+        + 'does.',
+    ],
+  },
   {
     version: '2.44.0',
     date: '2026-09-17',
