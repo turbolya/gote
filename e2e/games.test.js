@@ -1,6 +1,7 @@
 // Every game mode end-to-end.
 const { by, device, element, expect, waitFor } = require('detox');
 const {
+  settle,
   visible,
   exists,
   tap,
@@ -14,11 +15,6 @@ const {
 
 // Tap a menu mode card, scrolling the menu if it's below the fold.
 const tapMode = (key) => tapScroll(`mode-${key}`, 'menu-scroll');
-
-// Let a screen finish animating in. Synchronization is disabled suite-wide, so
-// a view can pass a visibility check while its entrance is still running — and
-// a tap aimed at it can then miss.
-const settle = (ms = 450) => new Promise((r) => setTimeout(r, ms));
 
 // The look-alike in the fixtures that is NOT one of the player's own species.
 const STRANGER = 9001;

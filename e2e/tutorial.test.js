@@ -15,17 +15,8 @@
 // That is a constraint on the test, not on the user — the tour scrolls its own
 // target into view, which is what makes tapping it directly work here.
 const { by, device, element, expect, waitFor } = require('detox');
-const { visible, exists, tap, tapScroll, TIMEOUT } = require('./helpers');
+const { settle, visible, exists, tap, tapScroll, TIMEOUT } = require('./helpers');
 
-// Let a freshly-navigated screen finish animating in.
-//
-// Synchronization is disabled suite-wide, so a screen can pass a visibility
-// check while its entrance animation is still running — and Detox will not
-// scroll a list that is not 100% visible, which is what an in-flight entrance
-// looks like. Same reason helpers.typeInto waits before replaceText.
-async function settle(ms = 450) {
-  await new Promise((r) => setTimeout(r, ms));
-}
 
 // Tap a control the tour is pointing at, through the dimmed backdrop.
 //

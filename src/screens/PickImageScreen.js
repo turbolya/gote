@@ -379,7 +379,7 @@ const makeStyles = (colors) => StyleSheet.create({
   },
   tileImg: { width: '100%', height: '100%' },
   tileOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     // Must match the tile's radius. The overlay carries the correct/wrong
     // border, and the tile clips it (overflow: 'hidden'); a square border under
     // a rounded clip loses its corners, which read as a broken frame.

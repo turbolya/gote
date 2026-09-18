@@ -2233,7 +2233,7 @@ const makeStyles = (colors) => StyleSheet.create({
   // Pick-the-right-one owns its own insets too.
   pickRoot: { flex: 1, backgroundColor: colors.bg },
   // Detail page overlay: fills the safe area, covering the screen beneath it.
-  detailOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.bg },
+  detailOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   loadingText: {
     marginTop: 16,

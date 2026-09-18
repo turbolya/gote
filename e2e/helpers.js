@@ -3,6 +3,18 @@ const { by, element, waitFor } = require('detox');
 
 const TIMEOUT = 20000;
 
+// Let an in-flight animation finish before touching the screen again.
+//
+// Synchronization is disabled suite-wide, so Detox will happily tap a view the
+// moment it appears — and a view that is still transitioning swallows the touch
+// without reporting anything: the tap "succeeds", nothing happens, and the next
+// expectation times out somewhere unrelated. Modals are the usual offender in
+// both directions. They fade in, and they leave on an opacity spring that keeps
+// an alpha-0 view over the whole screen after the content has gone.
+async function settle(ms = 450) {
+  await new Promise((r) => setTimeout(r, ms));
+}
+
 // Wait until an element (by testID) is visible.
 async function visible(id, timeout = TIMEOUT) {
   await waitFor(element(by.id(id))).toBeVisible().withTimeout(timeout);
@@ -78,6 +90,7 @@ async function tapCorrectPhoto() {
 
 module.exports = {
   TIMEOUT,
+  settle,
   visible,
   exists,
   tap,

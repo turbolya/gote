@@ -1055,7 +1055,7 @@ export default function StudyScreen({
 const styles = StyleSheet.create({
   fsRoot: { flex: 1, backgroundColor: '#000' },
   e2eHidden: { position: 'absolute', top: 0, left: 0, width: 1, height: 1, opacity: 0.01 },
-  fsBackdropScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+  fsBackdropScrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' },
   flagBtn: { alignItems: 'center', justifyContent: 'center' },
   fsFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1A1D1A' },
   // Speedrun: opaque cover over the photo while guessing (the photo only flashed).
@@ -1107,7 +1107,7 @@ const styles = StyleSheet.create({
 
   // Centered answer overlay (choices / grade buttons).
   centerArea: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,

@@ -523,7 +523,7 @@ const makeStyles = (colors) =>
     nextText: { fontSize: 14.5, fontWeight: '700', color: colors.onPrimary },
     pressed: { opacity: 0.7 },
     waitWrap: {
-      ...StyleSheet.absoluteFillObject,
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
       justifyContent: 'flex-end',
       alignItems: 'center',
       paddingHorizontal: 16,

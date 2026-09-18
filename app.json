@@ -6,12 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/gote-splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#008AAC"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gote.app",
@@ -36,6 +30,14 @@
     },
     "plugins": [
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/gote-splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#008AAC"
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "gote uses your location only to find species typically observed near you. It is not stored or shared."
@@ -48,7 +50,8 @@
           "appleTeamId": "24M7W58WAU"
         }
       ],
-      "./plugins/withXcode26Build"
+      "./plugins/withXcode26Build",
+      "./plugins/withUIScene"
     ],
     "extra": {
       "eas": {

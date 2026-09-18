@@ -1,6 +1,6 @@
 // Menu + cross-screen navigation.
 const { by, device, element, expect, waitFor } = require('detox');
-const { visible, tap, tapScroll, scrollToId, TIMEOUT } = require('./helpers');
+const { settle, visible, exists, tap, tapScroll, scrollToId, TIMEOUT } = require('./helpers');
 
 describe('Menu & navigation', () => {
   beforeAll(async () => {
@@ -42,9 +42,15 @@ describe('Menu & navigation', () => {
     // OLDEST three are absent is the half that catches a strip showing
     // everything, or showing the wrong end of the deck.
     await visible('recent-strip');
+    // EXISTS, not visible: the strip is a horizontal scroll view and only three
+    // or four 96pt frames fit across a phone, so the last of the five is off the
+    // right edge by design — that overflow is the affordance saying "scrollable".
+    // Asserting visibility here would be asserting the strip is too short.
     for (const id of [1008, 1007, 1006, 1005, 1004]) {
-      await visible(`recent-photo-${id}`);
+      await exists(`recent-photo-${id}`);
     }
+    // The newest is the one that has to be on screen without scrolling.
+    await visible('recent-photo-1008');
     for (const id of [1003, 1002, 1001]) {
       await expect(element(by.id(`recent-photo-${id}`))).not.toExist();
     }
@@ -58,28 +64,46 @@ describe('Menu & navigation', () => {
     await waitFor(element(by.text('Common Daisy'))).toBeVisible().withTimeout(TIMEOUT);
     await waitFor(element(by.text('Bellis perennis'))).toBeVisible().withTimeout(TIMEOUT);
 
-    // 1. the ✕
+    // 1. the ✕. Settle first: the card is visible the moment the modal is
+    //    presented, but the fade is still running, and a tap during it is
+    //    swallowed silently — see settle() in helpers.
+    await settle();
     await tap('recent-popup-close');
     await waitFor(element(by.id('recent-popup-close'))).not.toBeVisible().withTimeout(TIMEOUT);
     await visible('mode-smart'); // back on the menu, nothing navigated
 
     // 2. a tap outside the card. The backdrop fills the screen and the card
     //    sits in the middle of it, so aim near the top edge — inside the
-    //    backdrop, clear of the card.
+    //    backdrop, clear of the card. Settle again on the way out as well as
+    //    in: the modal leaves on a spring that holds an alpha-0 view over the
+    //    strip after the card has gone.
+    await settle();
     await tap('recent-photo-1007');
     await visible('recent-popup-close');
+    await settle();
     await element(by.id('recent-popup-backdrop')).tapAtPoint({ x: 30, y: 40 });
     await waitFor(element(by.id('recent-popup-close'))).not.toBeVisible().withTimeout(TIMEOUT);
     await visible('mode-smart');
   });
 
   it('the popup\'s info button opens that species in the Lexicon', async () => {
-    await tap('recent-photo-1005');
+    // The THIRD frame, not the fourth: at 96pt plus a 10pt gap from a 20pt
+    // margin, frames four and five sit past the 402pt screen edge, so tapping
+    // one would be testing the scroll rather than the popup.
+    await tap('recent-photo-1006');
     await visible('recent-popup-close');
+    await settle();
     await tap('recent-popup-info');
-    // The species page itself…
+    // Settle on the way out too: the popup dismisses and navigates in one go,
+    // and its leaving spring holds an alpha-0 view over the species page for a
+    // moment — long enough to eat the tap on Back below.
+    await settle();
+    // The species page itself — by its own title element, not by loose text:
+    // the Lexicon list underneath has a row with the same name on it.
     await visible('detail-hero');
-    await waitFor(element(by.text('Monarch'))).toBeVisible().withTimeout(TIMEOUT);
+    await waitFor(element(by.id('detail-title')))
+      .toHaveText('Western Honey Bee')
+      .withTimeout(TIMEOUT);
     // …and behind it the Lexicon, so closing the page leaves you browsing
     // rather than back where you started.
     await tap('detail-back');

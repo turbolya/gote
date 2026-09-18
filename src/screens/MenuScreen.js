@@ -493,7 +493,7 @@ const makeStyles = (colors) => StyleSheet.create({
   heroClip: { flex: 1, overflow: 'hidden' },
   barsLayer: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   chart: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: BAR_GAP,

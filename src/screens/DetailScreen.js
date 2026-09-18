@@ -127,7 +127,10 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
         </View>
 
         <View style={styles.body}>
-          <Text style={styles.name}>{name}</Text>
+          {/* Named for the tests: the Lexicon row behind this page carries the
+              same species name, so matching on the text alone is ambiguous and
+              resolves to the row, which the page is covering. */}
+          <Text testID="detail-title" style={styles.name}>{name}</Text>
           {card.common ? (
             <Text style={styles.sci}>{card.scientific}</Text>
           ) : null}

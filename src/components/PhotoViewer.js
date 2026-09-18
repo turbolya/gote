@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   emptyText: { color: 'rgba(255,255,255,0.7)', fontSize: 15 },
   page: { alignItems: 'center', justifyContent: 'center' },
   pageSpinner: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
