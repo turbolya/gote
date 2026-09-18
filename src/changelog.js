@@ -8,9 +8,20 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.44.1';
+export const APP_VERSION = '2.44.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.44.2',
+    date: '2026-09-18',
+    changes: [
+      'The row of recent photos on the menu now has a small "Recent '
+        + 'observations" caption, so it says what it is.',
+      'Fixed: offline, that row could show empty grey squares for photos that '
+        + 'had never been downloaded. It now shows the newest ones that are on '
+        + 'your phone.',
+    ],
+  },
   {
     version: '2.44.1',
     date: '2026-09-18',

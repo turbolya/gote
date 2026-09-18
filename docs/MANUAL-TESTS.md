@@ -109,8 +109,47 @@ Know how to get back to zero — several cases need a fresh start.
     between rows inside a group — Speedrun sits directly above Nearby species
     with only spacing between them, likewise Flash cards above Lexicon. The
     rules are the same weight and colour in both themes and sit clear of the
-    hero banner. Order: the Smart play card, then Speedrun and Nearby species;
-    then Flash cards and Lexicon; then Settings. ---
+    hero banner. Order: the Recent observations film strip, the Smart play
+    card, then Speedrun and Nearby species; then Flash cards and Lexicon; then
+    Settings. The strip's small caption is not a section heading and does not
+    count against this — it is fine print, not shouting. ---
+- [ ] **TC-1.7 The film strip shows your five newest observations.**
+  1. Look at the top of the menu, between the hero and the Smart play card.
+  2. Scroll the strip sideways to its end.
+  3. Compare it with your newest observations on iNaturalist.
+  - *Preconditions:* A deck of at least five observations, loaded.
+  - *Expected:* A small, muted, uppercase **RECENT OBSERVATIONS** caption,
+    lined up with the menu's left edge, above a single row of square photos.
+    Exactly **five**, newest first, matching your five most recent
+    observations. Photos only — no names, dates or captions on the frames. The
+    row runs to both screen edges and the last frame is cut off at the right,
+    which is how it says it scrolls; there is no scrollbar.
+  - *Also expected —* offline, the strip shows the five newest observations
+    whose photos are **downloaded**, so it never shows an empty grey square;
+    with none downloaded, neither the row nor its caption appears — no label
+    over nothing. Before 2.44.2 an offline strip could show grey placeholders
+    for photos that were never cached.
+- [ ] **TC-1.8 A strip photo opens a card, and every way out closes it.**
+  1. Tap the first photo in the strip.
+  2. Close the card with its **✕**.
+  3. Tap a different photo, then close it by tapping the dimmed area outside
+     the card.
+  - *Expected:* A card fades in over a dimmed menu: the same photo, larger and
+    square, with the common name, the scientific name under it in italics, and
+    the photographer credit. Each photo opens its own card — never the previous
+    photo flashing first. The ✕ sits on a dark circle so it stays readable on a
+    pale sky. Every way out returns to the menu exactly as it was, with nothing
+    navigated and the strip where it was scrolled.
+  - *Note:* tapping **inside** the card, away from its buttons, does nothing —
+    it must not close the card. On Android the system back gesture closes it
+    as well.
+- [ ] **TC-1.9 The card's ⓘ opens that species in the Lexicon.**
+  1. Tap a strip photo, then the **ⓘ** beside its name.
+  2. On the species page, tap back.
+  3. Tap back again.
+  - *Expected:* The card closes and that species' page opens — the same species
+    as the photo, with its photos and details. Back from the species page lands
+    on the **Lexicon**, not the menu; back again returns to the menu. ---
 
 ## 2. Game modes
 
@@ -1167,9 +1206,31 @@ of its cases cannot be reached again without deleting the app.
     Ko-fi link opens.
 - [ ] **TC-20.4 Crash-free pass.** Run one round in each mode back-to-back without
     a crash.
+  - *Expected:* No crash.
+- [ ] **TC-20.5 Launches on the newest iOS.** Install the TestFlight build on a
+    device running the newest major iOS, and open it.
+  - *Preconditions:* A device on the current major iOS release (iOS 27 as of
+    2.44.1).
+  - *Priority:* High
+  - *Expected:* Lands on the menu, as on any other device. Build 52 (2.44.0)
+    quit the instant it opened on iOS 27, because iOS 27 requires apps to adopt
+    the scene life cycle; the fix is in `plugins/withUIScene.js`, which throws
+    at prebuild if the generated code it patches ever changes shape. A new major
+    iOS can impose a requirement like this again, so run it on each one.
+- [ ] **TC-20.6 Every overlay covers the whole screen.** Open each full-screen
+    overlay and check its edges: a species detail page (from the Lexicon), a
+    compare pair and a duel (from Statistics ▸ Species you mix up), the
+    fullscreen photo viewer, the guided tour's dimmed spotlight, and the splash
+    at launch.
+  - *Priority:* High
+  - *Expected:* Each one fills the screen edge to edge, top to bottom, with
+    nothing from the screen beneath showing through or sitting on top. React
+    Native 0.86 silently dropped the helper these were all positioned with, and
+    every one of them collapsed to a zero-height strip with no error; only four
+    had automated tests. Worth a pass after any React Native or Expo SDK
+    upgrade.
 
 ---
-  - *Expected:* No crash.
 
 
 Newer ground than Parts 1–6, which is why it sits at the end rather than being

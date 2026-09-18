@@ -907,8 +907,11 @@ export default function App() {
   // The film strip's five. Taken from the filtered deck rather than the raw
   // cache, so it honours the display settings the player chose — "one card per
   // species" in particular, which is on by default and stops the strip showing
-  // the same bird five times from one afternoon.
-  const recent = useMemo(() => recentCards(fullDeck, 5), [fullDeck]);
+  // the same bird five times from one afternoon. And from the PLAYABLE deck, so
+  // offline it is the five newest photos that are actually on the device:
+  // an undownloaded one would render as an empty grey square, which is exactly
+  // what playableDeck exists to keep off the screen everywhere else.
+  const recent = useMemo(() => recentCards(playableDeck, 5), [playableDeck]);
 
   // Keep the paired Apple Watch in sync: push the lifetime accuracy, streak,
   // and a mini-deck whenever they change (deduped inside pushWatchSnapshot).
