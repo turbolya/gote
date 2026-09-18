@@ -41,6 +41,14 @@ t('takes the newest five, newest first', () => {
   assert.deepEqual(ids(recentCards(deck, 5)), [3, 5, 1, 2, 4]);
 });
 
+t('the default is the newest ten', () => {
+  // Twelve cards, one a month through 2026: the default drops the two oldest.
+  const deck = Array.from({ length: 12 }, (_, i) =>
+    card(i + 1, `2026-${String(i + 1).padStart(2, '0')}-01`)
+  );
+  assert.deepEqual(ids(recentCards(deck)), [12, 11, 10, 9, 8, 7, 6, 5, 4, 3]);
+});
+
 t('does not trust the order it was handed', () => {
   // The deck arrives newest-first today, and every filter preserves that — but
   // the strip must be right even if that ever stops being true.

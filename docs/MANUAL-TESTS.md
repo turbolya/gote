@@ -113,18 +113,19 @@ Know how to get back to zero — several cases need a fresh start.
     card, then Speedrun and Nearby species; then Flash cards and Lexicon; then
     Settings. The strip's small caption is not a section heading and does not
     count against this — it is fine print, not shouting. ---
-- [ ] **TC-1.7 The film strip shows your five newest observations.**
+- [ ] **TC-1.7 The film strip shows your ten newest observations.**
   1. Look at the top of the menu, between the hero and the Smart play card.
   2. Scroll the strip sideways to its end.
   3. Compare it with your newest observations on iNaturalist.
-  - *Preconditions:* A deck of at least five observations, loaded.
+  - *Preconditions:* A deck of at least ten observations, loaded.
   - *Expected:* A small, muted, uppercase **RECENT OBSERVATIONS** caption,
     lined up with the menu's left edge, above a single row of square photos.
-    Exactly **five**, newest first, matching your five most recent
-    observations. Photos only — no names, dates or captions on the frames. The
-    row runs to both screen edges and the last frame is cut off at the right,
-    which is how it says it scrolls; there is no scrollbar.
-  - *Also expected —* offline, the strip shows the five newest observations
+    Exactly **ten**, newest first, matching your ten most recent
+    observations, then one more frame the same size holding only **⋯**. Photos
+    only — no names, dates or captions on the frames. The row runs to both
+    screen edges and the last visible frame is cut off at the right, which is
+    how it says it scrolls; there is no scrollbar.
+  - *Also expected —* offline, the strip shows the ten newest observations
     whose photos are **downloaded**, so it never shows an empty grey square;
     with none downloaded, neither the row nor its caption appears — no label
     over nothing. Before 2.44.2 an offline strip could show grey placeholders
@@ -149,7 +150,17 @@ Know how to get back to zero — several cases need a fresh start.
   3. Tap back again.
   - *Expected:* The card closes and that species' page opens — the same species
     as the photo, with its photos and details. Back from the species page lands
-    on the **Lexicon**, not the menu; back again returns to the menu. ---
+    on the **Lexicon**, sorted **Recent** (newest first, like the strip), not
+    the menu; back again returns to the menu.
+- [ ] **TC-1.10 The strip's ⋯ opens the Lexicon, newest first.**
+  1. Scroll the strip to its end and tap the **⋯** frame.
+  2. Tap the sort control at the right of the row under the filters.
+  3. Go back, then open the Lexicon from its menu row instead.
+  - *Expected:* The Lexicon opens with the sort control reading **Recent**, and
+    the list starts with the species in the strip's first photo, in the strip's
+    order, carrying on past where the strip stopped. Tapping the control
+    switches it to **A–Z** and back, jumping to the top each time. From the menu
+    row the Lexicon opens on **A–Z**, as it always has. ---
 
 ## 2. Game modes
 
@@ -341,8 +352,9 @@ scores correctly, and returns to the menu cleanly.
     ⓘ **closes the first** — only one at a time. The streak card still shows
     "Best: N" without tapping, since that is a figure rather than an explanation.
 - [ ] **TC-5.5 Lexicon.** Open the Lexicon (list of species seen); filter by how
-    well known.
-  - *Expected:* every species you've met appears; search works.
+    well known; switch the sort between **A–Z** and **Recent**.
+  - *Expected:* every species you've met appears; search works; the filters and
+    search keep working in either order.
 - [ ] **TC-5.6 Streak - same day.** Play again the same day.
   - *Expected:* the streak does **not** double-count one calendar day.
 - [ ] **TC-5.7 Streak - day rollover.** Play today, play again after

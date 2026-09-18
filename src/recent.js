@@ -1,7 +1,7 @@
 // Which observations the menu's film strip shows. Pure, so
 // scripts/test-recent.js can exercise it in plain node.
 //
-// "The latest five" sounds like a slice and is not quite one. Three things have
+// "The latest ten" sounds like a slice and is not quite one. Three things have
 // to hold before a card can be a thumbnail, and each of them is a state the
 // deck really reaches:
 //
@@ -22,7 +22,7 @@
 // text — no Date parsing, and no timezone to get wrong.
 const dateOf = (c) => (c && typeof c.observedOn === 'string' ? c.observedOn : '');
 
-export function recentCards(cards, n = 5) {
+export function recentCards(cards, n = 10) {
   const usable = (Array.isArray(cards) ? cards : []).filter(
     (c) => c && c.taxonId != null && typeof c.image === 'string' && c.image.length > 0
   );

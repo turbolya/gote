@@ -316,6 +316,9 @@ export default function App() {
   const [detailCard, setDetailCard] = useState(null);
   // The observation whose popup is open on the menu's film strip, or null.
   const [recentCard, setRecentCard] = useState(null);
+  // The order the Lexicon opens in: A→Z from the menu row, newest first when
+  // it is reached from the film strip, where it is the rest of that list.
+  const [lexiconSort, setLexiconSort] = useState('name');
   // The confused pair currently open in the side-by-side comparison overlay, and
   // the player's "my tell" notes (keyed by confusions.js pairKey).
   const [comparePair, setComparePair] = useState(null);
@@ -904,14 +907,14 @@ export default function App() {
     });
   }, [fullDeck, username]);
 
-  // The film strip's five. Taken from the filtered deck rather than the raw
+  // The film strip's ten. Taken from the filtered deck rather than the raw
   // cache, so it honours the display settings the player chose — "one card per
   // species" in particular, which is on by default and stops the strip showing
-  // the same bird five times from one afternoon. And from the PLAYABLE deck, so
-  // offline it is the five newest photos that are actually on the device:
+  // the same bird ten times from one afternoon. And from the PLAYABLE deck, so
+  // offline it is the ten newest photos that are actually on the device:
   // an undownloaded one would render as an empty grey square, which is exactly
   // what playableDeck exists to keep off the screen everywhere else.
-  const recent = useMemo(() => recentCards(playableDeck, 5), [playableDeck]);
+  const recent = useMemo(() => recentCards(playableDeck, 10), [playableDeck]);
 
   // Keep the paired Apple Watch in sync: push the lifetime accuracy, streak,
   // and a mini-deck whenever they change (deduped inside pushWatchSnapshot).
@@ -1887,6 +1890,10 @@ export default function App() {
               onSelectMode={onSelectMode}
               recent={recent}
               onSelectRecent={setRecentCard}
+              onMoreRecent={() => {
+                setLexiconSort('recent');
+                setScreen('lexicon');
+              }}
               smartTypes={SMART_QUESTION_TYPES}
               smartSetup={IS_SHOTS ? null : roundSetup.smart}
               smartUnavailable={offline ? [FORMAT.PICTURE] : null}
@@ -1896,7 +1903,10 @@ export default function App() {
                 startSmart([], count, false, types, setup)
               }
               onSmartOptions={() => setScreen('smart')}
-              onLexicon={() => setScreen('lexicon')}
+              onLexicon={() => {
+                setLexiconSort('name');
+                setScreen('lexicon');
+              }}
               onStats={() => setScreen('stats')}
               onSettings={() => {
                 setError(null);
@@ -1911,13 +1921,15 @@ export default function App() {
               which lives in the OTHER render branch (detailCard, below) — so it
               has to leave the menu to be seen at all. It goes to the Lexicon
               rather than nowhere: closing the species page then leaves you
-              browsing the list it came from, which is where someone who asked
-              for more about a species was heading anyway. */}
+              browsing the list it came from — newest first, like the strip —
+              which is where someone who asked for more about a species was
+              heading anyway. */}
           <ObservationPopup
             card={recentCard}
             onClose={() => setRecentCard(null)}
             onMoreInfo={(card) => {
               setRecentCard(null);
+              setLexiconSort('recent');
               setScreen('lexicon');
               setDetailCard(card);
             }}
@@ -2139,6 +2151,7 @@ export default function App() {
             onToggleFlag={toggleFlag}
             onBack={navBack}
             onSelect={(card) => setDetailCard(card)}
+            initialSort={lexiconSort}
           />
         )}
 

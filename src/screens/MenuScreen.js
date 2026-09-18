@@ -215,10 +215,12 @@ export default function MenuScreen({
   watchTipDismissed,
   onDismissWatchTip,
   onSelectMode,
-  // The five most recent observations, as a film strip above everything you can
+  // The ten most recent observations, as a film strip above everything you can
   // play. Empty (or absent) hides the row entirely — see RecentStrip.
   recent = [],
   onSelectRecent,
+  // The strip's last frame: the rest of them, in the Lexicon, newest first.
+  onMoreRecent,
   // Smart play is built on the card below rather than behind a row, so the menu
   // needs the pieces the card is made of.
   smartTypes = [],
@@ -332,7 +334,7 @@ export default function MenuScreen({
             own — the reason to glance at this screen rather than tap through
             it — and below the two notices, which are transient and say
             something the strip cannot (that the app is offline, say). */}
-        <RecentStrip cards={recent} onSelect={onSelectRecent} />
+        <RecentStrip cards={recent} onSelect={onSelectRecent} onMore={onMoreRecent} />
 
         {/* The three section labels (Play / Learn / Settings) are gone: they
             named what the rows under them plainly are, and on a menu this short

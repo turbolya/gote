@@ -23,6 +23,20 @@ export function uniqueByTaxon(cards) {
   return out;
 }
 
+// The newest observed_on for each species, across every card of it — a species
+// seen last year and again yesterday is "recent", whichever of its cards
+// uniqueByTaxon happened to keep. iNat's observed_on is a plain YYYY-MM-DD
+// string, so the text comparison is the date comparison.
+function latestDates(cards) {
+  const latest = new Map();
+  for (const c of cards) {
+    const key = c.taxonId != null ? c.taxonId : c.scientific;
+    const d = typeof c.observedOn === 'string' ? c.observedOn : '';
+    if (!latest.has(key) || d > latest.get(key)) latest.set(key, d);
+  }
+  return latest;
+}
+
 // Display name used in the table and search.
 export function displayName(card) {
   return (card && (card.common || card.scientific)) || '';
@@ -65,10 +79,19 @@ export function statusOf(card, speciesStats = {}) {
  *   - speciesStats: per-species tallies (needed when `status` is set)
  *   - flagged: when true, keep only species whose taxon id is in `flags`
  *   - flags:   a Set (or array) of flagged taxon ids (strings)
- * @returns {Array} filtered cards sorted by display name (A→Z)
+ *   - sort:    'name' (A→Z, the default) or 'recent' (newest sighting first;
+ *              species with no date at all go last, A→Z among themselves)
+ * @returns {Array} filtered cards, sorted as asked
  */
 export function filterCards(cards, opts = {}) {
-  const { query = '', status = null, speciesStats = {}, flagged = false, flags = null } = opts;
+  const {
+    query = '',
+    status = null,
+    speciesStats = {},
+    flagged = false,
+    flags = null,
+    sort = 'name',
+  } = opts;
   const q = query.trim().toLowerCase();
   const flagSet = flags instanceof Set ? flags : new Set(flags || []);
 
@@ -90,11 +113,25 @@ export function filterCards(cards, opts = {}) {
     out = out.filter((c) => flagSet.has(String(c.taxonId)));
   }
 
-  return out.slice().sort((a, b) =>
+  const byName = (a, b) =>
     displayName(a).localeCompare(displayName(b), undefined, {
       sensitivity: 'base',
-    })
-  );
+    });
+
+  if (sort === 'recent') {
+    const latest = latestDates(cards);
+    const dateOf = (c) => latest.get(c.taxonId != null ? c.taxonId : c.scientific) || '';
+    return out.slice().sort((a, b) => {
+      const da = dateOf(a);
+      const db = dateOf(b);
+      if (da === db) return byName(a, b);
+      if (!da) return 1; // undated sinks
+      if (!db) return -1;
+      return da < db ? 1 : -1; // newest first
+    });
+  }
+
+  return out.slice().sort(byName);
 }
 
 // Counts per status across the whole deck — for the filter chip labels.

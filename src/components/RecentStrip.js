@@ -1,5 +1,7 @@
-// The film strip at the top of the menu: the five most recent observations in
-// the deck, as photos under one line of fine print saying what the row is.
+// The film strip at the top of the menu: the ten most recent observations in
+// the deck, as photos under one line of fine print saying what the row is, and
+// a last frame of three dots that opens the Lexicon newest first — the same
+// list, carried on past where the strip stops.
 //
 // No names or dates on the frames. It is there to be recognised rather than read
 // — you already know what you photographed last week — and a caption under each
@@ -12,12 +14,14 @@
 
 import React from 'react';
 import { View, Text, Image, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useThemedStyles } from '../theme';
+import Icon from './Icon';
+import { useColors, useThemedStyles } from '../theme';
 
 // Matches the thumbnails elsewhere in the app (Lexicon rows, the detail strip):
 // plain Image, no spinner. A spinner in a small square reads as noise, and the
 // placeholder fill below is enough to stop the row jumping while photos land.
-export default function RecentStrip({ cards = [], onSelect }) {
+export default function RecentStrip({ cards = [], onSelect, onMore }) {
+  const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   if (!cards.length) return null;
 
@@ -51,6 +55,19 @@ export default function RecentStrip({ cards = [], onSelect }) {
             <Image source={{ uri: c.image }} style={styles.photo} resizeMode="cover" />
           </Pressable>
         ))}
+        {/* Same size and shape as a photo, so it reads as the next frame on
+            the roll rather than a button bolted on the end. */}
+        {onMore && (
+          <Pressable
+            onPress={onMore}
+            testID="recent-more"
+            accessibilityRole="button"
+            accessibilityLabel="All observations, most recent first"
+            style={({ pressed }) => [styles.frame, styles.more, pressed && styles.framePressed]}
+          >
+            <Icon name="ellipsis-horizontal" size={28} color={colors.muted} />
+          </Pressable>
+        )}
       </ScrollView>
     </View>
   );
@@ -85,5 +102,6 @@ const makeStyles = (colors) => StyleSheet.create({
     backgroundColor: colors.faint,
   },
   framePressed: { opacity: 0.65 },
+  more: { alignItems: 'center', justifyContent: 'center' },
   photo: { width: '100%', height: '100%' },
 });

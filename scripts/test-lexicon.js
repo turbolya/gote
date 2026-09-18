@@ -168,5 +168,53 @@ t('statusCounts: empty stats → all new', () => {
   assert.deepEqual(statusCounts(cards, {}), { good: 0, missed: 0, new: 4 });
 });
 
+t('filterCards: sort recent puts the newest sighting first', () => {
+  const deck = [
+    { taxonId: 1, common: 'Alder', observedOn: '2026-01-01' },
+    { taxonId: 2, common: 'Birch', observedOn: '2026-09-01' },
+    { taxonId: 3, common: 'Cedar', observedOn: '2026-05-01' },
+  ];
+  assert.deepEqual(filterCards(deck, { sort: 'recent' }).map((c) => c.taxonId), [2, 3, 1]);
+  // …and the default is still A→Z.
+  assert.deepEqual(filterCards(deck).map((c) => c.taxonId), [1, 2, 3]);
+});
+
+t('filterCards: sort recent ranks a species by its NEWEST card', () => {
+  // uniqueByTaxon keeps the first card of a species; the date must not come
+  // from that card alone, or a species seen again yesterday stays "old".
+  const deck = [
+    { taxonId: 1, common: 'Alder', observedOn: '2025-01-01' },
+    { taxonId: 2, common: 'Birch', observedOn: '2026-05-01' },
+    { taxonId: 1, common: 'Alder', observedOn: '2026-09-01' },
+  ];
+  assert.deepEqual(filterCards(deck, { sort: 'recent' }).map((c) => c.taxonId), [1, 2]);
+});
+
+t('filterCards: sort recent sinks undated species, A→Z among ties', () => {
+  const deck = [
+    { taxonId: 1, common: 'Zinnia', observedOn: null },
+    { taxonId: 2, common: 'Aster' },
+    { taxonId: 3, common: 'Moss', observedOn: '2026-01-01' },
+    { taxonId: 4, common: 'Yew', observedOn: '2026-01-01' },
+    { taxonId: 5, common: 'Fern', observedOn: '2026-01-01' },
+  ];
+  assert.deepEqual(
+    filterCards(deck, { sort: 'recent' }).map((c) => c.taxonId),
+    [5, 3, 4, 2, 1]
+  );
+});
+
+t('filterCards: sort recent still honours the query', () => {
+  const deck = [
+    { taxonId: 1, common: 'Red Fox', observedOn: '2026-01-01' },
+    { taxonId: 2, common: 'Red Kite', observedOn: '2026-09-01' },
+    { taxonId: 3, common: 'Blue Tit', observedOn: '2026-09-09' },
+  ];
+  assert.deepEqual(
+    filterCards(deck, { query: 'red', sort: 'recent' }).map((c) => c.taxonId),
+    [2, 1]
+  );
+});
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

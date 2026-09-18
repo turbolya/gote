@@ -36,26 +36,39 @@ describe('Menu & navigation', () => {
 
   // --- the recent-observations film strip -------------------------------------
 
-  it('shows the five most recent observations as a film strip', async () => {
-    // Fixture cards are dated 2024-05-01 upward by index, so the newest five are
-    // the last five — daisy (1008) newest, blackbird (1004) fifth. Asserting the
-    // OLDEST three are absent is the half that catches a strip showing
-    // everything, or showing the wrong end of the deck.
+  it('shows the ten most recent observations as a film strip', async () => {
+    // The fixture deck is only eight cards, dated 2024-05-01 upward by index —
+    // fewer than the strip's ten, so all eight are in it, newest (daisy, 1008)
+    // first. The cap itself is covered in scripts/test-recent.js, where a deck
+    // longer than ten costs nothing to build.
     await visible('recent-strip');
     // …under its fine-print caption, which belongs to the strip and goes with it.
     await visible('recent-label');
     // EXISTS, not visible: the strip is a horizontal scroll view and only three
-    // or four 96pt frames fit across a phone, so the last of the five is off the
-    // right edge by design — that overflow is the affordance saying "scrollable".
+    // or four 96pt frames fit across a phone, so most of it is off the right
+    // edge by design — that overflow is the affordance saying "scrollable".
     // Asserting visibility here would be asserting the strip is too short.
-    for (const id of [1008, 1007, 1006, 1005, 1004]) {
+    for (const id of [1008, 1007, 1006, 1005, 1004, 1003, 1002, 1001]) {
       await exists(`recent-photo-${id}`);
     }
     // The newest is the one that has to be on screen without scrolling.
     await visible('recent-photo-1008');
-    for (const id of [1003, 1002, 1001]) {
-      await expect(element(by.id(`recent-photo-${id}`))).not.toExist();
-    }
+    // …and the ⋯ frame closes the row.
+    await exists('recent-more');
+  });
+
+  it('the strip\'s ⋯ frame opens the Lexicon, newest first', async () => {
+    // Sideways to the end of the strip, where the ⋯ frame sits past the photos.
+    await tapScroll('recent-more', 'recent-strip', 'right');
+    await visible('lexicon-search');
+    // The order is named on screen, and the list starts where the strip began.
+    await waitFor(element(by.text('Recent'))).toBeVisible().withTimeout(TIMEOUT);
+    await visible('lexicon-row-1008');
+    // One tap back to A→Z.
+    await tap('lexicon-sort');
+    await waitFor(element(by.text('A–Z'))).toBeVisible().withTimeout(TIMEOUT);
+    await tap('screen-back');
+    await visible('mode-smart');
   });
 
   it('a strip photo opens a popup that names it, and closes three ways', async () => {

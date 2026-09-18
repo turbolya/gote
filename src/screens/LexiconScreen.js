@@ -1,6 +1,8 @@
 // Lexicon: a browsable, searchable table of every species the user has observed.
 // Column 1 = square thumbnail, column 2 = name. Filter by how well you know each
 // species in games: well known, missed, or not yet seen in a game.
+// Sorted A→Z, or newest sighting first — which is where the menu's film strip
+// opens it, so the list carries on from the strip's last photo.
 // Tapping a row opens the species detail page.
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
@@ -34,6 +36,7 @@ export default function LexiconScreen({
   onSelect,
   flags,
   onToggleFlag,
+  initialSort = 'name', // 'name' | 'recent'
 }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -46,6 +49,7 @@ export default function LexiconScreen({
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState(null); // null = all
   const [flagged, setFlagged] = useState(false);
+  const [sort, setSort] = useState(initialSort);
 
   const isFlagged = (c) => !!(flags && flags.has(String(c.taxonId)));
 
@@ -71,8 +75,9 @@ export default function LexiconScreen({
         speciesStats,
         flagged: flaggedActive,
         flags,
+        sort,
       }),
-    [cards, query, status, speciesStats, flaggedActive, flags]
+    [cards, query, status, speciesStats, flaggedActive, flags, sort]
   );
 
   // Jump back to the top when the search/filters change (but NOT on unrelated
@@ -80,7 +85,7 @@ export default function LexiconScreen({
   const listRef = useRef(null);
   useEffect(() => {
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
-  }, [query, status, flaggedActive]);
+  }, [query, status, flaggedActive, sort]);
 
   return (
     <View style={styles.flex}>
@@ -141,9 +146,12 @@ export default function LexiconScreen({
         })}
       </View>
 
-      {/* Flagged filter (only once at least one species is flagged) */}
-      {flaggedCount > 0 && (
-        <View style={styles.flagFilterRow}>
+      {/* Flagged filter (only once at least one species is flagged), and the
+          sort order at the far end of the same row. The order is always shown
+          because the list can open in either one, and a list sorted by
+          something you cannot see just looks shuffled. */}
+      <View style={styles.flagFilterRow}>
+        {flaggedCount > 0 && (
           <Pressable
             testID="lexicon-filter-flagged"
             onPress={() => {
@@ -164,8 +172,23 @@ export default function LexiconScreen({
               {flaggedCount}
             </Text>
           </Pressable>
-        </View>
-      )}
+        )}
+        <Pressable
+          testID="lexicon-sort"
+          onPress={() => setSort((v) => (v === 'recent' ? 'name' : 'recent'))}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={
+            sort === 'recent'
+              ? 'Sorted by most recent. Sort A to Z'
+              : 'Sorted A to Z. Sort by most recent'
+          }
+          style={styles.sortBtn}
+        >
+          <Icon name="swap-vertical" size={15} color={colors.muted} />
+          <Text style={styles.filterText}>{sort === 'recent' ? 'Recent' : 'A–Z'}</Text>
+        </Pressable>
+      </View>
 
       {/* Results table */}
       <FlatList
@@ -271,6 +294,13 @@ const makeStyles = (colors) => StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   flagFilterChipOn: { borderBottomColor: colors.flag },
+  sortBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 7,
+    marginLeft: 'auto',
+  },
 
   listContent: { paddingTop: 8, paddingBottom: 32 },
   row: {
