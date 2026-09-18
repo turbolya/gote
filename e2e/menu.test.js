@@ -42,6 +42,8 @@ describe('Menu & navigation', () => {
     // OLDEST three are absent is the half that catches a strip showing
     // everything, or showing the wrong end of the deck.
     await visible('recent-strip');
+    // …under its fine-print caption, which belongs to the strip and goes with it.
+    await visible('recent-label');
     // EXISTS, not visible: the strip is a horizontal scroll view and only three
     // or four 96pt frames fit across a phone, so the last of the five is off the
     // right edge by design — that overflow is the affordance saying "scrollable".
