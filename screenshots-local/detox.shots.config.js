@@ -45,7 +45,14 @@ module.exports = {
     simulator: {
       type: 'ios.simulator',
       // 6.9" device gives App Store-ready dimensions; override with SHOTS_DEVICE.
-      device: { type: process.env.SHOTS_DEVICE || 'iPhone 17 Pro Max' },
+      // capture-screenshots.sh passes SHOTS_UDID as well, and it wins: a device
+      // TYPE can match one simulator per installed iOS runtime, and Detox and
+      // the script were each picking a different one — so the script set dark
+      // mode on a simulator Detox never photographed, and the "-dark" folders
+      // came out light. One exact UDID, chosen once, used by both.
+      device: process.env.SHOTS_UDID
+        ? { id: process.env.SHOTS_UDID }
+        : { type: process.env.SHOTS_DEVICE || 'iPhone 17 Pro Max' },
     },
   },
   configurations: {

@@ -119,8 +119,12 @@ npx detox build -c ios.shots --config-path "$CONFIG" || { echo "✗ build failed
 APPEARANCES="${SHOTS_APPEARANCES:-light dark}"
 for DEVICE in "${DEVICES[@]}"; do
   SLUG="$(echo "$DEVICE" | tr '[:upper:] ' '[:lower:]-' | tr -cd 'a-z0-9-')"
-  # UDID of the first matching available device — needed to set its appearance.
-  UDID="$(xcrun simctl list devices available | grep -m1 "$DEVICE (" \
+  # The ONE simulator this device's passes run on. `simctl list` groups devices
+  # by runtime, oldest first, so the last match is the newest iOS — the one the
+  # app is built against. It is handed to Detox as SHOTS_UDID below: resolving
+  # the same name twice is how the appearance used to land on one simulator
+  # while Detox photographed another.
+  UDID="$(xcrun simctl list devices available | grep "$DEVICE (" | tail -1 \
     | grep -oE '[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}')"
   for APPEARANCE in $APPEARANCES; do
     DOUT="$OUT/$SLUG"
@@ -134,7 +138,7 @@ for DEVICE in "${DEVICES[@]}"; do
       xcrun simctl ui "$UDID" appearance "$APPEARANCE" >/dev/null 2>&1 \
         || echo "   (could not set $APPEARANCE appearance)"
     fi
-    SHOTS_OUT="$DOUT" SHOTS_DEVICE="$DEVICE" \
+    SHOTS_OUT="$DOUT" SHOTS_DEVICE="$DEVICE" SHOTS_UDID="$UDID" \
       npx detox test -c ios.shots --config-path "$CONFIG" \
       --artifacts-location "$DOUT" --cleanup "$TEST"
     # Flatten Detox's nested artifact dirs into this device's folder.

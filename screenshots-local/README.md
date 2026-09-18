@@ -35,8 +35,13 @@ SHOTS_USER=mate_koch SHOTS_PLACE=Kaposvar ./screenshots-local/capture-screenshot
 
 `/Users/mkoch/Developer/gote-launch/screenshots/<timestamp>/<device>/`
 - one subfolder **per device type** (e.g. `iphone-17-pro-max/`, `ipad-pro-13-inch-m4/`)
-- each with: `01-menu`, `02-by-name`, `03-lexicon`, `04-detail`, `05-statistics`,
-  `06-nearby`, `07-speedrun`, `08-results` (`.png`)
+- each with: `01-menu`, `02-name-question`, `03-lexicon`, `04-detail`,
+  `05-statistics`, `06-nearby`, `07-speedrun`, `08-results`, `09-mixups`,
+  `10-compare`, `11-duel`, `12-settings`, `13-by-species` (`.png`)
+- a `-dark` twin of each device folder, from the dark-appearance pass
+- the website (`assets/screenshots/`, 640×1390 JPEGs) is cut from the
+  `iphone-17` set: `quiz` ← 02, `confusion` ← 09, `duel` ← 11,
+  `analytics` ← 13, `nearby` ← 06; the watch pair from `apple-watch/`
 - **`apple-watch/`** — `watch-01-home`, `-02-photo`, `-03-answers`,
   `-04-summary`, `-05-complications` (see the Apple Watch note below)
 

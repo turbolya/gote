@@ -289,7 +289,7 @@ describe('App Store screenshots', () => {
   it('09 — species you mix up', async () => {
     await tap('menu-stats');
     await visible('stats-scroll');
-    // Scroll the confusion section into view (it sits below the per-species board).
+    // Scroll the confusion section into view (it sits above the per-species board).
     await waitFor(element(by.id('stats-confusion-0')))
       .toBeVisible()
       .whileElement(by.id('stats-scroll'))
@@ -330,5 +330,37 @@ describe('App Store screenshots', () => {
       .whileElement(by.id('settings-scroll'))
       .scroll(300, 'down');
     await shot('12-settings', 1500);
+  });
+
+  // The per-species board: every species with its right and wrong counts,
+  // ranked by how reliably you know it. It is what the website's "Detailed
+  // analytics, species by species" row describes, and nothing above captured it
+  // — 05 is the top of Statistics, 09 stops at the mix-ups.
+  it('13 — per-species breakdown', async () => {
+    await tap('menu-stats');
+    await visible('stats-scroll');
+    // The board's controls live in the FlatList's header, so there is no row
+    // index to scroll to. Scroll until the "Show" filter appears, then read
+    // where it landed and scroll by exactly the difference, so the "By species"
+    // title sits just under the screen header rather than wherever a 350pt
+    // step happened to stop.
+    await waitFor(element(by.id('stats-filter')))
+      .toBeVisible()
+      .whileElement(by.id('stats-scroll'))
+      .scroll(350, 'down');
+    // Show every species answered, not just the account's own observations:
+    // the filter defaults to "My observations", which on the shots account is
+    // a handful of one-answer rows and runs out onto "Reset statistics" — a
+    // thin picture of a page whose point is the whole breakdown.
+    const { label } = await element(by.id('stats-filter')).getAttributes();
+    if (/My observations/.test(label || '')) {
+      await element(by.id('stats-filter')).tap();
+      await hold(800); // the list re-sorts behind a layout animation
+    }
+    const { frame } = await element(by.id('stats-filter')).getAttributes();
+    // ~115pt of screen header, then the "By species" title above the filter.
+    const delta = Math.round(frame.y - 175);
+    if (delta > 10) await element(by.id('stats-scroll')).scroll(delta, 'down');
+    await shot('13-by-species', 3000); // let the row thumbnails resolve
   });
 });
