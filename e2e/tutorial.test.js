@@ -206,8 +206,13 @@ describe('Guided tour', () => {
     await element(by.text('Keep going')).tap();
     await visible('tutorial-waiting');
 
-    // Going back to where it was waiting brings the step back. (Settle first:
-    // the alert's own dismissal animation still counts as covering the screen.)
+    // Going back to where it was waiting brings the step back. Wait for the
+    // alert to be GONE first, not just for a fixed pause: the alert is native,
+    // presented in its own UITransitionView, and until that is torn down every
+    // tap anywhere on screen hits it instead of the app ("not hittable… Hit:
+    // UITransitionView"). On the iOS 27 simulator the dismissal regularly
+    // outlasts a 450ms settle, so a fixed pause made this case fail most runs.
+    await waitFor(element(by.text('Exit the tutorial?'))).not.toExist().withTimeout(TIMEOUT);
     await settle();
     await tap('smart-start');
     await visible('study-reveal');
