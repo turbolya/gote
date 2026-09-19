@@ -294,14 +294,19 @@ scores correctly, and returns to the menu cleanly.
     underneath; close leaves the viewer altogether and lands back on the card.
     They are deliberately two controls: one X meaning "up a layer" here and
     "leave" there would be a coin toss every time.
-- [ ] **TC-3.4 Double-tapping the card skips the grid.**
+- [ ] **TC-3.4 Double-tapping the card opens that photo, with the rest behind it.**
   1. Double-tap the photo on the card itself.
-  2. Look for a back control.
+  2. Without zooming, swipe left and right.
+  3. Tap the back control at the top left, then close.
+  4. Offline (airplane mode), double-tap the photo again.
   - *Preconditions:* A round in progress with a photo card.
-  - *Expected:* The photo opens full-screen directly, with no grid in between,
-    and still carries its credit. There is no back control, because there is no
-    grid to go back to — only close. That gesture means "bigger", not "show me
-    the others".
+  - *Expected:* The photo on the card opens full-screen at once — no grid in
+    between, no wait — and carries its credit. Within a moment "1 of N · swipe"
+    appears under the title and a sideways swipe pages through the species'
+    other photos, each with its own credit. Back lands on the grid of all of
+    them (the same grid ⊞ opens); close from there returns to the card. Offline
+    it opens the one photo with only a close control: there is nothing more to
+    fetch, so no grid of one.
 - [ ] **TC-3.5 Zooming still works, and paging yields to it.**
   1. Pinch to zoom in, then drag around the photo.
   2. Drag horizontally while still zoomed in.

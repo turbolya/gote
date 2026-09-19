@@ -379,4 +379,39 @@ describe('Game modes', () => {
     await tap('photo-close');
     await visible('study-reveal');
   });
+
+  it('Double-tap: this photo full-screen, a swipe to the others, back to the grid', async () => {
+    await visible('mode-smart');
+    await settle();
+    await tapMode('speedrun');
+    await visible('study-reveal');
+    await settle();
+
+    // Straight to THIS photo — the card's own, whose credit is the tester's —
+    // not to the grid the ⊞ button opens on.
+    await element(by.id('study-photo')).multiTap(2);
+    await exists('photo-pager');
+    await waitFor(element(by.id('photo-credit')))
+      .toHaveText('© e2e tester, some rights reserved (CC BY-NC)')
+      .withTimeout(TIMEOUT);
+    await expect(element(by.id('photo-grid'))).not.toExist();
+    // The grid is behind it, so there is somewhere to go back to.
+    await visible('photo-back');
+
+    // Not zoomed, so a sideways swipe pages to the species' next photo — one
+    // the viewer did not have when it opened, fetched while it was up. Settle
+    // first: the viewer is still fading and scaling in (Appear).
+    await settle();
+    await element(by.id('photo-pager')).swipe('left', 'fast', 0.75);
+    await waitFor(element(by.id('photo-credit')))
+      .toHaveText('© Fixture Photographer 1, some rights reserved (CC BY)')
+      .withTimeout(TIMEOUT);
+
+    // Leaving the photo lands on every photo of the species, not on the card.
+    await tap('photo-back');
+    await visible('photo-grid');
+    await exists('photo-cell-3'); // own photo + the three fetched
+    await tap('photo-close');
+    await visible('study-reveal');
+  });
 });

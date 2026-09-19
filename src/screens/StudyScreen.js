@@ -279,7 +279,7 @@ export default function StudyScreen({
   // starts once the picture is actually on screen (a failed load counts too, so
   // a broken image can't stall the round).
   const [imgLoaded, setImgLoaded] = useState(false);
-  const [viewer, setViewer] = useState(null); // { photos, startIndex } | null
+  const [viewer, setViewer] = useState(null); // { photos, startIndex, grid, startOnPhoto } | null
   const [mapOpen, setMapOpen] = useState(false); // observation-location map modal
   const lastTapRef = useRef(0);
 
@@ -378,11 +378,45 @@ export default function StudyScreen({
   // countdown — so the choices test recall. It returns once the answer is shown.
   const hidePhoto = speedrun && phase === 'choosing';
 
+  // The card this screen is showing right now, for a fetch that finishes after
+  // the player has moved on — its photos must not land on the next card.
+  const shownKeyRef = useRef(shownKey);
+  shownKeyRef.current = shownKey;
+
   // Open the fullscreen zoom viewer on the current photo (used by double-tap).
-  // Straight to the photo, not the grid: a double-tap on THIS picture means
-  // "bigger", not "show me the others".
-  const openZoom = () => {
-    setViewer({ photos: gallery.map(toLargePhoto), startIndex: 0, grid: false });
+  // Straight to THIS photo, because a double-tap on a picture means "bigger" —
+  // but with the species' other photos a swipe away and the grid of all of
+  // them behind it, since "bigger" is so often followed by "and the others?".
+  //
+  // It opens at once on the photo already on screen, and the rest are added as
+  // they arrive; waiting on the network before showing a photo that is already
+  // loaded would make the double-tap feel broken. Offline there is nothing to
+  // fetch, so it stays the single photo it always was, with no grid of one.
+  const openZoom = async () => {
+    const withGrid = !offline && !!card;
+    setViewer({
+      photos: gallery.map(toLargePhoto),
+      startIndex: 0,
+      grid: withGrid,
+      startOnPhoto: withGrid,
+    });
+    if (!withGrid || fetched || loadingMore) return;
+    const key = shownKey;
+    setLoadingMore(true);
+    let extra = [];
+    try {
+      extra = await fetchTaxonPhotos(card.taxonId);
+    } catch {
+      /* best-effort: the photo on screen is still there to look at */
+    }
+    if (shownKeyRef.current !== key) return;
+    // The photo on screen stays first, so the pager does not jump under the
+    // player's finger when the rest arrive.
+    const merged = [...new Set([...gallery, ...extra])];
+    setGallery(merged);
+    setFetched(true);
+    setLoadingMore(false);
+    setViewer((v) => (v && v.startOnPhoto ? { ...v, photos: merged.map(toLargePhoto) } : v));
   };
 
   // Tapping the photo never reveals/flips the card — that's only done by the
@@ -512,6 +546,7 @@ export default function StudyScreen({
           (covering letterbox bars for wide/tall photos), with the full image
           shown on top in "contain" mode so no features are cropped off. */}
       <Pressable
+        testID="study-photo"
         style={StyleSheet.absoluteFill}
         onPress={onPhotoPress}
         // Press-and-hold any bare part of the photo to peek: the answer overlay
@@ -1033,6 +1068,7 @@ export default function StudyScreen({
         }
         startIndex={viewer ? viewer.startIndex : 0}
         grid={!!viewer && viewer.grid}
+        startOnPhoto={!!viewer && !!viewer.startOnPhoto}
         onClose={() => setViewer(null)}
       />
 

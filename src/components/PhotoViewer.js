@@ -9,6 +9,11 @@
 //   • A scrollable grid first (`grid` on) — "show me the other photos", where
 //     the point is to see the set. Picking one opens it full-screen, and back
 //     returns to the grid rather than dumping the user out of the viewer.
+//   • One photo, with the grid behind it (`grid` + `startOnPhoto`) — "bigger,
+//     and then the rest". Opens full-screen on `startIndex`, swipes to the
+//     others while not zoomed, and back goes to the grid, the same layer the
+//     second way starts on. The photo list may grow while it is open (a caller
+//     can open on the one photo it has and add the rest as they arrive).
 //
 // A photo shown full-screen carries its credit. iNaturalist photos are licensed
 // individually by the people who took them, and a picture filling the screen
@@ -202,6 +207,7 @@ export default function PhotoViewer({
   loading = false,
   startIndex = 0,
   grid = false,
+  startOnPhoto = false, // with `grid`: open on startIndex, grid behind it
   onClose,
 }) {
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -211,7 +217,8 @@ export default function PhotoViewer({
   const [paging, setPaging] = useState(true);
   // Null means the grid is up; a number means that photo is full-screen. A
   // viewer opened without `grid` is never null — there is no grid to go back to.
-  const [page, setPage] = useState(grid ? null : startIndex);
+  const opening = grid && !startOnPhoto ? null : startIndex;
+  const [page, setPage] = useState(opening);
   // Which photo the pager is on, for the credit footer. Tracked separately from
   // `page`, which only says where the pager STARTED.
   const [shown, setShown] = useState(startIndex);
@@ -221,10 +228,11 @@ export default function PhotoViewer({
   // off. Keyed on `visible` so it costs nothing while closed.
   useEffect(() => {
     if (!visible) return;
-    setPage(grid ? null : startIndex);
+    setPage(opening);
     setShown(startIndex);
     setPaging(true);
-  }, [visible, grid, startIndex]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, grid, startOnPhoto, startIndex]);
 
   // Back out one layer at a time: full-screen returns to the grid it came from,
   // and only the outermost layer closes. Android's hardware back and the
@@ -281,6 +289,7 @@ export default function PhotoViewer({
           />
         ) : (
           <FlatList
+            testID="photo-pager"
             ref={listRef}
             data={photos}
             horizontal
