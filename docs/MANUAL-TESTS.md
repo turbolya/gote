@@ -244,9 +244,10 @@ scores correctly, and returns to the menu cleanly.
     with a deck smaller than 8 cards, and with the last icon left on.
   - *Priority:* High
   - *Expected:* all four icons start lit and the slider starts at **8** — or at
-    the deck size when that is under 8, never above it. Each icon has one tiny
-    word over it — **PHOTO, NAME, PAIRS, TYPING** — on one line, even at the
-    largest text size (it shrinks rather than wraps). An icon that is off is
+    the deck size when that is under 8, never above it. The four icons run
+    easiest question first, each with one tiny word over it — **NAME, PAIRS,
+    PHOTO, TYPING** — on one line, even at the largest text size (it shrinks
+    rather than wraps). The ⋯ screen lists the same four in the same order. An icon that is off is
     clearly dimmer, not just differently outlined. The Start button and the
     number beside the slider both track the slider as you drag. Start plays that
     many cards of those types with no intervening screen. The last lit icon

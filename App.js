@@ -114,10 +114,15 @@ import { recentCards } from './src/recent';
 // ride along as their accessibility names.
 // `short` is the one word that fits over a chip on the menu's Smart play card;
 // `label` is the full name, used on the ⋯ screen and read out by VoiceOver.
+//
+// In difficulty order, easiest first — the same order as the scoring weights
+// (src/scoring.js), Smart play's ladder (src/smartmode.js) and the "By question
+// type" list on Statistics. Nothing reads this order but the two pickers: a
+// saved selection is a set, and the draw uses ALL_FORMATS.
 const SMART_QUESTION_TYPES = [
-  { key: FORMAT.PICTURE, label: 'Choosing the photo', short: 'Photo', icon: 'images-outline' },
   { key: FORMAT.NAME, label: 'Choosing the name', short: 'Name', icon: 'list-outline' },
   { key: FORMAT.PAIR, label: 'Look-alike pairs', short: 'Pairs', icon: 'git-compare-outline' },
+  { key: FORMAT.PICTURE, label: 'Choosing the photo', short: 'Photo', icon: 'images-outline' },
   { key: FORMAT.TYPED, label: 'Typing from memory', short: 'Typing', icon: 'create-outline' },
 ];
 import { shrunkRate, lifetimeRate } from './src/accuracy';

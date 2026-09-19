@@ -133,10 +133,11 @@ describe('Menu & navigation', () => {
     // the long label would fail here rather than overflow quietly. In capitals:
     // the label is drawn with textTransform uppercase, and that is what iOS
     // reports as its text.
+    // In the order they sit on the card: easiest question first.
     for (const [key, word] of [
-      ['picture', 'Photo'],
       ['name', 'Name'],
       ['pair', 'Pairs'],
+      ['picture', 'Photo'],
       ['typed', 'Typing'],
     ]) {
       await visible(`menu-type-label-${key}`);
