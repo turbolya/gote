@@ -80,11 +80,11 @@ console.log('\\nrecordRecall — difficulty-weighted totals');
   eq('a correct typed answer banks its points', [right.points, right.weight], [2, 2]);
   const wrong = recordRecall(right, { correct: false, at: 2, score: { points: 0, weight: 2 } });
   eq('a wrong one adds weight but no points', [wrong.points, wrong.weight], [2, 4]);
-  const easy = recordRecall(wrong, { correct: true, at: 3, score: { points: 0.5, weight: 0.5 } });
-  eq('a correct photo answer is worth a quarter as much', [easy.points, easy.weight], [2.5, 4.5]);
+  const easy = recordRecall(wrong, { correct: true, at: 3, score: { points: 1, weight: 1 } });
+  eq('a correct name answer is worth half as much', [easy.points, easy.weight], [3, 5]);
   // An answer with no format (a wrist round) must not corrupt the totals.
   const none = recordRecall(easy, { correct: true, at: 4 });
-  eq('an unscored answer leaves the totals alone', [none.points, none.weight], [2.5, 4.5]);
+  eq('an unscored answer leaves the totals alone', [none.points, none.weight], [3, 5]);
   eq('but still counts as known', none.known, 3);
 }
 

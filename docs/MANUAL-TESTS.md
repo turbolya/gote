@@ -346,10 +346,12 @@ scores correctly, and returns to the menu cleanly.
   - *Preconditions:* Rounds played in several question formats
   - *Priority:* High
   - *Expected:* a **Score** card showing points "of N possible" — harder
-    questions are worth more (typing counts 4× a photo choice), so the Score
-    rises faster after typed answers than after photo ones. A **By question
-    type** card lists each format easiest-first with its own accuracy; a lower
-    number further down is expected, not a bug. Play a **Flash cards** round:
+    questions are worth more: a right name choice is 1 point, a look-alike
+    pair 1.5, and a right photo choice or typed name 2, so the Score rises
+    twice as fast after photo or typed answers as after name ones. Its ⓘ
+    states those same four numbers. A **By question type** card lists each
+    format easiest-first — name, pairs, photo, typing — with its own accuracy;
+    a lower number further down is expected, not a bug. Play a **Flash cards** round:
     accuracy and the breakdown both change, but the **Score does not move** —
     self-graded answers do not score.
 - [ ] **TC-5.4 Explanations live behind the i buttons.** On Statistics, tap the ⓘ

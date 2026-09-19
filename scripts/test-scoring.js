@@ -24,9 +24,10 @@ function ok(name, cond) { eq(name, !!cond, true); }
 
 console.log('\\nweightOf');
 {
-  eq('picking a photo out of four is worth least', weightOf('picture'), 0.5);
-  eq('picking a name out of five', weightOf('name'), 1);
+  eq('picking a name out of five is the baseline', weightOf('name'), 1);
   eq('separating two look-alikes', weightOf('pair'), 1.5);
+  // Harder in play than on paper: see WEIGHTS. Worth as much as typing.
+  eq('picking the photo out of four is worth most', weightOf('picture'), 2);
   eq('typing from memory is worth most', weightOf('typed'), 2);
   eq('an unknown format falls back', weightOf('nonsense'), DEFAULT_WEIGHT);
   // Self-graded, so worth nothing: a score you can award yourself by tapping
@@ -37,14 +38,15 @@ console.log('\\nweightOf');
   eq('so does undefined', weightOf(undefined), DEFAULT_WEIGHT);
   // The ordering IS the design; assert it rather than the literals alone.
   ok('weights rise with difficulty',
-    weightOf('picture') < weightOf('name') && weightOf('name') < weightOf('pair') && weightOf('pair') < weightOf('typed'));
+    weightOf('name') < weightOf('pair') && weightOf('pair') < weightOf('picture'));
+  eq('and the photo grid ties with typing at the top', weightOf('picture'), weightOf('typed'));
 }
 
 console.log('\\nscoreFrom');
 {
   const by = { picture: { answered: 10, correct: 8 }, typed: { answered: 5, correct: 3 } };
-  // 8 x 0.5 + 3 x 2 = 4 + 6
-  eq('sums weight x correct across formats', scoreFrom({ answered: 15, correct: 11 }, by), 10);
+  // 8 x 2 + 3 x 2 = 16 + 6
+  eq('sums weight x correct across formats', scoreFrom({ answered: 15, correct: 11 }, by), 22);
   eq('an empty split scores nothing when nothing was answered', scoreFrom({ answered: 0, correct: 0 }, {}), 0);
   eq('no split at all', scoreFrom({ answered: 4, correct: 3 }, undefined), 3 * DEFAULT_WEIGHT);
 }
@@ -55,12 +57,12 @@ console.log('\\nscoreFrom — history from before formats were recorded');
   // 29 predate format recording and must still be worth their default weight.
   const by = { picture: { answered: 10, correct: 8 }, typed: { answered: 5, correct: 3 } };
   eq('legacy correct answers keep their value',
-    scoreFrom({ answered: 60, correct: 40 }, by), 10 + 29 * DEFAULT_WEIGHT);
+    scoreFrom({ answered: 60, correct: 40 }, by), 22 + 29 * DEFAULT_WEIGHT);
   // A split that somehow claims MORE than the lifetime total must not go
   // negative — that would silently subtract from the score.
   eq('an over-claiming split cannot subtract',
-    scoreFrom({ answered: 5, correct: 2 }, by), 10);
-  eq('junk lifetime', scoreFrom(null, by), 10);
+    scoreFrom({ answered: 5, correct: 2 }, by), 22);
+  eq('junk lifetime', scoreFrom(null, by), 22);
   eq('junk values inside the split', scoreFrom({ answered: 3, correct: 3 }, { name: { correct: 'x' } }), 3 * DEFAULT_WEIGHT);
 }
 
@@ -84,10 +86,10 @@ console.log('\\nscoreFrom — flash cards are excluded, not treated as legacy');
 console.log('\\npotentialFrom');
 {
   const by = { picture: { answered: 10, correct: 8 }, typed: { answered: 5, correct: 3 } };
-  // 10 x 0.5 + 5 x 2 = 5 + 10
-  eq('the ceiling if everything had been right', potentialFrom({ answered: 15, correct: 11 }, by), 15);
+  // 10 x 2 + 5 x 2 = 20 + 10
+  eq('the ceiling if everything had been right', potentialFrom({ answered: 15, correct: 11 }, by), 30);
   eq('legacy answers raise the ceiling too',
-    potentialFrom({ answered: 25, correct: 11 }, by), 15 + 10 * DEFAULT_WEIGHT);
+    potentialFrom({ answered: 25, correct: 11 }, by), 30 + 10 * DEFAULT_WEIGHT);
   ok('the score can never exceed the ceiling',
     scoreFrom({ answered: 15, correct: 15 }, by) <= potentialFrom({ answered: 15, correct: 15 }, by));
 }
@@ -98,8 +100,9 @@ console.log('\\nscoreDelta');
   // A wrong answer still costs its weight: getting a hard question wrong has to
   // hurt more than getting an easy one wrong, or the weighting is one-sided.
   eq('a wrong typed answer earns nothing but still counts', scoreDelta('typed', false), { points: 0, weight: 2 });
-  eq('a correct photo answer', scoreDelta('picture', true), { points: 0.5, weight: 0.5 });
-  eq('a wrong photo answer', scoreDelta('picture', false), { points: 0, weight: 0.5 });
+  eq('a correct photo answer', scoreDelta('picture', true), { points: 2, weight: 2 });
+  eq('a wrong photo answer', scoreDelta('picture', false), { points: 0, weight: 2 });
+  eq('a correct name answer', scoreDelta('name', true), { points: 1, weight: 1 });
   eq('an unknown format', scoreDelta('???', true), { points: DEFAULT_WEIGHT, weight: DEFAULT_WEIGHT });
   // Neither points nor weight: a flash answer must not even dilute a species'
   // weighted rate, or self-grading would still move the ranking.
@@ -124,13 +127,13 @@ console.log('\\nweightedRate');
 console.log('\\nthe weighting actually changes the ranking');
 {
   // Two species with identical raw records: 6 right out of 8. One was answered
-  // by typing, the other by picking photos. The typed one must rank higher.
+  // by typing, the other by choosing names. The typed one must be worth more.
   const typedSp = { points: 6 * 2, weight: 8 * 2 };
-  const photoSp = { points: 6 * 0.5, weight: 8 * 0.5 };
-  eq('identical raw rates', weightedRate(typedSp), weightedRate(photoSp));
+  const nameSp = { points: 6 * 1, weight: 8 * 1 };
+  eq('identical raw rates', weightedRate(typedSp), weightedRate(nameSp));
   // …the RATE is the same, which is correct — rate is about reliability. What
   // differs is how much each contributed, which is what the score measures.
-  ok('but the harder species is worth more points', typedSp.points > photoSp.points);
+  ok('but the harder species is worth more points', typedSp.points > nameSp.points);
 }
 
 console.log('\\n' + (failed ? 'FAILED ' + failed : 'passed ' + passed) + (failed ? ' / ' + (passed + failed) : ''));

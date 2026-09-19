@@ -422,7 +422,8 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
       {/* Score, kept apart from the accuracy row on purpose: it answers a
           different question. Accuracy is what fraction you got right; this is
           how much those answers were WORTH, so naming a species from memory
-          counts for four times as much as picking its photo out of four. */}
+          or picking its photo out of four counts for twice as much as
+          choosing its name from a list. */}
       <View style={styles.scoreCard}>
         <View style={styles.scoreRow}>
           <View style={styles.flex}>
@@ -454,9 +455,9 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
         {cardInfo(
           'score',
           <>
-            Harder questions are worth more — typing a name counts{' '}
-            {WEIGHTS.typed / WEIGHTS.picture}× a photo choice, because there is
-            nothing to guess among.
+            Harder questions are worth more. Choosing a name is{' '}
+            {WEIGHTS.name} point, a look-alike pair {WEIGHTS.pair}, and picking
+            the photo or typing the name {WEIGHTS.typed}.
             {statsByFormat.flash && statsByFormat.flash.answered > 0
               ? ' Flash cards don’t score — you grade those yourself.'
               : ''}
@@ -512,12 +513,14 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
 
   // Accuracy split by question format. Ordered by how hard the format is rather
   // than by score, because that ordering is the entire point: a lower number
-  // further down the list is expected, not a problem.
+  // further down the list is expected, not a problem. Easiest first, in the
+  // order of their scoring weights (src/scoring.js) — the photo grid sits with
+  // typing at the bottom, because in play it is that hard.
   const formatRows = useMemo(() => {
     const ORDER = [
-      ['picture', 'Choosing the photo'],
       ['name', 'Choosing the name'],
       ['pair', 'Look-alike pairs'],
+      ['picture', 'Choosing the photo'],
       ['typed', 'Typing from memory'],
       ['flash', 'Flash cards'],
     ];
@@ -545,11 +548,12 @@ export default function StatsScreen({ species, cards = [], confusions = {}, conf
         </View>
       ))}
 {cardInfo('formats', <>
-        These are not equally hard. Typing a name from memory has nothing to
-        choose from, while picking a photo out of four gives you a one-in-four
-        chance without knowing anything — so a lower score further down this
-        list is expected, and comparing your overall accuracy across sessions
-        only means something if the mix stayed similar.
+        These are not equally hard, and they are listed easiest first.
+        Choosing the name for a photo you can see is the easiest; picking the
+        right photo out of four and typing a name from memory are the hardest —
+        so a lower score further down this list is expected, and comparing your
+        overall accuracy across sessions only means something if the mix stayed
+        similar.
       </>)}
     </View>
   );

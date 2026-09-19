@@ -8,9 +8,25 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.44.4';
+export const APP_VERSION = '2.44.5';
 
 export const CHANGELOG = [
+  {
+    version: '2.44.5',
+    date: '2026-09-19',
+    changes: [
+      'Picking the right photo now scores 2 points instead of ½ — the same as '
+        + 'typing a name. It turned out to be far harder than choosing a name, '
+        + 'which stays at 1; look-alike pairs are still 1.5. Your Score on the '
+        + 'Statistics page is recalculated with the new values, so it may jump.',
+      'The “By question type” list on Statistics is reordered to match: '
+        + 'choosing the name first, then look-alike pairs, picking the photo, '
+        + 'and typing.',
+      'Double-tapping a photo during a round still opens it full-screen, and '
+        + 'now you can swipe left and right to the species’ other photos. '
+        + 'Going back shows all of them in a grid.',
+    ],
+  },
   {
     version: '2.44.4',
     date: '2026-09-19',

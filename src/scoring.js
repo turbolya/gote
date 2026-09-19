@@ -15,14 +15,25 @@
 
 import { FORMAT } from './smartmode.js';
 
-// What one correct answer is worth, by the question that produced it. The
-// spacing is the guess floor read backwards: a four-photo grid hands you 25%
-// for nothing, a five-name list 20%, a two-way pair 50% but only on species you
-// already confuse, and typing has no floor at all.
+// What one correct answer is worth, by the question that produced it — set by
+// how hard each one turns out to be in play, not by its guess floor on paper.
+//
+// The first version was the guess floor read backwards, which ranked the photo
+// grid easiest (a one-in-four chance for nothing) at 0.5. Playing it says
+// otherwise: picking the right photo out of four means telling one species
+// from three others by the picture alone, often in unfamiliar photos of
+// look-alike species, and it is far harder than choosing a name for a photo
+// you are looking at. So it sits with typing at the top. The name list is the
+// baseline, and a look-alike pair — two options, but only ever on species you
+// already confuse — sits between.
+//
+// Changed in 2.44.5. The lifetime score is derived from per-format counts, so
+// it is recomputed under these weights; per-species tallies store running
+// sums, so their older photo answers keep the old weight.
 export const WEIGHTS = {
-  [FORMAT.PICTURE]: 0.5,
   [FORMAT.NAME]: 1,
   [FORMAT.PAIR]: 1.5,
+  [FORMAT.PICTURE]: 2,
   [FORMAT.TYPED]: 2,
   // Self-graded, and therefore worth NOTHING. Flash cards are the one format
   // the app does not mark itself: the player taps "I knew it", and a score that

@@ -235,9 +235,19 @@ per species, which would have been eight; both fold by **summing**, which is the
 only property the sync layer requires. Storing a per-species rate instead would
 have been unmergeable, the same trap as latency.
 
-A wrong answer still adds its `weight`, so a miss on a typed question costs four
-times a miss on a photo grid. That is what makes the weighting two-sided rather
-than a pure reward.
+A wrong answer still adds its `weight`, so a miss on a typed question costs twice
+a miss on a name list. That is what makes the weighting two-sided rather than a
+pure reward.
+
+The weights themselves are not part of the schema and changed on 2026-09-19
+(2.44.5): the photo grid went from 0.5 to 2, level with typing, because it is
+far harder in play than its one-in-four guess floor suggested (name 1, pair
+1.5, photo 2, typed 2 — see `WEIGHTS` in `src/scoring.js`). No migration,
+because none is possible: the lifetime score is re-derived from
+`@gote/statsByFormat` and so moves to the new weights at once, but a species'
+`points`/`weight` are running sums with no per-format split, so photo answers
+banked before the change keep their 0.5 inside them. A synced device still on
+an older build keeps adding photo answers at 0.5 until it updates.
 
 The LIFETIME score needs no new storage at all: it is derived from
 `@gote/statsByFormat`, which already carries per-format correct counts. Answers
