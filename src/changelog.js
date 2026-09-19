@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.44.3';
+export const APP_VERSION = '2.44.4';
 
 export const CHANGELOG = [
+  {
+    version: '2.44.4',
+    date: '2026-09-19',
+    changes: [
+      'The four question-type buttons on the Smart play card now each have a '
+        + 'tiny label over them — Photo, Name, Pairs and Typing — so you can '
+        + 'tell what they do without opening ⋯.',
+    ],
+  },
   {
     version: '2.44.3',
     date: '2026-09-18',
