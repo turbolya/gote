@@ -127,6 +127,23 @@ describe('Menu & navigation', () => {
     await visible('mode-smart');
   });
 
+  it('names each Smart play question type over its chip', async () => {
+    // One word of fine print per chip — the full names live on the ⋯ screen.
+    // By text, not just by id, so a chip that lost its `short` and fell back to
+    // the long label would fail here rather than overflow quietly. In capitals:
+    // the label is drawn with textTransform uppercase, and that is what iOS
+    // reports as its text.
+    for (const [key, word] of [
+      ['picture', 'Photo'],
+      ['name', 'Name'],
+      ['pair', 'Pairs'],
+      ['typed', 'Typing'],
+    ]) {
+      await visible(`menu-type-label-${key}`);
+      await expect(element(by.id(`menu-type-label-${key}`))).toHaveText(word.toUpperCase());
+    }
+  });
+
   it('shows the lowercase "gote" brand wordmark on the hero', async () => {
     // The hero logotype is the rounded Fredoka wordmark, set lowercase.
     await waitFor(element(by.id('menu-wordmark')))

@@ -112,11 +112,13 @@ import { recentCards } from './src/recent';
 // Statistics breakdown so the two screens name the same thing the same way.
 // `icon` is for the menu card, which shows these as icons alone — the labels
 // ride along as their accessibility names.
+// `short` is the one word that fits over a chip on the menu's Smart play card;
+// `label` is the full name, used on the ⋯ screen and read out by VoiceOver.
 const SMART_QUESTION_TYPES = [
-  { key: FORMAT.PICTURE, label: 'Choosing the photo', icon: 'images-outline' },
-  { key: FORMAT.NAME, label: 'Choosing the name', icon: 'list-outline' },
-  { key: FORMAT.PAIR, label: 'Look-alike pairs', icon: 'git-compare-outline' },
-  { key: FORMAT.TYPED, label: 'Typing from memory', icon: 'create-outline' },
+  { key: FORMAT.PICTURE, label: 'Choosing the photo', short: 'Photo', icon: 'images-outline' },
+  { key: FORMAT.NAME, label: 'Choosing the name', short: 'Name', icon: 'list-outline' },
+  { key: FORMAT.PAIR, label: 'Look-alike pairs', short: 'Pairs', icon: 'git-compare-outline' },
+  { key: FORMAT.TYPED, label: 'Typing from memory', short: 'Typing', icon: 'create-outline' },
 ];
 import { shrunkRate, lifetimeRate } from './src/accuracy';
 import {

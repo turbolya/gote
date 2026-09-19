@@ -8,10 +8,12 @@
 // So the common round is built here — which questions, how many, go — and the
 // full picker (groups, flagged-only, presets) stays one tap away behind the ⋯.
 //
-// The type toggles are icons with no labels, which is a deliberate trade: four
-// labelled chips do not fit a menu card at any text size worth supporting, and
-// the labels are still there on the ⋯ screen. They carry accessibilityLabel, so
-// the reading is only lost visually, not to a screen reader.
+// The type toggles are icons, each under one tiny word of fine print. The full
+// names ("Choosing the photo") do not fit four across a menu card at any text
+// size worth supporting, so the card uses a short one (Photo, Name, …) and the
+// full name stays on the ⋯ screen and in each chip's accessibilityLabel. The
+// word sits above the chip rather than inside it so the chip keeps its size
+// and the icon stays the thing you tap.
 
 import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
@@ -28,7 +30,7 @@ export const CARD_COUNT = 8;
 
 export default function SmartCard({
   available = 0, // cards the deck can offer right now
-  types: questionTypes = [], // [{ key, label, icon }]
+  types: questionTypes = [], // [{ key, label, short, icon }]
   initial = null, // the setup this mode was last started with
   unavailableTypes = null,
   disabled = false,
@@ -115,30 +117,44 @@ export default function SmartCard({
           const off = blocked.has(t.key);
           const on = !off && types.has(t.key);
           return (
-            <Pressable
-              key={t.key}
-              testID={`menu-type-${t.key}`}
-              onPress={() => toggle(t.key)}
-              disabled={off}
-              accessibilityRole="switch"
-              accessibilityState={{ checked: on, disabled: off }}
-              accessibilityLabel={off ? `${t.label} — needs a connection` : t.label}
-              style={({ pressed }) => [
-                styles.type,
-                on && styles.typeOn,
-                off && styles.typeOff,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Icon
-                name={off ? 'cloud-offline-outline' : t.icon}
-                size={21}
-                // The brand teal, the same one the slider and Start use for
-                // "active" — on a dark ground the tinted fill alone is too
-                // close to the card to carry the on/off reading by itself.
-                color={on ? colors.primary : colors.muted}
-              />
-            </Pressable>
+            <View key={t.key} style={styles.typeCol}>
+              {/* Hidden from VoiceOver: the chip under it already says the full
+                  name, and hearing "Photo" then "Choosing the photo" is noise. */}
+              <Text
+                style={[styles.typeLabel, off && styles.typeOff]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                maxFontSizeMultiplier={1.3}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                testID={`menu-type-label-${t.key}`}
+              >
+                {t.short || t.label}
+              </Text>
+              <Pressable
+                testID={`menu-type-${t.key}`}
+                onPress={() => toggle(t.key)}
+                disabled={off}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: on, disabled: off }}
+                accessibilityLabel={off ? `${t.label} — needs a connection` : t.label}
+                style={({ pressed }) => [
+                  styles.type,
+                  on && styles.typeOn,
+                  off && styles.typeOff,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Icon
+                  name={off ? 'cloud-offline-outline' : t.icon}
+                  size={21}
+                  // The brand teal, the same one the slider and Start use for
+                  // "active" — on a dark ground the tinted fill alone is too
+                  // close to the card to carry the on/off reading by itself.
+                  color={on ? colors.primary : colors.muted}
+                />
+              </Pressable>
+            </View>
           );
         })}
       </View>
@@ -196,8 +212,18 @@ const makeStyles = (colors) =>
     pressed: { opacity: 0.55 },
 
     types: { flexDirection: 'row', gap: 8 },
+    typeCol: { flex: 1, gap: 5 },
+    // The app's fine-print voice — the same small tracked capitals as the film
+    // strip's caption — so the four read as captions, not as a second heading.
+    typeLabel: {
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      textAlign: 'center',
+      color: colors.muted,
+    },
     type: {
-      flex: 1,
       alignItems: 'center',
       paddingVertical: 10,
       borderRadius: 12,
