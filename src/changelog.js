@@ -26,6 +26,8 @@ export const CHANGELOG = [
         + 'getting wrong, mostly by name — the easiest question — instead of '
         + 'mostly as a photo grid. Picking the photo comes up more as you get '
         + 'to know a species, alongside typing it from memory.',
+      'The row of recent photos on the menu now fades out at the screen edges '
+        + 'instead of running past the cards below it.',
       'Double-tapping a photo during a round still opens it full-screen, and '
         + 'now you can swipe left and right to the species’ other photos. '
         + 'Going back shows all of them in a grid.',

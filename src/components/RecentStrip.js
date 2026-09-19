@@ -14,12 +14,26 @@
 
 import React from 'react';
 import { View, Text, Image, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Icon from './Icon';
 import { useColors, useThemedStyles } from '../theme';
 
 // Matches the thumbnails elsewhere in the app (Lexicon rows, the detail strip):
 // plain Image, no spinner. A spinner in a small square reads as noise, and the
 // placeholder fill below is enough to stop the row jumping while photos land.
+// The menu's side margin, which the strip bleeds into (see `strip` below).
+const GUTTER = 20;
+
+// A hex colour at zero alpha. The fade has to end in the page colour made
+// transparent, not in 'transparent' — that is transparent BLACK, and a
+// gradient into it goes grey on its way through the light theme.
+const clear = (hex) => {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return 'rgba(0,0,0,0)';
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},0)`;
+};
+
 export default function RecentStrip({ cards = [], onSelect, onMore }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -69,6 +83,27 @@ export default function RecentStrip({ cards = [], onSelect, onMore }) {
           </Pressable>
         )}
       </ScrollView>
+      {/* The row bleeds to the screen edges so a half-visible frame says
+          "scrollable", but in the margins it read as spilling past the cards
+          below it. So it fades into the page across each margin: solid page at
+          the screen edge, fully clear by the card's edge. The left fade covers
+          nothing until the row is scrolled — the first frame starts at the
+          margin. Touches pass through, so the row still scrolls and every
+          frame is still tappable underneath. */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[colors.bg, clear(colors.bg)]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={[styles.fade, styles.fadeLeft]}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        colors={[clear(colors.bg), colors.bg]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={[styles.fade, styles.fadeRight]}
+      />
     </View>
   );
 }
@@ -90,8 +125,13 @@ const makeStyles = (colors) => StyleSheet.create({
     color: colors.muted,
     marginBottom: 8,
   },
-  strip: { marginHorizontal: -20 },
-  stripContent: { paddingHorizontal: 20, gap: 10 },
+  strip: { marginHorizontal: -GUTTER },
+  stripContent: { paddingHorizontal: GUTTER, gap: 10 },
+  // Over the strip only (not the caption): the frames are 96pt tall and sit at
+  // the bottom of `wrap`.
+  fade: { position: 'absolute', bottom: 0, height: 96, width: GUTTER },
+  fadeLeft: { left: -GUTTER },
+  fadeRight: { right: -GUTTER },
   frame: {
     width: 96,
     height: 96,
