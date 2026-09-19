@@ -22,6 +22,10 @@ export const CHANGELOG = [
       'The “By question type” list on Statistics is reordered to match: '
         + 'choosing the name first, then look-alike pairs, picking the photo, '
         + 'and typing.',
+      'Smart play now asks species you have never met, and species you keep '
+        + 'getting wrong, mostly by name — the easiest question — instead of '
+        + 'mostly as a photo grid. Picking the photo comes up more as you get '
+        + 'to know a species, alongside typing it from memory.',
       'Double-tapping a photo during a round still opens it full-screen, and '
         + 'now you can swipe left and right to the species’ other photos. '
         + 'Going back shows all of them in a grid.',

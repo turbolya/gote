@@ -195,10 +195,13 @@ scores correctly, and returns to the menu cleanly.
 - [ ] **TC-2.6 Smart play - mixed questions.** On the menu's Smart play card,
     leave all four question icons on, drag the slider up to 16, and Start.
   - *Priority:* High
-  - *Expected:* the question CHANGES between cards — a photo grid, a five-name
-    list, and (once a species has a few answers behind it) typing the name.
-    Species you have never met lean towards the photo grid; species you answer
-    well start being asked from memory. The round never stalls between formats,
+  - *Expected:* the question CHANGES between cards — a five-name list, a photo
+    grid, and (once a species has a few answers behind it) typing the name.
+    Species you have never met, and species you keep getting wrong, come up
+    **mostly as the five-name list** — the easiest question — with only the
+    odd photo grid. Species you answer well get the hard questions: more photo
+    grids, and typing from memory. On a fresh install (no history at all) most
+    of the 16 cards are name lists. The round never stalls between formats,
     and the card counter advances by exactly one each time.
 - [ ] **TC-2.7 Smart play - limiting the question types.** On the menu card,
     turn off all but one icon and play a few cards. Then try to turn off the

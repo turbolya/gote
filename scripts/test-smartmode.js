@@ -2,8 +2,9 @@
 // in plain node via a small ESM wrapper (same approach as test-mastery.js).
 //
 // What has to hold, and would be invisible in play if it broke: a species you
-// have never met must never be asked for from memory, a species you know cold
-// must stop being offered as multiple choice, a live confusion must be able to
+// have never met, or keep missing, is asked mostly by name, the easiest
+// question, and never from memory; the hard questions (the photo grid, typed
+// recall) grow with how well it is known; a live confusion must be able to
 // surface as its pair — and no format may ever be chosen that this round cannot
 // actually render (no photo grid offline, no pair without a partner).
 
@@ -39,32 +40,33 @@ function drawSet(opts, n = 4000) {
 console.log('\\nformatWeights — a species never seen');
 {
   const w = formatWeights({ evidence: 0, rate: 0 });
-  eq('is introduced with the name visible', w[FORMAT.PICTURE] > 0, true);
+  // The name list is the easiest question (src/scoring.js ranks it lowest),
+  // so a species you have never met is met there.
+  ok('is asked mostly by name', w[FORMAT.NAME] > w[FORMAT.PICTURE] * 2);
   eq('and is never asked from memory', w[FORMAT.TYPED], 0);
   eq('nor as a pair it has no history of confusing', w[FORMAT.PAIR], 0);
-  // A name list IS offered on a first meeting, just not often. Making the photo
-  // grid the ONLY first question meant a deck with no history played entirely as
-  // photo grids — indistinguishable from By picture, and the slowest format
-  // besides. Found by playing the mode, not by reading it.
-  ok('a name list is possible from the first meeting', w[FORMAT.NAME] > 0);
-  ok('but the teaching format still leads clearly', w[FORMAT.PICTURE] > w[FORMAT.NAME] * 2);
+  // …but not ONLY by name. A deck with no history would then play entirely as
+  // one format, indistinguishable from By name.
+  ok('a photo grid is still possible from the first meeting', w[FORMAT.PICTURE] > 0);
 }
 
 console.log('\\nformatWeights — a species being learned');
 {
   const w = formatWeights({ evidence: 2, rate: 0.5 });
-  ok('leans on the easiest format', w[FORMAT.PICTURE] > w[FORMAT.NAME]);
+  ok('leans on the easiest format, the name list', w[FORMAT.NAME] > w[FORMAT.PICTURE] * 2);
   eq('still not from memory on 2 answers', w[FORMAT.TYPED], 0);
+  // A species you keep missing is a HARD species — it goes back to names,
+  // however many times it has come up.
   const poor = formatWeights({ evidence: 20, rate: 0.3 });
   eq('a long but poor record is still not asked from memory', poor[FORMAT.TYPED], 0);
-  ok('and is still given the easier format', poor[FORMAT.PICTURE] > 0);
+  ok('and is asked mostly by name', poor[FORMAT.NAME] > poor[FORMAT.PICTURE] * 2);
 }
 
 console.log('\\nformatWeights — a species that is known');
 {
   const w = formatWeights({ evidence: 10, rate: 0.95 });
-  eq('the easiest format is retired', w[FORMAT.PICTURE], 0);
-  ok('recall is now the likeliest question', w[FORMAT.TYPED] > w[FORMAT.NAME]);
+  ok('recall is now the likeliest question', w[FORMAT.TYPED] > w[FORMAT.PICTURE]);
+  ok('the photo grid is the next hardest, and next likeliest', w[FORMAT.PICTURE] > w[FORMAT.NAME]);
   ok('but a name list still appears sometimes', w[FORMAT.NAME] > 0);
   // Exactly at the thresholds, not just past them.
   const edge = formatWeights({ evidence: TYPED_MIN_EVIDENCE, rate: TYPED_MIN_RATE });
@@ -80,6 +82,27 @@ console.log('\\nformatWeights — the middle is not a cliff');
   const w = formatWeights({ evidence: 4, rate: 0.7 });
   ok('a trickle of recall before it qualifies', w[FORMAT.TYPED] > 0);
   ok('but the name list still dominates', w[FORMAT.NAME] > w[FORMAT.TYPED]);
+  ok('with a real share of photo grids', w[FORMAT.PICTURE] > w[FORMAT.TYPED]);
+  ok('though fewer than names', w[FORMAT.NAME] > w[FORMAT.PICTURE]);
+}
+
+console.log('\\nformatWeights — the hard photo grid grows with the species');
+{
+  // The whole point of the change: the photo grid used to be handed to new and
+  // weak species as the easy question, and retired once one was known.
+  const share = (w) => w[FORMAT.PICTURE] / Object.values(w).reduce((a, b) => a + b, 0);
+  const fresh = share(formatWeights({ evidence: 0, rate: 0 }));
+  const weak = share(formatWeights({ evidence: 20, rate: 0.3 }));
+  const middle = share(formatWeights({ evidence: 4, rate: 0.7 }));
+  const known = share(formatWeights({ evidence: 10, rate: 0.95 }));
+  ok('a new species gets fewer photo grids than one being learned', fresh < middle);
+  ok('so does a species being missed', weak < middle);
+  ok('and a known species still gets them', known > 0);
+  // …and the name list does the opposite.
+  const names = (o) => formatWeights(o)[FORMAT.NAME];
+  ok('names dominate for new and weak species, not for known ones',
+    names({ evidence: 0, rate: 0 }) > names({ evidence: 10, rate: 0.95 }) &&
+    names({ evidence: 20, rate: 0.3 }) > names({ evidence: 10, rate: 0.95 }));
 }
 
 console.log('\\nformatWeights — a live confusion');
@@ -117,8 +140,10 @@ console.log('\\nchooseFormat — the excluded stay excluded');
   // PAIR needs the partner card present in this deck.
   ok('without the partner card, no pair',
     !drawSet({ evidence: 8, rate: 0.9, hasPartner: true, allow: [FORMAT.NAME, FORMAT.TYPED] }).includes(FORMAT.PAIR));
+  // A known species with an empty allow list can land on any of three formats;
+  // an allow list really applied would make that impossible for all but one.
   eq('an empty allow list is treated as no restriction',
-    chooseFormat({ evidence: 0, rate: 0, allow: [] }, lcg(1)), FORMAT.PICTURE);
+    drawSet({ evidence: 10, rate: 0.95, allow: [] }), [FORMAT.NAME, FORMAT.PICTURE, FORMAT.TYPED].sort());
 }
 
 console.log('\\nchooseFormat — the draw is genuinely mixed');
@@ -127,7 +152,7 @@ console.log('\\nchooseFormat — the draw is genuinely mixed');
   // every single time, or the mode is just four modes wearing a trench coat.
   const known = drawSet({ evidence: 10, rate: 0.95 });
   ok('a known species sees more than one format', known.length >= 2);
-  ok('and never the easiest one', !known.includes(FORMAT.PICTURE));
+  ok('including the photo grid', known.includes(FORMAT.PICTURE));
   const confused = drawSet({ evidence: 10, rate: 0.9, hasPartner: true });
   ok('a confused species can surface as its pair', confused.includes(FORMAT.PAIR));
   ok('but not only as its pair', confused.length >= 2);

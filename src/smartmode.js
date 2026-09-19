@@ -3,12 +3,20 @@
 //
 // Every other mode asks the same question all round. Smart play asks the one
 // that best fits what is known about that species right now, because the four
-// formats are not interchangeable — they are a ladder of retrieval difficulty:
+// formats are not interchangeable — they are a ladder of difficulty, easiest
+// first:
 //
-//   PICTURE  name → pick from 4 photos    easiest: recognition, 25% guess floor
-//   NAME     photo → pick from 5 names    recognition, 20% guess floor
+//   NAME     photo → pick from 5 names    easiest: the photo is in front of you
 //   PAIR     photo → one of 2 look-alikes discrimination on a KNOWN confusion
+//   PICTURE  name → pick from 4 photos    hard: tell it from three others by
+//                                         the picture alone, in photos you
+//                                         have not seen before
 //   TYPED    photo → write the name       recall, no guessing at all
+//
+// The same order as the scoring weights (src/scoring.js). PICTURE used to sit
+// at the bottom as the easy one, on the strength of its one-in-four guess
+// floor; in play it proved as hard as typing, and a new or struggling species
+// fed mostly photo grids was being handed the hardest question going.
 //
 // Picking at random would waste that. A species seen once should not be asked
 // for from memory, and one answered right forty times learns nothing from a
@@ -56,39 +64,38 @@ const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 //   rate       0–1 success rate, shrunk (pass accuracy.shrunkRate)
 //   hasPartner a look-alike this player actually confuses it with, in this deck
 //
-// The shape, in words: a species you have never met is introduced with its name
-// visible; as it becomes familiar the name disappears and you choose it from a
-// list; once you reliably know it you are asked to produce it. A live confusion
-// outranks all of that, because a pair you actively mix up is the most valuable
-// question available and stays valuable at every strength.
+// The shape, in words: a species you have never met, or keep getting wrong, is
+// asked mostly by name — its photo in front of you, five names to choose from.
+// As it becomes familiar the harder questions arrive: picking its photo out of
+// four, and once you reliably know it, producing the name from memory. A live
+// confusion outranks all of that, because a pair you actively mix up is the
+// most valuable question available and stays valuable at every strength.
 export function formatWeights({ evidence = 0, rate = 0, hasPartner = false } = {}) {
   const n = num(evidence);
   const r = Math.min(1, Math.max(0, num(rate)));
 
-  // First meeting. The photo grid leads, because showing the name and asking
-  // for the picture is the only question that TEACHES rather than tests. But it
-  // must not be the only one, for two reasons found by playing the mode: on a
-  // deck with no history every single card came up as a photo grid, so Smart
-  // play was indistinguishable from By picture until the tallies filled in —
-  // and that is also the one format needing four other species' photos fetched
-  // live, so an all-grid round is by far the slowest and heaviest on the API.
-  //
-  // A name list on a species you have not met is not unfair; it is simply hard,
-  // and it is exactly what By name does on every card. Getting it wrong is
-  // informative, and the answer is revealed either way.
+  // First meeting: mostly a name list, the easiest question there is. A photo
+  // grid is still possible, just rare — a round on a deck with no history
+  // should not be ALL one format, and the grid is the one that shows the name
+  // and asks what it looks like. Rare also because it is the one format that
+  // needs four other species' photos fetched live, so it is the slowest and
+  // heaviest on the API.
   if (n <= 0) {
-    return { [FORMAT.PICTURE]: 5, [FORMAT.NAME]: 2, [FORMAT.PAIR]: 0, [FORMAT.TYPED]: 0 };
+    return { [FORMAT.NAME]: 5, [FORMAT.PICTURE]: 1, [FORMAT.PAIR]: 0, [FORMAT.TYPED]: 0 };
   }
 
   const weak = n < MIN_EVIDENCE || r < WEAK_RATE;
   const strong = n >= TYPED_MIN_EVIDENCE && r >= TYPED_MIN_RATE;
 
   return {
-    // Fades out as the species is learned — it is the easiest question and
-    // stops being informative once the answer is reliably known.
-    [FORMAT.PICTURE]: weak ? 5 : strong ? 0 : 2,
-    // The workhorse, and the peak sits in the middle where most cards live.
-    [FORMAT.NAME]: weak ? 3 : strong ? 2 : 5,
+    // The easy question. Dominant while a species is new or being missed, the
+    // workhorse in the middle, and a rare change of pace once it is known —
+    // never zero, so a known species does not face nothing but hard questions.
+    [FORMAT.NAME]: weak ? 5 : strong ? 1 : 4,
+    // Hard, so it grows with the species rather than being where it starts:
+    // a trickle while weak, a real share in the middle, and the second most
+    // likely question once the species is known.
+    [FORMAT.PICTURE]: weak ? 1 : strong ? 4 : 3,
     // Only once there is something to recall. A trickle before "strong" so the
     // format is not a sudden cliff the first time a species qualifies.
     [FORMAT.TYPED]: strong ? 5 : n >= MIN_EVIDENCE && r >= 0.65 ? 1 : 0,
