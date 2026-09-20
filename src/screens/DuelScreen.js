@@ -22,6 +22,7 @@ import Icon from '../components/Icon';
 import LoadingImage from '../components/LoadingImage';
 import ScreenHeader from '../components/ScreenHeader';
 import { useColors, useThemedStyles } from '../theme';
+import { IS_E2E } from '../e2e/testMode';
 import { fetchTaxonPhotos } from '../api';
 import {
   nextTarget,
@@ -233,6 +234,19 @@ export default function DuelScreen({ pair, note = '', onClose }) {
     <View style={styles.flex} testID="duel-screen">
       <ScreenHeader title="Duel" onBack={onClose} />
 
+      {/* E2E only: which side is correct, via accessibilityLabel rather than
+          visible text — the same hidden marker the study and pick screens
+          carry, so a test can answer this drill deterministically instead of
+          guessing between two buttons. */}
+      {IS_E2E && !!question && (
+        <View
+          testID="e2e-duel-answer"
+          accessibilityLabel={question.target}
+          style={styles.e2eHidden}
+          pointerEvents="none"
+        />
+      )}
+
       <View style={styles.streakRow}>
         <StreakDots filled={streak} goal={DUEL_MASTERY_STREAK} colors={colors} />
         <Text style={styles.streakLabel}>
@@ -316,6 +330,7 @@ export default function DuelScreen({ pair, note = '', onClose }) {
 
 const makeStyles = (colors) =>
   StyleSheet.create({
+    e2eHidden: { position: 'absolute', top: 0, left: 0, width: 1, height: 1, opacity: 0.01 },
     flex: { flex: 1, backgroundColor: colors.bg },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     loadingText: { marginTop: 14, color: colors.muted, fontSize: 15 },

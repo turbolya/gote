@@ -7,13 +7,17 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Icon from './Icon';
 import { useColors, useThemedStyles } from '../theme';
 
-export default function ScreenHeader({ title, onBack }) {
+// `backTestID` exists because some of these headers sit on an OVERLAY over a
+// screen that has its own header — the compare page over Statistics, say — and
+// two 'screen-back' buttons in one hierarchy are one ambiguous match, which a
+// test cannot tap and a screen reader cannot tell apart either.
+export default function ScreenHeader({ title, onBack, backTestID = 'screen-back' }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.topBar}>
       <Pressable
-        testID="screen-back"
+        testID={backTestID}
         onPress={onBack}
         hitSlop={10}
         accessibilityRole="button"

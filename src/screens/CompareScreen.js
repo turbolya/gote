@@ -138,7 +138,7 @@ export default function CompareScreen({ pair, initialNote = '', offline = false,
 
   return (
     <View style={styles.flex}>
-      <ScreenHeader title="Tell them apart" onBack={close} />
+      <ScreenHeader title="Tell them apart" onBack={close} backTestID="compare-back" />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

@@ -10,6 +10,7 @@ const {
   typeInto,
   tapCorrectChoice,
   tapCorrectPhoto,
+  labelOf,
   TIMEOUT,
 } = require('./helpers');
 
@@ -144,6 +145,40 @@ describe('Game modes', () => {
     await visible('results-menu');
   });
 
+  // Scroll to something if the page scrolls at all. The compare page is short
+  // enough to fit on a large phone, and Detox throws "not scrollable" rather
+  // than shrugging when there is nothing to scroll.
+  // The fullscreen viewer is a modal that fades and springs; a close tap that
+  // lands during either animation is swallowed and the modal simply stays. A
+  // finger taps again, so this does too.
+  const closeViewer = async () => {
+    for (let i = 0; i < 4; i++) {
+      await settle();
+      try {
+        await element(by.id('photo-close')).tap();
+      } catch (e) { /* gone already */ }
+      try {
+        await waitFor(element(by.id('photo-close'))).not.toBeVisible().withTimeout(2500);
+        await settle();
+        return;
+      } catch (e) { /* still up */ }
+    }
+    throw new Error('the photo viewer would not close');
+  };
+
+  const reveal = async (id, container) => {
+    try {
+      await scrollToId(id, container);
+    } catch (e) {
+      // Nothing to scroll. Settle rather than assert visibility straight away:
+      // arriving here usually means a viewer has just closed, and its leaving
+      // spring holds an alpha-0 view over the page for a moment — which Detox
+      // reads as "not visible" for whatever is underneath.
+      await exists(id);
+      await settle(700);
+    }
+  };
+
   it('a look-alike you keep picking reaches "Species you mix up", and its photos open', async () => {
     // The regression this guards: a confusion is stored as two taxon ids, and
     // the wrong tiles on a photo grid are iNaturalist look-alikes rather than
@@ -227,7 +262,76 @@ describe('Game modes', () => {
     // only a taxon id here, so its photos have to come from the network.
     await tap('compare-photo-b');
     await visible('photo-grid');
-    await tap('photo-close');
+    // Wait for the viewer to actually LEAVE before touching the page under it:
+    // `exists` on that page is true the whole time the modal covers it, and a
+    // tap meant for the page would hit the modal.
+    await closeViewer();
+
+    // TC-5.9 — "Your tell": the note is the point of the compare page, and it
+    // is worth nothing if it does not come back. Written, left, reopened.
+    await reveal('compare-note', 'compare-scroll');
+    await typeInto('compare-note', 'toothed leaves, not smooth');
+    // The note commits onBlur, so something has to take focus away first. The
+    // TITLE, not the page: a tap into the page lands on a species photo and
+    // opens the viewer over everything, which is how this read as "the back
+    // button vanished".
+    await element(by.text('Tell them apart')).tap();
+    await settle(600);
+    // Its own id: the compare page is an overlay OVER Statistics, so a plain
+    // 'screen-back' matches two buttons and Detox can tap neither.
+    await tap('compare-back');
+    await visible('stats-scroll');
+    // The row now advertises that there is a note to come back to.
+    await scrollToId('stats-confusion-0', 'stats-scroll');
+    await waitFor(element(by.text('Your tell ✓'))).toBeVisible().withTimeout(TIMEOUT);
+    await settle();
+    await tap('stats-confusion-0');
+    await exists('compare-scroll');
+    await settle();
+    await reveal('compare-note', 'compare-scroll');
+    await waitFor(element(by.id('compare-note')))
+      .toHaveText('toothed leaves, not smooth')
+      .withTimeout(TIMEOUT);
+
+    // TC-5.12 — the A/B drill, which only this pair can reach: two species, one
+    // photo, answer until it ends, and back to the pair rather than adrift.
+    await reveal('compare-drill', 'compare-scroll');
+    await tap('compare-drill');
+    // The drill fetches both species' photos first and renders a "Setting up
+    // the drill…" screen meanwhile, so wait for the question rather than for
+    // the playing screen's own id.
+    await exists('e2e-duel-answer', TIMEOUT);
+    // EXISTS, not visible: duel-screen is the full-screen root, and Detox reads
+    // a root as not visible once its own content covers it — the same note the
+    // routing case makes about study-screen and pick-screen.
+    await exists('duel-screen');
+    await settle();
+    for (let i = 0; i < 12; i++) {
+      try {
+        await exists('duel-done-title', 1200);
+        break;
+      } catch (e) { /* still answering */ }
+      const answer = await labelOf('e2e-duel-answer');
+      await tap(`duel-choice-${answer}`);
+      await settle(400);
+      try {
+        await tap('duel-continue', 2000);
+      } catch (e) { /* the last card ends the drill instead */ }
+    }
+    await exists('duel-done-title');
+    await tap('duel-close');
+    // Back into the app rather than a dead end — the compare page it was
+    // opened from, or the Statistics list behind that. Which of the two is a
+    // navigation choice, not the thing this case is about.
+    let landed = false;
+    for (const id of ['compare-scroll', 'stats-scroll']) {
+      try {
+        await exists(id, 4000);
+        landed = true;
+        break;
+      } catch (e) { /* try the other */ }
+    }
+    if (!landed) throw new Error('closing the drill landed on neither the pair nor Statistics');
   });
 
   it('Smart play: routes each card to the screen its format belongs on', async () => {
