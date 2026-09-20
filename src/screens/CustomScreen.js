@@ -2,7 +2,7 @@
 // include. Groups and their counts are derived from the loaded deck.
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 import Icon from '../components/Icon';
 import GroupIcon from '../components/GroupIcon';
 import ScreenHeader from '../components/ScreenHeader';
@@ -34,6 +34,12 @@ export default function CustomScreen({
 }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
+  // Wide enough to hold four question chips across. 700, not the usual 768:
+  // an iPad mini is 744pt in portrait and is plainly a tablet, while the
+  // widest iPhone is 440. Read from the window rather than the device, so a
+  // split-screen iPad gets the phone layout it is the width of.
+  const { width: screenW } = useWindowDimensions();
+  const wide = screenW >= 700;
   const isFlagged = (c) => !!(flags && flags.has(String(c.taxonId)));
 
   // Optionally restrict the whole picker to flagged species.
@@ -238,7 +244,12 @@ export default function CustomScreen({
         {questionTypes && (
           <>
             <Text style={[styles.label, { marginTop: 28 }]}>Question types</Text>
-            <View style={styles.typeWrap}>
+            {/* One chip per line on a phone. They used to be a wrapping row of
+                content-width pills, which on most phones broke two-and-two —
+                and on an iPhone 17 Pro as 2 + 1 + 1, which reads as a mistake
+                rather than a layout. A tablet has the width to hold all four
+                across, where the row is genuinely a row. */}
+            <View style={[styles.typeWrap, wide && styles.typeWrapWide]}>
               {questionTypes.map((t) => {
                 const off = blocked.has(t.key);
                 const on = !off && types.has(t.key);
@@ -253,7 +264,12 @@ export default function CustomScreen({
                     // carried visually by the tint, border and weight alone.
                     accessibilityRole="switch"
                     accessibilityState={{ checked: on, disabled: off }}
-                    style={[styles.typeChip, on && styles.typeChipOn, off && styles.typeChipOff]}
+                    style={[
+                      styles.typeChip,
+                      wide && styles.typeChipWide,
+                      on && styles.typeChipOn,
+                      off && styles.typeChipOff,
+                    ]}
                   >
                     {/* Each type's own glyph, the same one the menu card's chip
                         shows, so the two pickers are recognisably the same four
@@ -265,7 +281,16 @@ export default function CustomScreen({
                       size={17}
                       color={on ? colors.primary : colors.muted}
                     />
-                    <Text style={[styles.typeChipText, on && styles.typeChipTextOn]}>
+                    <Text
+                      style={[styles.typeChipText, on && styles.typeChipTextOn]}
+                      numberOfLines={1}
+                      // In a row of four the narrowest iPad is ~5pt short of
+                      // "Typing from memory". Shrink the word rather than clip
+                      // it: this screen is where the full names live, and
+                      // "Typing from mem…" is a worse answer than 13pt type.
+                      adjustsFontSizeToFit={wide}
+                      minimumFontScale={0.85}
+                    >
                       {t.label}
                     </Text>
                   </Pressable>
@@ -368,7 +393,11 @@ const makeStyles = (colors) => StyleSheet.create({
   groupAction: { fontSize: 14, fontWeight: '700', color: colors.primary },
   // Greyed rather than hidden, so the pair doesn't shift about as you select.
   groupActionOff: { color: colors.muted, opacity: 0.5 },
-  typeWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  // Phones: a column of full-width chips. Tablets (typeWrapWide): one row of
+  // four equal ones — flex: 1 rather than content width, so the row cannot
+  // spill onto a second line on the narrowest iPad.
+  typeWrap: { gap: 8, marginTop: 4, alignItems: 'stretch' },
+  typeWrapWide: { flexDirection: 'row', alignItems: 'center' },
   typeChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -380,9 +409,12 @@ const makeStyles = (colors) => StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.card,
   },
+  typeChipWide: { flex: 1, minWidth: 0, paddingHorizontal: 10 },
   typeChipOn: { borderColor: colors.primary, backgroundColor: colors.faint },
   typeChipOff: { opacity: 0.45 },
-  typeChipText: { fontSize: 14, color: colors.muted, fontWeight: '600' },
+  // flexShrink so the label yields inside a four-across row; without it the
+  // chip cannot go below its text and the last one overflows the screen.
+  typeChipText: { fontSize: 14, color: colors.muted, fontWeight: '600', flexShrink: 1 },
   typeChipTextOn: { color: colors.text, fontWeight: '700' },
   typeHint: { fontSize: 12, color: colors.muted, marginTop: 8, lineHeight: 17 },
 

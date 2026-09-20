@@ -208,7 +208,10 @@ scores correctly, and returns to the menu cleanly.
     last one. Repeat behind the card's **⋯**, where the same types are chips
     carrying the same four icons as the card, with their full labels beside
     them. A chip that is on is tinted, outlined and bold; one that is off is
-    plain and grey.
+    plain and grey. On a **phone** the four chips are stacked one per line,
+    full width; on an **iPad** they sit in a single row of four, including a
+    mini in portrait and including the longest label, "Typing from memory".
+    An iPad in narrow split-screen gets the phone layout.
   - *Priority:* High
   - *Expected:* only that type comes up. The last one **refuses** to switch off
     (it stays lit) rather than Start becoming disabled, on both surfaces. Note: choosing only
