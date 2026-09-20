@@ -113,18 +113,25 @@ export function formatWeights({ evidence = 0, rate = 0, hasPartner = false } = {
 // Excluded formats are removed before the draw rather than after, so their
 // weight is redistributed instead of silently biasing toward whatever is left.
 //
+// An EMPTY list means nothing is allowed, and falls through to the NAME
+// fallback below. Only an omitted one means "no restriction". The difference
+// is the round a player gets by choosing Look-alike pairs alone with no
+// confusions recorded: every card's candidates are then empty, and treating
+// that as "anything goes" served a normal mixed round — typed recall and photo
+// grids on a round asked for as pairs.
+//
 // `rng` is injectable so tests are deterministic.
 export function chooseFormat(
   { evidence = 0, rate = 0, hasPartner = false, allow = ALL_FORMATS } = {},
   rng = Math.random
 ) {
-  const permitted = new Set(allow && allow.length ? allow : ALL_FORMATS);
+  const permitted = new Set(Array.isArray(allow) ? allow : ALL_FORMATS);
   const weights = formatWeights({ evidence, rate, hasPartner });
 
   const pool = ALL_FORMATS.filter((f) => permitted.has(f) && weights[f] > 0);
-  // Nothing qualified — offline with an unseen species, say. NAME is the safe
-  // fallback: it needs only the deck itself, and it is the format every other
-  // mode already uses.
+  // Nothing qualified — pairs-only with no confusion to ask about, or offline
+  // with an unseen species. NAME is the safe fallback: it needs only the deck
+  // itself, and it is the format every other mode already uses.
   if (!pool.length) return permitted.has(FORMAT.NAME) ? FORMAT.NAME : [...permitted][0] || FORMAT.NAME;
 
   const total = pool.reduce((sum, f) => sum + weights[f], 0);

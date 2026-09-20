@@ -22,6 +22,7 @@ import Icon from './Icon';
 import { useAnchorRef } from './Tutorial';
 import { useColors, useThemedStyles } from '../theme';
 import { restoreTypes, restoreCount, packSetup } from '../roundsetup';
+import { FORMAT } from '../smartmode';
 
 // What the menu card opens on when nothing is remembered. Smaller than the
 // picker's own default: this is the "I have a minute" surface, and a round you
@@ -33,6 +34,7 @@ export default function SmartCard({
   types: questionTypes = [], // [{ key, label, short, icon }]
   initial = null, // the setup this mode was last started with
   unavailableTypes = null,
+  unavailableNotes = null, // { [key]: why } for the dimmed chips
   disabled = false,
   disabledNote = null,
   onStart, // (types, count, setup) => void
@@ -45,6 +47,8 @@ export default function SmartCard({
   const startAnchor = useAnchorRef('smart-start');
 
   const allKeys = useMemo(() => questionTypes.map((t) => t.key), [questionTypes]);
+  const noteFor = (key) =>
+    (unavailableNotes && unavailableNotes[key]) || 'not available right now';
   const blocked = useMemo(() => new Set(unavailableTypes || []), [unavailableTypes]);
 
   const [types, setTypes] = useState(
@@ -137,7 +141,7 @@ export default function SmartCard({
                 disabled={off}
                 accessibilityRole="switch"
                 accessibilityState={{ checked: on, disabled: off }}
-                accessibilityLabel={off ? `${t.label} — needs a connection` : t.label}
+                accessibilityLabel={off ? `${t.label} — ${noteFor(t.key)}` : t.label}
                 style={({ pressed }) => [
                   styles.type,
                   on && styles.typeOn,
@@ -146,7 +150,10 @@ export default function SmartCard({
                 ]}
               >
                 <Icon
-                  name={off ? 'cloud-offline-outline' : t.icon}
+                  // Offline is the one reason with a glyph of its own — it is
+                  // about the connection, not the question. Any other reason
+                  // keeps the type's own icon, dimmed.
+                  name={off && t.key === FORMAT.PICTURE ? 'cloud-offline-outline' : t.icon}
                   size={21}
                   // The brand teal, the same one the slider and Start use for
                   // "active" — on a dark ground the tinted fill alone is too

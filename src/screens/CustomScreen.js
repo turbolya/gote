@@ -31,6 +31,7 @@ export default function CustomScreen({
   // Shown, but not selectable: hiding them would make the offline picker look
   // like a different screen.
   unavailableTypes = null,
+  unavailableNotes = null, // { [key]: why } for the dimmed chips
 }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -49,6 +50,8 @@ export default function CustomScreen({
   // player HAS narrowed it and played that round, it opens there instead —
   // otherwise a one-type round is a fresh five taps every time.
   const blocked = useMemo(() => new Set(unavailableTypes || []), [unavailableTypes]);
+  const noteFor = (key) =>
+    (unavailableNotes && unavailableNotes[key]) || 'not available right now';
   const [types, setTypes] = useState(
     () => new Set(restoreTypes(initial, (questionTypes || []).map((t) => t.key), unavailableTypes))
   );
@@ -264,6 +267,7 @@ export default function CustomScreen({
                     // carried visually by the tint, border and weight alone.
                     accessibilityRole="switch"
                     accessibilityState={{ checked: on, disabled: off }}
+                    accessibilityLabel={off ? `${t.label} — ${noteFor(t.key)}` : t.label}
                     style={[
                       styles.typeChip,
                       wide && styles.typeChipWide,
@@ -277,7 +281,9 @@ export default function CustomScreen({
                         off twice over (the chip is already tinted, outlined and
                         bold when on) and said nothing about WHICH type. */}
                     <Icon
-                      name={off ? 'cloud-offline-outline' : t.icon}
+                      // Offline has a glyph of its own; any other reason keeps
+                      // the type's own icon, dimmed. Same rule as the card.
+                      name={off && t.key === 'picture' ? 'cloud-offline-outline' : t.icon}
                       size={17}
                       color={on ? colors.primary : colors.muted}
                     />
@@ -300,9 +306,12 @@ export default function CustomScreen({
             <Text style={styles.typeHint}>
               All on lets the round pick whichever fits each species best. Turn
               some off to drill one kind — the last one can’t be turned off.
-              {blocked.size > 0
-                ? ' Choosing the photo needs a connection: it fetches four other species’ photos for every card.'
-                : ''}
+              {/* One sentence per dimmed chip, so the greyed-out control says
+                  why rather than looking broken. */}
+              {(questionTypes || [])
+                .filter((t) => blocked.has(t.key))
+                .map((t) => ` ${t.label} — ${noteFor(t.key)}.`)
+                .join('')}
             </Text>
           </>
         )}

@@ -99,7 +99,13 @@ import {
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME } from './src/constants';
 import { buildPickRound } from './src/quiz';
 import { addConfusion, displayNotes } from './src/sync/merge';
-import { pairCount, pairKey, nemesisPartners, speciesEntry } from './src/confusions';
+import {
+  pairCount,
+  pairKey,
+  nemesisPartners,
+  speciesEntry,
+  topConfusionPairs,
+} from './src/confusions';
 import { verifyStreak, recordVerifyWin, recordVerifyMiss } from './src/verify';
 import { scheduleDeck } from './src/schedule';
 import { isMastered, speciesKey } from './src/mastery';
@@ -119,6 +125,14 @@ import { recentCards } from './src/recent';
 // (src/scoring.js), Smart play's ladder (src/smartmode.js) and the "By question
 // type" list on Statistics. Nothing reads this order but the two pickers: a
 // saved selection is a set, and the draw uses ALL_FORMATS.
+// Why a question type cannot be offered right now — shown on the dimmed chip
+// in both pickers, because a control that is off without saying why reads as
+// broken. Keyed by format; absent means "no reason, it is available".
+const SMART_UNAVAILABLE_NOTES = {
+  [FORMAT.PICTURE]: 'needs a connection',
+  [FORMAT.PAIR]: 'needs two species you have mixed up',
+};
+
 const SMART_QUESTION_TYPES = [
   { key: FORMAT.NAME, label: 'Choosing the name', short: 'Name', icon: 'list-outline' },
   { key: FORMAT.PAIR, label: 'Look-alike pairs', short: 'Pairs', icon: 'git-compare-outline' },
@@ -510,6 +524,19 @@ export default function App() {
   // lifetime-vs-delta split as speciesRef / roundDeltaRef.
   const confusionRef = useRef({});
   const confusionDeltaRef = useRef({});
+  // Whether ANY pair has been confused often enough to be asked about, so the
+  // two pickers can dim Look-alike pairs when there is nothing to ask. State,
+  // not a read of the ref: the ref changing is invisible to React, and the chip
+  // would go on saying "available" until something else re-rendered. Every
+  // assignment to confusionRef goes through setConfusions so the two cannot
+  // drift.
+  const [hasNemesis, setHasNemesis] = useState(false);
+  const setConfusions = useCallback((next) => {
+    confusionRef.current = next || {};
+    // Same threshold nemesisPartners uses, so "the chip is lit" and "this card
+    // has a partner to ask about" mean the same thing.
+    setHasNemesis(topConfusionPairs(confusionRef.current, { limit: 1 }).length > 0);
+  }, []);
   // This round's answers split by question format (see formatForCard).
   const formatDeltaRef = useRef({});
   // "Verify the fix" recovery streaks: pairKey → consecutive correct answers on
@@ -781,7 +808,7 @@ export default function App() {
       // Restore the confusion matrix so this session accumulates onto it, and
       // the "my tell" notes for the comparison view.
       loadConfusions().then((c) => {
-        confusionRef.current = c || {};
+        setConfusions(c);
       });
       loadConfusionNotes().then((n) => setConfusionNotes(displayNotes(n)));
       loadConfusionWins().then((w) => {
@@ -847,7 +874,7 @@ export default function App() {
           setHistory(merged.history);
           setHistoryCounts(merged.historyCounts || []);
           setStreak(merged.streak);
-          if (merged.confusions) confusionRef.current = merged.confusions;
+          if (merged.confusions) setConfusions(merged.confusions);
         });
         syncSettings().then((s) => { if (s) applyRemoteSettings(s); });
       }
@@ -909,7 +936,7 @@ export default function App() {
       setHistory(seed.history);
       setHistoryCounts(seed.historyCounts || []);
       setStreak(seed.streak);
-      if (seed.confusions) confusionRef.current = seed.confusions;
+      if (seed.confusions) setConfusions(seed.confusions);
       loadConfusionNotes().then((n) => setConfusionNotes(displayNotes(n)));
     });
   }, [fullDeck, username]);
@@ -922,6 +949,18 @@ export default function App() {
   // an undownloaded one would render as an empty grey square, which is exactly
   // what playableDeck exists to keep off the screen everywhere else.
   const recent = useMemo(() => recentCards(playableDeck, 10), [playableDeck]);
+
+  // The question types Smart play cannot offer right now, for reasons that are
+  // facts rather than preferences: the photo grid needs four other species'
+  // photos fetched live, and a look-alike pair needs a confusion to ask about.
+  // Both pickers dim these rather than letting a player choose a round that
+  // would quietly ask something else.
+  const smartUnavailable = useMemo(() => {
+    const out = [];
+    if (offline) out.push(FORMAT.PICTURE);
+    if (!hasNemesis) out.push(FORMAT.PAIR);
+    return out.length ? out : null;
+  }, [offline, hasNemesis]);
 
   // Keep the paired Apple Watch in sync: push the lifetime accuracy, streak,
   // and a mini-deck whenever they change (deduped inside pushWatchSnapshot).
@@ -1422,7 +1461,7 @@ export default function App() {
         seenSpeciesRef.current = { ...seenSpeciesRef.current, [key]: entry };
       }
     }
-    confusionRef.current = addConfusion(confusionRef.current, ck, chk);
+    setConfusions(addConfusion(confusionRef.current, ck, chk));
     confusionDeltaRef.current = addConfusion(confusionDeltaRef.current, ck, chk);
     // Relapse on this pair — the fix isn't holding, so drop any recovery run.
     confusionWinsRef.current = recordVerifyMiss(confusionWinsRef.current, pairKey(ck, chk));
@@ -1903,7 +1942,8 @@ export default function App() {
               }}
               smartTypes={SMART_QUESTION_TYPES}
               smartSetup={IS_SHOTS ? null : roundSetup.smart}
-              smartUnavailable={offline ? [FORMAT.PICTURE] : null}
+              smartUnavailable={smartUnavailable}
+              unavailableNotes={SMART_UNAVAILABLE_NOTES}
               // The card has no group or flagged-only control, so it starts on
               // the whole deck. Everything narrower lives behind its ⋯.
               onStartSmart={(types, count, setup) =>
@@ -2074,7 +2114,8 @@ export default function App() {
             // The photo grid needs four other species' pictures fetched live,
             // so it is the one question that cannot run offline. By picture used
             // to be dimmed on the menu for exactly this; now the chip is.
-            unavailableTypes={offline ? [FORMAT.PICTURE] : null}
+            unavailableTypes={smartUnavailable}
+            unavailableNotes={SMART_UNAVAILABLE_NOTES}
             // The screenshots build always opens on the defaults: those runs
             // reuse a cached install rather than a fresh one, so a setup left
             // behind by the previous run would quietly change what gets
@@ -2127,7 +2168,7 @@ export default function App() {
               await resetStatistics();
               speciesRef.current = {};
               setSpeciesStats({});
-              confusionRef.current = {};
+              setConfusions({});
               confusionWinsRef.current = {};
               setConfusionNotes({});
               // The note deletions live in the settings row, so they only reach
@@ -2179,7 +2220,7 @@ export default function App() {
                 setHistory(merged.history);
                 setHistoryCounts(merged.historyCounts || []);
                 setStreak(merged.streak);
-                if (merged.confusions) confusionRef.current = merged.confusions;
+                if (merged.confusions) setConfusions(merged.confusions);
               }
               if (res.settings) applyRemoteSettings(res.settings);
             }}

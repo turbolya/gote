@@ -140,10 +140,17 @@ console.log('\\nchooseFormat — the excluded stay excluded');
   // PAIR needs the partner card present in this deck.
   ok('without the partner card, no pair',
     !drawSet({ evidence: 8, rate: 0.9, hasPartner: true, allow: [FORMAT.NAME, FORMAT.TYPED] }).includes(FORMAT.PAIR));
-  // A known species with an empty allow list can land on any of three formats;
-  // an allow list really applied would make that impossible for all but one.
-  eq('an empty allow list is treated as no restriction',
-    drawSet({ evidence: 10, rate: 0.95, allow: [] }), [FORMAT.NAME, FORMAT.PICTURE, FORMAT.TYPED].sort());
+  // An EMPTY list means nothing is allowed — the shape a pairs-only round takes
+  // on a species with no confusion recorded. It must fall back to a name list,
+  // not to "anything goes": that served typed recall and photo grids in a round
+  // the player asked for as pairs.
+  eq('an empty allow list falls back to a name list',
+    drawSet({ evidence: 10, rate: 0.95, allow: [] }), [FORMAT.NAME]);
+  eq('…on a species never seen too',
+    drawSet({ evidence: 0, rate: 0, allow: [] }), [FORMAT.NAME]);
+  // An omitted one still means no restriction.
+  eq('no allow list at all is no restriction',
+    drawSet({ evidence: 10, rate: 0.95 }), [FORMAT.NAME, FORMAT.PICTURE, FORMAT.TYPED].sort());
 }
 
 console.log('\\nchooseFormat — the draw is genuinely mixed');

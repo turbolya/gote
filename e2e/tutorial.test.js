@@ -203,16 +203,34 @@ describe('Guided tour', () => {
     // bar exists rather than the tour simply vanishing.
     await tap('tutorial-exit');
     await waitFor(element(by.text('Exit the tutorial?'))).toBeVisible().withTimeout(TIMEOUT);
-    await element(by.text('Keep going')).tap();
+
+    // Dismiss it, and make sure it is GONE before touching the app again. Two
+    // separate flakes live here, both about the alert being native — it is
+    // presented in its own UITransitionView, over everything:
+    //
+    //   • a tap that lands while it is still animating IN is swallowed, so the
+    //     alert simply stays up. Tapping again is what a real finger does, and
+    //     is the only thing that helps: no amount of waiting dismisses it.
+    //   • while it is up (or still tearing down), every tap anywhere hits it
+    //     rather than the app — the "not hittable… Hit: UITransitionView"
+    //     failure this case used to end with at smart-start below.
+    let dismissed = false;
+    for (let i = 0; i < 5 && !dismissed; i++) {
+      await settle();
+      try {
+        await element(by.text('Keep going')).tap();
+      } catch (e) { /* already gone: the check below decides */ }
+      try {
+        await waitFor(element(by.text('Exit the tutorial?')))
+          .not.toBeVisible()
+          .withTimeout(2000);
+        dismissed = true;
+      } catch (e) { /* still up — tap it again */ }
+    }
+    if (!dismissed) throw new Error('the exit alert would not dismiss');
     await visible('tutorial-waiting');
 
-    // Going back to where it was waiting brings the step back. Wait for the
-    // alert to be GONE first, not just for a fixed pause: the alert is native,
-    // presented in its own UITransitionView, and until that is torn down every
-    // tap anywhere on screen hits it instead of the app ("not hittable… Hit:
-    // UITransitionView"). On the iOS 27 simulator the dismissal regularly
-    // outlasts a 450ms settle, so a fixed pause made this case fail most runs.
-    await waitFor(element(by.text('Exit the tutorial?'))).not.toExist().withTimeout(TIMEOUT);
+    // Going back to where it was waiting brings the step back.
     await settle();
     await tap('smart-start');
     await visible('study-reveal');

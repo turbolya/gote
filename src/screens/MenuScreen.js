@@ -226,6 +226,8 @@ export default function MenuScreen({
   smartTypes = [],
   smartSetup = null,
   smartUnavailable = null,
+  // Why each unavailable type is unavailable — shown on its dimmed chip.
+  unavailableNotes = null,
   onStartSmart,
   onSmartOptions,
   onLexicon,
@@ -350,6 +352,7 @@ export default function MenuScreen({
           types={smartTypes}
           initial={smartSetup}
           unavailableTypes={smartUnavailable}
+          unavailableNotes={unavailableNotes}
           disabled={noOfflineCards}
           disabledNote="No downloaded photos yet"
           onStart={onStartSmart}

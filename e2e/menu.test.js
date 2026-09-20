@@ -192,13 +192,37 @@ describe('Menu & navigation', () => {
     await visible('mode-smart');
   });
 
+  it('dims look-alike pairs until two species have been mixed up', async () => {
+    // A fresh install has no confusion matrix, so there is no pair to ask
+    // about. The chip says so by being disabled rather than by starting a
+    // round that quietly asks something else — the shape this had before:
+    // pairs-only with no confusions fell through to an ordinary mixed round.
+    // By the spoken label and the switch value, not by `enabled`: Detox reads
+    // a disabled RN Pressable as enabled on iOS, so that attribute would pass
+    // whatever the chip did. The label is also the half that matters — a chip
+    // that is off without saying why reads as broken.
+    const chip = async (id) => {
+      await exists(id);
+      const { label, value } = await element(by.id(id)).getAttributes();
+      return { label: label || '', value };
+    };
+    for (const id of ['menu-type-pair', 'smart-type-pair']) {
+      if (id === 'smart-type-pair') await tapScroll('smart-more', 'menu-scroll');
+      const { label, value } = await chip(id);
+      if (!label.includes('mixed up')) throw new Error(`${id} does not say why: ${label}`);
+      if (value !== '0') throw new Error(`${id} is switched on with no confusions`);
+    }
+    await tap('screen-back');
+    await visible('mode-smart');
+  });
+
   it('refuses to turn off the last question type', async () => {
     await tapScroll('smart-more', 'menu-scroll');
-    // Three off leaves one; the fourth tap must be a no-op, because a round
-    // with no possible question is not a state the player should reach.
+    // Pairs is already dimmed on a fresh install (above), so two taps leave
+    // one; the next must be a no-op, because a round with no possible question
+    // is not a state the player should reach.
     await tap('smart-type-picture');
     await tap('smart-type-name');
-    await tap('smart-type-pair');
     await tap('smart-type-typed');
     // Still startable: the last type survived.
     await waitFor(element(by.text('Select a group'))).not.toBeVisible().withTimeout(TIMEOUT);
