@@ -122,6 +122,9 @@ function SwitchRow({ icon, accent, label, hint, value, onValueChange, disabled, 
         {!!hint && <Text style={styles.rowHint}>{hint}</Text>}
       </View>
       <Switch
+        // The row carries the outer testID (scroll to it); the switch carries
+        // its own, because that is what a test taps and reads the value of.
+        testID={testID ? `${testID}-switch` : undefined}
         value={value}
         onValueChange={onValueChange}
         disabled={disabled}
@@ -364,6 +367,7 @@ export default function SettingsScreen({
         <Text style={styles.section}>Study options</Text>
         <View style={styles.card}>
           <SwitchRow
+            testID="setting-per-species"
             icon="duplicate-outline"
             accent={accents.blue}
             label="One card per species"
@@ -373,6 +377,7 @@ export default function SettingsScreen({
           />
           <View style={styles.sep} />
           <SwitchRow
+            testID="setting-research-grade"
             icon="ribbon-outline"
             accent={accents.amber}
             label="Research grade only"
@@ -382,6 +387,7 @@ export default function SettingsScreen({
           />
           <View style={styles.sep} />
           <SwitchRow
+            testID="setting-species-only"
             icon="pricetag-outline"
             accent={accents.teal}
             label="Identified to species"
@@ -439,6 +445,14 @@ export default function SettingsScreen({
                 key={mode}
                 testID={`theme-${mode}`}
                 onPress={() => onThemeModeChange && onThemeModeChange(mode)}
+                // Which one is chosen is carried by tint alone. The state goes
+                // in the LABEL as well as in accessibilityState: VoiceOver
+                // otherwise announced this as ", Light" — the icon contributes
+                // an empty label and the comma is all that is left of it — and
+                // the chosen-ness is not in any attribute a test can read.
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={`${label} theme${on ? ', selected' : ''}`}
                 style={[styles.themeOption, on && styles.themeOptionOn]}
               >
                 <Icon name={icon} size={22} color={on ? colors.primaryDark : colors.muted} />
