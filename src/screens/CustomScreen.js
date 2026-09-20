@@ -248,10 +248,20 @@ export default function CustomScreen({
                     testID={`smart-type-${t.key}`}
                     onPress={() => toggleType(t.key)}
                     disabled={off}
+                    // The chip carries its own name, so the switch state is the
+                    // only thing left to say — and with the tick gone it is
+                    // carried visually by the tint, border and weight alone.
+                    accessibilityRole="switch"
+                    accessibilityState={{ checked: on, disabled: off }}
                     style={[styles.typeChip, on && styles.typeChipOn, off && styles.typeChipOff]}
                   >
+                    {/* Each type's own glyph, the same one the menu card's chip
+                        shows, so the two pickers are recognisably the same four
+                        things. It replaced a tick/empty circle: that said on or
+                        off twice over (the chip is already tinted, outlined and
+                        bold when on) and said nothing about WHICH type. */}
                     <Icon
-                      name={off ? 'cloud-offline-outline' : on ? 'checkmark-circle' : 'ellipse-outline'}
+                      name={off ? 'cloud-offline-outline' : t.icon}
                       size={17}
                       color={on ? colors.primary : colors.muted}
                     />

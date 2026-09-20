@@ -206,7 +206,9 @@ scores correctly, and returns to the menu cleanly.
 - [ ] **TC-2.7 Smart play - limiting the question types.** On the menu card,
     turn off all but one icon and play a few cards. Then try to turn off the
     last one. Repeat behind the card's **⋯**, where the same types are chips
-    with labels.
+    carrying the same four icons as the card, with their full labels beside
+    them. A chip that is on is tinted, outlined and bold; one that is off is
+    plain and grey.
   - *Priority:* High
   - *Expected:* only that type comes up. The last one **refuses** to switch off
     (it stays lit) rather than Start becoming disabled, on both surfaces. Note: choosing only
