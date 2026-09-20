@@ -11,7 +11,7 @@ export default function OfflineBanner({ style, message }) {
   const { accents } = useTheme();
   const styles = useThemedStyles(makeStyles);
   return (
-    <View style={[styles.bar, style]}>
+    <View testID="offline-banner" style={[styles.bar, style]}>
       <Icon name="cloud-offline-outline" size={15} color={accents.amber.fg} />
       <Text style={styles.text}>
         {message || 'You’re offline — modes that need a connection are paused.'}

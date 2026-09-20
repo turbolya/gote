@@ -157,7 +157,7 @@ import {
   isRunning as tutorialRunning,
   shouldAutoStart,
 } from './src/tutorial';
-import { useIsOffline } from './src/net';
+import { useIsOffline, getOfflineOverride } from './src/net';
 import { E2E_CARDS } from './src/e2e/fixtures';
 import { seedScreenshotStats } from './src/e2e/shotsSeed';
 import { pushWatchSnapshot, subscribeWatchResults } from './src/watch';
@@ -201,8 +201,12 @@ export default function App() {
   const [screen, setScreen] = useState('loading');
   // Live "no connection" flag, used to pause the online-only features (Nearby,
   // observation updates). Forced off in the synthetic modes, which run against
-  // fixtures and must never see a network-dependent affordance disabled.
-  const offline = useIsOffline() && !IS_E2E && !IS_SHOTS;
+  // fixtures and must never see a network-dependent affordance disabled —
+  // except when an E2E run asks for offline explicitly, which is the only way
+  // to test the offline behaviour at all: a simulator has no airplane mode.
+  const netOffline = useIsOffline();
+  // eslint-disable-next-line no-nested-ternary
+  const offline = IS_SHOTS ? false : IS_E2E ? getOfflineOverride() === true : netOffline;
   // Branded launch splash overlay; dismissed (faded out) after a moment.
   // Skipped entirely in E2E so it never covers the UI under test.
   const [showSplash, setShowSplash] = useState(!IS_E2E);

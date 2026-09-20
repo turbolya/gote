@@ -345,6 +345,7 @@ export default function SettingsScreen({
                 </Text>
               </View>
               <Pressable
+                testID="settings-update"
                 style={[
                   styles.pillButton,
                   styles.pillPrimary,

@@ -29,6 +29,7 @@ import { SPEEDRUN_LIVES, KOFI_URL } from '../constants';
 import { IS_E2E } from '../e2e/testMode';
 import { useAnchorRef, useTutorialScroller } from '../components/Tutorial';
 import RecentStrip from '../components/RecentStrip';
+import { setOfflineOverride, getOfflineOverride } from '../net';
 import SmartCard from '../components/SmartCard';
 
 // Modes that need a live network call to build a round, so they can't run
@@ -337,6 +338,23 @@ export default function MenuScreen({
             it — and below the two notices, which are transient and say
             something the strip cannot (that the app is offline, say). */}
         <RecentStrip cards={recent} onSelect={onSelectRecent} onMore={onMoreRecent} />
+
+        {/* E2E only: flips the offline signal, which a simulator cannot (no
+            airplane mode). Inside the menu's own scroll content rather than an
+            overlay: an absolutely-positioned target, however small, overlaps
+            whatever screen is up, and Detox refuses to scroll a view that is
+            not 100% visible — which broke the Statistics spec.
+            Opacity 0.05, not the 0.01 the read-only markers use: UIKit skips
+            hit testing at alpha <= 0.01, so such a target reports as hittable
+            and never receives the tap. */}
+        {IS_E2E && (
+          <Pressable
+            testID="e2e-offline-toggle"
+            accessibilityLabel={getOfflineOverride() === true ? 'offline' : 'online'}
+            onPress={() => setOfflineOverride(getOfflineOverride() !== true)}
+            style={{ height: 28, opacity: 0.05 }}
+          />
+        )}
 
         {/* The three section labels (Play / Learn / Settings) are gone: they
             named what the rows under them plainly are, and on a menu this short
