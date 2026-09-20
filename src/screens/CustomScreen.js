@@ -149,6 +149,7 @@ export default function CustomScreen({
       <ScreenHeader title={title} onBack={onBack} />
 
       <ScrollView
+        testID="custom-scroll"
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
@@ -325,7 +326,9 @@ export default function CustomScreen({
             <Icon name="minus" size={24} color={colors.primaryDark} />
           </Pressable>
           <View style={styles.countBox}>
-            <Text style={styles.countNum}>{Math.min(count, available)}</Text>
+            <Text testID="custom-count-value" style={styles.countNum}>
+              {Math.min(count, available)}
+            </Text>
             <Text style={styles.countOf}>of {available} available</Text>
           </View>
           <Pressable
@@ -340,13 +343,18 @@ export default function CustomScreen({
           {PRESETS.filter((p) => p <= available).map((p) => (
             <Pressable
               key={p}
+              testID={`custom-preset-${p}`}
               style={styles.preset}
               onPress={() => setCount(p)}
             >
               <Text style={styles.presetText}>{p}</Text>
             </Pressable>
           ))}
-          <Pressable style={styles.preset} onPress={() => setCount(available)}>
+          <Pressable
+            testID="custom-preset-max"
+            style={styles.preset}
+            onPress={() => setCount(available)}
+          >
             <Text style={styles.presetText}>Max</Text>
           </Pressable>
         </View>

@@ -1,6 +1,16 @@
 // Lexicon, flags, species detail, settings and statistics.
 const { by, device, element, expect, waitFor } = require('detox');
-const { visible, tap, tapScroll, scrollToId, labelOf, typeInto, TIMEOUT } = require('./helpers');
+const {
+  settle,
+  visible,
+  tap,
+  tapScroll,
+  scrollToId,
+  labelOf,
+  typeInto,
+  tapCorrectChoice,
+  TIMEOUT,
+} = require('./helpers');
 
 describe('Lexicon, flags & detail', () => {
   beforeAll(async () => {
@@ -160,5 +170,35 @@ describe('Settings & statistics', () => {
     await waitFor(element(by.id('stats-sort-incorrect')))
       .not.toExist()
       .withTimeout(TIMEOUT);
+  });
+
+  it('TC-5.6 a second round the same day does not bump the streak', async () => {
+    // The streak is a count of DAYS played, so two rounds an hour apart are one
+    // day. Fresh install: the flame starts at 0, the first round makes it 1,
+    // and the second must leave it there.
+    await device.launchApp({ newInstance: true, delete: true });
+    await device.disableSynchronization();
+    await visible('mode-smart');
+    await waitFor(element(by.id('menu-streak-count'))).toHaveText('0').withTimeout(TIMEOUT);
+
+    const playOne = async () => {
+      await settle();
+      await tapScroll('mode-speedrun', 'menu-scroll');
+      await visible('study-reveal');
+      await tap('study-reveal');
+      await tapCorrectChoice();
+      await tap('study-next');
+      // Speedrun is endless, so leave rather than play it out.
+      await settle();
+      await tap('study-end');
+      await visible('results-menu');
+      await tap('results-menu');
+      await visible('mode-smart');
+    };
+
+    await playOne();
+    await waitFor(element(by.id('menu-streak-count'))).toHaveText('1').withTimeout(TIMEOUT);
+    await playOne();
+    await waitFor(element(by.id('menu-streak-count'))).toHaveText('1').withTimeout(TIMEOUT);
   });
 });

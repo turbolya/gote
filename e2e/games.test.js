@@ -380,6 +380,43 @@ describe('Game modes', () => {
     await visible('study-reveal');
   });
 
+  it('TC-3.5 zooming holds the page, and paging returns when it is let go', async () => {
+    // The two gestures share the photo: while it is zoomed a drag must pan the
+    // image, and only once it is back at 1x may a sideways swipe page. Told
+    // apart by the credit, which names the photo on screen — a pan that paged
+    // by mistake would change it.
+    await visible('mode-smart');
+    await settle();
+    await tapMode('speedrun');
+    await visible('study-reveal');
+    await settle();
+    await element(by.id('study-photo')).multiTap(2);
+    await exists('photo-pager');
+    await settle();
+    const creditNow = async () => {
+      const { text, label } = await element(by.id('photo-credit')).getAttributes();
+      return text || label || '';
+    };
+    const first = await creditNow();
+
+    // Pinch open, then drag: the photo moves under the finger, the pager does
+    // not. Detox's pinch is on the pager itself, which is what holds the pages.
+    await element(by.id('photo-pager')).pinch(2.5, 'slow');
+    await settle();
+    await element(by.id('photo-pager')).swipe('left', 'fast', 0.6);
+    await settle();
+    if ((await creditNow()) !== first) throw new Error('a drag while zoomed paged to another photo');
+
+    // Double-tap is the way back out of zoom, and then the same swipe pages.
+    await element(by.id('photo-pager')).multiTap(2);
+    await settle(800);
+    await element(by.id('photo-pager')).swipe('left', 'fast', 0.75);
+    await settle();
+    if ((await creditNow()) === first) throw new Error('unzoomed, the swipe did not page');
+    await tap('photo-close');
+    await visible('study-reveal');
+  });
+
   it('Double-tap: this photo full-screen, a swipe to the others, back to the grid', async () => {
     await visible('mode-smart');
     await settle();

@@ -452,6 +452,7 @@ export default function MenuScreen({
                   color={streak.count > 0 ? FLAME_TEAL : FLAME_DIM}
                 />
                 <Text
+                  testID="menu-streak-count"
                   style={[
                     styles.streakCount,
                     { color: streak.count > 0 ? FLAME_TEAL : FLAME_DIM },

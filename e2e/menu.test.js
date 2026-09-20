@@ -1,6 +1,6 @@
 // Menu + cross-screen navigation.
 const { by, device, element, expect, waitFor } = require('detox');
-const { settle, visible, exists, tap, tapScroll, scrollToId, TIMEOUT } = require('./helpers');
+const { settle, visible, exists, tap, tapScroll, scrollToId, labelOf, TIMEOUT } = require('./helpers');
 
 describe('Menu & navigation', () => {
   beforeAll(async () => {
@@ -14,6 +14,18 @@ describe('Menu & navigation', () => {
   beforeEach(async () => {
     await device.reloadReactNative();
     await device.disableSynchronization();
+  });
+
+  it('TC-1.1 a cold start lands on the menu, with nothing played yet', async () => {
+    // A fresh install, opened: the menu, no error banner, and a lifetime
+    // accuracy of nothing rather than a stale or invented figure. (Under the
+    // fixtures no network is involved at all, which is also what the case
+    // asks for — it must not need one.)
+    await device.launchApp({ newInstance: true, delete: true });
+    await device.disableSynchronization();
+    await visible('mode-smart');
+    await expect(element(by.id('menu-error'))).not.toExist();
+    await waitFor(element(by.id('menu-streak-count'))).toHaveText('0').withTimeout(TIMEOUT);
   });
 
   it('lands on the menu with every entry, top to bottom', async () => {
@@ -190,6 +202,66 @@ describe('Menu & navigation', () => {
     await waitFor(element(by.text('Select a group'))).not.toBeVisible().withTimeout(TIMEOUT);
     await tap('screen-back');
     await visible('mode-smart');
+  });
+
+  it('TC-2.10 the card reopens on the setup the last round was STARTED with', async () => {
+    // The menu card is meant to be one tap from the round you last played, so
+    // what it reopens on is the whole feature. Three separate claims:
+    // a started setup is remembered, it survives a relaunch, and a setup backed
+    // out of without starting is NOT remembered.
+    await device.launchApp({ newInstance: true, delete: true });
+    await device.disableSynchronization();
+    await visible('mode-smart');
+    await settle();
+    await tapScroll('smart-more', 'menu-scroll');
+    await visible('custom-start');
+    // Name only, and the whole deck.
+    for (const key of ['picture', 'typed']) await tap(`smart-type-${key}`);
+    await scrollToId('custom-preset-max', 'custom-scroll');
+    await tap('custom-preset-max');
+    const deck = await labelOf('custom-count-value');
+    await tap('custom-start');
+
+    // Straight back out of the round — starting is what records the setup.
+    await visible('study-reveal');
+    await settle();
+    await tap('study-end');
+    await visible('results-menu');
+    await tap('results-menu');
+    await visible('mode-smart');
+    await settle();
+
+    const cardShows = async () => ({
+      count: await labelOf('smart-count-value'),
+      name: (await element(by.id('menu-type-name')).getAttributes()).value,
+      picture: (await element(by.id('menu-type-picture')).getAttributes()).value,
+      typed: (await element(by.id('menu-type-typed')).getAttributes()).value,
+    });
+    const after = await cardShows();
+    if (after.count !== deck) throw new Error(`card opened on ${after.count} cards, not the deck's ${deck}`);
+    if (after.name !== '1' || after.picture !== '0' || after.typed !== '0') {
+      throw new Error(`card did not reopen on name-only: ${JSON.stringify(after)}`);
+    }
+
+    // …and again after a force-quit.
+    await device.launchApp({ newInstance: true });
+    await device.disableSynchronization();
+    await visible('mode-smart');
+    await settle();
+    const relaunched = await cardShows();
+    if (relaunched.count !== deck || relaunched.name !== '1' || relaunched.picture !== '0') {
+      throw new Error(`the relaunch lost the setup: ${JSON.stringify(relaunched)}`);
+    }
+
+    // Backing out of ⋯ without starting changes nothing.
+    await tapScroll('smart-more', 'menu-scroll');
+    await visible('custom-start');
+    await tap('smart-type-picture');
+    await tap('screen-back');
+    await visible('mode-smart');
+    await settle();
+    const backedOut = await cardShows();
+    if (backedOut.picture !== '0') throw new Error('a setup backed out of was remembered');
   });
 
   it('dims look-alike pairs until two species have been mixed up', async () => {
