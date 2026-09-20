@@ -8,9 +8,23 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.44.5';
+export const APP_VERSION = '2.44.6';
 
 export const CHANGELOG = [
+  {
+    version: '2.44.6',
+    date: '2026-09-20',
+    changes: [
+      'Look-alike pairs is now greyed out until you have actually mixed two '
+        + 'species up, and says so. Picking it on its own used to start an '
+        + 'ordinary mixed round instead — it now asks by name when there is no '
+        + 'pair to ask about.',
+      'The four question types sit in difficulty order everywhere: choosing '
+        + 'the name, look-alike pairs, choosing the photo, typing from memory.',
+      'The Smart play ⋯ screen uses the same four icons as the menu card, one '
+        + 'question type per line on a phone and all four across on an iPad.',
+    ],
+  },
   {
     version: '2.44.5',
     date: '2026-09-19',
