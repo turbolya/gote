@@ -604,5 +604,11 @@ const makeStyles = (colors) => StyleSheet.create({
     marginTop: 6,
     paddingHorizontal: 24,
     opacity: 0.85,
+    // A narrow measure, centred, rather than the full width: at full width
+    // this sentence broke into one long line and a two-word stub. Capping it
+    // spreads the same words over lines of similar length. maxWidth, not a
+    // fixed width, so a narrow phone just uses what it has.
+    maxWidth: 280,
+    alignSelf: 'center',
   },
 });
