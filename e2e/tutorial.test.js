@@ -15,7 +15,16 @@
 // That is a constraint on the test, not on the user — the tour scrolls its own
 // target into view, which is what makes tapping it directly work here.
 const { by, device, element, expect, waitFor } = require('detox');
-const { settle, visible, exists, tap, tapScroll, TIMEOUT } = require('./helpers');
+const {
+  settle,
+  visible,
+  exists,
+  tap,
+  tapScroll,
+  typeInto,
+  tapCorrectChoice,
+  TIMEOUT,
+} = require('./helpers');
 
 
 // Tap a control the tour is pointing at, through the dimmed backdrop.
@@ -349,5 +358,120 @@ describe('Guided tour', () => {
     await device.disableSynchronization();
     await visible('tutorial-bubble');
     await atStep(2);
+  });
+
+  it('walks all thirteen steps to the end', async () => {
+    // One long walk, because that is the only way to reach the later steps:
+    // each waits for the screen the one before it navigates to. Covers the
+    // steps the other cases in this file never reach — TC-9.4, 9.7, 9.8, 9.9,
+    // 9.10, 9.11, 9.12, 9.14 and 9.15.
+    //
+    // Every hand-off goes through tapUntil: a tap that lands while the tour is
+    // fading a bubble in, sliding a spotlight or presenting a screen is
+    // swallowed, and one swallowed tap here fails the whole walk. A real
+    // finger taps again.
+    const tapUntil = async (id, check, attempts = 4) => {
+      for (let i = 0; i < attempts; i++) {
+        await settle();
+        try {
+          await element(by.id(id)).tap();
+        } catch (e) { /* the check below decides */ }
+        try {
+          await check();
+          return;
+        } catch (e) { /* not through yet */ }
+      }
+      throw new Error(`tapping ${id} never took effect`);
+    };
+    // Under the tour, anything outside the spotlight is behind a dim, which
+    // Detox counts as obscuring — so arrivals are checked by EXISTENCE.
+    const there = (id) => async () => exists(id, 3000);
+
+    await seedRound('picture'); // a name round, so step 6's Start lands on `study`
+    await startTutorial();
+    await atStep(1);
+
+    await tapUntil('tutorial-next', async () => atStep(2));
+
+    // TC-9.2: the spotlit row is tappable through the dim, and that IS the step.
+    await tapUntil('open-settings', there('settings-scroll'));
+    await atStep(3);
+    // TC-9.15: the name language comes BEFORE the username — it decides what
+    // the deck the username loads is labelled in.
+    await exists('settings-language');
+
+    // A button, not an arrival: most people keep the default language, and a
+    // step that cannot be passed without changing a setting would make them.
+    await tapUntil('tutorial-next', async () => atStep(4));
+
+    // TC-9.4: the username field AND Save stay usable under the dim. Typing
+    // proves the field; Save is checked for reach rather than pressed twice.
+    await typeInto('settings-username', 'e2e-tester');
+    await settle();
+    const save = await element(by.id('settings-load')).getAttributes();
+    if (save.hittable === false) throw new Error('Save is sealed off at step 4');
+
+    // Save lands back on the menu, which is what advances the step. It has to
+    // be Save: the header's back button is outside the spotlight, sealed off.
+    await tapUntil('settings-load', there('mode-smart'), 2);
+    await atStep(5);
+
+    await tapUntil('tutorial-next', async () => atStep(6));
+
+    // TC-9.7: step 6 leads into a real round.
+    await tapUntil('smart-start', there('study-reveal'));
+    await atStep(7);
+    // TC-9.8: and step 7 points at the more-photos button, mid-round.
+    await exists('study-photos');
+
+    // TC-9.9: the tour stays out of the way — the card is still answerable.
+    await tapUntil('tutorial-next', there('study-reveal'));
+    await tap('study-reveal');
+    await tapCorrectChoice();
+    await settle();
+
+    // Step 8 waits for the menu, so finish the round to get there.
+    await tapUntil('study-end', there('results-menu'));
+    await tapUntil('results-menu', there('mode-smart'));
+    await atStep(8);
+
+    // TC-9.10: step 8 opens Statistics from the accuracy banner.
+    await tapUntil('menu-stats', there('stats-scroll'));
+    await atStep(9);
+
+    // Step 10 is on the menu, so the tour waits (the unsealed bar) until we
+    // walk back ourselves — which is the point of that state.
+    await tapUntil('tutorial-next', there('tutorial-waiting'));
+    await tapUntil('screen-back', there('mode-smart'));
+    await atStep(10);
+
+    // TC-9.11 / TC-9.14: opening Nearby counts as doing the step, and nothing
+    // demands the location permission on the way.
+    await tapUntil('mode-nearby', there('nearby-search'));
+    await tapUntil('screen-back', there('mode-smart'));
+    await atStep(11);
+
+    await tapUntil('open-settings', there('settings-scroll'));
+    await atStep(12);
+
+    // Step 12 points at the Sync row — which this build does not have: that
+    // row appears only when the build carries Supabase credentials
+    // (SYNC_ENABLED), and the Detox build is compiled without them. The step
+    // is written for exactly that case (`cta: true`), so its own button
+    // advances it, and it must: a step whose target does not exist would
+    // otherwise be a dead end. TC-9.13 — tapping the spotlit row itself —
+    // therefore stays manual.
+    await expect(element(by.id('settings-sync'))).not.toExist();
+    await tapUntil('tutorial-next', async () => atStep(13));
+
+    // TC-9.12: the last step ends the tour rather than looping.
+    await tapUntil('tutorial-next', async () => {
+      await waitFor(element(by.id('tutorial-bubble'))).not.toExist().withTimeout(3000);
+    });
+    // …and it stays gone on the next launch.
+    await device.launchApp({ newInstance: true });
+    await device.disableSynchronization();
+    await visible('mode-smart');
+    await expect(element(by.id('tutorial-bubble'))).not.toExist();
   });
 });
