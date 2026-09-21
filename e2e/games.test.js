@@ -555,4 +555,76 @@ describe('Game modes', () => {
     await tap('photo-close');
     await visible('study-reveal');
   });
+
+  it('TC-2.8 typing: a typo is forgiven and named, a different species is not', async () => {
+    // Smart play only asks for a typed answer once a species has a record
+    // behind it (src/smartmode.js), so this plays name rounds first to earn
+    // one. Three passes over the eight-card fixture deck, answered correctly,
+    // puts every species past the trickle threshold.
+    await device.launchApp({ newInstance: true, delete: true });
+    await device.disableSynchronization();
+    for (let round = 0; round < 3; round++) {
+      await visible('mode-smart');
+      await settle();
+      if (round === 0) {
+        for (const key of ['picture', 'typed']) await tap(`menu-type-${key}`);
+      }
+      await tap('smart-start');
+      for (let card = 0; card < 8; card++) {
+        await visible('study-reveal');
+        await tap('study-reveal');
+        await tapCorrectChoice();
+        await settle(200);
+        if (card < 7) await tap('study-next');
+      }
+      await tap('study-end');
+      await visible('results-menu');
+      await tap('results-menu');
+    }
+
+    // Now a typed-only round.
+    await visible('mode-smart');
+    await settle();
+    await tap('menu-type-typed');
+    await tap('menu-type-name');
+    await tap('smart-start');
+    await exists('study-typed-input');
+
+    // A one-letter typo is forgiven — and said so, rather than passing in
+    // silence: the player should see the spelling they missed.
+    const answer = await labelOf('e2e-answer');
+    const typo = `${answer.slice(0, -1)}${answer.slice(-1) === 'x' ? 'y' : 'x'}`;
+    // Check, until it takes: the keyboard is up and the first tap after typing
+    // is regularly swallowed — the card just sits there with the answer typed.
+    const check = async (id) => {
+      for (let i = 0; i < 4; i++) {
+        await settle(400);
+        try {
+          await element(by.id('study-typed-submit')).tap();
+        } catch (e) { /* already submitted */ }
+        try {
+          await exists(id, 2500);
+          return;
+        } catch (e) { /* not through yet */ }
+      }
+      throw new Error(`Check never produced ${id}`);
+    };
+
+    await typeInto('study-typed-input', typo);
+    // By the line's own id rather than its exact words: the sentence quotes
+    // back whatever was typed, and matching that string made this case depend
+    // on which species the round happened to serve.
+    await check('study-typed-forgiven');
+    await tap('study-next');
+
+    // A different species is rejected, and what was written is quoted back.
+    await exists('study-typed-input');
+    await typeInto('study-typed-input', 'Tyrannosaurus rex');
+    await check('study-typed-missed');
+    await expect(element(by.id('study-typed-forgiven'))).not.toExist();
+    await tap('study-end');
+    await visible('results-menu');
+    await tap('results-menu');
+    await visible('mode-smart');
+  });
 });

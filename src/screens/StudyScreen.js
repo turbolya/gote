@@ -905,12 +905,20 @@ export default function StudyScreen({
                         the spelling they missed rather than have it pass in
                         silence. */}
                     {gotIt && typedResult && !typedResult.exact && (
-                      <Text style={[styles.typedHint, { color: onDim }]} numberOfLines={2}>
+                      <Text
+                        testID="study-typed-forgiven"
+                        style={[styles.typedHint, { color: onDim }]}
+                        numberOfLines={2}
+                      >
                         Counted — you wrote “{typed.trim()}”.
                       </Text>
                     )}
                     {!gotIt && !!typed.trim() && (
-                      <Text style={[styles.typedHint, { color: onDim }]} numberOfLines={2}>
+                      <Text
+                        testID="study-typed-missed"
+                        style={[styles.typedHint, { color: onDim }]}
+                        numberOfLines={2}
+                      >
                         You wrote “{typed.trim()}”.
                       </Text>
                     )}
