@@ -93,7 +93,13 @@ assets/                      # app icon, splash, watch glyphs
 - **Public observations only.** Private/obscured observations would need
   iNaturalist OAuth login.
 - **Publishing** to the stores uses
-  [EAS Build](https://docs.expo.dev/build/introduction/): `npx eas build`.
+  [EAS Build](https://docs.expo.dev/build/introduction/). Build locally with
+  `npm run build:ios` (add `:submit` to send the result to TestFlight): it
+  frees the disposable gigabytes first — Detox's derived data under
+  `ios/build`, and every `.ipa` but the newest — because `eas build --local`
+  needs ~10 GB free and an e2e run leaves ~9 GB sitting there. `npm run
+  clean:space` does the pruning on its own. Cloud builds are still
+  `npx eas build`.
 
 ## Crash reporting
 
