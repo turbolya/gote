@@ -13,7 +13,7 @@
     "build:ios": "bash scripts/build-ios.sh",
     "build:ios:submit": "bash scripts/build-ios.sh --submit",
     "clean:space": "bash scripts/build-ios.sh --clean",
-    "e2e:build": "detox build --configuration ios.sim.release",
+    "e2e:build": "bash scripts/e2e-build.sh",
     "e2e:test": "detox test --configuration ios.sim.release",
     "e2e:build:debug": "detox build --configuration ios.sim.debug",
     "e2e:test:debug": "detox test --configuration ios.sim.debug",

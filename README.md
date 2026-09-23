@@ -100,6 +100,10 @@ assets/                      # app icon, splash, watch glyphs
   needs ~10 GB free and an e2e run leaves ~9 GB sitting there. `npm run
   clean:space` does the pruning on its own. Cloud builds are still
   `npx eas build`.
+- **Detox builds** (`npm run e2e:build`) run `pod install` first — idempotent,
+  under a minute, and without it a build that follows a pruned `ios/build`
+  fails with "Build input file cannot be found" for codegen files that are
+  plainly sitting there.
 
 ## Crash reporting
 
