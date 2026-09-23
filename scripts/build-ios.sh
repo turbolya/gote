@@ -12,6 +12,9 @@
 #   scripts/build-ios.sh --clean    prune only, build nothing
 #   scripts/build-ios.sh --dry-run  say what would be freed, touch nothing
 #
+# Exit codes: 0 done · 1 something failed · 3 the submission was scheduled but
+# its outcome is unconfirmed (see the submit block at the bottom).
+#
 # NOTE ios/build/generated is deliberately KEPT. It holds React Native's
 # codegen output, written by `pod install` rather than by the build, and
 # deleting the whole of ios/build means the next native build fails with a
@@ -102,8 +105,49 @@ if [ -n "$newest" ] && [ -e "$newest" ]; then
 fi
 echo "Free space now:    $(free_gb) GB"
 
+# Did a submission run get far enough that EAS owns it now? eas-cli prints
+# "Scheduled iOS submission" once the archive is uploaded and queued; anything
+# after that — including the status polling this script watches — is the client
+# watching work that is already happening on EAS's servers.
+scheduled_in() { grep -q "Scheduled iOS submission" "$1"; }
+submission_url_in() { grep -o "https://expo.dev/[^ ]*submissions/[^ ]*" "$1" | tail -1; }
+
 if [ "$SUBMIT" = 1 ]; then
   echo
   echo "Submitting $built to App Store Connect…"
-  npx -y eas-cli@latest submit -p ios --profile production --path "$built" --non-interactive
+  log="$(mktemp -t gote-submit)"
+  set +e
+  npx -y eas-cli@latest submit -p ios --profile production \
+    --path "$built" --non-interactive 2>&1 | tee "$log"
+  status="${PIPESTATUS[0]}"
+  set -e
+
+  if [ "$status" -eq 0 ]; then
+    rm -f "$log"
+    exit 0
+  fi
+
+  # A dropped connection AFTER the upload is not a failed submission, and
+  # reporting it as one sends you re-submitting a build Apple may already have.
+  # This happened on build 61: "read ECONNRESET" while polling, long after the
+  # archive had gone up.
+  if scheduled_in "$log"; then
+    echo
+    echo "The archive uploaded and the submission was SCHEDULED; only eas-cli's"
+    echo "status polling failed, so whether Apple accepted it is unconfirmed."
+    echo "Check before re-submitting — a second upload of the same build number"
+    echo "is rejected:"
+    echo "  $(submission_url_in "$log")"
+    echo "  https://appstoreconnect.apple.com/apps/6792750976/testflight/ios"
+    echo "$built is kept for a re-submit if it did not land:"
+    echo "  npx eas-cli submit -p ios --profile production --path $built"
+    rm -f "$log"
+    exit 3
+  fi
+
+  echo
+  echo "Submission failed before it was scheduled — nothing reached EAS." >&2
+  echo "$built is kept; re-run with --submit once the cause is fixed." >&2
+  rm -f "$log"
+  exit 1
 fi
