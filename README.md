@@ -2,27 +2,38 @@
 
 Public site: [gote website](http://goteapp.com)
 
-A card-based learning game for **iPhone and Android**, built with
-[Expo](https://expo.dev) (React Native). It pulls your **iNaturalist**
+A card-based learning game for **iPhone, iPad, Apple Watch and Android**, built
+with [Expo](https://expo.dev) (React Native). It pulls your **iNaturalist**
 observations and quizzes you on the species you've seen.
 
 ## Game modes
 
-- **All cards** — multiple choice: a photo, pick the right species from 5 names.
-- **Custom game** — choose how many cards and which taxon groups.
+- **Smart play** — the default, played straight from a card on the menu. It
+  picks the question that fits each species: a five-name list while a species
+  is new or you keep missing it, the photo grid and typing from memory as you
+  get to know it, and a two-way duel on look-alikes you actually confuse. The
+  four types can be narrowed from the card, or behind its ⋯ along with groups,
+  flagged-only and the card count.
 - **Speedrun** — endless cards; the run ends after 3 misses.
-- **Pick the right one** — a species name, pick the matching photo from 4
-  (the distractors are real look-alikes from iNaturalist's "similar species").
 - **Nearby species** — instead of one observer's species, learn the ones
   typically seen around a location. Pick a spot (GPS or place search) and the
   groups you want; you get the most commonly observed species there.
+- **Flash cards** — reveal the answer and grade yourself. The one mode the app
+  does not mark, which is why it counts toward accuracy but scores nothing.
+
+The four question types are weighted by difficulty when scoring: choosing the
+name 1, a look-alike pair 1.5, picking the photo or typing the name 2.
 
 Plus a **Lexicon** (browse/search every species you've observed, filter by how
-well you know them, tap through to a detail page) and a **Statistics** page
-(lifetime accuracy, most-missed and best-known species). Accuracy is counted
-per card rather than per round, and the "best known" ranking discounts species
-you've barely seen — so neither a one-card round nor a single lucky answer can
-flatter the numbers.
+well you know them, sort A–Z or by most recent, tap through to a detail page)
+and a **Statistics** page (lifetime accuracy, a weighted score, the species you
+mix up, and a per-species breakdown). Accuracy is counted per card rather than
+per round, and the "best known" ranking discounts species you've barely seen —
+so neither a one-card round nor a single lucky answer can flatter the numbers.
+
+Your mix-ups drive the rest: a pair you keep confusing gets a side-by-side
+compare page with your own note, a two-way drill, and it resurfaces in later
+rounds on its own (`src/schedule.js`) until you can tell them apart.
 
 ## How it works
 
@@ -33,9 +44,13 @@ flatter the numbers.
 3. Common names can be shown in any of iNaturalist's languages (the app UI
    stays in English).
 4. **Works offline.** A pack of your deck's photos is downloaded in the
-   background, so **By name, Speedrun, Custom** and **Flash cards** keep playing
-   with no connection (from cards whose photos are ready). **Nearby** and **By
-   picture** need a live connection, so they're paused offline.
+   background, so **Smart play, Speedrun** and **Flash cards** keep playing with
+   no connection (from cards whose photos are ready). **Nearby** needs a live
+   connection and is paused offline, as is the **photo grid** question — it
+   fetches four other species' pictures per card.
+5. **Optional sync.** Sign in with an email code to carry stats, streak,
+   settings and your mix-up notes between devices (Supabase; `src/sync/`).
+   Everything works without it.
 
 ## Running it on your phone
 
@@ -54,11 +69,24 @@ For a standalone build on a device, this is a CNG project — run
 
 ## Tests
 
-Pure logic (gestures, cache/sync, quiz, lexicon) is unit-tested:
+Pure logic — the question chooser, scoring, accuracy, confusions, spaced
+repetition, sync merges, the tour, gestures, the cache — is unit-tested, and
+the manual test plan's shape is validated in the same run:
 
 ```sh
 npm test
 ```
+
+End-to-end, against fixture data in the simulator (Detox):
+
+```sh
+npm run e2e:build   # pod install + build the release sim app
+npm run e2e:test    # 55 specs across menu, games, browse, settings, offline, tour
+```
+
+The manual cases that automation cannot reach — two-device sync, the watch, a
+real store build — live in [docs/MANUAL-TESTS.md](docs/MANUAL-TESTS.md), which
+is the source of truth for the Testiny project.
 
 ## Project layout
 
@@ -80,11 +108,19 @@ src/
   gestures.js                # gesture decision helpers (pure, tested)
   theme.js                   # colors + monotone icon mapping
   sync/                      # optional cross-device sync (versioned events/settings)
-  components/                # Icon, ScreenHeader, PhotoViewer, OfflineBanner
-  screens/                   # Menu, Study, PickImage, Custom, Settings,
-                             #   Results, Stats, Lexicon, Detail
-  hooks/                     # (none currently)
+  smartmode.js               # which question to ask about a species (pure, tested)
+  scoring.js                 # difficulty-weighted scoring (pure, tested)
+  confusions.js              # the mix-up matrix and its ranking (pure, tested)
+  schedule.js                # spaced repetition over confused pairs (pure, tested)
+  tutorial.js                # the guided tour's steps and geometry (pure, tested)
+  components/                # SmartCard, RecentStrip, PhotoViewer, Tutorial, …
+  screens/                   # Menu, Study, PickImage, Custom, Settings, Results,
+                             #   Stats, Lexicon, Detail, Compare, Duel, Nearby,
+                             #   Sync, Changelog, Legal
+  e2e/                       # fixtures + the build-time flags that select them
 scripts/                     # node test runners (npm test)
+e2e/                         # Detox specs (npm run e2e:build && npm run e2e:test)
+screenshots-local/           # App Store screenshot capture (writes outside the repo)
 assets/                      # app icon, splash, watch glyphs
 ```
 

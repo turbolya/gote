@@ -8,6 +8,7 @@
 # Env overrides:
 #   SHOTS_USER      iNaturalist account                 (default: mate_koch)
 #   SHOTS_PLACE     place searched for "Nearby species" (default: Kaposvar)
+#   SHOTS_STAMP     write into an existing screenshots/<stamp> folder
 #   SHOTS_DEVICE    capture a single device only
 #   SHOTS_DEVICES   newline-separated device list       (default: the set below)
 #   SHOTS_SETTLE    slow-net delay multiplier (e.g. 2)  (default: 1)
@@ -35,7 +36,10 @@ PLACE_NAME="${SHOTS_PLACE:-Kaposvár, Hungary}"
 LAT="${SHOTS_LAT:-46.3594}"
 LNG="${SHOTS_LNG:-17.7968}"
 
-TS="$(date +%Y%m%d-%H%M%S)"
+# SHOTS_STAMP re-uses an existing output folder, so a device whose pass failed
+# can be re-run into the same set instead of leaving the shots split across two
+# timestamps that then have to be merged by hand.
+TS="${SHOTS_STAMP:-$(date +%Y%m%d-%H%M%S)}"
 OUT="/Users/mkoch/Developer/gote-launch/screenshots/$TS"
 mkdir -p "$OUT"
 cd "$REPO" || exit 1
@@ -108,6 +112,10 @@ export SHOTS_USER="$USER_LOGIN" \
        SHOTS_LAT="$LAT" SHOTS_LNG="$LNG"
 
 echo "▶ Building screenshot app once (Release, live network)…"
+# The codegen under ios/build is pruned by scripts/build-ios.sh on every
+# release build, and without it this build fails with "Build input file cannot
+# be found" for files it expects there. Idempotent, well under a minute.
+bash "$REPO/scripts/pod-install.sh" >/dev/null || { echo "✗ pod install failed"; exit 1; }
 npx detox build -c ios.shots --config-path "$CONFIG" || { echo "✗ build failed"; exit 1; }
 
 # --- capture per device × appearance ------------------------------------------

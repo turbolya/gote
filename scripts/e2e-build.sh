@@ -15,15 +15,12 @@
 # It is idempotent and takes under a minute, so paying it unconditionally is
 # cheaper than the twenty minutes it costs to recognise the failure.
 #
-# pod install needs a UTF-8 locale or it dies in Ruby's unicode normalisation
-# ("Unicode Normalization not appropriate for ASCII-8BIT"), which the plain
-# `pod install` in the handbook does not mention and this VM hits every time.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 echo "pod install (keeps the codegen and the Pods project in step)…"
-(cd ios && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 pod install)
+bash scripts/pod-install.sh
 
 echo
 echo "detox build (ios.sim.release)…"
