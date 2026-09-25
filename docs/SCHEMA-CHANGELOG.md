@@ -38,6 +38,17 @@ The append-only `events` log needs neither rule bent: every client only ever
 
 ## DB schema
 
+### 2026-09-25 — `20260925130000_stale_anonymous_180_days.sql`
+- Enables **pg_cron** and schedules `gote-delete-stale-anonymous-users`
+  (Sundays 03:17 UTC), which runs
+  `delete_stale_anonymous_users(interval '180 days')`.
+- Recreates the function with a default of **180 days** (was 90 in the
+  migration below). Half a year, because a hobby played in seasons can easily
+  sit idle for more than three months.
+- PRIVACY.md's *Data retention* section states this 180-day rule; keep the two
+  in step.
+- Applied to production 2026-09-25.
+
 ### 2026-09-25 — `20260925120000_payload_cap_and_stale_anonymous.sql`
 - `events_payload_size`: a CHECK capping the summed text size of an event's
   jsonb columns at 2 MB, and `settings_data_size` capping `settings.data` at
@@ -45,14 +56,12 @@ The append-only `events` log needs neither rule bent: every client only ever
   the app writes; they exist so an anonymous account (anyone can mint one)
   cannot fill the database a row at a time. An over-size row is refused with
   23514, which clients treat as permanent.
-- `delete_stale_anonymous_users(older_than interval default '90 days')`:
-  deletes anonymous accounts with no event, settings write or sign-in in that
-  window; the auth.users cascade removes their rows. EXECUTE revoked from the API
-  roles. Scheduled weekly via pg_cron when that extension is enabled.
-- **Not applied to production automatically** — run it in the SQL editor (or
-  `supabase db push`) like the others. Once it is live, PRIVACY.md's *Data
-  retention* section should say that sync data from an account never linked to
-  an email is deleted after 90 days unused.
+- `delete_stale_anonymous_users(older_than interval)`: deletes anonymous
+  accounts with no event, settings write or sign-in in that window; the
+  auth.users cascade removes their rows. EXECUTE revoked from the API roles.
+  Its 90-day default and conditional scheduling were superseded by the
+  migration above.
+- Applied to production 2026-09-25.
 - (Entries for the migrations between v5 and this one — `formats`, the
   function-EXECUTE revoke and `bars` — live in the migration files' own headers.)
 

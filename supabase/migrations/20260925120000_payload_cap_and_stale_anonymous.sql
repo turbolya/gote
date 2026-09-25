@@ -2,6 +2,10 @@
 --
 -- Idempotent. See docs/SCHEMA-CHANGELOG.md for the running record.
 --
+-- SUPERSEDED IN PART by 20260925130000_stale_anonymous_180_days.sql: the idle
+-- threshold is now 180 days (not the 90 below), and pg_cron is enabled and the
+-- job scheduled there unconditionally.
+--
 -- Anonymous sign-ins are on and the publishable key ships in the app, so anyone
 -- can mint an account (30 an hour per IP) and write rows to it. RLS keeps those
 -- rows private; nothing kept them SMALL, or kept them from piling up.

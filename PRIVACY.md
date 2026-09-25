@@ -1,6 +1,6 @@
 # Privacy Policy for gote
 
-**Last updated: 8 August 2026**
+**Last updated: 25 September 2026**
 
 gote is a species-identification flashcard game for iPhone, iPad and Apple
 Watch, built on the public [iNaturalist](https://www.inaturalist.org) API. This
@@ -186,6 +186,15 @@ personal information it can ever hold is an email address you choose to provide.
 
 Synced data is kept until you delete your account. If you never turn on sync,
 there is nothing on our servers to retain.
+
+One exception: a sync account that has never been linked to an email address
+(the anonymous one gote creates when you turn sync on) is deleted, with
+everything synced to it, once it has gone unused for 180 days — no rounds
+uploaded, no settings changed and no sign-in in that time. This is what happens
+to the accounts left behind when you sign in with email on a device or turn
+sync off. Your statistics on the device itself are never affected, and if you
+come back to a device whose account was removed, gote starts a fresh one and
+uploads that device's history to it again.
 
 ## Where data is processed
 
