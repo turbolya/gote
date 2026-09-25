@@ -69,6 +69,8 @@ import {
   loadBaselineUserId,
   saveBaselineUserId,
   clearLastPulledAt,
+  loadPullWindow,
+  savePullWindow,
   resetPullState,
   getDeviceId,
   loadSyncOptIn,
@@ -537,7 +539,8 @@ async function pull(supabase, userId) {
   if (error || !data) return null;
   lastPullFull = data.length >= PULL_LIMIT;
 
-  const late = await sweepLateCommits(supabase, userId, since, deviceId);
+  const seen = await loadPullWindow(userId);
+  const late = await sweepLateCommits(supabase, userId, since, deviceId, seen);
 
   if (!data.length && !late.length) {
     await recoverEmptiedAccount(supabase, userId);
@@ -547,21 +550,29 @@ async function pull(supabase, userId) {
   // Our own rows were counted locally the moment they were played. Re-applying
   // them would double every number on this device.
   const foreign = [...late, ...data.filter((e) => e.device_id !== deviceId)];
+  const changed = foreign.length ? await applyRemote(foreign) : null;
 
-  if (!foreign.length) {
-    if (data.length) {
-      const last = data[data.length - 1];
-      await saveLastPulledAt(userId, last.created_at, last.id);
+  const last = data.length ? data[data.length - 1] : null;
+  if (last) await saveLastPulledAt(userId, last.created_at, last.id);
+  // Remember what has been read near the (new) watermark, for the next sweep.
+  const mark = last ? last.created_at : since && since.iso;
+  if (mark) {
+    const floor = isoMs(mark) - LATE_COMMIT_WINDOW_MS;
+    const byId = new Map();
+    for (const e of [...(seen || []), ...data.map(asSeen), ...late.map(asSeen)]) {
+      if (e && e.id && isoMs(e.at) >= floor) byId.set(e.id, e);
     }
-    return null;
-  }
-
-  const changed = await applyRemote(foreign);
-  if (data.length) {
-    const last = data[data.length - 1];
-    await saveLastPulledAt(userId, last.created_at, last.id);
+    await savePullWindow(userId, [...byId.values()]);
   }
   return changed;
+}
+
+const asSeen = (r) => ({ id: r.id, at: r.created_at });
+
+// Postgres timestamps carry microseconds; not every JS engine parses more than
+// milliseconds, so trim before parsing.
+function isoMs(iso) {
+  return Date.parse(String(iso || '').replace(/(\.\d{3})\d+/, '$1'));
 }
 
 const EVENT_COLUMNS =
@@ -581,11 +592,14 @@ const LATE_COMMIT_WINDOW_MS = 60000;
 //
 // Such a row's timestamp cannot be more than one transaction's length behind
 // the watermark, so re-listing that window finds it. Ids only, so the check is
-// cheap; the ledger of applied ids (and our own device id) says which are new,
-// and only those are fetched in full.
-async function sweepLateCommits(supabase, userId, since, deviceId) {
-  if (!since || !since.iso) return [];
-  const upper = Date.parse(String(since.iso).replace(/(\.\d{3})\d+/, '$1'));
+// cheap; the record of rows already read in that window (loadPullWindow) says
+// which are new, and only those are fetched in full.
+async function sweepLateCommits(supabase, userId, since, deviceId, seen) {
+  // No record of what was read near the watermark — a first pull, or state
+  // just rewound — so nothing can be told apart as late. Skip; the pull after
+  // this one will have the record.
+  if (!since || !since.iso || !seen) return [];
+  const upper = isoMs(since.iso);
   if (!Number.isFinite(upper)) return [];
   try {
     const { data, error } = await supabase
@@ -596,9 +610,9 @@ async function sweepLateCommits(supabase, userId, since, deviceId) {
       .lte('created_at', since.iso)
       .limit(1000);
     if (error || !data || !data.length) return [];
-    const applied = new Set(await loadAppliedIds());
+    const known = new Set(seen.map((e) => e && e.id));
     const missing = data
-      .filter((r) => r.device_id !== deviceId && !applied.has(r.id))
+      .filter((r) => r.device_id !== deviceId && !known.has(r.id))
       .map((r) => r.id);
     if (!missing.length) return [];
     debug('found', missing.length, 'late-committed events behind the watermark');

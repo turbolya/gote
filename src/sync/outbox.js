@@ -207,7 +207,37 @@ export async function saveLastPulledAt(userId, iso, id = null) {
 // else, re-reading is exactly what we are avoiding.
 export async function clearLastPulledAt(userId) {
   try {
-    await kv.removeItem(pulledKey(userId));
+    await kv.multiRemove([pulledKey(userId), windowKey(userId)]);
+  } catch {
+    /* ignore */
+  }
+}
+
+// The rows this device has already read within a minute behind its watermark,
+// as [{ id, at }] — what the late-commit sweep (src/sync/index.js) compares
+// against to spot a row that became visible only after the cursor passed it.
+//
+// Its own record, deliberately NOT the applied-id ledger: that is capped and
+// can be emptied, and a sweep that took "not in the ledger" to mean "never
+// read" re-applied rows it already had. Kept under the watermark's prefix so
+// resetPullState clears the two together.
+function windowKey(userId) {
+  return `${K_PULLED_AT}:window:${userId || 'anon'}`;
+}
+
+export async function loadPullWindow(userId) {
+  try {
+    const raw = await kv.getItem(windowKey(userId));
+    const arr = raw ? JSON.parse(raw) : null;
+    return Array.isArray(arr) ? arr : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function savePullWindow(userId, entries) {
+  try {
+    await kv.setItem(windowKey(userId), JSON.stringify(Array.isArray(entries) ? entries : []));
   } catch {
     /* ignore */
   }
