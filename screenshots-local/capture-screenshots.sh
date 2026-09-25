@@ -157,6 +157,11 @@ for DEVICE in "${DEVICES[@]}"; do
 done
 
 # --- Apple Watch pass ---------------------------------------------------------
+# A real nature photo on the watch is a few hundred KB; the grey placeholder the
+# app draws when no photo arrived is ~15 KB. Anything under this is the failure.
+WATCH_PHOTO_MIN_BYTES="${SHOTS_WATCH_PHOTO_MIN_BYTES:-60000}"
+png_bytes() { [ -f "$1" ] && wc -c < "$1" | tr -d ' ' || echo 0; }
+
 # watchOS UI can't be driven headlessly (no Detox for the watch, no simctl tap),
 # so we capture by relaunching the watch app in `-goteShot <screen>` mode, which
 # jumps straight to each screen. Real gameplay data (photos + the seeded 83%
@@ -186,10 +191,22 @@ if [ "${SHOTS_WATCH:-1}" = "1" ]; then
     xcrun simctl install "$WATCH_UDID" "$APP_BIN/Watch/GoteWatch.app" || true
     # Sync real data: the phone app (seeded 83% stats + real deck) pushes a
     # snapshot; then the watch app receives + persists it.
-    xcrun simctl launch "$PHONE_UDID" com.gote.app >/dev/null 2>&1 || true
-    sleep 12
-    xcrun simctl launch "$WATCH_UDID" com.gote.app.watch >/dev/null 2>&1 || true
-    sleep 5
+    # These waits are why the photo shot fails: WatchConnectivity delivers
+    # nothing if the phone app has not finished loading its deck, and it fails
+    # SILENTLY — the watch falls back to a demo snapshot with no image. 12s + 5s
+    # was too short on this VM; 45 + 20 is what worked. Overridable because a
+    # faster machine should not pay for it.
+    SYNC_PHONE_WAIT="${SHOTS_SYNC_PHONE_WAIT:-45}"
+    SYNC_WATCH_WAIT="${SHOTS_SYNC_WATCH_WAIT:-20}"
+    watch_sync() {
+      xcrun simctl terminate "$WATCH_UDID" com.gote.app.watch >/dev/null 2>&1 || true
+      xcrun simctl terminate "$PHONE_UDID" com.gote.app >/dev/null 2>&1 || true
+      xcrun simctl launch "$PHONE_UDID" com.gote.app >/dev/null 2>&1 || true
+      sleep "$SYNC_PHONE_WAIT"
+      xcrun simctl launch "$WATCH_UDID" com.gote.app.watch >/dev/null 2>&1 || true
+      sleep "$SYNC_WATCH_WAIT"
+    }
+    watch_sync
     # The quiz photo loads over the network, so a fixed sleep can catch the
     # spinner. The app writes `shot-photo-ready` into its Documents dir once the
     # image is actually on screen — clear it, launch, then wait for it (bounded),
@@ -217,8 +234,43 @@ if [ "${SHOTS_WATCH:-1}" = "1" ]; then
       fi
       xcrun simctl io "$WATCH_UDID" screenshot "$WOUT/watch-$NUM-$SHOT.png" >/dev/null 2>&1 \
         && echo "   watch: $SHOT" || echo "   watch: $SHOT (failed)"
+
+      # The photo shot is the one that fails quietly. The app reports "ready"
+      # whether or not a photo actually arrived, so the only honest check is the
+      # PICTURE: a real nature photo weighs a few hundred KB, the grey
+      # placeholder icon ~15 KB — nothing legitimate lands between. On a
+      # placeholder, sync again and re-shoot rather than shipping a broken
+      # screenshot to the App Store, which is what happened before this check.
+      if [ "$SHOT" = "photo" ]; then
+        TRY=1
+        while [ "$TRY" -le "${SHOTS_PHOTO_TRIES:-3}" ] \
+          && [ "$(png_bytes "$WOUT/watch-$NUM-$SHOT.png")" -lt "$WATCH_PHOTO_MIN_BYTES" ]; do
+          echo "   watch: photo looks like the grey placeholder ($(png_bytes "$WOUT/watch-$NUM-$SHOT.png") bytes) — re-syncing (try $TRY)"
+          watch_sync
+          [ -n "$GROUP_DIR" ] && rm -f "$READY"
+          xcrun simctl terminate "$WATCH_UDID" com.gote.app.watch >/dev/null 2>&1 || true
+          xcrun simctl launch "$WATCH_UDID" com.gote.app.watch -goteShot photo >/dev/null 2>&1 || true
+          WAITED=0
+          while [ ! -f "$READY" ] && [ "$WAITED" -lt 40 ]; do
+            sleep 1
+            WAITED=$((WAITED + 1))
+          done
+          sleep 2
+          xcrun simctl io "$WATCH_UDID" screenshot "$WOUT/watch-$NUM-$SHOT.png" >/dev/null 2>&1 || true
+          TRY=$((TRY + 1))
+        done
+        if [ "$(png_bytes "$WOUT/watch-$NUM-$SHOT.png")" -lt "$WATCH_PHOTO_MIN_BYTES" ]; then
+          WATCH_PHOTO_PLACEHOLDER=1
+        fi
+      fi
     done
     echo "   $(find "$WOUT" -maxdepth 1 -name '*.png' | wc -l | tr -d ' ') watch screenshot(s)."
+    if [ "${WATCH_PHOTO_PLACEHOLDER:-0}" = 1 ]; then
+      echo "   ⚠️  watch-02-photo is still the grey placeholder. The phone→watch"
+      echo "      sync delivered no photo; do NOT ship this one. Raise"
+      echo "      SHOTS_SYNC_PHONE_WAIT / SHOTS_SYNC_WATCH_WAIT and re-run:"
+      echo "      SHOTS_STAMP=$TS SHOTS_DEVICES= SHOTS_WATCH=1 $0"
+    fi
   fi
 fi
 
