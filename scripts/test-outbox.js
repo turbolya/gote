@@ -17,7 +17,7 @@ const path = require('path');
 // outbox.js reads and writes through src/kv.js, which imports AsyncStorage and
 // therefore cannot be loaded by plain node. Transform to CJS and stub kv — the
 // function under test touches none of it, but the module-level import runs.
-function loadOutbox() {
+function loadOutbox(kvImpl = null) {
   const file = path.join(__dirname, '..', 'src/sync/outbox.js');
   const code = babel.transformFileSync(file, {
     plugins: ['@babel/plugin-transform-modules-commonjs'],
@@ -32,7 +32,7 @@ function loadOutbox() {
     getAllKeys: async () => [],
   };
   const fakeRequire = (id) => {
-    if (id === '../kv') return stub;
+    if (id === '../kv') return kvImpl || stub;
     // outbox.js folds its overflow with merge.js (compactEvents), which is ESM
     // like everything else in the sync layer — transform it through the same
     // path rather than letting require() choke on it.
@@ -164,5 +164,34 @@ test('the result always satisfies the table CHECK constraints', () => {
   }
 });
 
-console.log(`\n${pass} passed, ${fail} failed\n`);
-process.exit(fail ? 1 : 0);
+// A queued round must survive a sync clearing the rows it uploaded at the same
+// moment. Both are read-modify-writes of one list; interleaved, the clear wrote
+// back the list it had read — without the new round — and the round was never
+// uploaded. A slow store makes the interleaving certain rather than lucky.
+async function raceTest() {
+  const store = new Map();
+  const slowKv = {
+    getItem: async (k) => { const v = store.has(k) ? store.get(k) : null; await new Promise((r) => setTimeout(r, 10)); return v; },
+    setItem: async (k, v) => { await new Promise((r) => setTimeout(r, 10)); store.set(k, String(v)); },
+    removeItem: async (k) => { store.delete(k); },
+    multiRemove: async () => {},
+    getAllKeys: async () => [...store.keys()],
+  };
+  const ob = loadOutbox(slowKv);
+  await ob.pushToOutbox({ id: 'uploaded' });
+  await Promise.all([ob.clearFromOutbox(['uploaded']), ob.pushToOutbox({ id: 'new-round' })]);
+  const left = (await ob.loadOutbox()).map((e) => e.id);
+  try {
+    assert.deepStrictEqual(left, ['new-round']);
+    pass++;
+    console.log('  ok   a round queued during a clear is not lost');
+  } catch (e) {
+    fail++;
+    console.log('  FAIL a round queued during a clear is not lost  =>  ' + e.message);
+  }
+}
+
+raceTest().then(() => {
+  console.log(`\n${pass} passed, ${fail} failed\n`);
+  process.exit(fail ? 1 : 0);
+});

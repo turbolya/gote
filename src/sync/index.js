@@ -44,6 +44,7 @@ import {
   saveUsername,
   loadSettingsStamp,
   saveSettingsStamp,
+  withStatsLock,
 } from '../storage';
 import { getClient } from './client';
 import { SYNC_ENABLED } from './config';
@@ -135,6 +136,32 @@ let pending = null;
 // has no way to learn that it is being refused rather than merely delayed.
 // Not persisted — the next sync attempt sets it again.
 let lastPushError = null;
+
+// Whether the last pull filled a whole page — i.e. there is probably more to
+// read. A pull that returned only this device's own rows reports "nothing
+// changed" even when further pages hold other devices' rows, so "changed" alone
+// cannot say when a catch-up loop is done.
+let lastPullFull = false;
+
+// Told whenever other devices' events have been folded into local storage, by
+// ANY sync — launch, foreground, after a round, a watch burst, the Sync screen.
+// The app keeps in-memory copies of what storage holds; without this, only the
+// callers that happened to read syncNow's return value refreshed theirs, and the
+// next round then saved a stale copy over what sync had just merged.
+const appliedListeners = new Set();
+export function onRemoteApplied(fn) {
+  appliedListeners.add(fn);
+  return () => appliedListeners.delete(fn);
+}
+function notifyApplied(summary) {
+  for (const fn of appliedListeners) {
+    try {
+      fn(summary);
+    } catch {
+      /* a listener's failure is its own */
+    }
+  }
+}
 
 // Everything in this file swallows its errors on purpose — a failed sync must
 // never break a screen. That makes silent breakage the failure mode, so in
@@ -418,6 +445,17 @@ async function push(supabase, userId) {
     return { discarded: [] };
   }
 
+  // The server does not know a column this client sends: the app is ahead of
+  // the database. That is true of EVERY row equally and is fixed by applying
+  // the migration, not by anything about the rows — so keep them all queued
+  // (they upload unchanged once the column exists) rather than discarding the
+  // lot as unacceptable, or retrying them one by one to the same answer.
+  if (isSchemaBehind(error)) {
+    lastPushError = 'The sync server needs an update before these rounds can upload. They are kept and will go up once it has one.';
+    debug('server schema is behind the client —', error.message);
+    return { discarded: [] };
+  }
+
   // The batch failed. It is one statement, so ONE unacceptable row takes every
   // other round down with it — and a row rejected by a CHECK constraint is
   // rejected forever, which used to wedge the queue permanently: nothing more
@@ -454,7 +492,10 @@ async function push(supabase, userId) {
 //   23514 check_violation · 23502 not_null_violation · 23503 fk_violation
 //   22P02 invalid_text_representation · 22003 numeric_value_out_of_range
 //   22007 invalid_datetime_format · 22008 datetime_field_overflow
-//   PGRST204 unknown column (client newer than the database)
+//
+// PGRST204 (unknown column — the client is newer than the database) is NOT
+// here. It used to be, which meant shipping a build before its migration had
+// run discarded every round played on it. See isSchemaBehind.
 //
 // 22007 is here because the integration suite caught its absence: a malformed
 // `local_day` comes back as 22007, not the 22P02 you would expect from a bad
@@ -462,7 +503,12 @@ async function push(supabase, userId) {
 // failure this function exists to stop.
 function isPermanentReject(e) {
   const code = String((e && e.code) || '');
-  return ['23514', '23502', '23503', '22P02', '22003', '22007', '22008', 'PGRST204'].includes(code);
+  return ['23514', '23502', '23503', '22P02', '22003', '22007', '22008'].includes(code);
+}
+
+// The database is missing a column this client writes (PostgREST PGRST204).
+function isSchemaBehind(e) {
+  return String((e && e.code) || '') === 'PGRST204';
 }
 
 async function pull(supabase, userId) {
@@ -471,7 +517,7 @@ async function pull(supabase, userId) {
 
   let query = supabase
     .from('events')
-    .select('id, device_id, ts, local_day, answered, correct, pct, n, species, formats, confusions, bars, history, counts, days, created_at')
+    .select(EVENT_COLUMNS)
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
     .order('id', { ascending: true })
@@ -489,26 +535,88 @@ async function pull(supabase, userId) {
 
   const { data, error } = await query;
   if (error || !data) return null;
-  if (!data.length) {
+  lastPullFull = data.length >= PULL_LIMIT;
+
+  const late = await sweepLateCommits(supabase, userId, since, deviceId);
+
+  if (!data.length && !late.length) {
     await recoverEmptiedAccount(supabase, userId);
     return null;
   }
 
   // Our own rows were counted locally the moment they were played. Re-applying
   // them would double every number on this device.
-  const foreign = data.filter((e) => e.device_id !== deviceId);
-  const last = data[data.length - 1];
-  const newest = last.created_at;
-  const newestId = last.id;
+  const foreign = [...late, ...data.filter((e) => e.device_id !== deviceId)];
 
   if (!foreign.length) {
-    await saveLastPulledAt(userId, newest, newestId);
+    if (data.length) {
+      const last = data[data.length - 1];
+      await saveLastPulledAt(userId, last.created_at, last.id);
+    }
     return null;
   }
 
   const changed = await applyRemote(foreign);
-  await saveLastPulledAt(userId, newest, newestId);
+  if (data.length) {
+    const last = data[data.length - 1];
+    await saveLastPulledAt(userId, last.created_at, last.id);
+  }
   return changed;
+}
+
+const EVENT_COLUMNS =
+  'id, device_id, ts, local_day, answered, correct, pct, n, species, formats, confusions, bars, history, counts, days, created_at';
+
+// How far behind the watermark to look for rows that committed late. Must be
+// longer than any insert can take; PostgREST's statement timeout is seconds.
+const LATE_COMMIT_WINDOW_MS = 60000;
+
+// Find rows the keyset cursor walked past because they had not committed yet.
+//
+// `created_at` is `now()`, which Postgres fixes when the inserting transaction
+// STARTS, not when it commits. Two devices push at once; the one that started
+// first commits last; a third device pulls in between and moves its watermark
+// past the first row's timestamp before that row is visible. The cursor never
+// looks back, so the row is skipped for good — silently, on that device only.
+//
+// Such a row's timestamp cannot be more than one transaction's length behind
+// the watermark, so re-listing that window finds it. Ids only, so the check is
+// cheap; the ledger of applied ids (and our own device id) says which are new,
+// and only those are fetched in full.
+async function sweepLateCommits(supabase, userId, since, deviceId) {
+  if (!since || !since.iso) return [];
+  const upper = Date.parse(String(since.iso).replace(/(\.\d{3})\d+/, '$1'));
+  if (!Number.isFinite(upper)) return [];
+  try {
+    const { data, error } = await supabase
+      .from('events')
+      .select('id, device_id')
+      .eq('user_id', userId)
+      .gte('created_at', new Date(upper - LATE_COMMIT_WINDOW_MS).toISOString())
+      .lte('created_at', since.iso)
+      .limit(1000);
+    if (error || !data || !data.length) return [];
+    const applied = new Set(await loadAppliedIds());
+    const missing = data
+      .filter((r) => r.device_id !== deviceId && !applied.has(r.id))
+      .map((r) => r.id);
+    if (!missing.length) return [];
+    debug('found', missing.length, 'late-committed events behind the watermark');
+    // In slices, so the id list never makes an over-long URL.
+    const rows = [];
+    for (let i = 0; i < missing.length; i += 100) {
+      const { data: part, error: e2 } = await supabase
+        .from('events')
+        .select(EVENT_COLUMNS)
+        .eq('user_id', userId)
+        .in('id', missing.slice(i, i + 100));
+      if (e2 || !part) return rows;
+      rows.push(...part);
+    }
+    return rows;
+  } catch {
+    return [];
+  }
 }
 
 // Notice an account that has become EMPTY under a device that believes it has
@@ -559,6 +667,14 @@ async function recoverEmptiedAccount(supabase, userId) {
 // Fold remote events into the local rollups. The ONLY place sync writes to the
 // app's own state, and it only ever adds.
 async function applyRemote(events) {
+  // Under the stats lock: this is a read-fold-write of every stats blob, and a
+  // round finishing in the middle of it would otherwise be written over.
+  const changed = await withStatsLock(() => foldRemote(events));
+  if (changed) notifyApplied(changed);
+  return changed;
+}
+
+async function foldRemote(events) {
   const [stats, formats, species, bars, streak, confusions, appliedIds] = await Promise.all([
     loadStats(),
     loadStatsByFormat(),
@@ -705,7 +821,9 @@ export async function recontributeHistory() {
   // converges must not spin here.
   for (let i = 0; i < 10; i += 1) {
     const changed = await syncNow();
-    if (!changed) break;
+    // "Nothing changed" is not "nothing left": a page of only this device's
+    // own rows changes nothing, and the pages after it may not be.
+    if (!changed && !lastPullFull) break;
   }
 
   const { rows, error } = await fetchAllEvents(supabase, userId);
@@ -805,7 +923,16 @@ export async function afterAuthChange(mode = 'link') {
 // events holds totals that are no longer only its own, and re-sending them
 // would put that other device's rounds on the account a second time. Deducting
 // exactly what it merged leaves its OWN history, which is the thing to re-send.
-async function uploadBaseline(userId, { id: idOverride = null, alsoSubtract = [] } = {}) {
+// Under the stats lock, because it reads the totals AND the outbox and subtracts
+// one from the other. A round finishing between those two reads — its stats
+// saved, its event not queued yet — would be in the snapshot and then pushed as
+// its own event too, counting twice on every other device. finishRound queues
+// its event inside the same lock for exactly this reason.
+function uploadBaseline(userId, opts) {
+  return withStatsLock(() => uploadBaselineLocked(userId, opts));
+}
+
+async function uploadBaselineLocked(userId, { id: idOverride = null, alsoSubtract = [] } = {}) {
   const [stats, fmts, species, confusions, history, counts, activeDays, streak, queued] = await Promise.all([
     loadStats(),
     loadStatsByFormat(),

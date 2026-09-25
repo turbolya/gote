@@ -54,9 +54,10 @@ import {
   loadPrefs,
   savePrefs,
   loadSpeciesStats,
-  saveSpeciesStats,
+  addSpeciesDelta,
   loadConfusions,
-  saveConfusions,
+  addConfusionsDelta,
+  withStatsLock,
   loadConfusionNotes,
   saveConfusionNote,
   loadConfusionWins,
@@ -94,11 +95,12 @@ import {
   scheduleSync,
   syncSettings,
   pushSettings,
+  onRemoteApplied,
   SYNC_ENABLED,
 } from './src/sync';
 import { SPEEDRUN_LIVES, DEFAULT_LOCALE, SUPPORT_PROMPT_CHANCE, DEFAULT_USERNAME } from './src/constants';
 import { buildPickRound } from './src/quiz';
-import { addConfusion, displayNotes } from './src/sync/merge';
+import { addConfusion, displayNotes, foldSpecies, mergeConfusions } from './src/sync/merge';
 import {
   pairCount,
   pairKey,
@@ -515,8 +517,17 @@ export default function App() {
 
   // Per-species tallies for the statistics page. `speciesRef` is the live copy
   // we mutate as cards are graded; `speciesStats` is the snapshot for display.
+  //
+  // The live copy is ALWAYS "what storage holds" plus "this round so far"
+  // (storedSpeciesRef + roundDeltaRef), and it is never written back whole.
+  // Saving it whole was how a round erased everything sync had folded into
+  // storage since the copy was loaded: the foreground sync merged another
+  // device's tallies on disk, the in-memory copy never heard, and the next
+  // round saved the copy over them. Rounds now save their DELTA, and every
+  // change to storage re-derives the live copy (adoptStored).
   const [speciesStats, setSpeciesStats] = useState({});
   const speciesRef = useRef({});
+  const storedSpeciesRef = useRef({});
   // Just THIS round's per-species deltas, for cross-device sync. speciesRef is
   // a running lifetime total and can't be uploaded as a delta without
   // double-counting everything the player has ever answered.
@@ -528,6 +539,8 @@ export default function App() {
   // lifetime-vs-delta split as speciesRef / roundDeltaRef.
   const confusionRef = useRef({});
   const confusionDeltaRef = useRef({});
+  // What storage holds, without this round — the same split as the species.
+  const storedConfusionsRef = useRef({});
   // Whether ANY pair has been confused often enough to be asked about, so the
   // two pickers can dim Look-alike pairs when there is nothing to ask. State,
   // not a read of the ref: the ref changing is invisible to React, and the chip
@@ -541,6 +554,21 @@ export default function App() {
     // has a partner to ask about" mean the same thing.
     setHasNemesis(topConfusionPairs(confusionRef.current, { limit: 1 }).length > 0);
   }, []);
+
+  // Take what storage now holds as the new base, and lay the round in progress
+  // back over it. Called after anything writes the stats: a finished round, a
+  // watch answer, sync folding in another device, a reset.
+  const adoptStored = useCallback(({ species, confusions } = {}) => {
+    if (species) {
+      storedSpeciesRef.current = species;
+      speciesRef.current = foldSpecies(species, roundDeltaRef.current);
+      setSpeciesStats({ ...speciesRef.current });
+    }
+    if (confusions) {
+      storedConfusionsRef.current = confusions;
+      setConfusions(mergeConfusions(confusions, confusionDeltaRef.current));
+    }
+  }, [setConfusions]);
   // This round's answers split by question format (see formatForCard).
   const formatDeltaRef = useRef({});
   // "Verify the fix" recovery streaks: pairKey → consecutive correct answers on
@@ -615,6 +643,13 @@ export default function App() {
     return filtered;
   }, []);
 
+  // Bumped whenever the deck in rawCardsRef is replaced by another account's
+  // (or another language's). A background refresh remembers the value it
+  // started under and drops its result if it changed: otherwise a slow refresh
+  // of the OLD account, finishing after a switch, merged the old account's cards
+  // into the new deck and saved them under the old account's name.
+  const deckGenRef = useRef(0);
+
   // Persist the raw cards + watermark for this account.
   const persistCache = useCallback((name, loc) => {
     const syncedAt = Date.now();
@@ -633,12 +668,20 @@ export default function App() {
   const syncNow = useCallback(
     async (name, loc) => {
       if (!name) return;
+      const gen = deckGenRef.current;
       setSync((s) => ({ ...s, state: 'syncing', message: null }));
       try {
         const updated = await fetchUpdatedCards(name, {
           locale: loc,
           updatedSince: watermarkRef.current,
         });
+        // The deck changed hands while we were fetching; this result belongs
+        // to a deck that is no longer loaded. (Unstick the indicator, which a
+        // cancelled switch would otherwise leave spinning.)
+        if (gen !== deckGenRef.current) {
+          setSync((s) => (s.state === 'syncing' ? { ...s, state: 'idle' } : s));
+          return;
+        }
         // iNat's `updated_since` is INCLUSIVE, so the card(s) at the watermark
         // come back on every sync. Keep only cards strictly newer than the
         // watermark as real changes — otherwise a no-op sync always reports
@@ -664,6 +707,10 @@ export default function App() {
               : 'Already up to date.',
         });
       } catch (e) {
+        if (gen !== deckGenRef.current) {
+          setSync((s) => (s.state === 'syncing' ? { ...s, state: 'idle' } : s));
+          return;
+        }
         setSync((s) => ({
           ...s,
           state: 'error',
@@ -682,6 +729,8 @@ export default function App() {
       setError(null);
       setLoadingNearby(false);
       setProgress({ loaded: 0, total: 0 });
+      // Any background refresh still running is for the deck being replaced.
+      deckGenRef.current += 1;
       // Set the username up front so the loading screen shows the NEW user, not
       // the previous one (restored below if the download fails).
       const prevUser = usernameRef.current;
@@ -738,6 +787,7 @@ export default function App() {
         // up front, so a failed account switch can't leave the old deck paired
         // with the new account's flags.
         setFlags(new Set(await loadFlags(name)));
+        deckGenRef.current += 1;
         rawCardsRef.current = usable.cards;
         watermarkRef.current = usable.watermark || newestUpdatedAt(usable.cards);
         applyCurrentFilters(prefs);
@@ -811,9 +861,7 @@ export default function App() {
       initDownloadedImages().then(() => setDlReady(true));
       // Restore the confusion matrix so this session accumulates onto it, and
       // the "my tell" notes for the comparison view.
-      loadConfusions().then((c) => {
-        setConfusions(c);
-      });
+      loadConfusions().then((c) => adoptStored({ confusions: c || {} }));
       loadConfusionNotes().then((n) => setConfusionNotes(displayNotes(n)));
       loadConfusionWins().then((w) => {
         confusionWinsRef.current = w || {};
@@ -842,8 +890,7 @@ export default function App() {
       if (savedStreak) setStreak(savedStreak);
       setWatchTipDismissed(savedWatchTip);
       // Flags are loaded per-account inside loadAccount (below).
-      speciesRef.current = savedSpecies || {};
-      setSpeciesStats(speciesRef.current);
+      adoptStored({ species: savedSpecies || {} });
       const ps = savedPrefs && typeof savedPrefs.perSpecies === 'boolean'
         ? savedPrefs.perSpecies
         : true;
@@ -867,19 +914,10 @@ export default function App() {
       // credentials (src/sync/config.js). Fired here, once local state is
       // seeded, so anything folded in from another device isn't clobbered by
       // the restore — and NOT awaited, because a slow network must never delay
-      // the menu appearing.
+      // the menu appearing. What it merges reaches the screen through the
+      // onRemoteApplied subscription below, like every other sync's.
       if (SYNC_ENABLED) {
-        syncCloud().then((merged) => {
-          if (!merged) return;
-          setLifetime(merged.lifetime);
-          if (merged.formats) setStatsByFormat(merged.formats);
-          speciesRef.current = merged.species;
-          setSpeciesStats({ ...merged.species });
-          setHistory(merged.history);
-          setHistoryCounts(merged.historyCounts || []);
-          setStreak(merged.streak);
-          if (merged.confusions) setConfusions(merged.confusions);
-        });
+        syncCloud();
         syncSettings().then((s) => { if (s) applyRemoteSettings(s); });
       }
       // E2E: load the fixture deck offline and jump straight to the menu.
@@ -934,16 +972,15 @@ export default function App() {
     shotsSeededRef.current = username;
     seedScreenshotStats(fullDeck, username).then((seed) => {
       if (!seed) return; // already seeded this account — restore loaded it
-      speciesRef.current = seed.species;
-      setSpeciesStats(seed.species);
+      adoptStored({ species: seed.species });
       setLifetime(seed.lifetime);
       setHistory(seed.history);
       setHistoryCounts(seed.historyCounts || []);
       setStreak(seed.streak);
-      if (seed.confusions) setConfusions(seed.confusions);
+      if (seed.confusions) adoptStored({ confusions: seed.confusions });
       loadConfusionNotes().then((n) => setConfusionNotes(displayNotes(n)));
     });
-  }, [fullDeck, username]);
+  }, [fullDeck, username, adoptStored]);
 
   // The film strip's ten. Taken from the filtered deck rather than the raw
   // cache, so it honours the display settings the player chose — "one card per
@@ -989,6 +1026,8 @@ export default function App() {
     roundDeltaRef.current = {};
     confusionDeltaRef.current = {};
     formatDeltaRef.current = {};
+    // …and from the live copies, which carried them on top of storage.
+    adoptStored({ species: storedSpeciesRef.current, confusions: storedConfusionsRef.current });
     setMode(m);
     setRoundLabel(label);
     const shuffled = shuffle(cards);
@@ -1005,7 +1044,7 @@ export default function App() {
     setLoopNonce(0);
     setScreen('study');
     if (afterPlan) afterPlan(shuffled, plan);
-  }, []);
+  }, [adoptStored]);
 
   // --- mode launchers (each records how to replay itself) ---
   const startSpeedrun = useCallback(() => {
@@ -1320,53 +1359,40 @@ export default function App() {
   const finishRound = useCallback(async (finalCorrect, finalMissed, total) => {
     if (finishedRef.current) return; // already finishing this round — ignore
     finishedRef.current = true;
-    const updated = await addToStats(total, finalCorrect);
-    setLifetime(updated);
-    // Persist the per-species tallies accumulated during the round.
-    saveSpeciesStats(speciesRef.current);
-    setSpeciesStats({ ...speciesRef.current });
-    // Persist any confusions recorded during the round (mixed-up look-alikes),
-    // and the names that make them drawable.
-    saveConfusions(confusionRef.current);
-    saveSeenSpecies(seenSpeciesRef.current);
-    setSeenSpecies({ ...seenSpeciesRef.current });
-    // Record this game's accuracy for the menu chart, and count today toward
-    // the daily streak (both skip empty rounds).
-    // Kept as a promise because the chart bar it creates has to ride along on the
-    // event queued below: the bar's id is decided HERE, and every other device
-    // adopts it rather than inventing one, which is what stops the same round
-    // being drawn twice on someone else's chart.
-    let newBar = Promise.resolve(null);
-    if (total > 0) {
-      newBar = addGameResult((finalCorrect / total) * 100, total).then((h) => {
-        setHistory(h.history);
-        setHistoryCounts(h.counts);
-        return h.bar;
-      });
-      recordStreakDay().then(setStreak);
-      addActiveDay();
-    }
-    // Queue the round for other devices. Local storage is already written
-    // above, so this is purely additive and safe to fail — an offline round
-    // still counts here and uploads whenever the network returns.
+    // This round's deltas: per-species tallies, mixed-up look-alikes, and the
+    // split by question format. Taken out of the refs now, so the live copies
+    // re-derived below are storage alone.
     const delta = roundDeltaRef.current;
     roundDeltaRef.current = {};
     const confDelta = confusionDeltaRef.current;
     confusionDeltaRef.current = {};
     const fmtDelta = formatDeltaRef.current;
     formatDeltaRef.current = {};
-    // Persist the per-format split alongside the blended totals. Written before
-    // the upload for the same reason everything else here is: local storage is
-    // authoritative, and the network is allowed to fail.
-    if (Object.keys(fmtDelta).length) addToStatsByFormat(fmtDelta).then(setStatsByFormat);
-    if (total > 0) {
-      // Queue, then flush. recordEvent only writes to the outbox; without this
-      // the round would sit there until the next cold launch, which looks
-      // exactly like sync being broken. Not awaited — the results screen must
-      // never wait on the network.
-      newBar
-        .then((bar) =>
-          recordEvent({
+    let committed = null;
+    try {
+      // One locked section, so sync cannot fold another device in halfway
+      // through (and have its save overwrite this round's), and so the sync
+      // baseline — which reads the totals AND the outbox — never sees the round
+      // in one but not the other.
+      committed = await withStatsLock(async () => {
+        const lifetimeNow = await addToStats(total, finalCorrect);
+        // Deltas folded into what storage holds NOW — never the in-memory copy
+        // saved whole, which is how another device's tallies used to be lost.
+        const speciesNow = await addSpeciesDelta(delta);
+        const confusionsNow = await addConfusionsDelta(confDelta);
+        const formatsNow = Object.keys(fmtDelta).length ? await addToStatsByFormat(fmtDelta) : null;
+        let chart = null;
+        let streakNow = null;
+        if (total > 0) {
+          // Record this game's accuracy for the menu chart, and count today
+          // toward the daily streak (both skip empty rounds).
+          chart = await addGameResult((finalCorrect / total) * 100, total);
+          streakNow = await recordStreakDay();
+          await addActiveDay();
+          // Queue the round for other devices. The chart bar's id is decided
+          // above and rides along, so every other device adopts it rather than
+          // inventing one — which is what stops the round being drawn twice.
+          await recordEvent({
             answered: total,
             correct: finalCorrect,
             pct: (finalCorrect / total) * 100,
@@ -1374,15 +1400,35 @@ export default function App() {
             species: delta,
             formats: fmtDelta,
             confusions: confDelta,
-            bars: bar ? [bar] : [],
-          })
-        )
-        .then(() => syncCloud());
+            bars: chart.bar ? [chart.bar] : [],
+          });
+        }
+        return { lifetimeNow, speciesNow, confusionsNow, formatsNow, chart, streakNow };
+      });
+    } catch {
+      /* storage failed; the results screen must still appear */
     }
+    if (committed) {
+      setLifetime(committed.lifetimeNow);
+      adoptStored({ species: committed.speciesNow, confusions: committed.confusionsNow });
+      if (committed.formatsNow) setStatsByFormat(committed.formatsNow);
+      if (committed.chart) {
+        setHistory(committed.chart.history);
+        setHistoryCounts(committed.chart.counts);
+      }
+      if (committed.streakNow) setStreak(committed.streakNow);
+    }
+    // The names that make the round's confusions drawable.
+    saveSeenSpecies(seenSpeciesRef.current);
+    setSeenSpecies({ ...seenSpeciesRef.current });
+    // Flush now: recordEvent only queues, and a round left in the outbox until
+    // the next cold launch looks exactly like sync being broken. Not awaited —
+    // the results screen must never wait on the network.
+    if (total > 0) syncCloud();
     setMissed(finalMissed);
     setCorrectCount(finalCorrect);
     setScreen('results');
-  }, []);
+  }, [adoptStored]);
 
   // Record a single card's outcome into the per-species tallies. Returns the
   // species key so callers can build a sync delta for it.
@@ -1598,46 +1644,59 @@ export default function App() {
               scientific: r.sci || r.name,
               image: r.image || null,
             };
-            // track:false — this is its own event, not part of a phone round.
-            const key = recordResult(card, !!r.correct, { track: false });
-            saveSpeciesStats(speciesRef.current);
-            setSpeciesStats({ ...speciesRef.current });
-            setLifetime(await addToStats(1, r.correct ? 1 : 0));
-            setStreak(await recordStreakDay(r.ts || Date.now()));
-            addActiveDay(r.ts || Date.now());
-            // A wrist answer syncs to the user's other devices exactly like a
-            // phone answer. No pct: one card is not a round, and it must not
-            // land on the accuracy chart.
-            if (key) {
-              recordEvent({
-                answered: 1,
-                correct: r.correct ? 1 : 0,
-                ts: r.ts || Date.now(),
-                species: {
-                  [key]: {
-                    name: card.common || card.scientific,
-                    sci: card.scientific,
-                    image: card.image || null,
-                    known: r.correct ? 1 : 0,
-                    missed: r.correct ? 0 : 1,
-                  },
-                },
-              });
-            }
+            // Its own event, not part of a phone round — and saved as a DELTA
+            // on top of storage. It used to save the whole in-memory tally,
+            // which carries any phone round in progress: a watch answer mid-
+            // round wrote those half-round tallies to disk, where they stayed
+            // if the app was then closed, never counted in the totals or synced.
+            const key = speciesKey(card);
+            const at = r.ts || Date.now();
+            const entry = key
+              ? {
+                  name: card.common || card.scientific,
+                  sci: card.scientific,
+                  image: card.image || null,
+                  ...recordRecall(null, { correct: !!r.correct, at }),
+                }
+              : null;
+            const done = await withStatsLock(async () => {
+              const speciesNow = entry ? await addSpeciesDelta({ [key]: entry }) : null;
+              const lifetimeNow = await addToStats(1, r.correct ? 1 : 0);
+              const streakNow = await recordStreakDay(at);
+              await addActiveDay(at);
+              // A wrist answer syncs to the user's other devices exactly like a
+              // phone answer. No pct: one card is not a round, and it must not
+              // land on the accuracy chart.
+              if (entry) {
+                await recordEvent({
+                  answered: 1,
+                  correct: r.correct ? 1 : 0,
+                  ts: at,
+                  species: { [key]: entry },
+                });
+              }
+              return { speciesNow, lifetimeNow, streakNow };
+            });
+            if (done.speciesNow) adoptStored({ species: done.speciesNow });
+            setLifetime(done.lifetimeNow);
+            setStreak(done.streakNow);
           } else if (r.kind === 'round' && r.total > 0) {
-            const h = await addGameResult((r.correct / r.total) * 100, r.total);
+            const h = await withStatsLock(async () => {
+              const chart = await addGameResult((r.correct / r.total) * 100, r.total);
+              // The finished wrist round as a chart point. Its cards were
+              // already counted one by one above, so this carries pct only —
+              // but `n` still rides along, because the bar needs a weight even
+              // though the round must not add to the totals a second time.
+              await recordEvent({
+                pct: (r.correct / r.total) * 100,
+                n: r.total,
+                ts: r.ts || Date.now(),
+                bars: chart.bar ? [chart.bar] : [],
+              });
+              return chart;
+            });
             setHistory(h.history);
             setHistoryCounts(h.counts);
-            // The finished wrist round as a chart point. Its cards were already
-            // counted one by one above, so this carries pct only — but `n` still
-            // rides along, because the bar needs a weight even though the round
-            // must not add to the totals a second time.
-            recordEvent({
-              pct: (r.correct / r.total) * 100,
-              n: r.total,
-              ts: r.ts || Date.now(),
-              bars: h.bar ? [h.bar] : [],
-            });
           }
           // Debounced: a watch session arrives one answer at a time, and a
           // round-trip per answer would be a dozen requests in as many seconds.
@@ -1646,7 +1705,33 @@ export default function App() {
         .catch(() => {});
     };
     return subscribeWatchResults(apply);
-  }, [recordResult]);
+  }, [adoptStored]);
+
+  // Another device's events were just folded into storage — by whichever sync
+  // it was. Re-read what changed and re-derive the live copies, so the next
+  // round builds on the merged data instead of saving over it.
+  useEffect(() => {
+    if (!SYNC_ENABLED) return undefined;
+    return onRemoteApplied(async () => {
+      const [lt, fm, sp, cf, hist, histN, st] = await withStatsLock(() =>
+        Promise.all([
+          loadStats(),
+          loadStatsByFormat(),
+          loadSpeciesStats(),
+          loadConfusions(),
+          loadHistory(),
+          loadHistoryCounts(),
+          loadStreak(),
+        ])
+      );
+      setLifetime(lt);
+      setStatsByFormat(fm || {});
+      adoptStored({ species: sp || {}, confusions: cf || {} });
+      setHistory(hist);
+      setHistoryCounts(histN);
+      setStreak(st);
+    });
+  }, [adoptStored]);
 
   const handleGrade = useCallback(
     (correct, chosen, verifyPairKey, ms = 0) => {
@@ -2169,10 +2254,8 @@ export default function App() {
               // Clears the confusion matrix and the recovery streaks as well —
               // both are derived from play — and tombstones the player's pair
               // notes. Only the in-memory mirrors are left to us.
-              await resetStatistics();
-              speciesRef.current = {};
-              setSpeciesStats({});
-              setConfusions({});
+              await withStatsLock(() => resetStatistics());
+              adoptStored({ species: {}, confusions: {} });
               confusionWinsRef.current = {};
               setConfusionNotes({});
               // The note deletions live in the settings row, so they only reach
@@ -2213,20 +2296,10 @@ export default function App() {
             // Signing in can fold in a whole other device's history AND its
             // settings, so adopt both immediately rather than waiting for a
             // relaunch. afterAuthChange returns { merged, settings }.
+            // (The merged history itself arrives through onRemoteApplied, like
+            // every sync's.)
             onSynced={(res) => {
-              if (!res) return;
-              const merged = res.merged;
-              if (merged) {
-                setLifetime(merged.lifetime);
-                if (merged.formats) setStatsByFormat(merged.formats);
-                speciesRef.current = merged.species;
-                setSpeciesStats({ ...merged.species });
-                setHistory(merged.history);
-                setHistoryCounts(merged.historyCounts || []);
-                setStreak(merged.streak);
-                if (merged.confusions) setConfusions(merged.confusions);
-              }
-              if (res.settings) applyRemoteSettings(res.settings);
+              if (res && res.settings) applyRemoteSettings(res.settings);
             }}
           />
         )}

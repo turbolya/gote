@@ -19,6 +19,12 @@ import { Directory, File, Paths } from 'expo-file-system';
 
 const DIR_NAME = 'gote-photos';
 
+// Downloads land under this suffix and are renamed into place only once they
+// are complete. On Android the response streams straight into the destination,
+// so a download cut off halfway used to leave a truncated file under the final
+// name — which the next launch listed as cached, and served, broken, for ever.
+const PART = '.part';
+
 // Filenames present in the cache directory. Populated once at startup by
 // listing the directory, then kept in step as downloads land — so the hot path
 // (`isCached`, called per card while filtering a deck) is a plain Set lookup
@@ -58,7 +64,17 @@ export async function initPhotoCache() {
       return;
     }
     for (const entry of dir.list()) {
-      if (entry && entry.name) names.add(entry.name);
+      if (!entry || !entry.name) continue;
+      // A download the app was killed in the middle of. Never a usable photo.
+      if (entry.name.endsWith(PART)) {
+        try {
+          entry.delete();
+        } catch {
+          /* best-effort */
+        }
+        continue;
+      }
+      names.add(entry.name);
     }
   } catch {
     /* best-effort: an unreadable cache just means nothing is offline-ready */
@@ -97,7 +113,11 @@ export async function cachePhoto(url) {
     const dir = dirRef();
     if (!dir.exists) dir.create({ intermediates: true, idempotent: true });
     const name = fileNameFor(url);
-    await File.downloadFileAsync(url, new File(dir, name));
+    const part = new File(dir, name + PART);
+    await File.downloadFileAsync(url, part, { idempotent: true });
+    const done = new File(dir, name);
+    if (done.exists) done.delete(); // a stale copy the listing never saw
+    part.rename(name);
     names.add(name);
     return true;
   } catch {
@@ -124,6 +144,21 @@ export async function cachePhotos(urls, { concurrency = 4 } = {}) {
 }
 
 // How many photos are available offline (for the Settings copy).
+// Forget a cached copy that turned out to be unusable — evicted by the OS while
+// the app was running, or damaged — so the next render goes to the network
+// instead of pointing at it again. The caller has already seen the failure.
+export function forgetCached(url) {
+  if (!url) return;
+  const name = fileNameFor(url);
+  names.delete(name);
+  try {
+    const f = new File(dirRef(), name);
+    if (f.exists) f.delete();
+  } catch {
+    /* best-effort */
+  }
+}
+
 export function cachedCount() {
   return names.size;
 }

@@ -36,7 +36,7 @@ import {
   formatAttribution,
 } from '../api';
 import { prefetchUpcoming } from '../prefetch';
-import { photoSource } from '../photocache';
+import { photoSource, isCached, forgetCached } from '../photocache';
 import { pickSimilarDistractors } from '../quiz';
 import { pairKey, pairCount, CONFUSION_HINT_MIN } from '../confusions';
 import { VERIFY_STREAK_MIN } from '../verify';
@@ -255,7 +255,10 @@ export default function StudyScreen({
     if (phase === 'answered' || !card) return;
     if (!typed.trim()) return;
     commitAnswer();
-    const res = matchAnswer(typed, card);
+    // The round's pool doubles as the list of species the player could be
+    // naming instead: an answer that fits one of them as well as this card is
+    // that species, not a typo of this one.
+    const res = matchAnswer(typed, card, choicePool);
     setTypedResult(res);
     setPicked(res.ok ? answer : TYPED_WRONG);
     setPhase('answered');
@@ -275,6 +278,9 @@ export default function StudyScreen({
   const [fetched, setFetched] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [imgError, setImgError] = useState(false);
+  // The on-disk copy failed to load (evicted by the OS, or damaged), so this
+  // card falls back to the network copy rather than showing a broken photo.
+  const [photoRemote, setPhotoRemote] = useState(false);
   // Whether the main photo has finished loading — the Speedrun countdown only
   // starts once the picture is actually on screen (a failed load counts too, so
   // a broken image can't stall the round).
@@ -317,6 +323,7 @@ export default function StudyScreen({
     setLoadingMore(false);
     setImgError(false);
     setImgLoaded(false);
+    setPhotoRemote(false);
     setViewer(null);
     setMapOpen(false);
     setFreshUri(null);
@@ -574,18 +581,27 @@ export default function StudyScreen({
                 {/* photoSource prefers the on-disk copy, so a cached card
                     renders with no connection (and faster when there is one). */}
                 <Image
-                  source={photoSource(photoUri)}
+                  source={photoRemote ? { uri: photoUri } : photoSource(photoUri)}
                   style={StyleSheet.absoluteFill}
                   resizeMode="cover"
                   blurRadius={30}
                 />
                 <View style={styles.fsBackdropScrim} />
                 <Image
-                  source={photoSource(photoUri)}
+                  source={photoRemote ? { uri: photoUri } : photoSource(photoUri)}
                   style={StyleSheet.absoluteFill}
                   resizeMode="contain"
                   onLoad={() => setImgLoaded(true)}
-                  onError={() => setImgError(true)}
+                  onError={() => {
+                    // A cached copy that will not load gets one retry from the
+                    // network before the card is written off as broken.
+                    if (!photoRemote && isCached(photoUri)) {
+                      forgetCached(photoUri);
+                      setPhotoRemote(true);
+                      return;
+                    }
+                    setImgError(true);
+                  }}
                 />
               </>
             )}

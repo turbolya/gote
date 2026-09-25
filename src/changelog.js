@@ -8,9 +8,31 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.44.6';
+export const APP_VERSION = '2.44.7';
 
 export const CHANGELOG = [
+  {
+    version: '2.44.7',
+    date: '2026-09-25',
+    changes: [
+      'Typing the name of the look-alike no longer counts as right. “Western '
+        + 'Meadowlark” used to be accepted for Eastern Meadowlark, because two '
+        + 'letters looked like a typo. Real slips still pass, including two '
+        + 'letters swapped.',
+      'Typed answers work in every language. A common name in Cyrillic, '
+        + 'Greek, Japanese or any other non-Latin script was marked wrong even '
+        + 'when you typed it exactly.',
+      'With sync on, progress from your other devices no longer disappears '
+        + 'after you play a round. Rounds, streaks and the chart were safe, but '
+        + 'per-species results and mix-ups merged in the background could be '
+        + 'overwritten by the next round.',
+      'Smart play rounds now have the number of cards you ask for when “One '
+        + 'card per species” is off. Several photos of one species used to '
+        + 'count as one card, so rounds could come out much shorter.',
+      'A photo whose offline copy is damaged now loads from the internet '
+        + 'instead of showing as broken.',
+    ],
+  },
   {
     version: '2.44.6',
     date: '2026-09-20',

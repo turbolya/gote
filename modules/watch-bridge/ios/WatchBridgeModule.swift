@@ -79,7 +79,9 @@ final class WatchSessionHolder: NSObject, WCSessionDelegate {
       try? session.updateApplicationContext(context)
       pushComplication(context, on: session)
     default:
+      lock.lock()
       pending = context
+      lock.unlock()
       session.activate()
     }
   }
@@ -114,10 +116,15 @@ final class WatchSessionHolder: NSObject, WCSessionDelegate {
     activationDidCompleteWith activationState: WCSessionActivationState,
     error: Error?
   ) {
-    if activationState == .activated, let context = pending {
+    // `pending` is written from the JS module's queue and read here on
+    // WatchConnectivity's own queue, so both sides take the lock.
+    lock.lock()
+    let context = pending
+    if activationState == .activated { pending = nil }
+    lock.unlock()
+    if activationState == .activated, let context {
       try? session.updateApplicationContext(context)
       pushComplication(context, on: session)
-      pending = nil
     }
   }
 

@@ -5,6 +5,7 @@
 // swap in an in-memory backend and exercise this file (see src/kv.js).
 
 import * as kv from './kv';
+import { foldSpecies, mergeConfusions } from './sync/merge';
 
 const K_USER = '@gote/username';
 const K_STATS = '@gote/stats';
@@ -47,6 +48,9 @@ const K_HISTORY_N = '@gote/historyCounts';
 // bars need identities: an anonymous list cannot tell two copies of one round
 // apart, which is how the same round kept being drawn twice.
 const K_BARS = '@gote/bars';
+// A random tag, made once per install, that bars rebuilt from the legacy arrays
+// carry in their ids. See barTag.
+const K_BAR_TAG = '@gote/barTag';
 const K_STREAK = '@gote/streak';
 const K_DAYS = '@gote/activeDays';
 const K_WATCH_IDS = '@gote/watchResultIds';
@@ -89,7 +93,25 @@ const CACHE_VERSION = 5;
 //   • DATA_VERSION (here)      — the on-device AsyncStorage shapes.
 //   • CACHE_VERSION (below)    — only the disposable observation cache.
 //   • SETTINGS_PAYLOAD_VERSION — what crosses the network (src/sync/merge.js).
-export const DATA_VERSION = 2;
+export const DATA_VERSION = 3;
+
+// --- one writer at a time ----------------------------------------------------
+// Every stats blob here is read, changed and written back, and several things
+// do that concurrently: finishing a round, a watch answer arriving, and sync
+// folding in another device's events. Two of them interleaving is a lost
+// update — sync loads the totals, a round saves its own, sync saves the totals
+// it loaded plus the remote events, and the round is gone. Nothing detects it.
+//
+// So every compound stats update runs inside withStatsLock, one after another.
+// It is NOT re-entrant: the functions below are the primitives a locked
+// section calls, and none of them takes the lock itself. Keep network calls
+// out of a locked section — it holds up the results screen.
+let statsChain = Promise.resolve();
+export function withStatsLock(fn) {
+  const run = statsChain.then(() => fn());
+  statsChain = run.catch(() => {});
+  return run;
+}
 
 export async function loadDataVersion() {
   try {
@@ -116,6 +138,12 @@ export async function runDataMigrations() {
   if (from < 2) {
     await migrateBarsV2();
     from = 2;
+  }
+  // v2 -> v3: bars converted from the legacy arrays get ids unique to this
+  // install, where they used to be positional (see retagPositionalBars).
+  if (from < 3) {
+    await retagPositionalBars();
+    from = 3;
   }
   try {
     await kv.setItem(K_DATA_VERSION, String(DATA_VERSION));
@@ -287,6 +315,16 @@ export async function saveSpeciesStats(map) {
   }
 }
 
+// Fold a per-species delta into the stored tallies and return the result. Call
+// inside withStatsLock. Saving a delta rather than a whole in-memory map is what
+// keeps other devices' tallies — folded in by sync since that map was loaded —
+// from being overwritten.
+export async function addSpeciesDelta(delta) {
+  const next = foldSpecies(await loadSpeciesStats(), delta);
+  if (delta && Object.keys(delta).length) await saveSpeciesStats(next);
+  return next;
+}
+
 // The confusion matrix: `{ [correctKey]: { [chosenKey]: count } }`, keyed by
 // species taxon id (scientific name as a fallback). Counts only — display names
 // are joined from `@gote/species` when the nemesis UI needs them.
@@ -306,6 +344,13 @@ export async function saveConfusions(map) {
   } catch {
     /* ignore */
   }
+}
+
+// Same, for the confusion matrix.
+export async function addConfusionsDelta(delta) {
+  const next = mergeConfusions(await loadConfusions(), delta);
+  if (delta && Object.keys(delta).length) await saveConfusions(next);
+  return next;
 }
 
 // The player's "my tell" notes. Canonical shape: `{ [pairKey]: { text, t } }`
@@ -469,9 +514,10 @@ export async function saveHistory(history, counts) {
   const ns = pcts.length ? clean.slice(-pcts.length) : [];
   const offset = pcts.length - ns.length;
   const prev = counts === undefined ? await loadBars() : [];
+  const tag = await barTag();
   await saveBars(
     pcts.map((pct, i) => ({
-      id: `seed-${i}`,
+      id: `seed-${tag}-${i}`,
       pct,
       // Omitted counts leave the stored sizes alone: a caller that only knows
       // the percentages must not silently erase them.
@@ -988,7 +1034,9 @@ export async function loadBars() {
     // correctness does not depend on the migration having run first. A device
     // that reads before runDataMigrations, or one restored from a backup taken
     // before it, still has its chart rather than a silently empty one.
-    if (!raw) return legacyBars(await loadNumbers(K_HISTORY), await loadNumbers(K_HISTORY_N));
+    if (!raw) {
+      return legacyBars(await loadNumbers(K_HISTORY), await loadNumbers(K_HISTORY_N), await barTag());
+    }
     const arr = JSON.parse(raw);
     if (!Array.isArray(arr)) return [];
     return arr
@@ -1018,22 +1066,38 @@ export async function saveBars(bars) {
   return arr;
 }
 
-// v1 -> v2. The old shape was two parallel arrays of bare numbers, right-aligned
-// with each other. They get ids by position and an `at` of their index, which
-// puts every pre-existing bar before anything played since — true, and it keeps
-// their order without needing a timestamp nobody recorded.
 // The old shape: two parallel arrays of bare numbers, the counts right-aligned
-// with the percentages. They get ids by position and an `at` of their index,
-// which puts every pre-existing bar before anything played since — true, and it
-// keeps their order without needing a timestamp nobody recorded.
-function legacyBars(history, counts) {
+// with the percentages. They get an `at` of their index, which puts every
+// pre-existing bar before anything played since — true, and it keeps their
+// order without needing a timestamp nobody recorded.
+//
+// Their ids carry this install's tag. They used to be purely positional
+// (`legacy-0`, `legacy-1`, …), so two devices that both had a chart from before
+// bars existed produced the SAME ids for different rounds — and since bars fold
+// as a union by id, joining one account kept one device's old rounds and
+// silently dropped the other's.
+function legacyBars(history, counts, tag) {
   const offset = history.length - counts.length;
   return history.map((pct, i) => ({
-    id: `legacy-${i}`,
+    id: `legacy-${tag}-${i}`,
     pct: Math.max(0, Math.min(100, Math.round(Number(pct) || 0))),
     n: i >= offset ? Math.max(0, Math.round(Number(counts[i - offset]) || 0)) : 0,
     at: i,
   }));
+}
+
+// This install's bar tag, created on first use and then fixed — ids must not
+// change between reads, or the same bar would stop matching itself.
+async function barTag() {
+  try {
+    const existing = await kv.getItem(K_BAR_TAG);
+    if (existing) return existing;
+    const tag = 'xxxxxxxx'.replace(/x/g, () => Math.floor(Math.random() * 16).toString(16));
+    await kv.setItem(K_BAR_TAG, tag);
+    return tag;
+  } catch {
+    return 'untagged';
+  }
 }
 
 async function migrateBarsV2() {
@@ -1044,8 +1108,41 @@ async function migrateBarsV2() {
       loadNumbers(K_HISTORY_N),
     ]);
     if (!history.length) return;
-    await kv.setItem(K_BARS, JSON.stringify(legacyBars(history, counts)));
+    await kv.setItem(K_BARS, JSON.stringify(legacyBars(history, counts, await barTag())));
   } catch {
     /* best-effort — a failed migration just leaves the legacy arrays in place */
+  }
+}
+
+// v2 -> v3. Give positional bar ids (`legacy-3`, `seed-3`) this install's tag.
+//
+// Only on a device that has never sent its history to a sync account. Once a
+// baseline has gone up, the account holds these bars under their old ids, and
+// renaming them here would make the next baseline — a repair, or joining
+// another account — send the same rounds again under new names, drawing them
+// twice on every other device. Leaving them alone costs only what was already
+// lost. (The two keys are src/sync/outbox.js's; read directly here because
+// storage must not depend on the sync layer.)
+async function retagPositionalBars() {
+  try {
+    const [baselined, pending] = await Promise.all([
+      kv.getItem('@gote/sync/baselineUserId'),
+      kv.getItem('@gote/sync/pendingBaseline'),
+    ]);
+    if (baselined || pending) return;
+    const raw = await kv.getItem(K_BARS);
+    if (!raw) return;
+    const bars = JSON.parse(raw);
+    if (!Array.isArray(bars)) return;
+    const positional = /^(legacy|seed)-(\d+)$/;
+    if (!bars.some((b) => b && positional.test(String(b.id)))) return;
+    const tag = await barTag();
+    const next = bars.map((b) => {
+      const m = b && positional.exec(String(b.id));
+      return m ? { ...b, id: `${m[1]}-${tag}-${m[2]}` } : b;
+    });
+    await kv.setItem(K_BARS, JSON.stringify(next));
+  } catch {
+    /* best-effort — the old ids still work on a single device */
   }
 }

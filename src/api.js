@@ -105,8 +105,44 @@ const HEADERS = { Accept: "application/json", "User-Agent": USER_AGENT };
 // iNaturalist caps clients at ~60 requests/minute and returns HTTP 429 when
 // exceeded. Centralized fetch that retries 429s with backoff, honoring the
 // server's Retry-After header when present. All API requests go through this.
+//
+// Two limits on the wait, both learned the hard way: it is capped, because a
+// Retry-After of an hour would otherwise park the loading screen for an hour;
+// and it listens to the caller's abort signal, because the loading screen's
+// Cancel button used to do nothing until the backoff had run its course.
 const MAX_RETRIES = 3;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const MAX_RETRY_WAIT_MS = 30000;
+
+function sleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const abortError = () => {
+      const e = new Error("Aborted");
+      e.name = "AbortError";
+      return e;
+    };
+    if (signal && signal.aborted) {
+      reject(abortError());
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(t);
+      reject(abortError());
+    };
+    const t = setTimeout(() => {
+      if (signal) signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    if (signal) signal.addEventListener("abort", onAbort);
+  });
+}
+
+// The wait before retry `attempt` (0-based): Retry-After (seconds) if the server
+// gave one, else exponential backoff (1s, 2s, 4s) — never more than the cap.
+export function retryWaitMs(retryAfterHeader, attempt) {
+  const header = parseInt(retryAfterHeader || "", 10);
+  const ms = Number.isFinite(header) && header >= 0 ? header * 1000 : 1000 * 2 ** attempt;
+  return Math.min(ms, MAX_RETRY_WAIT_MS);
+}
 
 async function apiFetch(url, options) {
   let attempt = 0;
@@ -114,12 +150,7 @@ async function apiFetch(url, options) {
   while (true) {
     const res = await fetch(url, options);
     if (res.status !== 429 || attempt >= MAX_RETRIES) return res;
-    // Wait: Retry-After (seconds) if given, else exponential backoff (1s, 2s, 4s).
-    const header = parseInt(res.headers.get("Retry-After") || "", 10);
-    const waitMs = Number.isFinite(header)
-      ? header * 1000
-      : 1000 * 2 ** attempt;
-    await sleep(waitMs);
+    await sleep(retryWaitMs(res.headers.get("Retry-After"), attempt), options && options.signal);
     attempt += 1;
   }
 }

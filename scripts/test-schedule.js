@@ -79,6 +79,18 @@ console.log('\\nscheduleDeck');
   // A partner missing from the pool: the present member is still resurfaced.
   const half = scheduleDeck(cards([1, 3, 4, 5, 6, 7, 8, 9]), { confusions: { 1: { 2: 5 } }, size: 4, rng: lcg(9) });
   ok('resurfaces the present member when the partner is absent', keysOf(half).includes('1'));
+
+  // "One card per species" off: several observations of one species. The round
+  // is dealt by CARD, so it still reaches the size asked for.
+  const multi = Array.from({ length: 30 }, (_, i) => ({ id: 'o' + i, taxonId: 1 + (i % 8) }));
+  const dealt = scheduleDeck(multi, { confusions: {}, size: 20, rng: lcg(5) });
+  eq('several photos of a species still fill the round', dealt.length, 20);
+  eq('no card is dealt twice', new Set(dealt.map((c) => c.id)).size, 20);
+  const withPair = scheduleDeck(multi, { confusions: { 1: { 2: 9 } }, size: 20, rng: lcg(6) });
+  eq('a due pair does not shrink it either', withPair.length, 20);
+  ok('and is still in it', keysOf(withPair).includes('1') && keysOf(withPair).includes('2'));
+  eq('the reserve never pushes a round past its size',
+    scheduleDeck(cards([1, 2, 3, 4, 5, 6]), { confusions: { 1: { 2: 9 }, 3: { 4: 9 }, 5: { 6: 9 } }, size: 3, reserveFraction: 1, rng: lcg(2) }).length, 3);
 }
 
 console.log('\\n' + (failed ? 'FAILED ' + failed : 'passed ' + passed) + (failed ? ' / ' + (passed + failed) : ''));

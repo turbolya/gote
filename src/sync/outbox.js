@@ -93,7 +93,22 @@ export async function loadOutbox() {
   return readJson(K_OUTBOX, []);
 }
 
-export async function saveOutbox(events) {
+// Every change to the outbox is a read-modify-write, and a round can be queued
+// while a sync is clearing the rows it just uploaded. Interleaved, the clear
+// writes back the list it read — without the round queued in between — and that
+// round is never uploaded. So all three writers go through one queue.
+let outboxChain = Promise.resolve();
+function mutateOutbox(fn) {
+  const run = outboxChain.then(() => fn());
+  outboxChain = run.catch(() => {});
+  return run;
+}
+
+export function saveOutbox(events) {
+  return mutateOutbox(() => writeOutbox(events));
+}
+
+async function writeOutbox(events) {
   const arr = Array.isArray(events) ? events : [];
   if (arr.length <= MAX_OUTBOX) {
     await writeJson(K_OUTBOX, arr);
@@ -106,19 +121,23 @@ export async function saveOutbox(events) {
   await writeJson(K_OUTBOX, folded ? [folded, ...arr.slice(cut)] : arr.slice(-MAX_OUTBOX));
 }
 
-export async function pushToOutbox(event) {
-  const arr = await loadOutbox();
-  arr.push(event);
-  await saveOutbox(arr);
-  return arr.length;
+export function pushToOutbox(event) {
+  return mutateOutbox(async () => {
+    const arr = await loadOutbox();
+    arr.push(event);
+    await writeOutbox(arr);
+    return arr.length;
+  });
 }
 
 // Drop the events that were confirmed uploaded, keeping anything queued while
 // the request was in flight.
-export async function clearFromOutbox(ids) {
+export function clearFromOutbox(ids) {
   const gone = new Set(ids || []);
-  const arr = await loadOutbox();
-  await saveOutbox(arr.filter((e) => !gone.has(e.id)));
+  return mutateOutbox(async () => {
+    const arr = await loadOutbox();
+    await writeOutbox(arr.filter((e) => !gone.has(e.id)));
+  });
 }
 
 // Ids already folded into the local rollups. Guards against a redelivered row

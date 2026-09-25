@@ -481,6 +481,38 @@ export function addConfusion(map, correctKey, chosenKey, n = 1) {
   return out;
 }
 
+// Fold a per-species DELTA (a round's tallies, or one watch answer) into stored
+// per-species tallies. The same arithmetic as applyEvent's species fold — sums,
+// and max for `lastSeen` — except that the delta's name, scientific name and
+// image win: a local delta comes from the deck on this device, which is the
+// better source, whereas a remote event's names are only a fallback.
+//
+// This is what the app saves a round with. It used to save its whole in-memory
+// copy instead, which overwrote anything another device had folded into
+// storage since that copy was loaded — permanently, because the applied-id
+// ledger meant those events were never pulled again.
+export function foldSpecies(base, delta) {
+  const out = { ...(base && typeof base === 'object' ? base : {}) };
+  const inc = delta && typeof delta === 'object' ? delta : {};
+  for (const key of Object.keys(inc)) {
+    const d = inc[key] || {};
+    const prev = out[key] || {};
+    out[key] = {
+      name: d.name || prev.name || '',
+      sci: d.sci || prev.sci || '',
+      image: d.image || prev.image || null,
+      known: num(prev.known) + num(d.known),
+      missed: num(prev.missed) + num(d.missed),
+      lastSeen: Math.max(num(prev.lastSeen), num(d.lastSeen)),
+      msTotal: num(prev.msTotal) + num(d.msTotal),
+      msCount: num(prev.msCount) + num(d.msCount),
+      points: num(prev.points) + num(d.points),
+      weight: num(prev.weight) + num(d.weight),
+    };
+  }
+  return out;
+}
+
 // Deep-add two confusion maps (union of correct→chosen pairs, counts summed).
 export function mergeConfusions(a, b) {
   const out = {};

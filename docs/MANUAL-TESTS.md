@@ -219,14 +219,20 @@ scores correctly, and returns to the menu cleanly.
     recorded confusion for — there is no pair to ask about.
 - [ ] **TC-2.8 Typing from memory.** In a Smart play round, get a
     "type the name" card. Try, in turn: the exact common name; the same name
-    with wrong capitals and no accents; a one-letter typo; the scientific name;
-    and a completely different species.
+    with wrong capitals and no accents; a one-letter typo; two neighbouring
+    letters swapped; the scientific name; a look-alike's name that differs by a
+    short word (e.g. "Western" for an "Eastern …" species, or "minor" for
+    "major"); and a completely different species. Then set the species-name
+    language to one in another alphabet (Russian or Japanese), and type a
+    card's name exactly as shown.
   - *Preconditions:* A Smart play round that serves a type-the-name card
   - *Priority:* High
-  - *Expected:* the first four are all accepted — a typo says so and shows the
-    correct spelling. The different species is **rejected**. Long names wrap onto
-    a second line rather than scrolling sideways. Check is greyed until you type
-    something, and the field and the button are clearly different controls.
+  - *Expected:* the first five are all accepted — a typo says so and shows the
+    correct spelling. The look-alike's name and the different species are
+    **rejected**. The exactly typed Russian or Japanese name is **accepted**.
+    Long names wrap onto a second line rather than scrolling sideways. Check is
+    greyed until you type something, and the field and the button are clearly
+    different controls.
 - [ ] **TC-2.9 Group All / None shortcuts.** On Smart play ▸ **⋯** or on
     Flash cards, tap **None** then **All** beside Groups.
   - *Expected:* None clears every group and Start greys out reading "Select a

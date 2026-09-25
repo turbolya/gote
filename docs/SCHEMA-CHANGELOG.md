@@ -38,6 +38,24 @@ The append-only `events` log needs neither rule bent: every client only ever
 
 ## DB schema
 
+### 2026-09-25 — `20260925120000_payload_cap_and_stale_anonymous.sql`
+- `events_payload_size`: a CHECK capping the summed text size of an event's
+  jsonb columns at 2 MB, and `settings_data_size` capping `settings.data` at
+  1 MB. Both `not valid`, so existing rows are not re-checked. Far above anything
+  the app writes; they exist so an anonymous account (anyone can mint one)
+  cannot fill the database a row at a time. An over-size row is refused with
+  23514, which clients treat as permanent.
+- `delete_stale_anonymous_users(older_than interval default '90 days')`:
+  deletes anonymous accounts with no event, settings write or sign-in in that
+  window; the auth.users cascade removes their rows. EXECUTE revoked from the API
+  roles. Scheduled weekly via pg_cron when that extension is enabled.
+- **Not applied to production automatically** — run it in the SQL editor (or
+  `supabase db push`) like the others. Once it is live, PRIVACY.md's *Data
+  retention* section should say that sync data from an account never linked to
+  an email is deleted after 90 days unused.
+- (Entries for the migrations between v5 and this one — `formats`, the
+  function-EXECUTE revoke and `bars` — live in the migration files' own headers.)
+
 ### v5 — 2026-08-02 — `20260802120000_events_round_size.sql`
 - Added two columns to `public.events`: `n integer not null default 0` and
   `counts jsonb not null default '[]'`. `n` is how many cards the round this
@@ -180,6 +198,17 @@ another device is adopted even when this device's prefs are newer. No DB migrati
   is something an older client ignores, whereas changing the element type would
   make it read every bar as `NaN`. **Now synced** via the events `n` / `counts`
   fields, DB v5 / events payload v4).
+
+### v3 — 2026-09-25 — bar ids carry an install tag
+- `@gote/barTag`: a random 8-hex tag, created once per install.
+- Bars rebuilt from the legacy parallel arrays are now `legacy-<tag>-<i>`
+  (and the screenshot seeder's `seed-<tag>-<i>`). They were positional
+  (`legacy-<i>`), so two devices with pre-bar charts produced identical ids for
+  different rounds, and the union-by-id fold kept only one device's.
+- Migration (`retagPositionalBars`): renames positional ids on a device that has
+  NEVER sent a sync baseline. One that has leaves them alone — the account
+  already holds them under the old ids, and renaming would make a later baseline
+  send those rounds again under new names.
 
 ### Species tally gains retrieval signals — 2026-08-08
 

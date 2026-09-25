@@ -95,6 +95,20 @@ const card = (over = {}) => ({
   ...over,
 });
 
+// --- retryWaitMs (429 backoff) ---
+t('retryWaitMs: honours a short Retry-After', () => {
+  assert.equal(api.retryWaitMs('5', 0), 5000);
+});
+t('retryWaitMs: exponential backoff without one', () => {
+  assert.deepEqual([0, 1, 2].map((a) => api.retryWaitMs(null, a)), [1000, 2000, 4000]);
+});
+t('retryWaitMs: an HTTP-date Retry-After falls back to backoff', () => {
+  assert.equal(api.retryWaitMs('Wed, 21 Oct 2026 07:28:00 GMT', 1), 2000);
+});
+t('retryWaitMs: an hour-long Retry-After is capped', () => {
+  assert.equal(api.retryWaitMs('3600', 0), 30000);
+});
+
 // --- applyFilters ---
 t('applyFilters: passthrough when no filters', () => {
   const cards = [card({ id: 'a' }), card({ id: 'b', taxonId: 11 })];
@@ -344,6 +358,97 @@ async function asyncTests() {
     await kvImpl.setItem('@gote/dataVersion', String(load('src/storage.js', kvImpl).DATA_VERSION));
     const s = load('src/storage.js', kvImpl);
     assert.equal(await s.runDataMigrations(), s.DATA_VERSION);
+  });
+
+  // --- chart bar ids (data v3) ---
+  const legacyArrays = async (kvImpl) => {
+    await kvImpl.setItem('@gote/history', JSON.stringify([50, 60, 70]));
+    await kvImpl.setItem('@gote/historyCounts', JSON.stringify([5, 6]));
+  };
+  await tAsync('legacy bars read before migrating get stable, install-tagged ids', async () => {
+    const kvImpl = memKv();
+    await legacyArrays(kvImpl);
+    const s = load('src/storage.js', kvImpl);
+    const first = (await s.loadBars()).map((b) => b.id);
+    const again = (await s.loadBars()).map((b) => b.id);
+    assert.deepEqual(first, again, 'ids must not change between reads');
+    assert.ok(first.every((id) => /^legacy-[0-9a-f]{8}-\d+$/.test(id)), first.join(','));
+  });
+  await tAsync('two installs give their legacy bars different ids', async () => {
+    const a = memKv();
+    const b = memKv();
+    await legacyArrays(a);
+    await legacyArrays(b);
+    const idsA = (await load('src/storage.js', a).loadBars()).map((x) => x.id);
+    const idsB = (await load('src/storage.js', b).loadBars()).map((x) => x.id);
+    assert.ok(idsA.every((id) => !idsB.includes(id)), 'no id in common');
+  });
+  await tAsync('v3 migration retags positional ids on a device that never synced', async () => {
+    const kvImpl = memKv();
+    await kvImpl.setItem('@gote/dataVersion', '2');
+    await kvImpl.setItem('@gote/bars', JSON.stringify([
+      { id: 'legacy-0', pct: 50, n: 0, at: 0 },
+      { id: 'seed-1', pct: 60, n: 5, at: 1 },
+      { id: 'b-0123456789ab', pct: 70, n: 7, at: 2 },
+    ]));
+    const s = load('src/storage.js', kvImpl);
+    await s.runDataMigrations();
+    const ids = (await s.loadBars()).map((b) => b.id);
+    assert.ok(/^legacy-[0-9a-f]{8}-0$/.test(ids[0]), ids[0]);
+    assert.ok(/^seed-[0-9a-f]{8}-1$/.test(ids[1]), ids[1]);
+    assert.equal(ids[2], 'b-0123456789ab', 'a real bar id is left alone');
+  });
+  await tAsync('…but not on one whose history already went to an account', async () => {
+    const kvImpl = memKv();
+    await kvImpl.setItem('@gote/dataVersion', '2');
+    await kvImpl.setItem('@gote/sync/baselineUserId', 'user-1');
+    await kvImpl.setItem('@gote/bars', JSON.stringify([{ id: 'legacy-0', pct: 50, n: 0, at: 0 }]));
+    const s = load('src/storage.js', kvImpl);
+    await s.runDataMigrations();
+    assert.equal((await s.loadBars())[0].id, 'legacy-0');
+  });
+
+  // --- saving a round without erasing what sync merged ---
+  await tAsync('addSpeciesDelta keeps tallies another writer saved in between', async () => {
+    const s = load('src/storage.js', memKv());
+    await s.saveSpeciesStats({ 1: { name: 'Robin', known: 1, missed: 0 } });
+    // Sync folds another device in AFTER the app loaded its copy…
+    await s.saveSpeciesStats({ 1: { name: 'Robin', known: 1, missed: 0 }, 2: { name: 'Wren', known: 4, missed: 1 } });
+    // …and the round is saved as a delta on top of storage, not as that copy.
+    const out = await s.addSpeciesDelta({ 1: { name: 'Robin', known: 2, missed: 1 } });
+    assert.deepEqual([out[1].known, out[1].missed, out[2].known], [3, 1, 4]);
+    assert.deepEqual(await s.loadSpeciesStats(), out);
+  });
+  await tAsync('addConfusionsDelta adds to what is stored', async () => {
+    const s = load('src/storage.js', memKv());
+    await s.saveConfusions({ 1: { 2: 3 } });
+    assert.deepEqual(await s.addConfusionsDelta({ 1: { 2: 1, 4: 1 } }), { 1: { 2: 4, 4: 1 } });
+  });
+  await tAsync('withStatsLock runs sections one at a time, in order', async () => {
+    const s = load('src/storage.js', memKv());
+    const log = [];
+    const section = (name, ms) => s.withStatsLock(async () => {
+      log.push(name + '>');
+      await new Promise((r) => setTimeout(r, ms));
+      log.push('<' + name);
+      return name;
+    });
+    const results = await Promise.all([section('a', 30), section('b', 1), section('c', 10)]);
+    assert.deepEqual(results, ['a', 'b', 'c']);
+    assert.deepEqual(log, ['a>', '<a', 'b>', '<b', 'c>', '<c']);
+  });
+  await tAsync('a failing section does not jam the lock', async () => {
+    const s = load('src/storage.js', memKv());
+    await assert.rejects(s.withStatsLock(async () => { throw new Error('boom'); }));
+    assert.equal(await s.withStatsLock(async () => 'next'), 'next');
+  });
+  await tAsync('addToStats under the lock loses no update', async () => {
+    // Without the lock, two concurrent read-modify-writes both read 0.
+    const kvImpl = memKv();
+    const slow = { ...kvImpl, getItem: async (k) => { const v = await kvImpl.getItem(k); await new Promise((r) => setTimeout(r, 5)); return v; } };
+    const s = load('src/storage.js', slow);
+    await Promise.all([1, 2, 3].map(() => s.withStatsLock(() => s.addToStats(1, 1))));
+    assert.deepEqual(await s.loadStats(), { answered: 3, correct: 3 });
   });
 
   // --- downloaded-image manifest (offline deck filter) ---

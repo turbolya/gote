@@ -24,7 +24,7 @@ import {
   SETTINGS_PAYLOAD_VERSION, buildSettingsPayload, upgradeSettingsPayload,
   notesFromPayload, mergeNotes, displayNotes,
   flagsFromPayload, mergeFlags, flaggedIds,
-  addConfusion, mergeConfusions, subtractConfusions,
+  addConfusion, mergeConfusions, subtractConfusions, foldSpecies,
 } from ${JSON.stringify(src)};
 
 let passed = 0;
@@ -455,6 +455,31 @@ console.log('\\ntrimLedger');
   eq('keeps the newest', trimLedger(ids, 2000)[1999], 'id2499');
   eq('leaves a short ledger alone', trimLedger(['a', 'b'], 2000), ['a', 'b']);
   eq('survives junk', trimLedger(null, 10), []);
+}
+
+console.log('\\nfoldSpecies — saving a round as a delta');
+{
+  // What a device holds after sync folded another device in, and a round played
+  // on top. Folding the round's delta keeps both; saving the round's in-memory
+  // copy whole (the old behaviour) kept only the round's side.
+  const stored = {
+    '1': { name: 'Robin', sci: 'Erithacus rubecula', image: 'r.jpg', known: 5, missed: 1, lastSeen: 300, msTotal: 900, msCount: 3, points: 5, weight: 6 },
+    '2': { name: 'Wren', sci: 'Troglodytes troglodytes', image: null, known: 2, missed: 0, lastSeen: 100 },
+  };
+  const delta = {
+    '1': { name: 'European Robin', sci: 'Erithacus rubecula', image: null, known: 1, missed: 1, lastSeen: 200, msTotal: 400, msCount: 2, points: 1, weight: 2 },
+    '3': { name: 'Dunnock', sci: 'Prunella modularis', image: 'd.jpg', known: 1, missed: 0, lastSeen: 500 },
+  };
+  const out = foldSpecies(stored, delta);
+  eq('counters sum', [out['1'].known, out['1'].missed, out['1'].msTotal, out['1'].msCount, out['1'].points, out['1'].weight], [6, 2, 1300, 5, 6, 8]);
+  eq('lastSeen takes the max, not the newest write', out['1'].lastSeen, 300);
+  eq("the delta's name wins — it comes from this device's deck", out['1'].name, 'European Robin');
+  eq('an absent image in the delta keeps the stored one', out['1'].image, 'r.jpg');
+  eq('species only in storage are untouched', out['2'], stored['2']);
+  eq('species only in the delta are added', [out['3'].known, out['3'].name], [1, 'Dunnock']);
+  eq('the input is not mutated', stored['1'].known, 5);
+  eq('an empty delta changes nothing', foldSpecies(stored, {}), stored);
+  eq('survives junk', foldSpecies(null, null), {});
 }
 
 console.log('\\n' + passed + ' passed, ' + failed + ' failed');

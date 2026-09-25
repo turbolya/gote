@@ -71,30 +71,37 @@ export function scheduleDeck(
   // Pool fits in the round (or a degenerate size): nothing to prioritise.
   if (n <= 0 || cards.length <= n) return shuffle(cards, rng);
 
-  // First card seen per key (de-dupe defends against a doubled pool).
+  // First card seen per species — the one a due pair pulls in.
   const byKey = new Map();
   for (const c of cards) {
     const k = keyOf(c);
     if (k && !byKey.has(k)) byKey.set(k, c);
   }
 
-  const chosen = new Map(); // key -> card
+  // Chosen CARDS, not chosen species. Keying the round by species collapsed
+  // every observation of a species into one slot, so with "one card per
+  // species" turned off a pool of 30 photos of 8 species dealt an 8-card round
+  // when 20 were asked for — and the setting did nothing at all here.
+  const chosen = [];
+  const taken = new Set(); // the card objects already dealt
+  const take = (c) => {
+    if (!c || taken.has(c) || chosen.length >= n) return;
+    taken.add(c);
+    chosen.push(c);
+  };
   const reserve = Math.max(0, Math.min(n, Math.floor(n * reserveFraction)));
   // Reserve slots for the most-overdue pairs — both members when the pool has
   // them, so the pair is re-tested together.
   for (const p of dueConfusionPairs(confusions, wins, { min })) {
-    if (chosen.size >= reserve) break;
-    for (const key of [p.a, p.b]) {
-      const card = byKey.get(String(key));
-      if (card && !chosen.has(keyOf(card))) chosen.set(keyOf(card), card);
-    }
+    if (chosen.length >= reserve) break;
+    for (const key of [p.a, p.b]) take(byKey.get(String(key)));
   }
 
   // Fill the remainder with a random sample of everything else.
-  for (const c of shuffle(cards.filter((c2) => !chosen.has(keyOf(c2))), rng)) {
-    if (chosen.size >= n) break;
-    chosen.set(keyOf(c), c);
+  for (const c of shuffle(cards, rng)) {
+    if (chosen.length >= n) break;
+    take(c);
   }
 
-  return shuffle([...chosen.values()], rng);
+  return shuffle(chosen, rng);
 }

@@ -49,6 +49,16 @@ function loadStorage(asyncStorage) {
       // mock rather than double-wrapping it (which would make getItem undefined).
       return { __esModule: true, default: asyncStorage };
     }
+    // storage.js folds saved deltas with the pure helpers in sync/merge.js, which
+    // is ESM like the rest of src/ — transform it the same way.
+    if (id === './sync/merge') {
+      const mergeCode = babel.transformFileSync(path.join(__dirname, '..', 'src/sync/merge.js'), {
+        plugins: ['@babel/plugin-transform-modules-commonjs'],
+      }).code;
+      const mm = { exports: {} };
+      new Function('module', 'exports', 'require', mergeCode)(mm, mm.exports, require);
+      return mm.exports;
+    }
     return require(id);
   };
   new Function('module', 'exports', 'require', code)(m, m.exports, fakeRequire);
@@ -287,6 +297,9 @@ const DAY = 24 * 60 * 60 * 1000;
       // Where the round picker reopens: a preference, not a score. Clearing the
       // tallies is not a reason to forget that the player drills birds only.
       '@gote/roundSetup',
+      // Names this install's legacy chart bars. An identity, not a score, and
+      // it must never change once bars carry it.
+      '@gote/barTag',
     ]);
 
     const as = makeAsyncStorage(Object.fromEntries(allKeys.map((k) => [k, '"seeded"'])));

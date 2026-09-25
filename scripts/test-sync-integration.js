@@ -1180,6 +1180,82 @@ function makeDevice({ createClient, url, anon, name, optIn = true }) {
     eq(await a.storage.loadStats(), aBefore, 'A must not gain anything from a no-op repair');
   });
 
+  await test('a row that commits behind the watermark is still pulled', async () => {
+    // created_at is the inserting transaction's START time. A push that started
+    // first but committed last lands BEHIND a watermark another device has
+    // already moved past, and a strictly-forward cursor never sees it.
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.sync.syncNow();
+    const row = (extra) => ({
+      id: a.outbox.uid(),
+      user_id: idA,
+      device_id: 'other-device',
+      ts: new Date().toISOString(),
+      local_day: '2026-09-25',
+      answered: 1,
+      correct: 1,
+      pct: null,
+      n: 0,
+      species: {},
+      formats: {},
+      confusions: {},
+      history: [],
+      counts: [],
+      days: [],
+      ...extra,
+    });
+    const first = row({ answered: 2, correct: 2 });
+    ok(!(await admin.from('events').insert(first)).error, 'insert the first row');
+    await a.sync.syncNow();
+    eq(await a.storage.loadStats(), { answered: 2, correct: 2 }, 'after the first row');
+
+    const { data: firstRow } = await admin.from('events').select('created_at').eq('id', first.id).single();
+    const behind = new Date(Date.parse(firstRow.created_at) - 5000).toISOString();
+    ok(!(await admin.from('events').insert(row({ answered: 3, correct: 1, created_at: behind }))).error, 'insert the late row');
+    await a.sync.syncNow();
+    eq(await a.storage.loadStats(), { answered: 5, correct: 3 }, 'the late row was folded in');
+    await a.sync.syncNow();
+    eq(await a.storage.loadStats(), { answered: 5, correct: 3 }, 'and only once');
+  });
+
+  await test('every sync that merges something tells the app', async () => {
+    // Only the callers that read syncNow's return value used to hear about a
+    // merge, so the app's in-memory copies went stale and the next round saved
+    // them over what sync had just written.
+    if (!admin) throw new Error('needs SERVICE_ROLE_KEY');
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    const idA = await a.sync.ensureSession();
+    await a.sync.syncNow();
+    const heard = [];
+    const stop = a.sync.onRemoteApplied((summary) => heard.push(summary.count));
+    const { error } = await admin.from('events').insert({
+      id: a.outbox.uid(), user_id: idA, device_id: 'other-device', ts: new Date().toISOString(),
+      local_day: '2026-09-25', answered: 1, correct: 0, species: {}, formats: {}, confusions: {},
+      history: [], counts: [], days: [],
+    });
+    ok(!error, 'insert');
+    a.sync.scheduleSync(0); // the foreground path, whose result nobody reads
+    for (let i = 0; i < 50 && !heard.length; i += 1) await new Promise((r) => setTimeout(r, 100));
+    stop();
+    eq(heard, [1], 'the listener heard one applied event');
+  });
+
+  await test('a client ahead of the database keeps its rounds queued', async () => {
+    // PGRST204 (unknown column) says the database has not had a migration the
+    // app already relies on. That is fixed by the migration, and the rounds are
+    // fine — they used to be discarded as permanently unacceptable.
+    const a = makeDevice({ createClient, url, anon, name: 'A' });
+    await a.sync.ensureSession();
+    await a.sync.recordEvent({ answered: 4, correct: 4, pct: 100 });
+    const future = { ...(await badRow(a, { local_day: '2026-09-25', pct: 50 })), column_from_the_future: 1 };
+    await a.outbox.pushToOutbox(future);
+    await a.sync.syncNow();
+    eq((await a.outbox.loadOutbox()).length, 2, 'both rounds still queued');
+    ok((await a.sync.getSyncStatus()).pushError, 'and the reason is reported');
+  });
+
   // --- durability of the queue ----------------------------------------------
   console.log('\nthe queue must not lose rounds');
 
