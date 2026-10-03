@@ -1,10 +1,29 @@
 # gote
 
-Public site: [gote website](http://goteapp.com)
+**Learn the species you see.** Real nature photos, with questions that adapt as
+you learn — birds, plants, insects, fungi and more.
 
-A card-based learning game for **iPhone, iPad, Apple Watch and Android**, built
-with [Expo](https://expo.dev) (React Native). It pulls your **iNaturalist**
-observations and quizzes you on the species you've seen.
+<p align="center">
+  <a href="https://apps.apple.com/app/id6792750976">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="assets/app-store-badge.svg">
+      <img src="assets/app-store-badge-black.svg" alt="Download gote on the App Store" height="48">
+    </picture>
+  </a>
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/menu.jpg" alt="The gote home screen — a strip of recent observations above the Smart play card, with its four question types and a round-length slider" width="260">
+</p>
+
+[goteapp.com](https://goteapp.com) ·
+[Privacy policy](https://goteapp.com/PRIVACY.html) · Free, no ads, no account
+needed
+
+A card-based learning game for **iPhone, iPad and Apple Watch**, built with
+[Expo](https://expo.dev) (React Native). It pulls your **iNaturalist**
+observations and quizzes you on the species you've seen. Android builds from
+this same source and runs, but is not on Google Play yet.
 
 ## Game modes
 
