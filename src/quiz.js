@@ -102,7 +102,8 @@ export function buildPickRound({ card, correctPhotos = [], similar = [], total =
 
   // Correct tile: a random curated photo of the target, drawn from the front of
   // the curated order (see PICK_PHOTO_DEPTH).
-  const correctPhoto = shuffle(correctPhotos.slice(0, PICK_PHOTO_DEPTH))[0];
+  const eligibleCorrect = correctPhotos.slice(0, PICK_PHOTO_DEPTH);
+  const correctPhoto = shuffle(eligibleCorrect)[0];
 
   // Distractors: similar species (excluding the target taxon), each shown with
   // one of its OWN curated photos. De-dupe by photo URL so no two tiles match.
@@ -116,6 +117,7 @@ export function buildPickRound({ card, correctPhotos = [], similar = [], total =
     distractors.push({
       taxonId: s.taxonId,
       photo,
+      photos: s.photos || [],
       name: s.common || s.name,
       correct: false,
     });
@@ -126,9 +128,56 @@ export function buildPickRound({ card, correctPhotos = [], similar = [], total =
   if (distractors.length < total - 1) return null;
 
   const options = shuffle([
-    { taxonId: card.taxonId, photo: correctPhoto, name: targetName, correct: true },
+    {
+      taxonId: card.taxonId,
+      photo: correctPhoto,
+      // Every photo this tile may ever show, for the dice (rerollPickPhotos).
+      // Capped at PICK_PHOTO_DEPTH like the first draw: past the front of the
+      // curated order the photos turn into detail shots, and a re-roll must not
+      // hand the answer a tile nobody could name.
+      photos: eligibleCorrect,
+      name: targetName,
+      correct: true,
+    },
     ...distractors,
   ]);
 
   return { name: targetName, options };
+}
+
+/**
+ * Re-roll the photo on every tile: the same four species, different pictures.
+ * Pure, so the dice button is unit-testable.
+ *
+ * A tile changes only if its species has another photo nobody else is using;
+ * one with a single curated photo keeps the one it has. All four stay distinct,
+ * which is why tiles with the fewest alternatives choose first — otherwise a
+ * tile with one spare can find it already taken by a tile that had ten.
+ *
+ * @param {Array} options  round.options, each carrying `photo` and `photos`
+ * @param {() => number} rng  optional RNG for deterministic tests
+ * @returns {Array} a new options array (unchanged entries are returned as-is)
+ */
+export function rerollPickPhotos(options = [], rng = Math.random) {
+  const used = new Set();
+  const order = options
+    .map((o, i) => ({ i, spare: (o.photos || []).length }))
+    .sort((a, b) => a.spare - b.spare || a.i - b.i);
+
+  const next = options.slice();
+  for (const { i } of order) {
+    const opt = options[i];
+    const pool = (opt.photos || []).filter(
+      (p) => p && p !== opt.photo && !used.has(p)
+    );
+    const photo = pool.length ? pool[Math.floor(rng() * pool.length)] : opt.photo;
+    used.add(photo);
+    next[i] = photo === opt.photo ? opt : { ...opt, photo };
+  }
+  return next;
+}
+
+/** Would the dice actually change anything? False → the button is pointless. */
+export function canRerollPickPhotos(options = []) {
+  return options.some((o) => (o.photos || []).some((p) => p && p !== o.photo));
 }

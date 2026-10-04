@@ -21,6 +21,7 @@ const MAP = {
   'book-open': 'book-outline',
   check: 'checkmark',
   cloud: 'cloud-outline',
+  dice: 'dice-outline',
   'chevron-down': 'chevron-down',
   'chevron-left': 'chevron-back',
   'chevron-right': 'chevron-forward',

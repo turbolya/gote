@@ -22,6 +22,8 @@ import LoadingImage, { Spinner } from '../components/LoadingImage';
 import PhotoViewer from '../components/PhotoViewer';
 import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonPhotos } from '../api';
+import { prefetchImages } from '../prefetch';
+import { rerollPickPhotos, canRerollPickPhotos } from '../quiz';
 import { pairKey, CONFUSION_HINT_MIN } from '../confusions';
 import { IS_E2E } from '../e2e/testMode';
 
@@ -50,11 +52,27 @@ export default function PickImageScreen({
   // Fullscreen viewer state: { photos, title, loading, startIndex } or null.
   const [viewer, setViewer] = useState(null);
 
-  // Reset selection + viewer when a new round arrives.
+  // The dice re-rolls which photo each tile shows — same four species, new
+  // pictures. Null until the dice is used, so the round's own draw stands.
+  const [rolled, setRolled] = useState(null);
+  const options = rolled || (round ? round.options : []);
+
+  // Reset selection, viewer and any re-roll when a new round arrives.
   useEffect(() => {
     setPicked(null);
     setViewer(null);
+    setRolled(null);
   }, [round]);
+
+  const canRoll = round != null && canRerollPickPhotos(options);
+  const roll = () => {
+    if (!canRoll) return;
+    const next = rerollPickPhotos(options);
+    // Warm the new tiles before they render, the same way the round's first
+    // draw is warmed — otherwise every roll flashes four spinners.
+    prefetchImages(next.map((o) => o.photo));
+    setRolled(next);
+  };
 
   const pick = (opt) => {
     if (answered) return;
@@ -85,13 +103,13 @@ export default function PickImageScreen({
   };
 
   const gotIt =
-    answered && round && round.options.find((o) => o.taxonId === picked)?.correct;
+    answered && round && options.find((o) => o.taxonId === picked)?.correct;
 
   // Just-in-time callout on a wrong pick for a pair the player keeps mixing up.
   // The pick is already recorded (onPick fires on tap, before this render), so
   // the count includes it — no +1, unlike the choice-mode screen.
-  const chosenOpt = answered && !gotIt && round ? round.options.find((o) => o.taxonId === picked) : null;
-  const correctOpt = answered && !gotIt && round ? round.options.find((o) => o.correct) : null;
+  const chosenOpt = answered && !gotIt && round ? options.find((o) => o.taxonId === picked) : null;
+  const correctOpt = answered && !gotIt && round ? options.find((o) => o.correct) : null;
   const confusionHint =
     chosenOpt && correctOpt && onConfusionCount
       ? (() => {
@@ -125,7 +143,7 @@ export default function PickImageScreen({
       {IS_E2E && round && (
         <View
           testID="e2e-pick-answer"
-          accessibilityLabel={String(round.options.find((o) => o.correct)?.taxonId)}
+          accessibilityLabel={String(options.find((o) => o.correct)?.taxonId)}
           style={styles.e2eHidden}
           pointerEvents="none"
         />
@@ -140,6 +158,21 @@ export default function PickImageScreen({
           {index + 1} / {total}
         </Text>
         <View style={styles.rightGroup}>
+          {/* Dice: same four species, different pictures of each. Stays live
+              after answering — a species you just got wrong is exactly the one
+              worth seeing from another angle. */}
+          <Pressable
+            testID="pick-dice"
+            onPress={roll}
+            hitSlop={10}
+            disabled={!canRoll}
+            accessibilityRole="button"
+            accessibilityLabel="Show different photos"
+            accessibilityHint="Swaps every tile for another photo of the same species"
+            style={styles.flagBtn}
+          >
+            <Icon name="dice" size={19} color={canRoll ? colors.muted : colors.border} />
+          </Pressable>
           {onToggleFlag && (
             <Pressable
               testID="pick-flag"
@@ -195,7 +228,7 @@ export default function PickImageScreen({
       ) : (
         <>
           <View style={styles.grid}>
-            {round.options.map((opt) => {
+            {options.map((opt) => {
               const isPicked = opt.taxonId === picked;
               const reveal = answered && (opt.correct || isPicked);
               return (

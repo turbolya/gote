@@ -10,7 +10,13 @@ const code = babel.transformFileSync(file, {
 }).code;
 const m = { exports: {} };
 new Function('module', 'exports', 'require', code)(m, m.exports, require);
-const { sharedAncestorDepth, pickSimilarDistractors, buildPickRound } = m.exports;
+const {
+  sharedAncestorDepth,
+  pickSimilarDistractors,
+  buildPickRound,
+  rerollPickPhotos,
+  canRerollPickPhotos,
+} = m.exports;
 
 let pass = 0;
 let fail = 0;
@@ -220,6 +226,97 @@ t('buildPickRound: excludes a similar entry that is the target taxon', () => {
 t('buildPickRound: falls back to scientific name when no common name', () => {
   const r = buildPickRound({ card: { taxonId: 9, scientific: 'Bombus sp' }, correctPhotos: curated, similar, rng: rng0 });
   assert.equal(r.name, 'Bombus sp');
+});
+
+
+// --- the dice: re-rolling which photo each tile shows ----------------------
+
+// Deterministic RNG: always takes the first candidate.
+const rngFirst = () => 0;
+
+const rollOpts = () => [
+  { taxonId: 1, photo: 'a1', photos: ['a1', 'a2', 'a3'], name: 'A', correct: true },
+  { taxonId: 2, photo: 'b1', photos: ['b1', 'b2'], name: 'B', correct: false },
+  { taxonId: 3, photo: 'c1', photos: ['c1'], name: 'C', correct: false },
+  { taxonId: 4, photo: 'd1', photos: ['d1', 'd2'], name: 'D', correct: false },
+];
+
+t('buildPickRound: every option carries the photos the dice may draw from', () => {
+  const r = buildPickRound({ card: pickCard, correctPhotos: curated, similar, rng: rng0 });
+  for (const o of r.options) {
+    assert.ok(Array.isArray(o.photos), 'option has a photos array');
+    assert.ok(o.photos.includes(o.photo), 'the shown photo is one of them');
+  }
+});
+
+t('buildPickRound: the correct tile may only ever draw from the curated front', () => {
+  // 6 curated photos, but PICK_PHOTO_DEPTH caps what the answer can show.
+  const deep = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
+  const r = buildPickRound({ card: pickCard, correctPhotos: deep, similar, rng: rng0 });
+  const right = r.options.find((o) => o.correct);
+  assert.deepEqual(right.photos, ['p1', 'p2', 'p3', 'p4']);
+});
+
+t('rerollPickPhotos: every tile with a spare photo changes', () => {
+  const before = rollOpts();
+  const after = rerollPickPhotos(before, rngFirst);
+  assert.notEqual(after[0].photo, 'a1');
+  assert.notEqual(after[1].photo, 'b1');
+  assert.notEqual(after[3].photo, 'd1');
+});
+
+t('rerollPickPhotos: a species with one photo keeps it', () => {
+  const after = rerollPickPhotos(rollOpts(), rngFirst);
+  assert.equal(after[2].photo, 'c1');
+});
+
+t('rerollPickPhotos: the four tiles stay distinct', () => {
+  const after = rerollPickPhotos(rollOpts(), rngFirst);
+  const shown = after.map((o) => o.photo);
+  assert.equal(new Set(shown).size, shown.length);
+});
+
+t('rerollPickPhotos: tiles keep their species and their correctness', () => {
+  const before = rollOpts();
+  const after = rerollPickPhotos(before, rngFirst);
+  assert.deepEqual(after.map((o) => o.taxonId), before.map((o) => o.taxonId));
+  assert.deepEqual(after.map((o) => o.correct), before.map((o) => o.correct));
+});
+
+t('rerollPickPhotos: tiles sharing a photo pool do not collide', () => {
+  // Both tiles can only ever show x1/x2 — one takes each, neither doubles up.
+  const opts = [
+    { taxonId: 1, photo: 'x1', photos: ['x1', 'x2'], correct: true },
+    { taxonId: 2, photo: 'x2', photos: ['x1', 'x2'], correct: false },
+  ];
+  const after = rerollPickPhotos(opts, rngFirst);
+  assert.equal(new Set(after.map((o) => o.photo)).size, 2);
+});
+
+t('rerollPickPhotos: rolling repeatedly never leaves a tile blank', () => {
+  let opts = rollOpts();
+  for (let i = 0; i < 20; i++) {
+    opts = rerollPickPhotos(opts);
+    assert.equal(opts.length, 4);
+    for (const o of opts) assert.ok(o.photo, 'tile still has a photo');
+    assert.equal(new Set(opts.map((o) => o.photo)).size, 4);
+  }
+});
+
+t('canRerollPickPhotos: false when every species has a single photo', () => {
+  const stuck = [
+    { taxonId: 1, photo: 'a1', photos: ['a1'] },
+    { taxonId: 2, photo: 'b1', photos: ['b1'] },
+  ];
+  assert.equal(canRerollPickPhotos(stuck), false);
+});
+
+t('canRerollPickPhotos: true when any species has another photo', () => {
+  assert.equal(canRerollPickPhotos(rollOpts()), true);
+});
+
+t('canRerollPickPhotos: survives options with no photos array', () => {
+  assert.equal(canRerollPickPhotos([{ taxonId: 1, photo: 'a1' }]), false);
 });
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
