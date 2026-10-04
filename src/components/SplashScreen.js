@@ -3,12 +3,18 @@
 // app at startup, then fades out via `onDone`.
 
 import React, { useEffect, useRef } from 'react';
-import { Animated, Image, StyleSheet, Dimensions } from 'react-native';
+import { Animated, Image, StyleSheet } from 'react-native';
 import { colors } from '../theme';
 
-const { width: SCREEN_W } = Dimensions.get('window');
 // Logo footprint; the source is 651×798, so "contain" keeps it inside this box.
-const ART = Math.min(SCREEN_W * 0.5, 220);
+//
+// 200 is not a free choice: it must equal `imageWidth` in app.json's
+// expo-splash-screen config, because the NATIVE splash underneath draws the
+// same artwork in a 200×200 box with the same aspect fit. Match them and the
+// handover from the native splash to this one is invisible; let them drift and
+// the logo visibly jumps size at launch (it did — the native side was on the
+// plugin's 100pt default, so a small newt appeared before this big one).
+const ART = 200;
 
 export default function SplashScreen({ onDone, onLayout }) {
   const opacity = useRef(new Animated.Value(1)).current;
