@@ -1,4 +1,5 @@
 // Every game mode end-to-end.
+const assert = require('assert');
 const { by, device, element, expect, waitFor } = require('detox');
 const {
   settle,
@@ -141,6 +142,54 @@ describe('Game modes', () => {
     await exists('e2e-pick-answer'); // round loaded
     await tapCorrectPhoto();
     await waitFor(element(by.text('Correct!'))).toBeVisible().withTimeout(TIMEOUT);
+    await tap('pick-end');
+    await visible('results-menu');
+  });
+
+  it('Photo questions: the dice swaps every photo, keeping the same species', async () => {
+    await startPhotoRound();
+    await visible('pick-screen');
+    await exists('e2e-pick-answer');
+
+    const read = async () =>
+      (await labelOf('e2e-pick-photos')).split('|').map((x) => {
+        const [id, ...url] = x.split('=');
+        return { id, url: url.join('=') };
+      });
+
+    const before = await read();
+    assert.strictEqual(before.length, 4);
+    const answer = await labelOf('e2e-pick-answer');
+
+    await tap('pick-dice');
+    await settle();
+    const after = await read();
+
+    // Same four species, in the same places, and the same right answer…
+    assert.deepStrictEqual(after.map((t) => t.id), before.map((t) => t.id));
+    assert.strictEqual(await labelOf('e2e-pick-answer'), answer);
+    // …every tile on a different photo, and no two tiles alike. (The fixtures
+    // give each species three photos, so every tile has somewhere to go.)
+    after.forEach((t, i) => assert.notStrictEqual(t.url, before[i].url, `tile ${i} kept its photo`));
+    assert.strictEqual(new Set(after.map((t) => t.url)).size, 4, 'two tiles share a photo');
+
+    // A second roll still moves everything: it re-rolls from the whole pool,
+    // not from whatever the first roll happened to leave behind.
+    await tap('pick-dice');
+    await settle();
+    const again = await read();
+    again.forEach((t, i) => assert.notStrictEqual(t.url, after[i].url, `tile ${i} kept its photo on the second roll`));
+
+    // Rolling must not disturb the round: the right tile still scores.
+    await tap(`pick-tile-${answer}`);
+    await waitFor(element(by.text('Correct!'))).toBeVisible().withTimeout(TIMEOUT);
+
+    // …and the dice is still live once answered.
+    await tap('pick-dice');
+    await settle();
+    const last = await read();
+    assert.deepStrictEqual(last.map((t) => t.id), before.map((t) => t.id));
+
     await tap('pick-end');
     await visible('results-menu');
   });

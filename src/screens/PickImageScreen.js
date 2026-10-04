@@ -148,6 +148,16 @@ export default function PickImageScreen({
           pointerEvents="none"
         />
       )}
+      {/* E2E only: exposes the photo each tile is showing right now, in tile
+          order as "taxonId=url|…", so a test can tell the dice changed them. */}
+      {IS_E2E && round && (
+        <View
+          testID="e2e-pick-photos"
+          accessibilityLabel={options.map((o) => `${o.taxonId}=${o.photo}`).join('|')}
+          style={styles.e2eHidden}
+          pointerEvents="none"
+        />
+      )}
       {/* Top bar */}
       <View style={styles.topBar}>
         <Pressable testID="pick-end" onPress={onQuit} hitSlop={12} style={styles.endBtn}>
