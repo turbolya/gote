@@ -8,9 +8,21 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.44.7';
+export const APP_VERSION = '2.45.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.45.0',
+    date: '2026-10-04',
+    changes: [
+      'A dice on the photo question. Tap it and every tile swaps to a '
+        + 'different photo of the same species, so a bud, a bird in flight or '
+        + 'an odd angle is not the only look you get. The right answer never '
+        + 'changes, and it still works after you have answered.',
+      'The launch screen shows one logo again. A small newt used to appear '
+        + 'first and then jump to a larger one.',
+    ],
+  },
   {
     version: '2.44.7',
     date: '2026-09-25',
