@@ -8,9 +8,21 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.45.0';
+export const APP_VERSION = '2.45.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.45.1',
+    date: '2026-10-05',
+    changes: [
+      'Typing the name now accepts the other names a species goes by. '
+        + 'River Kingfisher counts for a Common Kingfisher, in whichever '
+        + 'language you study in, and the answer tells you which name it was.',
+      'A new “I don’t know” under the typing box. It shows you the answer and '
+        + 'counts as a miss, so you no longer have to type nonsense to get past '
+        + 'a card.',
+    ],
+  },
   {
     version: '2.45.0',
     date: '2026-10-04',
