@@ -169,6 +169,43 @@ console.log('\\nmatchAnswer — other scripts');
   ok('the scientific name still works for a Japanese card', matchAnswer('Corvus macrorhynchos', JUNGLE).ok);
 }
 
+
+// --- other names iNaturalist lists for the species (card.alternates) ---------
+{
+  const KINGFISHER = {
+    taxonId: 1,
+    common: 'Common Kingfisher',
+    scientific: 'Alcedo atthis',
+    alternates: ['Common Kingfisher', 'Eurasian Kingfisher', 'River Kingfisher'],
+  };
+  eq('an alternate name counts', matchAnswer('River Kingfisher', KINGFISHER).ok, true);
+  eq('and says it matched an alternate', matchAnswer('River Kingfisher', KINGFISHER).matched, 'alternate');
+  eq('an alternate is exact when typed exactly', matchAnswer('river kingfisher', KINGFISHER).exact, true);
+  eq('the common name still reports as the common name', matchAnswer('Common Kingfisher', KINGFISHER).matched, 'common');
+  eq('a typo in an alternate is forgiven, as for any name', matchAnswer('Eurasain Kingfisher', KINGFISHER).ok, true);
+  eq('...and shows the spelling it missed', matchAnswer('Eurasain Kingfisher', KINGFISHER).expected, 'Eurasian Kingfisher');
+  eq('a name that is on no list is still a miss', matchAnswer('Belted Kingfisher', KINGFISHER).ok, false);
+  eq('a card with no alternates behaves exactly as before', matchAnswer('River Kingfisher', { ...KINGFISHER, alternates: undefined }).ok, false);
+  eq('alternates that are not strings are ignored, not fatal', matchAnswer('River Kingfisher', { ...KINGFISHER, alternates: [null, 7, 'River Kingfisher'] }).ok, true);
+
+  // An alternate that is exactly ANOTHER species' own name in the round is the
+  // player naming that species. iNaturalist's lists are crowd-edited, so this
+  // happens, and it must not turn into a free point.
+  const COOT = { taxonId: 2, common: 'Eurasian Coot', scientific: 'Fulica atra', alternates: ['Coot', 'Common Coot'] };
+  const AMERICAN_COOT = { taxonId: 3, common: 'American Coot', scientific: 'Fulica americana' };
+  const MOORHEN = { taxonId: 4, common: 'Coot', scientific: 'Gallinula sp' };
+  eq('an alternate counts when nothing else claims it', matchAnswer('Common Coot', COOT, [AMERICAN_COOT]).ok, true);
+  eq('an alternate that is another round species own name is a miss', matchAnswer('Coot', COOT, [AMERICAN_COOT, MOORHEN]).ok, false);
+  eq('...but only when the round actually holds that species', matchAnswer('Coot', COOT, [AMERICAN_COOT]).ok, true);
+  eq('an exact COMMON name still stands against a look-alike with the same name', matchAnswer('Eurasian Coot', COOT, [{ taxonId: 9, common: 'Eurasian Coot' }]).ok, true);
+
+  // A forgiven alternate must not be a species the player is closer to naming.
+  const PIED = { taxonId: 5, common: 'Pied Wagtail', scientific: 'Motacilla alba yarrellii', alternates: ['White Wagtail'] };
+  const NEAR = { taxonId: 7, common: 'Whita Wagtails', scientific: 'Motacilla sp' };
+  eq('control: one slip on an alternate is forgiven on its own', matchAnswer('Whita Wagtail', PIED).ok, true);
+  eq('a slip on an alternate that fits another round species as well is a miss', matchAnswer('Whita Wagtail', PIED, [NEAR]).ok, false);
+}
+
 console.log('\\n' + (failed ? 'FAILED ' + failed : 'passed ' + passed) + (failed ? ' / ' + (passed + failed) : ''));
 if (failed) process.exit(1);
 `;

@@ -207,6 +207,12 @@ function compareTo(typed, expected) {
 //
 //   { ok, exact, matched, distance, expected }
 //
+// `matched` says which of the card's names the answer fit: 'common',
+// 'scientific', or 'alternate' — one of `card.alternates`, the other names
+// iNaturalist lists for the species in the player's language (src/altnames.js).
+// An alternate is a real name for THIS species, so it counts like the common
+// name; the caller can say which name it was, since `expected` carries it.
+//
 // `exact` false with `ok` true is the forgiven-typo case: the answer counts, and
 // the caller should show `expected` so the player sees the spelling they missed.
 // Scoring a near-miss as wrong would punish knowing the species for not knowing
@@ -219,7 +225,10 @@ function compareTo(typed, expected) {
 // the round's pool, typically — as cards or { common, scientific }. A forgiven
 // answer that is at least as close to one of them as to the target is a miss:
 // it names that species, not this one. An exact match on the target always
-// stands, even if another species happens to share the name.
+// stands, even if another species happens to share the name. An ALTERNATE name
+// does not get that pass: iNaturalist's name lists are crowd-edited, and a name
+// that is exactly another species' own name in this round is the player naming
+// that species, whatever the list says.
 export function matchAnswer(typed, card, others = null) {
   const input = normalizeName(typed);
   const common = card && card.common;
@@ -227,13 +236,36 @@ export function matchAnswer(typed, card, others = null) {
   const miss = { ok: false, exact: false, matched: null, distance: null, expected: common || scientific || '' };
   if (!input) return miss;
 
-  for (const [field, value] of [['common', common], ['scientific', scientific]]) {
+  const names = [['common', common], ['scientific', scientific]];
+  for (const alt of alternatesOf(card)) names.push(['alternate', alt]);
+
+  for (const [field, value] of names) {
     const hit = compareTo(input, value);
     if (!hit) continue;
+    if (field === 'alternate' && isAnotherSpeciesName(input, card, others)) continue;
     if (!hit.exact && closerToAnother(input, hit.distance, card, others)) return miss;
     return { ok: true, exact: hit.exact, matched: field, distance: hit.distance, expected: value };
   }
   return miss;
+}
+
+function alternatesOf(card) {
+  return card && Array.isArray(card.alternates) ? card.alternates.filter((a) => typeof a === 'string') : [];
+}
+
+// Is `input` exactly the common or scientific name of a species in `others`
+// other than the card's own?
+function isAnotherSpeciesName(input, card, others) {
+  if (!Array.isArray(others) || !others.length) return false;
+  const own = card && card.taxonId != null ? String(card.taxonId) : null;
+  for (const o of others) {
+    if (!o) continue;
+    if (own != null && o.taxonId != null && String(o.taxonId) === own) continue;
+    for (const name of [o.common, o.scientific]) {
+      if (normalizeName(name) === input) return true;
+    }
+  }
+  return false;
 }
 
 // Does `input` fit some other species' name at least as well as `distance`?
@@ -241,7 +273,11 @@ function closerToAnother(input, distance, card, others) {
   if (!Array.isArray(others) || !others.length) return false;
   const a = input.replace(/ /g, '');
   const own = card && card.taxonId != null ? String(card.taxonId) : null;
-  const mine = new Set([normalizeName(card && card.common), normalizeName(card && card.scientific)]);
+  const mine = new Set([
+    normalizeName(card && card.common),
+    normalizeName(card && card.scientific),
+    ...alternatesOf(card).map(normalizeName),
+  ]);
   for (const o of others) {
     if (!o) continue;
     if (own != null && o.taxonId != null && String(o.taxonId) === own) continue;

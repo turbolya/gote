@@ -31,6 +31,7 @@ import { Appear, Pop } from '../components/anim';
 import {
   shuffle,
   fetchTaxonPhotos,
+  fetchAlternateNames,
   toLargePhoto,
   rememberPhotoCredit,
   formatAttribution,
@@ -85,6 +86,8 @@ const cardName = (c) => (c ? c.common || c.scientific : '');
 export default function StudyScreen({
   deck,
   index,
+  // The species-name language, for looking up other names to accept when typing.
+  locale = null,
   loopNonce = 0,
   correctCount,
   roundLabel,
@@ -124,6 +127,8 @@ export default function StudyScreen({
   // submitted (src/answermatch.js).
   const [typed, setTyped] = useState('');
   const [typedResult, setTypedResult] = useState(null);
+  // "I don't know" was pressed, rather than a wrong answer typed.
+  const [gaveUp, setGaveUp] = useState(false);
   const [picked, setPicked] = useState(null);
   const card = deck[index];
   const answer = cardName(card);
@@ -156,6 +161,7 @@ export default function StudyScreen({
     setPicked(null);
     setTyped('');
     setTypedResult(null);
+    setGaveUp(false);
     // Refs, so the clock resets with the card without costing a render. Zeroed
     // here rather than in an effect so a very fast answer can't be timed against
     // the PREVIOUS card's start.
@@ -235,6 +241,24 @@ export default function StudyScreen({
     prefetchUpcoming(deck, index, 3);
   }, [deck, index]);
 
+  // Other names iNaturalist lists for this species, accepted when typing. Looked
+  // up while the player reads the card, so it is normally there by the time they
+  // press Check; if it is not (slow or no connection), the answer is judged on
+  // the common and scientific names alone, exactly as before.
+  const [alternates, setAlternates] = useState([]);
+  const altTaxon = card ? card.taxonId : null;
+  useEffect(() => {
+    setAlternates([]);
+    if (!typedMode || altTaxon == null) return undefined;
+    let live = true;
+    fetchAlternateNames(altTaxon, locale).then((names) => {
+      if (live) setAlternates(names);
+    });
+    return () => {
+      live = false;
+    };
+  }, [typedMode, altTaxon, locale]);
+
   const commitAnswer = () => {
     if (answerMsRef.current === 0 && answerStartRef.current > 0) {
       answerMsRef.current = Date.now() - answerStartRef.current;
@@ -258,9 +282,28 @@ export default function StudyScreen({
     // The round's pool doubles as the list of species the player could be
     // naming instead: an answer that fits one of them as well as this card is
     // that species, not a typo of this one.
-    const res = matchAnswer(typed, card, choicePool);
+    const res = matchAnswer(typed, { ...card, alternates }, choicePool);
     setTypedResult(res);
     setPicked(res.ok ? answer : TYPED_WRONG);
+    setPhase('answered');
+  };
+
+  // "I don't know": an honest miss, offered so the only way out of a typed card
+  // you cannot answer is not to type nonsense at it. It grades exactly like a
+  // wrong answer — same sentinel, same onGrade call, so the tally, the streak
+  // and the weighting treat it identically — and, like a typed miss, names no
+  // species the player confused this one with, so no mix-up is recorded.
+  //
+  // Whatever was half-typed is dropped: the answer panel quotes the player's
+  // words back on a miss, and "You wrote …" under a button that says they gave
+  // up would be a contradiction.
+  const giveUpTyped = () => {
+    if (phase === 'answered' || !card) return;
+    commitAnswer();
+    setTyped('');
+    setTypedResult(null);
+    setGaveUp(true);
+    setPicked(TYPED_WRONG);
     setPhase('answered');
   };
 
@@ -891,6 +934,17 @@ export default function StudyScreen({
                         Check
                       </Text>
                     </Pressable>
+                    <Pressable
+                      testID="study-typed-skip"
+                      onPress={giveUpTyped}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel="I don't know"
+                      accessibilityHint="Shows the answer and counts this card as missed"
+                      style={styles.typedSkip}
+                    >
+                      <Text style={[styles.typedSkipText, { color: onDim }]}>I don’t know</Text>
+                    </Pressable>
                     <Text style={[styles.typedHint, { color: onDim }]}>
                       Either name works, and spelling is forgiving.
                     </Text>
@@ -899,13 +953,16 @@ export default function StudyScreen({
                   <>
                     <Pop trigger>
                       <View style={styles.resultRow}>
+                        {/* Giving up is not a verdict, so it gets no red cross —
+                            just the answer, introduced as the answer. It still
+                            counts as a miss; the tone is the only difference. */}
                         <Icon
-                          name={gotIt ? 'check-circle' : 'x-circle'}
+                          name={gaveUp ? 'information-circle-outline' : gotIt ? 'check-circle' : 'x-circle'}
                           size={22}
-                          color={gotIt ? colors.correct : colors.wrong}
+                          color={gaveUp ? onDim : gotIt ? colors.correct : colors.wrong}
                         />
                         <Text style={[styles.choiceLead, { color: on }]}>
-                          {gotIt ? 'Correct' : 'Not quite'}
+                          {gotIt ? 'Correct' : gaveUp ? 'The answer is' : 'Not quite'}
                         </Text>
                       </View>
                     </Pop>
@@ -920,7 +977,19 @@ export default function StudyScreen({
                     {/* A forgiven typo still counts, but the player should see
                         the spelling they missed rather than have it pass in
                         silence. */}
-                    {gotIt && typedResult && !typedResult.exact && (
+                    {/* An OTHER name for the species counts the same as the one
+                        on the card — and is named, so the player learns which
+                        name this deck uses without being told they were wrong. */}
+                    {gotIt && typedResult && typedResult.matched === 'alternate' && (
+                      <Text
+                        testID="study-typed-alternate"
+                        style={[styles.typedHint, { color: onDim }]}
+                        numberOfLines={2}
+                      >
+                        Counted — “{typedResult.expected}” is another name for it.
+                      </Text>
+                    )}
+                    {gotIt && typedResult && typedResult.matched !== 'alternate' && !typedResult.exact && (
                       <Text
                         testID="study-typed-forgiven"
                         style={[styles.typedHint, { color: onDim }]}
@@ -1337,6 +1406,14 @@ const styles = StyleSheet.create({
   typedSubmitOff: { backgroundColor: 'rgba(0,138,172,0.34)' },
   typedSubmitOffText: { color: ON_DARK_DIM },
   typedHint: { fontSize: 12, marginTop: 10, textAlign: 'center', lineHeight: 16 },
+  // The verdict line of a typed answer: icon and word side by side, centred. It
+  // was referenced without ever being defined, so the icon stacked above the
+  // word, left-aligned.
+  resultRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 },
+  // Quiet on purpose: a text link under the primary button, not a second
+  // button. Giving up should be possible, never the thing the eye lands on.
+  typedSkip: { alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 16, marginTop: 4 },
+  typedSkipText: { fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
   nextBtn: {
     flexDirection: 'row',
     alignItems: 'center',

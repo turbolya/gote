@@ -666,10 +666,40 @@ describe('Game modes', () => {
     await check('study-typed-forgiven');
     await tap('study-next');
 
+    // Another name iNaturalist lists for the species counts, and is named as
+    // such. The fixtures give every species one ("Also Called <name>"), so this
+    // proves the whole path: the lookup, the matcher, and the panel.
+    await exists('study-typed-input');
+    const named = await labelOf('e2e-answer');
+    await typeInto('study-typed-input', `Also Called ${named}`);
+    await check('study-typed-alternate');
+    await expect(element(by.id('study-typed-forgiven'))).not.toExist();
+    await tap('study-next');
+
     // A different species is rejected, and what was written is quoted back.
     await exists('study-typed-input');
     await typeInto('study-typed-input', 'Tyrannosaurus rex');
     await check('study-typed-missed');
+    await expect(element(by.id('study-typed-forgiven'))).not.toExist();
+    await tap('study-next');
+
+    // "I don't know" is a miss that names nothing: it reveals the answer under
+    // its own heading, and does not quote half-typed text back at the player.
+    // Typed first, to prove it is dropped rather than shown.
+    await exists('study-typed-input');
+    await typeInto('study-typed-input', 'Tyrann');
+    for (let i = 0; i < 4; i++) {
+      await settle(400);
+      try {
+        await element(by.id('study-typed-skip')).tap();
+      } catch (e) { /* already through */ }
+      try {
+        await waitFor(element(by.text('The answer is'))).toBeVisible().withTimeout(2500);
+        break;
+      } catch (e) { /* not through yet */ }
+    }
+    await waitFor(element(by.text('The answer is'))).toBeVisible().withTimeout(TIMEOUT);
+    await expect(element(by.id('study-typed-missed'))).not.toExist();
     await expect(element(by.id('study-typed-forgiven'))).not.toExist();
     await tap('study-end');
     await visible('results-menu');

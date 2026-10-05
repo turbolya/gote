@@ -224,15 +224,24 @@ scores correctly, and returns to the menu cleanly.
     short word (e.g. "Western" for an "Eastern …" species, or "minor" for
     "major"); and a completely different species. Then set the species-name
     language to one in another alphabet (Russian or Japanese), and type a
-    card's name exactly as shown.
+    card's name exactly as shown. Then, on a species that has several English
+    names (Common Kingfisher also goes by "River Kingfisher"), type one of the
+    other names. Finally, on a fresh card, type half a name and tap **I don't
+    know** under Check.
   - *Preconditions:* A Smart play round that serves a type-the-name card
   - *Priority:* High
   - *Expected:* the first five are all accepted — a typo says so and shows the
     correct spelling. The look-alike's name and the different species are
     **rejected**. The exactly typed Russian or Japanese name is **accepted**.
+    The other English name is **accepted** and the panel says "Counted —
+    “River Kingfisher” is another name for it"; a different kingfisher is not.
     Long names wrap onto a second line rather than scrolling sideways. Check is
     greyed until you type something, and the field and the button are clearly
-    different controls.
+    different controls. **I don't know** is a quiet underlined link, not a
+    second button; it is live even with the field empty, reveals the answer
+    under "The answer is" (a grey info icon, not a red cross), does **not** quote the half-typed text back, and counts as
+    a miss (lifetime accuracy drops by one card, and no "Species you mix up"
+    pair is recorded for it).
 - [ ] **TC-2.9 Group All / None shortcuts.** On Smart play ▸ **⋯** or on
     Flash cards, tap **None** then **All** beside Groups.
   - *Expected:* None clears every group and Start greys out reading "Select a

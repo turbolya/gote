@@ -12,6 +12,7 @@
 
 import { IS_E2E } from "./e2e/testMode";
 import * as fx from "./e2e/fixtures";
+import { alternateNamesFrom } from "./altnames";
 import { APP_VERSION } from "./changelog";
 
 const API = "https://api.inaturalist.org/v2/observations";
@@ -22,6 +23,8 @@ const SPECIES_COUNTS_API =
   "https://api.inaturalist.org/v2/observations/species_counts";
 // Place search/autocomplete still lives on v1 (returns named places + coords).
 const PLACES_API = "https://api.inaturalist.org/v1/places/autocomplete";
+// The v1 taxa list — the only place the full names list is available.
+const TAXA_V1_API = "https://api.inaturalist.org/v1/taxa";
 // iNaturalist asks API clients to identify themselves, and their recommended
 // practices page is explicit that the point is being able to tell one app's
 // traffic apart. A bare "gote" does that; a version and a URL also give them a
@@ -933,6 +936,44 @@ export async function fetchTaxonNames(ids, locale) {
     /* best-effort — an unnamed pair just stays out of the list */
   }
   return out;
+}
+
+/**
+ * The other names iNaturalist lists for a species, in the player's language, for
+ * the typing question — "River Kingfisher" for a Common Kingfisher.
+ *
+ * Needs the v1 taxa endpoint: v2 has no way to return the names list. A LIST
+ * request (`taxa?id=`) rather than `taxa/:id`, because it is 8 KB where the
+ * single-taxon form is 158 KB for the same names.
+ *
+ * Best-effort, and a miss costs nothing: with no list the answer is checked
+ * against the common and scientific names exactly as before. A failed request
+ * is returned as null so it is not cached; a species that simply has no other
+ * names IS cached, as { names: [] }, so it is not asked about again.
+ *
+ * @param {number|string} taxonId
+ * @param {string} locale  language for common names
+ * @returns {Promise<string[]>}
+ */
+export async function fetchAlternateNames(taxonId, locale) {
+  if (IS_E2E) return fx.e2eAlternateNames(taxonId);
+  if (taxonId == null || !locale) return [];
+  const hit = await cached(`altnames:${taxonId}:${locale}`, async () => {
+    try {
+      const res = await apiFetch(
+        `${TAXA_V1_API}?id=${encodeURIComponent(taxonId)}&all_names=true&per_page=1` +
+          `&locale=${encodeURIComponent(locale)}`,
+        { headers: HEADERS },
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      const taxon = (data.results || [])[0];
+      return taxon ? { names: alternateNamesFrom(taxon.names, locale) } : null;
+    } catch {
+      return null;
+    }
+  });
+  return hit ? hit.names : [];
 }
 
 /**

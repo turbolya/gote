@@ -1916,6 +1916,7 @@ export default function App() {
           <StudyScreen
             deck={deck}
             index={index}
+            locale={locale}
             loopNonce={loopNonce}
             correctCount={correctCount}
             roundLabel={roundLabel}

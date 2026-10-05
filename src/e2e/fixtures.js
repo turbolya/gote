@@ -110,6 +110,13 @@ export function e2eSimilar(taxonId) {
   return [...own, { ...E2E_STRANGER }];
 }
 
+// Other names for a species, for the typing question. One per card, built from
+// the common name so a test can type it without a lookup of its own.
+export function e2eAlternateNames(taxonId) {
+  const c = byId.get(taxonId);
+  return c ? [`Also Called ${c.common}`] : [];
+}
+
 // Full detail for the Lexicon detail page.
 export function e2eDetail(taxonId) {
   const c = byId.get(taxonId) || E2E_CARDS[0];
