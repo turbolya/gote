@@ -991,7 +991,7 @@ export default function StudyScreen({
                     {gotIt && typedResult && typedResult.matched === 'alternate' && (
                       <Text
                         testID="study-typed-alternate"
-                        style={[styles.typedHint, { color: onDim }]}
+                        style={[styles.typedHint, styles.typedNote, { color: onDim }]}
                         numberOfLines={2}
                       >
                         Counted — “{typedResult.expected}” is another name for it.
@@ -1000,7 +1000,7 @@ export default function StudyScreen({
                     {gotIt && typedResult && typedResult.matched !== 'alternate' && !typedResult.exact && (
                       <Text
                         testID="study-typed-forgiven"
-                        style={[styles.typedHint, { color: onDim }]}
+                        style={[styles.typedHint, styles.typedNote, { color: onDim }]}
                         numberOfLines={2}
                       >
                         Counted — you wrote “{typed.trim()}”.
@@ -1009,7 +1009,7 @@ export default function StudyScreen({
                     {!gotIt && !!typed.trim() && (
                       <Text
                         testID="study-typed-missed"
-                        style={[styles.typedHint, { color: onDim }]}
+                        style={[styles.typedHint, styles.typedNote, { color: onDim }]}
                         numberOfLines={2}
                       >
                         You wrote “{typed.trim()}”.
@@ -1017,7 +1017,7 @@ export default function StudyScreen({
                     )}
                     <Pressable
                       testID="study-next"
-                      style={[styles.nextBtn, styles.typedNext]}
+                      style={styles.nextBtn}
                       onPress={() => onGrade(gotIt, null, null, answerMsRef.current)}
                     >
                       <Text style={styles.nextText}>Next card</Text>
@@ -1419,9 +1419,12 @@ const styles = StyleSheet.create({
   resultRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 },
   // Quiet on purpose: a text link under the primary button, not a second
   // button. Giving up should be possible, never the thing the eye lands on.
-  // Air between the verdict lines and the button below them; nextBtn's own 4 is
-  // right under a choice list but crowds a hint line.
-  typedNext: { marginTop: 12 },
+  // A note under the answer ("You wrote…", "Counted — …"). The species subtitle
+  // above already leaves 14, so the note adds none of its own; it adds 10 below,
+  // which with the button's own 4 makes the gap under it match the gap over it.
+  // Only a note carries this, so an answer with none keeps its original, tighter
+  // spacing above the button.
+  typedNote: { marginTop: 0, marginBottom: 10 },
   typedActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   typedCheck: { flex: 1, marginTop: 0, paddingVertical: 11 },
   typedSkip: { paddingVertical: 10, paddingHorizontal: 10 },
