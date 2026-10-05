@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.45.1';
+export const APP_VERSION = '2.45.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.45.2',
+    date: '2026-10-05',
+    changes: [
+      'The typing box now sits at the top of the screen, just under the '
+        + 'progress bar, and is more compact. It no longer covers the photo '
+        + 'you are trying to recognise, and the answer shows up there too.',
+    ],
+  },
   {
     version: '2.45.1',
     date: '2026-10-05',
