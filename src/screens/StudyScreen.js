@@ -75,6 +75,11 @@ const DOUBLE_TAP_MS = 280;
 // correct in iPad landscape, Split View and Slide Over, which a device check
 // would have to special-case one by one.
 const PANEL_MAX_WIDTH = 440;
+// How far below the safe-area top the typed panel starts. The top chrome is the
+// status-bar inset, 8 of padding, the End / counter / score row (~24, plus 10
+// under it) and the 6-high progress bar — about 48 in all — so this leaves a
+// 12 gap beneath the bar, the same spacing the bar keeps from the row above it.
+const TYPED_TOP_GAP = 60;
 
 // Dark gradient behind the chrome — darker than before so white UI stays
 // readable even over bright/washed-out photos. Strong at the edge, fading to
@@ -778,6 +783,10 @@ export default function StudyScreen({
         style={[
           styles.centerArea,
           { paddingTop: insets.top + 70, paddingBottom: insets.bottom + 84 },
+          // Typed answers sit at the TOP, just under the progress bar, rather
+          // than in the middle: the photo is the question, and a panel centred
+          // over it covers the thing the player is trying to recognise.
+          typedMode ? { justifyContent: 'flex-start', paddingTop: insets.top + TYPED_TOP_GAP } : null,
           {
             opacity: peekAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
             transform: [
@@ -903,15 +912,12 @@ export default function StudyScreen({
               <Appear style={[styles.centerPanel, styles.typedPanel]} offset={14} scaleFrom={0.96} duration={300}>
                 {!answered ? (
                   <>
-                    <Text style={[styles.choiceLead, styles.typedLead, { color: onDim }]}>
-                      What species is this?
-                    </Text>
                     <TextInput
                       testID="study-typed-input"
                       value={typed}
                       onChangeText={setTyped}
                       onSubmitEditing={submitTyped}
-                      placeholder="Type the name…"
+                      placeholder="What species is this?"
                       placeholderTextColor={ON_DARK_DIM}
                       style={[styles.typedInput, { color: on }]}
                       autoCapitalize="none"
@@ -922,29 +928,31 @@ export default function StudyScreen({
                       returnKeyType="done"
                       blurOnSubmit
                     />
-                    <Pressable
-                      testID="study-typed-submit"
-                      disabled={!typed.trim()}
-                      onPress={submitTyped}
-                      style={[styles.nextBtn, !typed.trim() && styles.typedSubmitOff]}
-                    >
-                      <Text
-                        style={[styles.nextText, !typed.trim() && styles.typedSubmitOffText]}
+                    <View style={styles.typedActions}>
+                      <Pressable
+                        testID="study-typed-submit"
+                        disabled={!typed.trim()}
+                        onPress={submitTyped}
+                        style={[styles.nextBtn, styles.typedCheck, !typed.trim() && styles.typedSubmitOff]}
                       >
-                        Check
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      testID="study-typed-skip"
-                      onPress={giveUpTyped}
-                      hitSlop={8}
-                      accessibilityRole="button"
-                      accessibilityLabel="I don't know"
-                      accessibilityHint="Shows the answer and counts this card as missed"
-                      style={styles.typedSkip}
-                    >
-                      <Text style={[styles.typedSkipText, { color: onDim }]}>I don’t know</Text>
-                    </Pressable>
+                        <Text
+                          style={[styles.nextText, !typed.trim() && styles.typedSubmitOffText]}
+                        >
+                          Check
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        testID="study-typed-skip"
+                        onPress={giveUpTyped}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel="I don't know"
+                        accessibilityHint="Shows the answer and counts this card as missed"
+                        style={styles.typedSkip}
+                      >
+                        <Text style={[styles.typedSkipText, { color: onDim }]}>I don’t know</Text>
+                      </Pressable>
+                    </View>
                     <Text style={[styles.typedHint, { color: onDim }]}>
                       Either name works, and spelling is forgiving.
                     </Text>
@@ -1009,7 +1017,7 @@ export default function StudyScreen({
                     )}
                     <Pressable
                       testID="study-next"
-                      style={styles.nextBtn}
+                      style={[styles.nextBtn, styles.typedNext]}
                       onPress={() => onGrade(gotIt, null, null, answerMsRef.current)}
                     >
                       <Text style={styles.nextText}>Next card</Text>
@@ -1370,8 +1378,7 @@ const styles = StyleSheet.create({
   // your own answer back as you type it, letter by letter, where a choice round
   // only asks you to glance at four short labels. The same scrim that is
   // comfortable for glancing is not enough for reading.
-  typedPanel: { backgroundColor: 'rgba(0,0,0,0.62)' },
-  typedLead: { textAlign: 'center', marginBottom: 10 },
+  typedPanel: { backgroundColor: 'rgba(0,0,0,0.62)', paddingVertical: 12, paddingHorizontal: 12 },
   // A FIELD, not a pill. It deliberately breaks from the choice-option look in
   // the ways that say "you type here": left-aligned rather than centred, a
   // hairline recessed border rather than the options' bright one, and room for
@@ -1384,18 +1391,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.28)',
     borderRadius: 12,
-    paddingTop: 12,
-    paddingBottom: 12,
-    paddingHorizontal: 14,
+    paddingTop: 9,
+    paddingBottom: 9,
+    paddingHorizontal: 12,
     fontSize: 17,
     fontWeight: '600',
     textAlign: 'left',
     // Two lines' worth: plenty of species are three or four words, and a
     // binomial scrolling sideways out of a single-line field is unreadable
     // exactly when you most want to check what you wrote.
-    minHeight: 78,
+    minHeight: 58,
     textAlignVertical: 'top',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   // Not a faded primary button: reducing opacity on a colour over an arbitrary
   // photo blends it INTO the photo, which is both ugly and unreadable. Disabled
@@ -1405,14 +1412,19 @@ const styles = StyleSheet.create({
   // than a neutral one. Going grey made it a twin of the field above it.
   typedSubmitOff: { backgroundColor: 'rgba(0,138,172,0.34)' },
   typedSubmitOffText: { color: ON_DARK_DIM },
-  typedHint: { fontSize: 12, marginTop: 10, textAlign: 'center', lineHeight: 16 },
+  typedHint: { fontSize: 12, marginTop: 6, textAlign: 'center', lineHeight: 16 },
   // The verdict line of a typed answer: icon and word side by side, centred. It
   // was referenced without ever being defined, so the icon stacked above the
   // word, left-aligned.
   resultRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 },
   // Quiet on purpose: a text link under the primary button, not a second
   // button. Giving up should be possible, never the thing the eye lands on.
-  typedSkip: { alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 16, marginTop: 4 },
+  // Air between the verdict lines and the button below them; nextBtn's own 4 is
+  // right under a choice list but crowds a hint line.
+  typedNext: { marginTop: 12 },
+  typedActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  typedCheck: { flex: 1, marginTop: 0, paddingVertical: 11 },
+  typedSkip: { paddingVertical: 10, paddingHorizontal: 10 },
   typedSkipText: { fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
   nextBtn: {
     flexDirection: 'row',
