@@ -16,7 +16,7 @@ const photo = path.join(__dirname, '..', 'src', 'studyphoto.js');
 const mastery = path.join(__dirname, '..', 'src', 'mastery.js');
 
 const script = `
-import { wantsFreshPhoto, pickFreshPhoto, studyPhoto } from ${JSON.stringify(photo)};
+import { wantsFreshPhoto, pickFreshPhoto, studyPhoto, studyCredit } from ${JSON.stringify(photo)};
 import { speciesKey, isMastered } from ${JSON.stringify(mastery)};
 
 let passed = 0, failed = 0;
@@ -132,6 +132,32 @@ console.log('\\nend to end: a species crossing the mastery threshold');
   eq('replaced once the official photo arrives',
     studyPhoto({ wantsFresh: wantB, freshResolved: true, freshUri: 'official.jpg', ownImage: CARD.image }),
     { uri: 'official.jpg', loading: false });
+}
+
+console.log('\\nstudyCredit');
+{
+  const registry = { 'official.jpg': '© Official Photographer (CC BY)' };
+  const lookup = (u) => registry[u] || null;
+  const own = '© Own Photographer (CC BY-NC)';
+  const base = { ownImage: 'own.jpg', ownCredit: own, lookupCredit: lookup };
+
+  eq('the own photo carries the own credit',
+    studyCredit({ ...base, photoUri: 'own.jpg' }), own);
+  eq('an official photo carries its own photographer, not the cards',
+    studyCredit({ ...base, photoUri: 'official.jpg' }), '© Official Photographer (CC BY)');
+  eq('an official photo is never given the own credit',
+    studyCredit({ ...base, photoUri: 'official.jpg' }) === own, false);
+  eq('an official photo with no filed credit shows none, not the cards',
+    studyCredit({ ...base, photoUri: 'unfiled.jpg' }), null);
+  eq('nothing on screen yet, nothing credited (the fetch is pending)',
+    studyCredit({ ...base, photoUri: null }), null);
+  eq('the fallback to the own photo (offline) credits the own photo',
+    studyCredit({ ...base, photoUri: studyPhoto({ wantsFresh: true, freshResolved: true, freshUri: null, ownImage: 'own.jpg' }).uri }), own);
+  eq('an own photo with no credit (an older cached deck) shows none',
+    studyCredit({ ...base, ownCredit: null, photoUri: 'own.jpg' }), null);
+  eq('no registry to ask: an official photo shows none',
+    studyCredit({ photoUri: 'official.jpg', ownImage: 'own.jpg', ownCredit: own }), null);
+  eq('no arguments at all is safe', studyCredit(), null);
 }
 
 console.log('\\n' + (failed ? 'FAILED ' + failed : 'passed ' + passed) + (failed ? ' / ' + (passed + failed) : ''));

@@ -35,6 +35,7 @@ import {
   toLargePhoto,
   rememberPhotoCredit,
   formatAttribution,
+  photoCredit,
 } from '../api';
 import { prefetchUpcoming } from '../prefetch';
 import { photoSource, isCached, forgetCached } from '../photocache';
@@ -42,7 +43,7 @@ import { pickSimilarDistractors } from '../quiz';
 import { pairKey, pairCount, CONFUSION_HINT_MIN } from '../confusions';
 import { VERIFY_STREAK_MIN } from '../verify';
 import { speciesKey } from '../mastery';
-import { wantsFreshPhoto, pickFreshPhoto, studyPhoto } from '../studyphoto';
+import { wantsFreshPhoto, pickFreshPhoto, studyPhoto, studyCredit } from '../studyphoto';
 import { matchAnswer } from '../answermatch';
 
 // Shared with App.js's tally writer, so a mastery lookup asks under the same key
@@ -515,8 +516,17 @@ export default function StudyScreen({
   // answer is done via the button, never by tapping/swiping the photo.
   const onPhotoPress = onPhotoTap;
 
-  // Photo credit shown bottom-right (small print).
-  const attribution = card ? formatAttribution(card.attribution) : null;
+  // Photo credit shown bottom-right (small print). It belongs to the photo ON
+  // SCREEN: a mastered species can be shown an official photo in place of the
+  // player's own, and that photo has a different photographer.
+  const attribution = card
+    ? studyCredit({
+        photoUri,
+        ownImage: card.image,
+        ownCredit: formatAttribution(card.attribution),
+        lookupCredit: photoCredit,
+      })
+    : null;
 
   // The card's own photo travels through the app as a bare URL, like every
   // other, so file its credit where the fullscreen viewer can find it — it is
@@ -1135,7 +1145,11 @@ export default function StudyScreen({
           <View style={styles.bottomRight} pointerEvents="box-none">
             {!!attribution && (
               <View style={styles.attribution}>
-                <Text style={[styles.attributionText, { color: onDim }]} numberOfLines={1}>
+                <Text
+                  testID="study-credit"
+                  style={[styles.attributionText, { color: onDim }]}
+                  numberOfLines={1}
+                >
                   {attribution}
                 </Text>
               </View>

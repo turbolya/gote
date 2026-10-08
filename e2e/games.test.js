@@ -194,6 +194,78 @@ describe('Game modes', () => {
     await visible('results-menu');
   });
 
+  it('Fresh photo once mastered: the credit follows the photo on screen', async () => {
+    // The corner credit used to be read off the card, so a mastered species
+    // shown an OFFICIAL photo still named the player's own photographer under
+    // it. The fixtures make the two tellable apart: the player's own photos are
+    // credited to "e2e tester", every official photo to "Fixture Photographer".
+    await device.launchApp({ newInstance: true, delete: true });
+    await device.disableSynchronization();
+    await visible('mode-smart');
+    await settle();
+
+    // Turn the option on, from the menu, the way a player would.
+    await tapScroll('open-settings', 'menu-scroll');
+    await visible('settings-scroll');
+    await scrollToId('setting-fresh-photos', 'settings-scroll');
+    await tap('setting-fresh-photos-switch');
+    await settle(300);
+    await tap('settings-back');
+    await visible('mode-smart');
+    await settle();
+
+    // Every card is graded when "Next card" is pressed — INCLUDING the last, which
+    // ends the round. Pressing End instead leaves that card ungraded, so a round
+    // only counted seven of its eight species and five rounds left most of them
+    // one correct answer short of mastery.
+    const playRound = async () => {
+      await tap('smart-start');
+      for (let card = 0; card < 8; card++) {
+        await visible('study-reveal');
+        await tap('study-reveal');
+        await tapCorrectChoice();
+        await settle(200);
+        await tap('study-next');
+      }
+      await visible('results-menu');
+      await tap('results-menu');
+      await visible('mode-smart');
+      await settle();
+    };
+
+    // Name and pair questions only. Five correct rounds put every fixture
+    // species at 5 of 5 — past the mastery bar (5 correct, 80 percent).
+    await tap('menu-type-picture');
+    await tap('menu-type-typed');
+    for (let round = 0; round < 5; round++) await playRound();
+
+    // The sixth round is shown official photos. Each card, before it is
+    // answered, must credit a fixture photographer and never the player.
+    await tap('smart-start');
+    const seen = [];
+    for (let card = 0; card < 8; card++) {
+      await visible('study-reveal');
+      // The credit shows once the official photo has resolved.
+      await exists('study-credit', 8000);
+      seen.push(await labelOf('study-credit'));
+      await tap('study-reveal');
+      await tapCorrectChoice();
+      await settle(200);
+      if (card < 7) await tap('study-next');
+    }
+    await tap('study-end');
+    await visible('results-menu');
+
+    assert.ok(
+      seen.every((c) => /Fixture Photographer/.test(c)),
+      `every mastered card should credit the official photo, got: ${JSON.stringify(seen)}`
+    );
+    assert.ok(
+      seen.every((c) => !/e2e tester/.test(c)),
+      `no card should still carry the player's own credit: ${JSON.stringify(seen)}`
+    );
+  });
+
   // Scroll to something if the page scrolls at all. The compare page is short
   // enough to fit on a large phone, and Detox throws "not scrollable" rather
   // than shrugging when there is nothing to scroll.
@@ -642,7 +714,18 @@ describe('Game modes', () => {
     // A one-letter typo is forgiven — and said so, rather than passing in
     // silence: the player should see the spelling they missed.
     const answer = await labelOf('e2e-answer');
-    const typo = `${answer.slice(0, -1)}${answer.slice(-1) === 'x' ? 'y' : 'x'}`;
+    // One letter changed, in the LONGEST word of the name (hyphens split words,
+    // as the matcher sees them). The last letter of the name is not safe: a name
+    // ending in a three-letter word — "Great Tit", "Western Honey Bee" — gets no
+    // typo slack there by design (src/answermatch.js, per-word rationing, so a
+    // look-alike's name is not forgiven as a slip), and which species the round
+    // serves is random, so the spec passed or failed on the draw.
+    let longest = null;
+    for (const m of answer.matchAll(/[^\s-]+/g)) {
+      if (!longest || m[0].length > longest[0].length) longest = m;
+    }
+    const at = longest.index + longest[0].length - 1;
+    const typo = `${answer.slice(0, at)}${answer[at] === 'x' ? 'y' : 'x'}${answer.slice(at + 1)}`;
     // Check, until it takes: the keyboard is up and the first tap after typing
     // is regularly swallowed — the card just sits there with the answer typed.
     const check = async (id) => {

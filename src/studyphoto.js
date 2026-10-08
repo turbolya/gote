@@ -67,3 +67,32 @@ export function studyPhoto({
   if (!freshResolved) return { uri: null, loading: true };
   return { uri: freshUri || ownImage || null, loading: false };
 }
+
+// The credit line that belongs with the photo on screen.
+//
+// A photo is licensed by whoever took it, so the credit must follow the photo
+// that is SHOWN, not the card it happens to be shown for. The two part company
+// exactly when a mastered species gets an official photo in place of the
+// player's own — and the corner kept naming the player's own photographer under
+// somebody else's picture, which misattributes the work.
+//
+//   photoUri       the photo being shown (from studyPhoto), or null
+//   ownImage       the card's own photo URL
+//   ownCredit      the credit for that own photo, already formatted
+//   lookupCredit   (url) => formatted credit | null — the app-wide registry that
+//                  files each official photo's credit as it is fetched
+//
+// Unknown means NO credit, never the card's: showing the wrong name is worse
+// than showing none, and "unknown" is only a photo whose credit has not been
+// filed.
+export function studyCredit({
+  photoUri = null,
+  ownImage = null,
+  ownCredit = null,
+  lookupCredit = null,
+} = {}) {
+  if (!photoUri) return null;
+  if (photoUri === ownImage) return ownCredit || null;
+  if (typeof lookupCredit !== 'function') return null;
+  return lookupCredit(photoUri) || null;
+}
