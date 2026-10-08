@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.45.2';
+export const APP_VERSION = '2.45.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.45.3',
+    date: '2026-10-08',
+    changes: [
+      'The photo credit now matches the photo. With “Fresh photo once '
+        + 'mastered” on, a species you know well is shown on an official '
+        + 'photo, but the corner kept crediting the photographer of your own '
+        + 'observation. It now names whoever took the photo you are looking at.',
+    ],
+  },
   {
     version: '2.45.2',
     date: '2026-10-05',
