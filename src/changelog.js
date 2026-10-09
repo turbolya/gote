@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.45.4';
+export const APP_VERSION = '2.45.5';
 
 export const CHANGELOG = [
+  {
+    version: '2.45.5',
+    date: '2026-10-09',
+    changes: [
+      'Tapping the dice now responds straight away: all four photos are '
+        + 'replaced by the newt, which stays until the new pictures have '
+        + 'loaded.',
+    ],
+  },
   {
     version: '2.45.4',
     date: '2026-10-09',

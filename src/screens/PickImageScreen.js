@@ -249,7 +249,13 @@ export default function PickImageScreen({
                     disabled={answered}
                     onPress={() => pick(opt)}
                   >
+                    {/* Keyed by the photo, so a dice roll remounts the tile:
+                        the old picture goes at once and the newt shows until
+                        the new one has loaded. Without the key the component
+                        keeps its "loaded" state and the old photo just sits
+                        there while the new one downloads. */}
                     <LoadingImage
+                      key={`${opt.taxonId}:${opt.photo}`}
                       source={{ uri: opt.photo }}
                       style={styles.tileImg}
                       resizeMode="cover"
