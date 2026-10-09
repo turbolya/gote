@@ -68,6 +68,17 @@ export function studyPhoto({
   return { uri: freshUri || ownImage || null, loading: false };
 }
 
+// Is the photo on screen the player's OWN observation photo?
+//
+// Two things belong to the observation rather than to the species, and both go
+// wrong the moment a mastered species is shown an official photo instead: the
+// photographer's credit, and the place it was taken. This is the one question
+// they both ask. Nothing on screen yet (a fresh photo still loading) is not the
+// own photo either.
+export function showsOwnPhoto({ photoUri = null, ownImage = null } = {}) {
+  return !!photoUri && photoUri === ownImage;
+}
+
 // The credit line that belongs with the photo on screen.
 //
 // A photo is licensed by whoever took it, so the credit must follow the photo
@@ -92,7 +103,7 @@ export function studyCredit({
   lookupCredit = null,
 } = {}) {
   if (!photoUri) return null;
-  if (photoUri === ownImage) return ownCredit || null;
+  if (showsOwnPhoto({ photoUri, ownImage })) return ownCredit || null;
   if (typeof lookupCredit !== 'function') return null;
   return lookupCredit(photoUri) || null;
 }

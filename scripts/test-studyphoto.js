@@ -16,7 +16,7 @@ const photo = path.join(__dirname, '..', 'src', 'studyphoto.js');
 const mastery = path.join(__dirname, '..', 'src', 'mastery.js');
 
 const script = `
-import { wantsFreshPhoto, pickFreshPhoto, studyPhoto, studyCredit } from ${JSON.stringify(photo)};
+import { wantsFreshPhoto, pickFreshPhoto, studyPhoto, studyCredit, showsOwnPhoto } from ${JSON.stringify(photo)};
 import { speciesKey, isMastered } from ${JSON.stringify(mastery)};
 
 let passed = 0, failed = 0;
@@ -132,6 +132,23 @@ console.log('\\nend to end: a species crossing the mastery threshold');
   eq('replaced once the official photo arrives',
     studyPhoto({ wantsFresh: wantB, freshResolved: true, freshUri: 'official.jpg', ownImage: CARD.image }),
     { uri: 'official.jpg', loading: false });
+}
+
+console.log('\\nshowsOwnPhoto');
+{
+  eq('the own photo is the own photo', showsOwnPhoto({ photoUri: 'own.jpg', ownImage: 'own.jpg' }), true);
+  eq('an official photo is not', showsOwnPhoto({ photoUri: 'official.jpg', ownImage: 'own.jpg' }), false);
+  eq('nothing on screen yet is not (a fresh photo still loading)', showsOwnPhoto({ photoUri: null, ownImage: 'own.jpg' }), false);
+  eq('no own photo and none shown is not either, not a match of two nulls', showsOwnPhoto({ photoUri: null, ownImage: null }), false);
+  eq('no arguments is safe', showsOwnPhoto(), false);
+  eq('agrees with studyPhoto: not wanted, own photo',
+    showsOwnPhoto({ photoUri: studyPhoto({ wantsFresh: false, ownImage: 'own.jpg' }).uri, ownImage: 'own.jpg' }), true);
+  eq('agrees with studyPhoto: wanted and resolved, official photo',
+    showsOwnPhoto({ photoUri: studyPhoto({ wantsFresh: true, freshResolved: true, freshUri: 'official.jpg', ownImage: 'own.jpg' }).uri, ownImage: 'own.jpg' }), false);
+  eq('agrees with studyPhoto: wanted but offline, back to the own photo',
+    showsOwnPhoto({ photoUri: studyPhoto({ wantsFresh: true, freshResolved: true, freshUri: null, ownImage: 'own.jpg' }).uri, ownImage: 'own.jpg' }), true);
+  eq('agrees with studyPhoto: wanted and still fetching, nothing yet',
+    showsOwnPhoto({ photoUri: studyPhoto({ wantsFresh: true, freshResolved: false, ownImage: 'own.jpg' }).uri, ownImage: 'own.jpg' }), false);
 }
 
 console.log('\\nstudyCredit');

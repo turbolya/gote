@@ -43,7 +43,7 @@ import { pickSimilarDistractors } from '../quiz';
 import { pairKey, pairCount, CONFUSION_HINT_MIN } from '../confusions';
 import { VERIFY_STREAK_MIN } from '../verify';
 import { speciesKey } from '../mastery';
-import { wantsFreshPhoto, pickFreshPhoto, studyPhoto, studyCredit } from '../studyphoto';
+import { wantsFreshPhoto, pickFreshPhoto, studyPhoto, studyCredit, showsOwnPhoto } from '../studyphoto';
 import { matchAnswer } from '../answermatch';
 
 // Shared with App.js's tally writer, so a mastery lookup asks under the same key
@@ -539,11 +539,16 @@ export default function StudyScreen({
   // downloaded before this feature won't, and obscured/private ones may not).
   // The map (react-native-maps) needs a Google Maps key on Android, so the pin
   // is iOS-only for now.
+  //
+  // And only while the player's OWN photo is on screen: the coordinates belong
+  // to that observation, so beside an official photo (a mastered species shown
+  // a fresh picture) the pin would point at where a different photo was taken.
   const hasGeo =
     !!card &&
     Number.isFinite(card.lat) &&
     Number.isFinite(card.lng) &&
-    Platform.OS !== 'android';
+    Platform.OS !== 'android' &&
+    showsOwnPhoto({ photoUri, ownImage: card.image });
 
   // Shared fullscreen scaffold: photo fills the screen, top gradient holds the
   // exit/progress/score chrome. Bottom content differs per mode.

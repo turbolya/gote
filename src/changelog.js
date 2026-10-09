@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.45.3';
+export const APP_VERSION = '2.45.4';
 
 export const CHANGELOG = [
+  {
+    version: '2.45.4',
+    date: '2026-10-09',
+    changes: [
+      'The location pin is hidden while an official photo is shown. The pin '
+        + 'belongs to your own observation, so it no longer appears next to a '
+        + 'photo taken somewhere else.',
+    ],
+  },
   {
     version: '2.45.3',
     date: '2026-10-08',

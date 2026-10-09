@@ -218,10 +218,14 @@ describe('Game modes', () => {
     // ends the round. Pressing End instead leaves that card ungraded, so a round
     // only counted seven of its eight species and five rounds left most of them
     // one correct answer short of mastery.
-    const playRound = async () => {
+    const playRound = async (first) => {
       await tap('smart-start');
       for (let card = 0; card < 8; card++) {
         await visible('study-reveal');
+        // The control for the map pin: it IS on a card showing the player's own
+        // photo. Without this the "no pin on an official photo" check below
+        // would pass just as happily if the pin never rendered at all.
+        if (first && card === 0) await exists('study-location');
         await tap('study-reveal');
         await tapCorrectChoice();
         await settle(200);
@@ -237,7 +241,7 @@ describe('Game modes', () => {
     // species at 5 of 5 — past the mastery bar (5 correct, 80 percent).
     await tap('menu-type-picture');
     await tap('menu-type-typed');
-    for (let round = 0; round < 5; round++) await playRound();
+    for (let round = 0; round < 5; round++) await playRound(round === 0);
 
     // The sixth round is shown official photos. Each card, before it is
     // answered, must credit a fixture photographer and never the player.
@@ -248,6 +252,9 @@ describe('Game modes', () => {
       // The credit shows once the official photo has resolved.
       await exists('study-credit', 8000);
       seen.push(await labelOf('study-credit'));
+      // The pin marks where the player's OWN observation was taken, so it must
+      // not sit beside an official photo taken somewhere else.
+      await expect(element(by.id('study-location'))).not.toExist();
       await tap('study-reveal');
       await tapCorrectChoice();
       await settle(200);
