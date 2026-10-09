@@ -9,7 +9,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gote.app",
-      "buildNumber": "69",
+      "buildNumber": "70",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
