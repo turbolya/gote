@@ -9,8 +9,8 @@
 // detail photo strip): those are small, load fast, and a spinner in a 40pt box
 // reads as noise rather than feedback.
 
-import React, { useState } from 'react';
-import { View, Image, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Image, StyleSheet } from 'react-native';
 
 // The single source of truth for the spinner artwork. StudyScreen imports this
 // too — it keeps its own persistent overlay because its photo layer remounts
@@ -25,17 +25,25 @@ export const SPINNER_GIF = require('../../assets/gote-spinner.gif');
 // with scripts/tint-gif.swift.
 export const SPINNER_GIF_TEAL = require('../../assets/gote-spinner-teal.gif');
 
+// First frame of each GIF as a plain PNG (a few KB). The animated GIF takes a
+// moment to decode, so the spinner shows this still the instant it mounts and
+// lets the GIF take over once it can draw. Both start on the same frame, so the
+// hand-over is invisible. Regenerate with the GIFs (frame 0 of each).
+const SPINNER_STILL = require('../../assets/gote-spinner-still.png');
+const SPINNER_STILL_TEAL = require('../../assets/gote-spinner-teal-still.png');
+
 // The newt animation is 119 frames at 144x144 — lovely, but several megabytes
-// once decoded, and that first decode is not instant. It used to mean the very
-// first card of a round sat on a plain black screen with no feedback at all
-// while the GIF was still being prepared.
+// once decoded, and that first decode is not instant. Waiting for it used to
+// mean a plain black screen, and then a system spinner, before the newt turned
+// up. The newt is a local asset, so it should be there at once.
 //
-// So the spinner is two-stage: a native ActivityIndicator draws immediately
-// (zero decode), and the newt takes over the moment it's ready. Once the GIF
-// has loaded ANYWHERE it stays ready for the rest of the launch — tracked
-// module-wide so later spinners skip straight to the newt with no flicker.
-// Per artwork, because the two GIFs decode separately.
-const gifReady = { white: false, teal: false };
+// So the spinner is two-stage, and both stages are the newt: a still of the
+// first frame (a tiny PNG, no decode to speak of) draws immediately, and the
+// animated GIF takes over once THIS spinner's GIF has loaded. That is tracked
+// per instance on purpose. A module-wide "the GIF has loaded somewhere" flag
+// looks like a saving, but a GIF that loaded in one view has not necessarily
+// painted in another one mounted a moment later — the later spinners skipped
+// the still and showed an empty circle (four photo tiles, one newt).
 
 /**
  * @param scrim  draw a dark chip behind the newt. The artwork is white, which
@@ -46,28 +54,42 @@ const gifReady = { white: false, teal: false };
  *               spinners on the app's own background, where white is invisible
  *               in the light theme. Fixed at mount — nothing flips it.
  */
-export function Spinner({ size = 44, color = '#FFFFFF', scrim = false, teal = false }) {
-  const art = teal ? 'teal' : 'white';
-  const [ready, setReady] = useState(gifReady[art]);
+export function Spinner({ size = 44, scrim = false, teal = false }) {
+  const [ready, setReady] = useState(false);
+  // The still stays under the GIF for a beat after it loads: the GIF's onLoad
+  // can fire a frame before it paints, and the artwork is transparent, so
+  // dropping the still at once could flash an empty spinner. It must go in the
+  // end, though — the GIF moves on from frame 0 and the still would show
+  // through as a ghost.
+  const [stillShown, setStillShown] = useState(true);
+  useEffect(() => {
+    if (!ready) return undefined;
+    const t = setTimeout(() => setStillShown(false), 200);
+    return () => clearTimeout(t);
+  }, [ready]);
+  const box = { width: size, height: size };
   return (
     <View
       style={[
-        { width: size, height: size },
+        box,
         styles.center,
         scrim && [styles.scrim, { borderRadius: size / 2 }],
       ]}
     >
-      {!ready && <ActivityIndicator color={color} />}
+      {stillShown && (
+        <Image
+          source={teal ? SPINNER_STILL_TEAL : SPINNER_STILL}
+          style={box}
+          resizeMode="contain"
+        />
+      )}
       <Image
         source={teal ? SPINNER_GIF_TEAL : SPINNER_GIF}
         // Kept mounted (just hidden) before it's ready, so it actually loads —
-        // it's the onLoad below that flips this over to the newt.
-        style={ready ? { width: size, height: size } : styles.hiddenSpinner}
+        // it's the onLoad below that brings it in over the still.
+        style={ready ? [styles.gifOver, box] : styles.hiddenSpinner}
         resizeMode="contain"
-        onLoad={() => {
-          gifReady[art] = true;
-          setReady(true);
-        }}
+        onLoad={() => setReady(true)}
       />
     </View>
   );
@@ -88,11 +110,10 @@ export function SpinnerWarmup() {
     />
   );
 }
-// NB: the warm-up deliberately does NOT set `gifReady`. Its onLoad fires long
-// before an invisible copy can actually paint frames, and trusting it made the
-// first spinner skip the ActivityIndicator and then render a GIF that was still
-// decoding — so nothing at all appeared, which is the bug this all exists to
-// fix. Only a real, visible Spinner's onLoad may flip the flag.
+// NB: nothing here is allowed to mark a Spinner ready. An invisible copy's
+// onLoad fires long before it can paint frames, and trusting it (or any other
+// view's load) made a spinner show a GIF that was still decoding — so nothing
+// at all appeared. Each Spinner waits for its own GIF, with the still showing.
 
 /**
  * An <Image> with a centred spinner until it has loaded.
@@ -149,8 +170,9 @@ const styles = StyleSheet.create({
   wrap: { overflow: 'hidden' },
   center: { alignItems: 'center', justifyContent: 'center' },
   warmup: { position: 'absolute', width: 56, height: 56, opacity: 0 },
-  // Loading but not yet drawable: out of flow and invisible, so the
-  // ActivityIndicator beside it is what the player sees.
+  // Loading but not yet drawable: out of flow and invisible, so the still
+  // beneath it is what the player sees.
+  gifOver: { position: 'absolute' },
   hiddenSpinner: { position: 'absolute', width: 1, height: 1, opacity: 0 },
   scrim: { backgroundColor: 'rgba(0,0,0,0.38)' },
 });

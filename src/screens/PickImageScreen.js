@@ -230,7 +230,7 @@ export default function PickImageScreen({
                   is the app's own background behind it — so the teal artwork,
                   like the loading screen, rather than the white one that sits
                   on photos. */}
-              <Spinner size={72} teal color={colors.primary} />
+              <Spinner size={72} teal />
               <Text style={styles.loadingText}>Finding look-alikes…</Text>
             </>
           )}

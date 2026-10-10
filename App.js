@@ -2098,10 +2098,10 @@ export default function App() {
                 first thing a new install sits on, sometimes for half a minute.
                 Teal artwork because it sits on the app's own background, where
                 the white newt every other spinner uses would vanish in the
-                light theme. Spinner falls back to an ActivityIndicator until
+                light theme. Spinner shows a still of the newt until
                 the GIF has decoded, which matters here — SpinnerWarmup lives on
                 the menu, and on a first launch this screen comes first. */}
-            <Spinner size={72} teal color={colors.primary} />
+            <Spinner size={72} teal />
             <Text style={styles.loadingText}>
               {loadingNearby
                 ? 'Finding species observed near this place…'

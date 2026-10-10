@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.45.5';
+export const APP_VERSION = '2.45.6';
 
 export const CHANGELOG = [
+  {
+    version: '2.45.6',
+    date: '2026-10-10',
+    changes: [
+      'The loading newt now appears the moment a photo starts loading, '
+        + 'instead of a plain circle first. It shows on every photo tile, '
+        + 'the study card and the loading screens.',
+    ],
+  },
   {
     version: '2.45.5',
     date: '2026-10-09',
