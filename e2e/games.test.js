@@ -146,7 +146,7 @@ describe('Game modes', () => {
     await visible('results-menu');
   });
 
-  it('Photo questions: the dice swaps every photo, keeping the same species', async () => {
+  it('Photo questions: the shuffle button swaps every photo, keeping the same species', async () => {
     await startPhotoRound();
     await visible('pick-screen');
     await exists('e2e-pick-answer');
@@ -161,7 +161,7 @@ describe('Game modes', () => {
     assert.strictEqual(before.length, 4);
     const answer = await labelOf('e2e-pick-answer');
 
-    await tap('pick-dice');
+    await tap('pick-shuffle');
     await settle();
     const after = await read();
 
@@ -175,7 +175,7 @@ describe('Game modes', () => {
 
     // A second roll still moves everything: it re-rolls from the whole pool,
     // not from whatever the first roll happened to leave behind.
-    await tap('pick-dice');
+    await tap('pick-shuffle');
     await settle();
     const again = await read();
     again.forEach((t, i) => assert.notStrictEqual(t.url, after[i].url, `tile ${i} kept its photo on the second roll`));
@@ -184,8 +184,8 @@ describe('Game modes', () => {
     await tap(`pick-tile-${answer}`);
     await waitFor(element(by.text('Correct!'))).toBeVisible().withTimeout(TIMEOUT);
 
-    // …and the dice is still live once answered.
-    await tap('pick-dice');
+    // …and the shuffle is still live once answered.
+    await tap('pick-shuffle');
     await settle();
     const last = await read();
     assert.deepStrictEqual(last.map((t) => t.id), before.map((t) => t.id));

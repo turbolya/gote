@@ -8,9 +8,18 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.45.6';
+export const APP_VERSION = '2.45.7';
 
 export const CHANGELOG = [
+  {
+    version: '2.45.7',
+    date: '2026-10-10',
+    changes: [
+      'The photo button is now a bigger shuffle icon, placed right under '
+        + 'the species name instead of up in the corner, so it is easier to '
+        + 'find and tap.',
+    ],
+  },
   {
     version: '2.45.6',
     date: '2026-10-10',

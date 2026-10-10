@@ -52,8 +52,8 @@ export default function PickImageScreen({
   // Fullscreen viewer state: { photos, title, loading, startIndex } or null.
   const [viewer, setViewer] = useState(null);
 
-  // The dice re-rolls which photo each tile shows — same four species, new
-  // pictures. Null until the dice is used, so the round's own draw stands.
+  // Shuffle re-rolls which photo each tile shows — same four species, new
+  // pictures. Null until it is used, so the round's own draw stands.
   const [rolled, setRolled] = useState(null);
   const options = rolled || (round ? round.options : []);
 
@@ -149,7 +149,7 @@ export default function PickImageScreen({
         />
       )}
       {/* E2E only: exposes the photo each tile is showing right now, in tile
-          order as "taxonId=url|…", so a test can tell the dice changed them. */}
+          order as "taxonId=url|…", so a test can tell the shuffle changed them. */}
       {IS_E2E && round && (
         <View
           testID="e2e-pick-photos"
@@ -168,21 +168,6 @@ export default function PickImageScreen({
           {index + 1} / {total}
         </Text>
         <View style={styles.rightGroup}>
-          {/* Dice: same four species, different pictures of each. Stays live
-              after answering — a species you just got wrong is exactly the one
-              worth seeing from another angle. */}
-          <Pressable
-            testID="pick-dice"
-            onPress={roll}
-            hitSlop={10}
-            disabled={!canRoll}
-            accessibilityRole="button"
-            accessibilityLabel="Show different photos"
-            accessibilityHint="Swaps every tile for another photo of the same species"
-            style={styles.flagBtn}
-          >
-            <Icon name="dice" size={19} color={canRoll ? colors.muted : colors.border} />
-          </Pressable>
           {onToggleFlag && (
             <Pressable
               testID="pick-flag"
@@ -210,6 +195,23 @@ export default function PickImageScreen({
       {/* Prompt */}
       <Text style={styles.label}>Which one is</Text>
       <Text style={styles.name}>{round ? round.name : '…'}</Text>
+
+      {/* Shuffle: same four species, different pictures of each. Stays live
+          after answering — a species you just got wrong is exactly the one
+          worth seeing from another angle. (testID is still pick-shuffle, from
+          when it was a dice.) */}
+      <Pressable
+        testID="pick-shuffle"
+        onPress={roll}
+        hitSlop={10}
+        disabled={!canRoll}
+        accessibilityRole="button"
+        accessibilityLabel="Show different photos"
+        accessibilityHint="Swaps every tile for another photo of the same species"
+        style={styles.shuffleBtn}
+      >
+        <Icon name="shuffle" size={30} color={canRoll ? colors.muted : colors.border} />
+      </Pressable>
 
       {/* Body */}
       {loading || !round ? (
@@ -249,7 +251,7 @@ export default function PickImageScreen({
                     disabled={answered}
                     onPress={() => pick(opt)}
                   >
-                    {/* Keyed by the photo, so a dice roll remounts the tile:
+                    {/* Keyed by the photo, so a shuffle remounts the tile:
                         the old picture goes at once and the newt shows until
                         the new one has loaded. Without the key the component
                         keeps its "loaded" state and the old photo just sits
@@ -404,7 +406,15 @@ const makeStyles = (colors) => StyleSheet.create({
     fontWeight: '900',
     letterSpacing: -0.4,
     marginTop: 4,
-    marginBottom: 20,
+  },
+  shuffleBtn: {
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 52,
+    height: 44,
+    marginTop: 8,
+    marginBottom: 6,
   },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },

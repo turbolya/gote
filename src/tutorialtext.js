@@ -35,7 +35,7 @@ export const STEP_TEXT = {
   },
   smart: {
     title: 'Smart play',
-    body: 'The main game: mixed questions picked for you. On a photo question, tap the dice for fresh pictures.',
+    body: 'The main game: mixed questions picked for you. On a photo question, tap the shuffle button for fresh pictures.',
   },
   smartStart: {
     title: 'Keep it short',
