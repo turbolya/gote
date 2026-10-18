@@ -65,3 +65,5 @@ build-*.ipa
 
 # Generated from docs/MANUAL-TESTS.md for import into Testiny.
 testiny-cases.csv
+*.apk
+*.aab
