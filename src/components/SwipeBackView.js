@@ -7,7 +7,7 @@
 // each render without rebuilding the PanResponder.
 
 import React, { useRef } from 'react';
-import { View, PanResponder } from 'react-native';
+import { View, PanResponder, Platform } from 'react-native';
 import { isBackSwipe, backSwipeCommitted } from '../gestures';
 import { IS_E2E } from '../e2e/testMode';
 
@@ -22,7 +22,10 @@ export default function SwipeBackView({ onBack, enabled = true, style, children 
       // Don't claim taps; only decide on move so children handle touches normally.
       onMoveShouldSetPanResponder: (_evt, g) => {
         // Disabled under E2E so it can't interfere with Detox's synthetic drags.
-        if (IS_E2E || !cbRef.current || !enabledRef.current) return false;
+        // And on Android, where the system's own edge-swipe back is the same
+        // gesture from the same edge (App.js wires it to the same targets via
+        // BackHandler) — two recognisers for one swipe would double-navigate.
+        if (IS_E2E || Platform.OS === 'android' || !cbRef.current || !enabledRef.current) return false;
         return isBackSwipe(g);
       },
       onPanResponderRelease: (_evt, g) => {

@@ -27,7 +27,7 @@ if (rendered.length < 5) {
 }
 
 const script = `
-import { BACK_TO, NO_BACK, SCREENS, backTarget } from ${JSON.stringify(src)};
+import { BACK_TO, NO_BACK, SCREENS, backTarget, systemBackAction } from ${JSON.stringify(src)};
 const RENDERED = ${JSON.stringify(rendered)};
 
 let passed = 0, failed = 0;
@@ -116,6 +116,32 @@ console.log('\\nthe screens with no back are the intended ones');
   // Deliberately spelled out: adding a screen here is a decision to give it no
   // back gesture, and should be a visible diff rather than an omission.
   eq('no-back list', [...NO_BACK].sort(), ['loading', 'menu', 'pick', 'results', 'study']);
+}
+
+console.log('\\nsystem back (Android)');
+{
+  eq('menu exits the app', systemBackAction({ screen: 'menu' }), { type: 'exit' });
+  eq('a top-level page goes to the menu', systemBackAction({ screen: 'stats' }), { type: 'navigate', target: 'menu' });
+  eq('a settings sub-page goes to settings', systemBackAction({ screen: 'legal' }), { type: 'navigate', target: 'settings' });
+  eq('sync goes to settings', systemBackAction({ screen: 'sync' }), { type: 'navigate', target: 'settings' });
+  eq('settings leaves through its own handler', systemBackAction({ screen: 'settings' }), { type: 'leave-settings' });
+  eq('settings with no deck is the root of a first run', systemBackAction({ screen: 'settings', canLeaveSettings: false }), { type: 'exit' });
+  eq('a card round ends like End', systemBackAction({ screen: 'study' }), { type: 'end-round' });
+  eq('a pick round ends like End', systemBackAction({ screen: 'pick' }), { type: 'end-round' });
+  eq('loading cancels', systemBackAction({ screen: 'loading' }), { type: 'cancel-load' });
+  eq('results go to the menu', systemBackAction({ screen: 'results' }), { type: 'results-menu' });
+  eq('an unknown screen exits rather than trapping', systemBackAction({ screen: 'nope' }), { type: 'exit' });
+  eq('no arguments exits', systemBackAction(), { type: 'exit' });
+  // Overlays sit on top of whatever screen is showing, mid-round included.
+  eq('a species detail closes first', systemBackAction({ screen: 'lexicon', hasDetail: true }), { type: 'close-detail' });
+  eq('an overlay beats ending the round', systemBackAction({ screen: 'study', hasCompare: true }), { type: 'close-compare' });
+  eq('the duel is above the comparison', systemBackAction({ screen: 'stats', hasDuel: true, hasCompare: true, hasDetail: true }), { type: 'close-duel' });
+  eq('the comparison is above the detail', systemBackAction({ screen: 'stats', hasCompare: true, hasDetail: true }), { type: 'close-compare' });
+  // Every screen must have a defined answer, so a new one cannot trap the user.
+  const undecided = SCREENS.filter((s) => !systemBackAction({ screen: s }).type);
+  eq('every screen has a back action', undecided, []);
+  const trapped = SCREENS.filter((s) => s !== 'menu' && systemBackAction({ screen: s }).type === 'exit');
+  eq('only the menu exits (settings aside)', trapped, []);
 }
 
 console.log('\\n' + (failed ? 'FAILED ' + failed : 'passed ' + passed) + (failed ? ' / ' + (passed + failed) : ''));

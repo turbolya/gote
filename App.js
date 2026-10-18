@@ -18,6 +18,7 @@ import {
   Pressable,
   ActivityIndicator,
   AppState,
+  BackHandler,
   StatusBar as RNStatusBar,
   Platform,
   StyleSheet,
@@ -182,7 +183,7 @@ import SplashScreen from './src/components/SplashScreen';
 import SupportModal from './src/components/SupportModal';
 import ObservationPopup from './src/components/ObservationPopup';
 import SwipeBackView from './src/components/SwipeBackView';
-import { backTarget } from './src/navigation';
+import { backTarget, systemBackAction } from './src/navigation';
 import { Appear } from './src/components/anim';
 
 // After this long, re-download an account's deck from scratch on load instead of
@@ -1884,6 +1885,44 @@ export default function App() {
         ? () => (settingsLeaveRef.current || navBack || (() => {}))()
         : null
       : navBack;
+
+  // Android system back. The decision is src/navigation.js's (systemBackAction);
+  // this only carries it out. The handler is registered once and reads the
+  // latest state through a ref, so it is never stale and never re-subscribed.
+  // Returning false hands the press back to Android, which leaves the app — the
+  // right thing on the menu.
+  const backStateRef = useRef(null);
+  backStateRef.current = {
+    screen,
+    hasDuel: !!duelPair,
+    hasCompare: !!comparePair,
+    hasDetail: !!detailCard,
+    canLeaveSettings: fullDeck.length > 0,
+    navBack,
+    endRound: () => finishRound(correctCount, missed, correctCount + missed.length),
+  };
+  useEffect(() => {
+    if (Platform.OS !== 'android') return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      const st = backStateRef.current;
+      if (!st) return false;
+      const action = systemBackAction(st);
+      switch (action.type) {
+        case 'close-duel': setDuelPair(null); return true;
+        case 'close-compare': setComparePair(null); return true;
+        case 'close-detail': setDetailCard(null); return true;
+        case 'end-round': st.endRound(); return true;
+        case 'cancel-load': cancelLoad(); return true;
+        case 'results-menu': setScreen('menu'); return true;
+        case 'leave-settings':
+          (settingsLeaveRef.current || st.navBack || (() => {}))();
+          return true;
+        case 'navigate': setScreen(action.target); return true;
+        default: return false;
+      }
+    });
+    return () => sub.remove();
+  }, [cancelLoad]);
 
   // --- render ---
   // Hold the UI until the icon fonts are loaded, so icons never render as "?"

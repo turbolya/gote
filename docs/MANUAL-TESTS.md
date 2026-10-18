@@ -1275,6 +1275,52 @@ of its cases cannot be reached again without deleting the app.
     had automated tests. Worth a pass after any React Native or Expo SDK
     upgrade.
 
+## 21. Android
+
+Android has no automated UI suite (Detox runs on iOS only), so these are the
+cases that carry it. Use a real device, and again on a gesture-navigation phone
+and a three-button-navigation phone: the back gesture and the back button reach
+the app the same way, but the gesture comes from the screen edge, where the
+in-app swipe-back used to compete with it.
+
+- [ ] **TC-21.1 Back goes back, one screen at a time.** From the menu, open
+    Statistics, then back; open Settings ▸ Legal, then back, then back again;
+    open Lexicon, open a species, then back, then back.
+  - *Preconditions:* An Android device with an account loaded.
+  - *Priority:* High
+  - *Expected:* Each back lands where the header's back chevron would: Statistics
+    to the menu, Legal to Settings and Settings to the menu, a species page to
+    the Lexicon and the Lexicon to the menu. Nothing leaves the app until the
+    menu.
+- [ ] **TC-21.2 Back on the menu leaves the app.** From the menu, press back.
+  - *Priority:* High
+  - *Expected:* The app goes to the background, as any Android app does on its
+    root screen. It does not ask anything and does not stay on the menu.
+- [ ] **TC-21.3 Back ends a round like End.** Start a Smart play round, answer
+    one card, then press back on a card. Repeat on a photo (four-tile) question.
+  - *Priority:* High
+  - *Expected:* The round ends and Results shows the cards already answered,
+    exactly as if End had been tapped. Back on Results goes to the menu.
+- [ ] **TC-21.4 Back closes an overlay before anything else.** Mid-round, open a
+    compare or duel from the "you keep mixing these up" callout; from Statistics
+    open a species detail. Press back.
+  - *Expected:* Only the overlay closes, and the round or screen underneath is
+    exactly as it was.
+- [ ] **TC-21.5 Back closes popups first.** Open the photo viewer, the support
+    popup and the language list in turn, and press back on each.
+  - *Expected:* Only the popup closes.
+- [ ] **TC-21.6 Back cancels loading.** Start a Nearby round on a slow
+    connection and press back while it loads.
+  - *Expected:* The load is cancelled, as with the Cancel button, and you are
+    back where you started.
+- [ ] **TC-21.7 Back out of Settings keeps your edits.** In Settings change the
+    name language, then press back.
+  - *Expected:* The change is applied, as it is by the header's back button.
+- [ ] **TC-21.8 No double navigation from the edge.** On a gesture-navigation
+    phone, swipe back from the left edge on Statistics.
+  - *Expected:* Exactly one step back, to the menu. The in-app swipe-back is
+    switched off on Android; a second step would mean it was not.
+
 ---
 
 

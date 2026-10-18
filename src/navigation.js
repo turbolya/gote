@@ -44,3 +44,42 @@ export function backTarget(screen) {
     ? BACK_TO[screen]
     : null;
 }
+
+// What the Android system back button (or gesture) should do right now. Pure for
+// the same reason backTarget is: it is the one place that says what "back" means
+// when several things could claim it, and it can be tested without a device.
+//
+// Priority, outermost first — the thing drawn on top is the thing that closes:
+//   1. the overlays that sit above any screen (duel, comparison, species detail)
+//   2. a round in progress ends, exactly like its End button (the results screen
+//      is reversible: Play again, Revisit missed). Back must never be a way to
+//      lose a round silently, but it also must not trap anyone in one.
+//   3. loading cancels, like its Cancel button
+//   4. results go to the menu, like its Menu button
+//   5. a screen with a back target goes there (Settings through its own leave
+//      handler, so pending edits are applied)
+//   6. the menu — and Settings before any deck exists, which is the root of a
+//      first run — has nowhere to go: { type: 'exit' }, so the caller returns
+//      false and Android leaves the app, which is what back on the root does.
+//
+// Modals (photo viewer, support popup, language picker) never get here: React
+// Native's Modal consumes the system back itself through onRequestClose.
+export function systemBackAction({
+  screen,
+  hasDuel = false,
+  hasCompare = false,
+  hasDetail = false,
+  canLeaveSettings = true,
+} = {}) {
+  if (hasDuel) return { type: 'close-duel' };
+  if (hasCompare) return { type: 'close-compare' };
+  if (hasDetail) return { type: 'close-detail' };
+  if (screen === 'study' || screen === 'pick') return { type: 'end-round' };
+  if (screen === 'loading') return { type: 'cancel-load' };
+  if (screen === 'results') return { type: 'results-menu' };
+  if (screen === 'settings') {
+    return canLeaveSettings ? { type: 'leave-settings' } : { type: 'exit' };
+  }
+  const target = backTarget(screen);
+  return target ? { type: 'navigate', target } : { type: 'exit' };
+}
