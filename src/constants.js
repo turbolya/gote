@@ -25,6 +25,12 @@ export const KOFI_URL = 'https://ko-fi.com/goteapp';
 export const APP_STORE_REVIEW_URL =
   'https://apps.apple.com/app/id6792750976?action=write-review';
 
+// Google Play listing for the same app (the package name is the id). Play has
+// no "write a review" action: this opens the listing, where the review box is
+// one tap away. Android only; iOS uses the link above.
+export const PLAY_STORE_URL =
+  'https://play.google.com/store/apps/details?id=com.gote.app';
+
 // Chance (0–1) that the support/review popup appears on a given launch.
 export const SUPPORT_PROMPT_CHANCE = 0.1;
 

@@ -1,5 +1,6 @@
 // A gentle support popup shown on a small fraction of launches: invites an
-// App Store review and offers a "Buy me a coffee" (Ko-fi) donation.
+// store review (App Store, or Google Play on Android) and offers a "Buy me a
+// coffee" (Ko-fi) donation.
 //
 // Kept small on purpose, in what it says and in what it puts on screen. It
 // interrupts someone who came to play, so it gets one sentence, one line of
@@ -12,13 +13,13 @@
 // asked for should be trivially dismissable.
 //
 // Links are configured in src/constants.js; when one isn't set yet (e.g. the
-// App Store listing), we explain that rather than open a dead URL.
+// store listing), we explain that rather than open a dead URL.
 
 import React from 'react';
-import { Modal, View, Text, Pressable, Image, Linking, Alert, StyleSheet } from 'react-native';
+import { Modal, View, Text, Pressable, Image, Linking, Alert, Platform, StyleSheet } from 'react-native';
 import Icon from './Icon';
 import { useColors, useThemedStyles } from '../theme';
-import { KOFI_URL, APP_STORE_REVIEW_URL } from '../constants';
+import { KOFI_URL, APP_STORE_REVIEW_URL, PLAY_STORE_URL } from '../constants';
 
 async function openUrl(url, comingSoonMsg) {
   if (!url) {
@@ -39,9 +40,10 @@ export default function SupportModal({ visible, onClose }) {
   const styles = useThemedStyles(makeStyles);
   const rate = () => {
     onClose();
+    const android = Platform.OS === 'android';
     openUrl(
-      APP_STORE_REVIEW_URL,
-      'You’ll be able to rate gote once it’s live on the App Store. Thanks for the support!'
+      android ? PLAY_STORE_URL : APP_STORE_REVIEW_URL,
+      `You’ll be able to rate gote once it’s live on ${android ? 'Google Play' : 'the App Store'}. Thanks for the support!`
     );
   };
   const donate = () => {

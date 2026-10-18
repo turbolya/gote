@@ -1,9 +1,9 @@
 # Privacy Policy for gote
 
-**Last updated: 25 September 2026**
+**Last updated: 18 October 2026**
 
-gote is a species-identification flashcard game for iPhone, iPad and Apple
-Watch, built on the public [iNaturalist](https://www.inaturalist.org) API. This
+gote is a species-identification flashcard game for iPhone, iPad, Apple Watch
+and Android, built on the public [iNaturalist](https://www.inaturalist.org) API. This
 policy explains what it stores, what leaves your device, and how to delete it.
 
 The short version: **you can use gote without an account, and by default nothing
@@ -80,6 +80,9 @@ Sync is off unless you turn it on, and the app is fully usable without it.
 you. The coordinates are used to make that single request and are not stored on
 our servers or shared with anyone. You can decline the permission and pick a
 place manually instead; every other part of gote works without location access.
+On Android, gote asks only for your **approximate** location, which is all a
+search by radius needs, and only while the app is open. It never asks for
+background location.
 
 ## What gote does not do
 
@@ -174,7 +177,9 @@ clicks on them.
   keep playing; use Reset statistics as well if you want those gone too.
 
 You do not need to contact anyone to delete your data, but if something isn't
-working you can reach us at the address below.
+working you can reach us at the address below. If you have already removed the
+app and want synced data deleted, email that address from the address you linked
+and it will be deleted.
 
 ## Children
 
