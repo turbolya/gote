@@ -141,7 +141,13 @@ export default function CompareScreen({ pair, initialNote = '', offline = false,
       <ScreenHeader title="Tell them apart" onBack={close} backTestID="compare-back" />
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        // Both platforms. Android used to be left out on the theory that
+        // adjustResize shrinks the window, but with edge-to-edge (forced on
+        // Android 15+, and on here) it no longer does: the keyboard just sits
+        // on top of the lower half of the screen. KeyboardAvoidingView
+        // measures the overlap itself, so it adds nothing where the window
+        // did resize.
+        behavior="padding"
       >
         <ScrollView
           testID="compare-scroll"

@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Platform,
   StyleSheet,
+  KeyboardAvoidingView,
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
@@ -214,7 +215,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
   const canStart = !!place && selected.size > 0;
 
   return (
-    <View style={styles.flex}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'android' ? 'padding' : undefined}>
       <ScreenHeader title="Nearby species" onBack={onBack} />
       <ScrollView
         contentContainerStyle={styles.container}
@@ -423,7 +424,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
           </Text>
         </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

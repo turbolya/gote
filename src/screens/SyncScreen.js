@@ -27,6 +27,8 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
@@ -287,7 +289,7 @@ export default function SyncScreen({ onBack, onSynced }) {
   const resendLabel = cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code';
 
   return (
-    <View style={styles.flex}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'android' ? 'padding' : undefined}>
       <ScreenHeader title="Sync across devices" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         {!status ? (
@@ -564,7 +566,7 @@ export default function SyncScreen({ onBack, onSynced }) {
           </View>
         )}
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
