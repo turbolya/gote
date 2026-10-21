@@ -213,7 +213,7 @@ The core entity is a **card** (one observation, or one place-typical species):
 | Key                       | Shape                                                          | Purpose |
 |---------------------------|----------------------------------------------------------------|---------|
 | `@gote/username`          | string                                                         | Last account |
-| `@gote/prefs`             | `{ perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode }`| Study options + theme |
+| `@gote/prefs`             | `{ perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, showLatin, themeMode }`| Study options + theme |
 | `@gote/stats`             | `{ answered, correct }`                                        | Lifetime totals |
 | `@gote/tutorial`          | `{ status: 'new' \| 'running' \| 'done', step }` | Guided-tour progress. Device-local and never synced — "have I been shown around THIS phone" is a property of the device, not the account. Survives a statistics reset |
 | `@gote/species`           | `{ [taxonId]: { name, sci, image, known, missed, lastSeen, msTotal, msCount } }` | Per-species tallies (Stats, Lexicon status). `lastSeen`/`msTotal`/`msCount` added 2026-08-08 — retrieval signals nothing reads yet, banked because that history can't be backfilled (`src/recall.js`). Synced via the events `species` delta |
