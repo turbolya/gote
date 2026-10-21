@@ -340,7 +340,12 @@ export function TutorialOverlay() {
           // pointerEvents say, so the dim swallowed taps in the spotlight hole
           // too: the username field and Save could not be pressed at step 4.
           // Four bands around the hole (the same ones that seal the screen)
-          // plus a ring give the same picture with nothing to hit-test.
+          // plus a ring give the same picture with nothing to hit-test. The
+          // bands leave the hole square, so each corner gets a piece that dims
+          // what the ring's arc cuts off: a radius-r square clipping an annulus
+          // (inner radius r, outer 2r) centred on the arc's centre. The annulus
+          // view is 4r square because a view's corner radius tops out at half
+          // its side.
           <>
             {blockers(spot, screenSize).map((b) => (
               <View
@@ -349,6 +354,38 @@ export function TutorialOverlay() {
                 style={{ position: 'absolute', left: b.x, top: b.y, width: b.width, height: b.height, backgroundColor: DIM }}
               />
             ))}
+            {!!spot && spot.radius > 0 && [0, 1, 2, 3].map((i) => {
+              const r = spot.radius;
+              const right = i % 2 === 1;
+              const bottom = i >= 2;
+              return (
+                <View
+                  key={`corner:${i}`}
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    left: right ? spot.x + spot.width - r : spot.x,
+                    top: bottom ? spot.y + spot.height - r : spot.y,
+                    width: r,
+                    height: r,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: right ? -2 * r : -r,
+                      top: bottom ? -2 * r : -r,
+                      width: 4 * r,
+                      height: 4 * r,
+                      borderRadius: 2 * r,
+                      borderWidth: r,
+                      borderColor: DIM,
+                    }}
+                  />
+                </View>
+              );
+            })}
             {!!spot && (
               <View
                 pointerEvents="none"
