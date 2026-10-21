@@ -20,6 +20,7 @@ import Icon from '../components/Icon';
 import ScreenHeader from '../components/ScreenHeader';
 import { useColors, useThemedStyles } from '../theme';
 import { animateNextLayout } from '../components/anim';
+import { photoSource } from '../photocache';
 import {
   filterCards,
   statusCounts,
@@ -28,6 +29,22 @@ import {
   genusOf,
 } from '../lexicon';
 
+// A row thumbnail. Prefers the on-disk copy from the offline pack, so a row
+// paints at once instead of waiting on the network (the first screenful took
+// several seconds to fill in), and falls back to the network if that file will
+// not load.
+function Thumb({ uri, style }) {
+  const [remote, setRemote] = useState(false);
+  useEffect(() => setRemote(false), [uri]);
+  return (
+    <Image
+      source={remote ? { uri } : photoSource(uri)}
+      style={style}
+      resizeMode="cover"
+      onError={() => setRemote(true)}
+    />
+  );
+}
 
 export default function LexiconScreen({
   cards,
@@ -206,11 +223,7 @@ export default function LexiconScreen({
               onSelect(item);
             }}
           >
-            <Image
-              source={{ uri: item.image }}
-              style={styles.thumb}
-              resizeMode="cover"
-            />
+            <Thumb uri={item.image} style={styles.thumb} />
             <View style={styles.rowText}>
               <Text style={styles.name} numberOfLines={1}>
                 {displayName(item)}
