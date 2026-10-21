@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.45.7';
+export const APP_VERSION = '2.46.0';
 
 export const CHANGELOG = [
+  {
+    version: '2.46.0',
+    date: '2026-10-22',
+    changes: [
+      'A new “Show Latin names” option in Settings. Switch it on and the '
+        + 'scientific name sits under the common name everywhere a species is '
+        + 'named in a game: on each answer option, under the name you are asked '
+        + 'to find, and in the A/B drill. Off by default.',
+    ],
+  },
   {
     version: '2.45.7',
     date: '2026-10-10',

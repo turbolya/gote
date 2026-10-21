@@ -249,6 +249,9 @@ export default function App() {
   // official photo instead of your own observation shot — so recognition is
   // tested on the species, not one memorised picture. Off by default.
   const [freshPhotos, setFreshPhotos] = useState(false);
+  // Optional: always show the Latin name under the common name in the game
+  // modes (src/latinname.js). Off by default.
+  const [showLatin, setShowLatin] = useState(false);
 
   // Theme: 'light' | 'dark' | 'system'. The active palette is provided to the
   // whole tree via ThemeProvider; styles read it through useThemedStyles.
@@ -266,13 +269,13 @@ export default function App() {
   const onThemeModeChange = useCallback(
     (mode) => {
       setThemeMode(mode);
-      const next = { perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode: mode };
+      const next = { perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, showLatin, themeMode: mode };
       savePrefs(next);
       // Pass the username too: the server settings row is one blob per user, so
       // omitting it here would overwrite the stored username with null.
       pushSettings(next, username);
     },
-    [perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, username]
+    [perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, showLatin, username]
   );
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ loaded: 0, total: 0 });
@@ -478,13 +481,13 @@ export default function App() {
       // pushSettings is a no-op when sync is off.
       saveFlag(usernameRef.current, key, on).then(() =>
         pushSettings(
-          { perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode },
+          { perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, showLatin, themeMode },
           usernameRef.current
         )
       );
       return next;
     });
-  }, [perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode]);
+  }, [perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, showLatin, themeMode]);
   const [deck, setDeck] = useState([]);
   const [index, setIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -826,6 +829,7 @@ export default function App() {
       if (typeof p.speciesOnly === 'boolean') setSpeciesOnly(p.speciesOnly);
       if (typeof p.namedOnly === 'boolean') setNamedOnly(p.namedOnly);
       if (typeof p.freshPhotos === 'boolean') setFreshPhotos(p.freshPhotos);
+      if (typeof p.showLatin === 'boolean') setShowLatin(p.showLatin);
       if (p.themeMode) setThemeMode(p.themeMode);
       if (s.username) setUsername(s.username);
       prefsRef.current = {
@@ -900,6 +904,7 @@ export default function App() {
       const so = !!(savedPrefs && savedPrefs.speciesOnly);
       const no = !!(savedPrefs && savedPrefs.namedOnly);
       const fp = !!(savedPrefs && savedPrefs.freshPhotos);
+      const sl = !!(savedPrefs && savedPrefs.showLatin);
       const tm = (savedPrefs && savedPrefs.themeMode) || 'system';
       setPerSpecies(ps);
       setLocale(loc);
@@ -907,6 +912,7 @@ export default function App() {
       setSpeciesOnly(so);
       setNamedOnly(no);
       setFreshPhotos(fp);
+      setShowLatin(sl);
       setThemeMode(tm);
       // Seed the ref now: the startup background sync fires before React re-renders
       // with these values, and must filter by the saved prefs, not the defaults.
@@ -1827,7 +1833,7 @@ export default function App() {
               // Persist (stamped now) then mirror to the settings row so the note
               // syncs across devices. pushSettings is a no-op when sync is off.
               saveConfusionNote(pairKey, text).then(() =>
-                pushSettings({ perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode }, username)
+                pushSettings({ perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, showLatin, themeMode }, username)
               );
               setConfusionNotes((prev) => {
                 const next = { ...prev };
@@ -1858,6 +1864,7 @@ export default function App() {
           <DuelScreen
             pair={duelPair}
             note={confusionNotes[duelPair.pairKey] || ''}
+            showLatin={showLatin}
             onClose={() => setDuelPair(null)}
           />
         </Appear>
@@ -1983,6 +1990,7 @@ export default function App() {
             onVerifyStreak={verifyStreakFor}
             onCompare={(item) => setComparePair(item)}
             freshPhotos={freshPhotos}
+            showLatin={showLatin}
             onIsMastered={isSpeciesMastered}
             offline={offline}
             onQuit={() =>
@@ -2022,6 +2030,7 @@ export default function App() {
               deck[index] && toggleFlag(deck[index].taxonId)
             }
             onPick={handlePickGrade}
+            showLatin={showLatin}
             onNext={handlePickNext}
             onConfusionCount={confusionCount}
             onCompare={(item) => setComparePair(item)}
@@ -2183,6 +2192,7 @@ export default function App() {
             speciesOnly={speciesOnly}
             namedOnly={namedOnly}
             freshPhotos={freshPhotos}
+            showLatin={showLatin}
             themeMode={themeMode}
             onThemeModeChange={onThemeModeChange}
             error={error}
@@ -2204,6 +2214,7 @@ export default function App() {
               setSpeciesOnly(prefs.speciesOnly);
               setNamedOnly(!!prefs.namedOnly);
               setFreshPhotos(!!prefs.freshPhotos);
+              setShowLatin(!!prefs.showLatin);
               // Keep the ref current immediately (a re-download triggers a sync
               // that filters via prefsRef before this render's state commits).
               prefsRef.current = {
@@ -2300,7 +2311,7 @@ export default function App() {
               setConfusionNotes({});
               // The note deletions live in the settings row, so they only reach
               // the player's other devices if we push. A no-op when sync is off.
-              pushSettings({ perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, themeMode }, username);
+              pushSettings({ perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, showLatin, themeMode }, username);
               setLifetime({ answered: 0, correct: 0 });
               setStatsByFormat({});
               setHistory([]);

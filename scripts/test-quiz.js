@@ -249,6 +249,16 @@ t('buildPickRound: every option carries the photos the dice may draw from', () =
   }
 });
 
+t('buildPickRound: every option and the round carry the scientific name, for the Latin-name line', () => {
+  const r = buildPickRound({ card: pickCard, correctPhotos: curated, similar, rng: rng0 });
+  assert.equal(r.sci, pickCard.scientific);
+  const right = r.options.find((o) => o.correct);
+  assert.equal(right.sci, pickCard.scientific);
+  for (const o of r.options.filter((x) => !x.correct)) {
+    assert.ok(o.sci, 'a distractor has a scientific name');
+  }
+});
+
 t('buildPickRound: the correct tile may only ever draw from the curated front', () => {
   // 6 curated photos, but PICK_PHOTO_DEPTH caps what the answer can show.
   const deep = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];

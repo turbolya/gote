@@ -187,6 +187,7 @@ const DEFAULT_PREFS = {
   speciesOnly: false,
   namedOnly: false,
   freshPhotos: false, // swap a mastered species' photo for an official one
+  showLatin: false, // always show the Latin name under the common name in games
   themeMode: 'system', // 'light' | 'dark' | 'system'
 };
 

@@ -119,6 +119,8 @@ export function buildPickRound({ card, correctPhotos = [], similar = [], total =
       photo,
       photos: s.photos || [],
       name: s.common || s.name,
+      // The scientific name, for the optional Latin-name line (latinname.js).
+      sci: s.name,
       correct: false,
     });
     if (distractors.length >= total - 1) break;
@@ -137,12 +139,13 @@ export function buildPickRound({ card, correctPhotos = [], similar = [], total =
       // hand the answer a tile nobody could name.
       photos: eligibleCorrect,
       name: targetName,
+      sci: card.scientific,
       correct: true,
     },
     ...distractors,
   ]);
 
-  return { name: targetName, options };
+  return { name: targetName, sci: card.scientific, options };
 }
 
 /**

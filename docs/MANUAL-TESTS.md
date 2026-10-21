@@ -562,6 +562,17 @@ scores correctly, and returns to the menu cleanly.
     card shows your own photo as before. Offline (or a species with no official
     photos) falls back to your own photo. Photo questions are unchanged (they
     already use official photos).
+- [ ] **TC-6.6 Show Latin names.** Under Study options, turn on **"Show Latin
+    names"**. Play a Smart play round with every question type on (name, pairs,
+    photo, typing), a Speedrun, and a drill from Statistics ▸ Species you mix up.
+  - *Expected:* a **Latin (scientific) name in italics sits under the common
+    name** wherever a species is named in a game: under **each option** of a name
+    or pairs question, under the name being asked for on a photo question (and
+    under each tile's name once answered), under the answer on a typing or flash
+    card, and under each name in the A/B drill. A species with no common name
+    shows its scientific name once, as the name, not twice. With the setting
+    **off** (the default) only the existing answer-reveal lines remain. It
+    persists across a force-quit and — with sync on — rides to the other device.
 - [ ] **TC-6.5 Only species named in your language.** Set the language to one with
     gaps (e.g. **Hungarian**), then under **Species name language** turn on
     **"Only species named in <language>"**.

@@ -45,6 +45,7 @@ import { VERIFY_STREAK_MIN } from '../verify';
 import { speciesKey } from '../mastery';
 import { wantsFreshPhoto, pickFreshPhoto, studyPhoto, studyCredit, showsOwnPhoto } from '../studyphoto';
 import { matchAnswer } from '../answermatch';
+import { latinLine } from '../latinname';
 
 // Shared with App.js's tally writer, so a mastery lookup asks under the same key
 // the tally was stored under (src/mastery.js).
@@ -118,6 +119,7 @@ export default function StudyScreen({
   freshPhotos = false, // show a random official photo once a species is mastered
   onIsMastered, // (key) => bool — whether this species is mastered (drives freshPhotos)
   offline = false, // hides the controls that can only work with a connection
+  showLatin = false, // always show the Latin name under the common name (src/latinname.js)
 }) {
   const insets = useSafeAreaInsets();
   const [flipped, setFlipped] = useState(false);
@@ -865,6 +867,22 @@ export default function StudyScreen({
                         >
                           {name}
                         </Text>
+                        {/* The Latin name, when the player has asked for it:
+                            on every option, so it reads as part of the
+                            question and not as a hint on one answer. */}
+                        {!!latinLine({ show: showLatin, common: name, scientific: choices.byName[name] && choices.byName[name].scientific }) && (
+                          <Text
+                            testID={`study-choice-latin-${name}`}
+                            style={[
+                              styles.choiceLatin,
+                              { color: on },
+                              (showCorrect || showWrong) && styles.choiceTextOn,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {choices.byName[name].scientific}
+                          </Text>
+                        )}
                       </Pressable>
                     </Appear>
                   );
@@ -1386,6 +1404,7 @@ const styles = StyleSheet.create({
   choiceWrong: { backgroundColor: colors.wrong, borderColor: colors.wrong },
   choiceText: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
   choiceTextOn: { color: ON_DARK },
+  choiceLatin: { fontSize: 13, fontStyle: 'italic', textAlign: 'center', marginTop: 1, opacity: 0.8 },
   // The text field is a CHOICE PILL that you type into — same fill, border,
   // radius and padding as the options in every other round. It used to invent
   // its own darker panel and a thinner border, which read as a different app

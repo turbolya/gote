@@ -194,6 +194,54 @@ describe('Game modes', () => {
     await visible('results-menu');
   });
 
+  it('Show Latin names: off by default, then under every name in the games once switched on', async () => {
+    // Off, from a clean install: a name question's options carry the common
+    // name alone.
+    await startNameRound();
+    await visible('study-reveal');
+    await tap('study-reveal');
+    const answerOff = await labelOf('e2e-answer');
+    await waitFor(element(by.id(`study-choice-${answerOff}`))).toBeVisible().withTimeout(TIMEOUT);
+    await expect(element(by.id(`study-choice-latin-${answerOff}`))).not.toExist();
+    await tap('study-end');
+    await visible('results-menu');
+
+    // On, from Settings, the way a player would.
+    await tap('results-menu');
+    await visible('mode-smart');
+    await settle();
+    await tapScroll('open-settings', 'menu-scroll');
+    await visible('settings-scroll');
+    await scrollToId('setting-show-latin', 'settings-scroll');
+    await tap('setting-show-latin-switch');
+    await settle(300);
+    await tap('settings-back');
+    await visible('mode-smart');
+    await settle();
+
+    // A name question: the correct option, and a wrong one, both carry it.
+    await tap('smart-start');
+    await visible('study-reveal');
+    await tap('study-reveal');
+    const answer = await labelOf('e2e-answer');
+    await waitFor(element(by.id(`study-choice-${answer}`))).toBeVisible().withTimeout(TIMEOUT);
+    await exists(`study-choice-latin-${answer}`);
+    await tap('study-end');
+    await visible('results-menu');
+
+    // A photo question: the Latin name sits under the one being asked for.
+    await tap('results-menu');
+    await visible('mode-smart');
+    await tap('menu-type-picture');
+    await tap('menu-type-name');
+    await tap('smart-start');
+    await visible('pick-screen');
+    await exists('e2e-pick-answer');
+    await exists('pick-latin');
+    await tap('pick-end');
+    await visible('results-menu');
+  });
+
   it('Fresh photo once mastered: the credit follows the photo on screen', async () => {
     // The corner credit used to be read off the card, so a mastered species
     // shown an OFFICIAL photo still named the player's own photographer under

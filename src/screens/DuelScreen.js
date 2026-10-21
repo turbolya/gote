@@ -24,6 +24,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import { useColors, useThemedStyles } from '../theme';
 import { IS_E2E } from '../e2e/testMode';
 import { fetchTaxonPhotos } from '../api';
+import { latinLine } from '../latinname';
 import {
   nextTarget,
   duelStreak,
@@ -52,7 +53,7 @@ function StreakDots({ filled, goal, colors }) {
   return <View style={{ flexDirection: 'row', alignItems: 'center' }}>{dots}</View>;
 }
 
-export default function DuelScreen({ pair, note = '', onClose }) {
+export default function DuelScreen({ pair, note = '', onClose, showLatin = false }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
 
@@ -229,6 +230,11 @@ export default function DuelScreen({ pair, note = '', onClose }) {
   // --- playing ---
   const order = question && question.swap ? ['b', 'a'] : ['a', 'b'];
   const nameFor = (side) => (side === 'a' ? nameA : nameB);
+  // The Latin line for a side, when the player has asked for it.
+  const latinFor = (side) => {
+    const info = side === 'a' ? pair.a : pair.b;
+    return info ? latinLine({ show: showLatin, common: info.name, scientific: info.sci }) : null;
+  };
 
   return (
     <View style={styles.flex} testID="duel-screen">
@@ -286,15 +292,22 @@ export default function DuelScreen({ pair, note = '', onClose }) {
                   reveal && !isCorrect && styles.choiceWrong,
                 ]}
               >
-                <Text
-                  style={[
-                    styles.choiceText,
-                    reveal && (isCorrect || isPicked) && styles.choiceTextReveal,
-                  ]}
-                  numberOfLines={2}
-                >
-                  {nameFor(side)}
-                </Text>
+                <View style={styles.choiceNames}>
+                  <Text
+                    style={[
+                      styles.choiceText,
+                      reveal && (isCorrect || isPicked) && styles.choiceTextReveal,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {nameFor(side)}
+                  </Text>
+                  {!!latinFor(side) && (
+                    <Text style={styles.choiceLatin} numberOfLines={1}>
+                      {latinFor(side)}
+                    </Text>
+                  )}
+                </View>
                 {reveal && (
                   <Icon
                     name={isCorrect ? 'check-circle' : 'x-circle'}
@@ -380,6 +393,8 @@ const makeStyles = (colors) =>
     choiceWrong: { borderColor: colors.wrong, backgroundColor: colors.wrong + '18' },
     choiceText: { fontSize: 18, fontWeight: '800', color: colors.text, textAlign: 'center' },
     choiceTextReveal: { color: colors.text },
+    choiceNames: { alignItems: 'center', flexShrink: 1 },
+    choiceLatin: { fontSize: 13, fontStyle: 'italic', color: colors.muted, textAlign: 'center', marginTop: 1 },
 
     correction: { marginTop: 16, alignItems: 'center' },
     correctionText: { fontSize: 15, color: colors.text },

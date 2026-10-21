@@ -23,6 +23,7 @@ import PhotoViewer from '../components/PhotoViewer';
 import { useColors, useThemedStyles } from '../theme';
 import { fetchTaxonPhotos } from '../api';
 import { prefetchImages } from '../prefetch';
+import { latinLine } from '../latinname';
 import { rerollPickPhotos, canRerollPickPhotos } from '../quiz';
 import { pairKey, CONFUSION_HINT_MIN } from '../confusions';
 import { IS_E2E } from '../e2e/testMode';
@@ -42,6 +43,7 @@ export default function PickImageScreen({
   onQuit,
   onConfusionCount, // (correctKey, chosenKey) => count, for the callout
   onCompare, // open the side-by-side comparison for a pair
+  showLatin = false, // always show the Latin name under the common name
 }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -119,8 +121,8 @@ export default function PickImageScreen({
           return {
             pairKey: pairKey(ck, chk),
             count: onConfusionCount(ck, chk),
-            a: { name: correctOpt.name, sci: null, image: correctOpt.photo },
-            b: { name: chosenOpt.name, sci: null, image: chosenOpt.photo },
+            a: { name: correctOpt.name, sci: correctOpt.sci || null, image: correctOpt.photo },
+            b: { name: chosenOpt.name, sci: chosenOpt.sci || null, image: chosenOpt.photo },
             aKey: ck,
             bKey: chk,
           };
@@ -195,6 +197,11 @@ export default function PickImageScreen({
       {/* Prompt */}
       <Text style={styles.label}>Which one is</Text>
       <Text style={styles.name}>{round ? round.name : '…'}</Text>
+      {!!round && !!latinLine({ show: showLatin, common: round.name, scientific: round.sci }) && (
+        <Text testID="pick-latin" style={styles.latin} numberOfLines={1}>
+          {round.sci}
+        </Text>
+      )}
 
       {/* Shuffle: same four species, different pictures of each. Stays live
           after answering — a species you just got wrong is exactly the one
@@ -315,6 +322,11 @@ export default function PickImageScreen({
                       {opt.name}
                     </Text>
                   )}
+                  {answered && !!latinLine({ show: showLatin, common: opt.name, scientific: opt.sci }) && (
+                    <Text style={styles.tileLatin} numberOfLines={1}>
+                      {opt.sci}
+                    </Text>
+                  )}
                 </View>
               );
             })}
@@ -407,6 +419,7 @@ const makeStyles = (colors) => StyleSheet.create({
     letterSpacing: -0.4,
     marginTop: 4,
   },
+  latin: { textAlign: 'center', color: colors.muted, fontSize: 16, fontStyle: 'italic', marginTop: 2 },
   shuffleBtn: {
     alignSelf: 'center',
     alignItems: 'center',
@@ -474,6 +487,7 @@ const makeStyles = (colors) => StyleSheet.create({
     textAlign: 'center',
   },
   tileNameCorrect: { color: colors.correct, fontWeight: '800' },
+  tileLatin: { fontSize: 12, fontStyle: 'italic', color: colors.muted, textAlign: 'center' },
 
   footer: { minHeight: 90, justifyContent: 'center' },
   hint: { textAlign: 'center', color: colors.muted, fontSize: 15, fontWeight: '600' },

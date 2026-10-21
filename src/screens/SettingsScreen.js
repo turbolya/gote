@@ -163,6 +163,7 @@ export default function SettingsScreen({
   speciesOnly: initialSpeciesOnly,
   namedOnly: initialNamedOnly,
   freshPhotos: initialFreshPhotos,
+  showLatin: initialShowLatin,
   themeMode,
   onThemeModeChange,
   error,
@@ -198,6 +199,7 @@ export default function SettingsScreen({
   const [speciesOnly, setSpeciesOnly] = useState(!!initialSpeciesOnly);
   const [namedOnly, setNamedOnly] = useState(!!initialNamedOnly);
   const [freshPhotos, setFreshPhotos] = useState(!!initialFreshPhotos);
+  const [showLatin, setShowLatin] = useState(!!initialShowLatin);
 
   // Local photo-cache size; null while measuring.
   const [cacheBytes, setCacheBytes] = useState(null);
@@ -225,7 +227,7 @@ export default function SettingsScreen({
   const canSave = username.trim().length > 0;
   const submit = () =>
     canSave &&
-    onSave(username.trim(), { perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos });
+    onSave(username.trim(), { perSpecies, locale, researchGrade, speciesOnly, namedOnly, freshPhotos, showLatin });
 
   // Leaving Settings applies the current settings too — otherwise language /
   // filter changes made without pressing "Load observations" would be silently
@@ -411,6 +413,16 @@ export default function SettingsScreen({
             hint="When you know a species well (5+ correct, 80%+), study it on a random official photo instead of your own — so you learn the species, not the picture."
             value={freshPhotos}
             onValueChange={setFreshPhotos}
+          />
+          <View style={styles.sep} />
+          <SwitchRow
+            testID="setting-show-latin"
+            icon="text-outline"
+            accent={accents.slate}
+            label="Show Latin names"
+            hint="In the games, always show the scientific name under the common name — on the question and on every answer."
+            value={showLatin}
+            onValueChange={setShowLatin}
           />
         </View>
 
