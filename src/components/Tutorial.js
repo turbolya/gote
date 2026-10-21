@@ -38,6 +38,7 @@ import {
   Pressable,
   Alert,
   Animated,
+  Platform,
   StyleSheet,
   useWindowDimensions,
 } from 'react-native';
@@ -329,10 +330,42 @@ export function TutorialOverlay() {
   const sealed = !!placed && !moving && (!!spot || !!current.cta);
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none" testID="tutorial-overlay">
+    <View style={[StyleSheet.absoluteFill, { pointerEvents: 'box-none' }]} pointerEvents="box-none" testID="tutorial-overlay">
       {/* The dim, with the target punched out of it. Drawing only — it is the
           bands below, not this layer, that decide what can be touched. */}
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]} pointerEvents="none">
+        {Platform.OS === 'android' ? (
+          // Plain views, not the Svg below. On Android the Svg's native view
+          // takes every touch that lands on it, mask or no mask and whatever
+          // pointerEvents say, so the dim swallowed taps in the spotlight hole
+          // too: the username field and Save could not be pressed at step 4.
+          // Four bands around the hole (the same ones that seal the screen)
+          // plus a ring give the same picture with nothing to hit-test.
+          <>
+            {blockers(spot, screenSize).map((b) => (
+              <View
+                key={`dim:${b.x}:${b.y}:${b.width}:${b.height}`}
+                pointerEvents="none"
+                style={{ position: 'absolute', left: b.x, top: b.y, width: b.width, height: b.height, backgroundColor: DIM }}
+              />
+            ))}
+            {!!spot && (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  left: spot.x,
+                  top: spot.y,
+                  width: spot.width,
+                  height: spot.height,
+                  borderRadius: spot.radius,
+                  borderWidth: 2,
+                  borderColor: colors.primary,
+                }}
+              />
+            )}
+          </>
+        ) : (
         <Svg width={screenSize.width} height={screenSize.height}>
           <Defs>
             <Mask id="tutorialHole" x="0" y="0" width={screenSize.width} height={screenSize.height}>
@@ -372,6 +405,7 @@ export function TutorialOverlay() {
             />
           )}
         </Svg>
+        )}
       </Animated.View>
 
       {/* The seal. Separate views around the hole rather than one full-screen
