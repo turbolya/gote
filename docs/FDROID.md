@@ -70,6 +70,9 @@ submission is a merge request to gitlab.com/fdroid/fdroiddata with the recipe.
 - The signing decision. F-Droid signs its own build, so installs from F-Droid and
   from other sources cannot update each other unless a reproducible build is
   declared (`Binaries:`). The release build still signs with the debug key.
-- Sync reads `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` at
-  build time; the draft recipe does not set them, so an F-Droid build has sync off.
-  Decide whether F-Droid builds should ship with sync available.
+- Sync is off in the F-Droid build, by decision for the first submission: the
+  recipe sets no `EXPO_PUBLIC_SUPABASE_*` variables, so `SYNC_ENABLED` is false, the
+  Settings row is hidden and nothing but iNaturalist and the map tiles is contacted.
+  To turn it on later, add the two variables to the recipe's `prebuild`, put the
+  hosted service back under `AntiFeatures`, and restore the sync line in
+  `full_description.txt`. `scripts/test-android-deps.js` guards the off state.

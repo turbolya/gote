@@ -148,5 +148,23 @@ test('FDROID=1 drops detox and disables updates, keeping the other plugins', () 
   assert.strictEqual(base.plugins.length, 3, 'the input config must not be mutated');
 });
 
+// Sync stays off in the F-Droid build (a decision for the first submission, see
+// docs/FDROID.md): the recipe must not bake in Supabase credentials, and the
+// listing must not promise a feature the build does not have.
+test('the F-Droid recipe leaves sync off', () => {
+  const recipe = fs.readFileSync(path.join(root, 'docs', 'fdroid', 'com.gote.app.yml'), 'utf8');
+  const lines = recipe.split('\n').filter((l) => !/^\s*(#|MaintainerNotes)/.test(l));
+  const set = lines.filter((l) => /^\s*-\s.*EXPO_PUBLIC_SUPABASE/.test(l));
+  assert.deepStrictEqual(set, [], 'a prebuild step sets Supabase credentials');
+});
+
+test('the F-Droid listing does not promise sync', () => {
+  const dir = path.join(root, 'fastlane', 'metadata', 'android', 'en-US');
+  for (const f of ['full_description.txt', 'short_description.txt']) {
+    const text = fs.readFileSync(path.join(dir, f), 'utf8');
+    assert.ok(!/sync|supabase/i.test(text), `${f} mentions sync or Supabase`);
+  }
+});
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

@@ -1,8 +1,7 @@
 AntiFeatures:
   NonFreeNet:
     en-US: The app reads public data from the iNaturalist API. Maps use OpenStreetMap
-      tiles from OpenFreeMap. Optional sync (off unless the user turns it on) uses
-      a hosted Supabase service.
+      tiles from OpenFreeMap.
 Categories:
   - Science & Education
 License: AGPL-3.0-only
@@ -71,6 +70,12 @@ MaintainerNotes: |-
   APK and on the prepared source tree with the scanignore/scandelete lists above.
   Not yet verified: the JDK 17 -> 21 sed on the build server, and a build with more
   than one ABI.
+
+  Sync across devices is deliberately off in this build: the recipe sets no
+  EXPO_PUBLIC_SUPABASE_* variables, so the app has no sync screen and talks only to
+  iNaturalist and the map tile host. It can be enabled in a later version by adding
+  those two variables (the publishable key is public by design) and putting the
+  Supabase service back under AntiFeatures.
 
   The app is built with FDROID=1 (app.config.js): that drops the Detox config
   plugin and disables expo-updates. Google Play Services are not linked on Android

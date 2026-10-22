@@ -28,7 +28,6 @@ gote notices when you pick the same wrong look-alike again and again, and says s
 • No account needed — start right away with a sample collection, or enter your iNaturalist username to study your own observations
 • Plays offline from photos it has already downloaded
 • Species names in your language
-• Optional sync across your devices by email code, no password. It uses a hosted Supabase service and is off unless you turn it on
 • Every photo credits its photographer and shows its license
 
 <b>Network use</b>
