@@ -67,3 +67,6 @@ build-*.ipa
 testiny-cases.csv
 *.apk
 *.aab
+
+# Gradle output of the local Expo module
+modules/gote-location/android/build/
