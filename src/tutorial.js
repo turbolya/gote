@@ -51,7 +51,7 @@ export const ANCHORS = [
 // the same instruction: a loop the user can only leave by noticing the button
 // they have not needed until now. Optional means optional, not forbidden — so
 // doing it counts too.
-export const STEPS = [
+const ALL_STEPS = [
   { id: 'welcome', screen: 'menu', anchor: null, advance: 'next' },
   { id: 'openSettings', screen: 'menu', anchor: 'open-settings', advance: { screen: 'settings' } },
   // Language before username, because the name language decides what the deck
@@ -79,7 +79,29 @@ export const STEPS = [
   { id: 'done', screen: 'settings', anchor: null, advance: 'next' },
 ];
 
-export const TOTAL = STEPS.length;
+// The two steps that only make sense when sync exists. A build without sync (the
+// F-Droid one) has no "Sync across devices" row to light up, so they are dropped
+// and the tour ends on the menu instead of walking back into Settings for
+// nothing. `done` is the same step either way; only the screen it waits on moves.
+const SYNC_STEP_IDS = ['openSettings2', 'sync'];
+
+export function stepsFor(syncAvailable) {
+  if (syncAvailable) return ALL_STEPS;
+  return ALL_STEPS.filter((s) => !SYNC_STEP_IDS.includes(s.id)).map((s) =>
+    s.id === 'done' ? { ...s, screen: 'menu' } : s
+  );
+}
+
+// `let` for the same reason SYNC_ENABLED is: App.js decides once, at start-up,
+// before any screen renders, and importers see the change through ESM live
+// bindings. Defaults to the full tour, which is what the tests walk.
+export let STEPS = stepsFor(true);
+export let TOTAL = STEPS.length;
+
+export function setSyncAvailable(on) {
+  STEPS = stepsFor(!!on);
+  TOTAL = STEPS.length;
+}
 
 // Screens where even the "waiting" bar stays out of the way. The bar is a nudge,
 // not a nag, and it must never sit on top of a card someone is trying to answer:

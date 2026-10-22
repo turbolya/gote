@@ -92,7 +92,7 @@ import {
   shouldAutoStart, advance, onScreen, view, hasCta,
   placeBubble, spotlight, blockers, bubbleWidth, anchorVisible, scrollDelta,
   MARGIN, GAP, ARROW_INSET, SPOT_PAD, SPOT_RADIUS, BUBBLE_MAX_W, MIN_VISIBLE,
-  SCROLL_MIN, SCROLL_BIAS,
+  SCROLL_MIN, SCROLL_BIAS, setSyncAvailable,
 } from ${JSON.stringify(src)};
 import { STEP_TEXT, WAITING, UI_TEXT } from ${JSON.stringify(path.join(root, 'src', 'tutorialtext.js'))};
 
@@ -895,6 +895,37 @@ head('the seal can never be up without a way forward');
       ok(step.id + ': its anchor is one a screen registers', REGISTERED.includes(step.anchor), step.anchor);
     }
   }
+}
+
+// A build with no sync (F-Droid) has no "Sync across devices" row. The tour must
+// not walk back into Settings to point at it.
+head('the tour without sync');
+{
+  const full = STEPS.map((s) => s.id);
+  setSyncAvailable(false);
+  const ids = STEPS.map((s) => s.id);
+  eq('the sync steps are gone', full.filter((id) => !ids.includes(id)), ['openSettings2', 'sync']);
+  eq('nothing else changed order', ids, full.filter((id) => id !== 'openSettings2' && id !== 'sync'));
+  eq('TOTAL follows', TOTAL, ids.length);
+  eq('no step points at the sync row', STEPS.filter((s) => s.anchor === 'settings-sync').map((s) => s.id), []);
+  eq('the tour ends on the menu, on a button', [STEPS[STEPS.length - 1].screen, STEPS[STEPS.length - 1].advance], ['menu', 'next']);
+  eq('no two consecutive steps wait on the same screen', STEPS.filter((b, i) => {
+    const a = STEPS[i - 1];
+    return a && a.advance !== 'next' && b.advance !== 'next' && a.advance.screen === b.advance.screen;
+  }).map((s) => s.id), []);
+  eq('every step screen has waiting copy', [...new Set(STEPS.map((s) => s.screen))].filter((s) => !WAITING[s]), []);
+  // Walk it: every step visited once, in order, ending in done.
+  let st = startState();
+  const seen = [];
+  for (let g = 0; g < TOTAL * 3 && isRunning(st); g++) {
+    const step = currentStep(st);
+    seen.push(step.id);
+    st = step.advance === 'next' ? advance(st) : hasCta(step) ? advance(st) : onScreen(st, step.advance.screen);
+  }
+  eq('the walk visits every step once', seen, ids);
+  eq('and finishes', st.status, 'done');
+  setSyncAvailable(true);
+  eq('switching back restores the full tour', STEPS.map((s) => s.id), full);
 }
 
 console.log('');

@@ -159,6 +159,7 @@ import {
   startState as startTutorial,
   isRunning as tutorialRunning,
   shouldAutoStart,
+  setSyncAvailable,
 } from './src/tutorial';
 import { useIsOffline, getOfflineOverride } from './src/net';
 import { E2E_CARDS } from './src/e2e/fixtures';
@@ -185,6 +186,9 @@ import ObservationPopup from './src/components/ObservationPopup';
 import SwipeBackView from './src/components/SwipeBackView';
 import { backTarget, systemBackAction } from './src/navigation';
 import { Appear } from './src/components/anim';
+
+// A build without sync has no sync row, so its tour must not point at one.
+setSyncAvailable(SYNC_ENABLED);
 
 // After this long, re-download an account's deck from scratch on load instead of
 // an incremental sync. Incremental sync only adds/updates, so observations
