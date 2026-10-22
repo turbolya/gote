@@ -59,6 +59,24 @@ Release steps once the branch is merged: bump the version, tag `v<version>`,
 push the tag; F-Droid's `UpdateCheckData` reads `app.json` at the tag. The first
 submission is a merge request to gitlab.com/fdroid/fdroiddata with the recipe.
 
+## Recipe replay (2026-10-22)
+
+The recipe's own steps were replayed on a fresh `git clone` of the committed branch
+(no `.env`, so no credentials): `npm ci`, `buildFromSource`, the `local-maven-repo`
+and `prebuilds` deletions, `FDROID=1 expo prebuild`, the `signingConfig` removal,
+then the scanner with the `scanignore`/`scandelete` lists read from the recipe file
+itself, then `gradlew assembleRelease`. Results:
+- source scan: 0 problems (75 files removed by `scandelete`);
+- output `app-release-unsigned.apk`, versionCode 24600, unsigned as intended;
+- `fdroid scanner` on that APK: 0 problems;
+- no Supabase URL or key in the JS bundle (only code identifiers);
+- installed on a Pixel 3 (signed locally with the debug key): Settings has no
+  "Sync across devices" row, and a round with the photo cache, fonts and gradients
+  worked, with all Expo modules built from source and no crash.
+Skipped locally: the JDK 17 to 21 `sed` (this Mac has JDK 17 only) and, being macOS,
+the Linux-only `sudo` and `sdkmanager` steps; the macOS `hermesc` that the recipe
+deletes was put back for the build.
+
 ## Signing
 
 Decision (first submission): **F-Droid signs the build with its own key.** The
@@ -86,9 +104,9 @@ Consequences to know about:
 ## Still open
 
 - A build on F-Droid's own build server (`fdroid build`), which needs their VM or
-  container. Unverified there: the JDK 17 to 21 `sed` in the recipe, building more
-  than one ABI (the draft builds arm64-v8a only), and the recipe's `init`/`prebuild`
-  order. Locally the same steps built and scanned clean.
+  container. Not verified there: the JDK 17 to 21 `sed` in the recipe, building more
+  than one ABI (the draft builds arm64-v8a only), and the Linux-only steps (`sudo`
+  Node install, `sdkmanager`).
 - The `v2.46.0` tag and the branch have to exist upstream before the recipe's
   `commit:` resolves.
 - Sync is off in the F-Droid build, by decision for the first submission: the
