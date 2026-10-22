@@ -14,15 +14,15 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
 } from 'react-native';
-import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import Slider from '@react-native-community/slider';
-import MapView, { Marker, Circle } from 'react-native-maps';
+import NearbyMapView from '../components/NearbyMapView';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import GroupIcon from '../components/GroupIcon';
 import { useColors, useThemedStyles, groupLabel, groupIcon } from '../theme';
 import { searchPlaces } from '../api';
+import { getCurrentCoords } from '../geolocation';
 
 // The groups offered for nearby play (iconic taxon → label). Ordered for a
 // sensible grid; "Other animals" (Animalia) catches reptiles/amphibians/etc.
@@ -180,24 +180,17 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
     setError(null);
     setGpsBusy(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setError('Location permission denied. Search for a place instead.');
-        return;
-      }
-      const pos = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      setPlace({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        name: 'My location',
-      });
+      const { lat, lng } = await getCurrentCoords();
+      setPlace({ lat, lng, name: 'My location' });
       setQuery('');
       setResults([]);
-      fitMap({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-    } catch {
-      setError('Couldn’t get your location. Search for a place instead.');
+      fitMap({ lat, lng });
+    } catch (e) {
+      setError(
+        e && e.code === 'denied'
+          ? 'Location permission denied. Search for a place instead.'
+          : 'Couldn’t get your location. Search for a place instead.'
+      );
     } finally {
       setGpsBusy(false);
     }
@@ -295,29 +288,16 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
             Hidden on Android (no Google Maps key) — location is GPS-only there. */}
         {mapEnabled && (
           <View style={[styles.mapWrap, styles.section]}>
-            <MapView
+            <NearbyMapView
               ref={mapRef}
               style={styles.map}
               initialRegion={place ? regionFor(place.lat, place.lng, radius) : DEFAULT_REGION}
+              place={place}
+              radiusKm={radius}
+              strokeColor={colors.primary}
               onPress={onMapPress}
-            >
-              {place && (
-                <>
-                  <Marker
-                    coordinate={{ latitude: place.lat, longitude: place.lng }}
-                    draggable
-                    onDragEnd={onMarkerDragEnd}
-                  />
-                  <Circle
-                    center={{ latitude: place.lat, longitude: place.lng }}
-                    radius={radius * 1000}
-                    strokeColor={colors.primary}
-                    strokeWidth={2}
-                    fillColor="rgba(0,138,172,0.15)"
-                  />
-                </>
-              )}
-            </MapView>
+              onMarkerDragEnd={onMarkerDragEnd}
+            />
             {!place && (
               <View style={styles.mapHint} pointerEvents="none">
                 <View style={styles.mapHintPill}>
