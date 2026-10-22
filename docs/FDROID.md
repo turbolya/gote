@@ -59,6 +59,30 @@ Release steps once the branch is merged: bump the version, tag `v<version>`,
 push the tag; F-Droid's `UpdateCheckData` reads `app.json` at the tag. The first
 submission is a merge request to gitlab.com/fdroid/fdroiddata with the recipe.
 
+## Signing
+
+Decision (first submission): **F-Droid signs the build with its own key.** The
+recipe deletes the `signingConfig` line from the generated `build.gradle`, so the
+build comes out unsigned and F-Droid signs it; there is no `Binaries:` entry.
+
+Why not a reproducible build signed with our own key: it needs the APK to come out
+byte-identical on F-Droid's build server and on ours, which React Native builds
+rarely do without extra work, and the repo has no real keystore yet (the release
+build uses the generated template's debug key, which is public). Google Play, when
+it ships, signs with its own app-signing key anyway, so installs from different
+stores would not be interchangeable even then.
+
+Consequences to know about:
+- An F-Droid install cannot be updated from, or over, an APK from another source
+  (a GitHub release, a local build, Play) without uninstalling first. The app's
+  data lives in app storage, and with sync off there is no cloud copy, so
+  uninstalling loses it.
+- Revisit this if a signed APK is ever published outside F-Droid and the same
+  users should move between the two. Then create a real keystore (kept out of the
+  repo), sign release builds with it, and ask F-Droid for a reproducible build.
+- Separately from F-Droid: any APK we hand out ourselves should not use the debug
+  key, since anyone can sign an update with it.
+
 ## Still open
 
 - A build on F-Droid's own build server (`fdroid build`), which needs their VM or
@@ -67,9 +91,6 @@ submission is a merge request to gitlab.com/fdroid/fdroiddata with the recipe.
   order. Locally the same steps built and scanned clean.
 - The `v2.46.0` tag and the branch have to exist upstream before the recipe's
   `commit:` resolves.
-- The signing decision. F-Droid signs its own build, so installs from F-Droid and
-  from other sources cannot update each other unless a reproducible build is
-  declared (`Binaries:`). The release build still signs with the debug key.
 - Sync is off in the F-Droid build, by decision for the first submission: the
   recipe sets no `EXPO_PUBLIC_SUPABASE_*` variables, so `SYNC_ENABLED` is false, the
   Settings row is hidden and nothing but iNaturalist and the map tiles is contacted.
