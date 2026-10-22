@@ -41,17 +41,35 @@ Normal builds are exactly `app.json`.
 `android/` is generated and gitignored, so a local build must regenerate it after
 any of the above changes: `FDROID=1 npx expo prebuild --platform android --clean`.
 
+## Listing, versions and the recipe
+
+- `fastlane/metadata/android/en-US/` is what F-Droid reads for the listing: title,
+  short and full description, icon, eight phone screenshots (cut from the Pixel 3
+  set) and `changelogs/<versionCode>.txt` (500 bytes at most).
+- `android.versionCode` in `app.json` is `major*10000 + minor*100 + patch`
+  (2.46.0 = 24600), so it only ever goes up. On each release bump it with the
+  version and add `changelogs/<versionCode>.txt`; `scripts/test-versions.js` fails
+  if the versions, the formula or the changelog file are out of step.
+- `docs/fdroid/com.gote.app.yml` is the draft `fdroiddata` recipe. It passes
+  `fdroid lint` and `fdroid rewritemeta` against fdroiddata's own `config/`. Its
+  scanignore/scandelete lists come from a scan of a clean `npm ci` tree: 52
+  findings (mostly iOS-only files and Detox) down to 0.
+
+Release steps once the branch is merged: bump the version, tag `v<version>`,
+push the tag; F-Droid's `UpdateCheckData` reads `app.json` at the tag. The first
+submission is a merge request to gitlab.com/fdroid/fdroiddata with the recipe.
+
 ## Still open
 
-- Expo ships its module AARs prebuilt (`local-maven-repo/` inside each npm
-  package) and the Android build consumes them. F-Droid builds from source;
-  `expo.autolinking.android.buildFromSource` ("opt out of prebuilt modules") looks
-  like the switch but has not been tried.
-- React Native's prebuilt artifacts in `node_modules/react-native/android`, and
-  the `hermesc` / `dotslash` executables, are flagged by the scanner. The usual
-  fix is to delete them in the recipe so Gradle resolves from Maven Central; the
-  Hermes compiler may need a source build.
-- A `fastlane/metadata/android/en-US/` folder, version/tag scheme (`versionCode`
-  is 1 in `app.json`), the signing decision, and the `fdroiddata` recipe.
+- A build on F-Droid's own build server (`fdroid build`), which needs their VM or
+  container. Unverified there: the JDK 17 to 21 `sed` in the recipe, building more
+  than one ABI (the draft builds arm64-v8a only), and the recipe's `init`/`prebuild`
+  order. Locally the same steps built and scanned clean.
+- The `v2.46.0` tag and the branch have to exist upstream before the recipe's
+  `commit:` resolves.
+- The signing decision. F-Droid signs its own build, so installs from F-Droid and
+  from other sources cannot update each other unless a reproducible build is
+  declared (`Binaries:`). The release build still signs with the debug key.
 - Sync reads `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` at
-  build time; the recipe has to provide them (sync stays off when they are empty).
+  build time; the draft recipe does not set them, so an F-Droid build has sync off.
+  Decide whether F-Droid builds should ship with sync available.

@@ -1,0 +1,1 @@
+New: a "Show Latin names" option in Settings. Switch it on and the scientific name appears under the common name everywhere a species is named in a game: on each answer option, under the name you are asked to find, and in the A/B drill. Off by default.

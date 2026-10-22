@@ -16,7 +16,7 @@
     },
     "android": {
       "package": "com.gote.app",
-      "versionCode": 1,
+      "versionCode": 24600,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#008AAC"

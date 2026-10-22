@@ -1,0 +1,37 @@
+Turn your nature sightings into a game. gote helps you actually remember the species you see — birds, plants, insects, fungi and more — with quick rounds built from real nature photos, mostly your own iNaturalist observations.
+
+<b>Smart play, the main event</b>
+Start a round straight from the menu: choose how many cards and which kinds of question you want. gote picks the question that fits each species, based on how well you already know it.
+• Choosing the photo — a name, and four photos to pick from
+• Choosing the name — a photo, and five names
+• Look-alike pairs — just the two species you keep confusing
+• Typing from memory — no options at all, write the name
+
+A species you have never met is introduced gently; one you answer well starts being asked from memory.
+
+<b>Other ways to play</b>
+• Speedrun — the photo shows for three seconds, then the names appear. Three misses and the run is over
+• Nearby species — pick a place on the map, or use your approximate location, and learn what is commonly seen there, drawn from observers all around that spot
+• Flash cards — flip to reveal, then grade yourself
+
+<b>The species you keep mixing up</b>
+gote notices when you pick the same wrong look-alike again and again, and says so. Open the pair side by side, write down the tell that separates them, and drill the two against each other until it sticks.
+
+<b>Track your progress</b>
+• A searchable lexicon of every species you have seen
+• Per-species statistics, and accuracy split by question type
+• A daily streak to keep the habit going
+• Tap any species for curated photos and taxonomy
+
+<b>Built for naturalists</b>
+• Free, with no ads and no trackers
+• No account needed — start right away with a sample collection, or enter your iNaturalist username to study your own observations
+• Plays offline from photos it has already downloaded
+• Species names in your language
+• Optional sync across your devices by email code, no password. It uses a hosted Supabase service and is off unless you turn it on
+• Every photo credits its photographer and shows its license
+
+<b>Network use</b>
+gote reads public data from the iNaturalist API. Maps are drawn by MapLibre with OpenStreetMap tiles from OpenFreeMap, which see roughly which area you look at. Location is optional, approximate only and used for a single request.
+
+gote is an unofficial app and is not affiliated with or endorsed by iNaturalist. All photos remain the property of their photographers under their respective licenses.
