@@ -1,6 +1,6 @@
 # Privacy Policy for gote
 
-**Last updated: 18 October 2026**
+**Last updated: 22 October 2026**
 
 gote is a species-identification flashcard game for iPhone, iPad, Apple Watch
 and Android, built on the public [iNaturalist](https://www.inaturalist.org) API. This
@@ -46,6 +46,25 @@ handling of that data is covered by their
 gote reads only **public** observations. It cannot see private or obscured
 records, and it never writes anything to iNaturalist.
 
+### Map tiles (only when a map is on screen)
+
+Two places show a map: the place picker in **Nearby species** (which opens on a
+world view before you choose anything) and the location of an observation on a
+card. The map pictures come from a map-tile server, not from us:
+
+- **On Android** that server is [OpenFreeMap](https://openfreemap.org), which
+  serves OpenStreetMap data. To draw the map it receives your device's IP
+  address and the tiles you view — and the tiles you view show roughly *which
+  area* you are looking at: the place you picked, your approximate location if
+  you used it, or where an observation was recorded. gote sends it nothing else.
+  OpenFreeMap states that it has no registration, no user database, no API keys
+  and no cookies; its own [privacy policy](https://openfreemap.org/privacy/)
+  governs what it does with the requests.
+- **On iPhone and iPad** the same maps are Apple Maps, covered by Apple's
+  privacy policy.
+
+No map is loaded unless you open one of those screens.
+
 ### Sync across devices (only if you turn it on)
 
 If you enable **Settings ▸ Devices ▸ Sync across devices**, your gameplay data is
@@ -78,7 +97,8 @@ Sync is off unless you turn it on, and the app is fully usable without it.
 
 **Nearby species** asks for your location so it can find species observed near
 you. The coordinates are used to make that single request and are not stored on
-our servers or shared with anyone. You can decline the permission and pick a
+our servers or shared with anyone (apart from the map tiles for that area, as
+described under "Map tiles" above). You can decline the permission and pick a
 place manually instead; every other part of gote works without location access.
 On Android, gote asks only for your **approximate** location, which is all a
 search by radius needs, and only while the app is open. It never asks for

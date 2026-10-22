@@ -84,6 +84,31 @@ test('no *.android.js file imports a banned module', () => {
   assert.deepStrictEqual(offenders, []);
 });
 
+// MapLibre draws the Android map. iOS keeps react-native-maps, so it must not be
+// linked there (an extra native library nobody calls) and nothing outside an
+// *.android.js file may import it (the iOS bundle would then need it).
+const ANDROID_ONLY = ['@maplibre/maplibre-react-native'];
+
+test('MapLibre is excluded from iOS autolinking', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  const exclude = (((pkg.expo || {}).autolinking || {}).ios || {}).exclude || [];
+  for (const name of ANDROID_ONLY) {
+    assert.ok(exclude.includes(name), `${name} is not in expo.autolinking.ios.exclude`);
+  }
+});
+
+test('only *.android.js files import MapLibre', () => {
+  const offenders = files
+    .filter((f) => !/\.android\.(js|jsx|ts|tsx)$/.test(f))
+    .filter((f) =>
+      ANDROID_ONLY.some((name) =>
+        new RegExp(`(from|require\\()\\s*['"]${name}(/[^'"]*)?['"]`).test(fs.readFileSync(f, 'utf8'))
+      )
+    )
+    .map((f) => path.relative(root, f));
+  assert.deepStrictEqual(offenders, [], 'these would pull MapLibre into the iOS bundle');
+});
+
 test('the Android location helper uses the local native module', () => {
   const text = fs.readFileSync(path.join(root, 'src', 'geolocation.android.js'), 'utf8');
   assert.ok(text.includes("from '../modules/gote-location'"));

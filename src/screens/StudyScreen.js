@@ -15,7 +15,6 @@ import {
   Pressable,
   Image,
   ActivityIndicator,
-  Platform,
   StyleSheet,
   Animated,
   TextInput,
@@ -539,8 +538,6 @@ export default function StudyScreen({
 
   // Whether this observation has coordinates for the map pin (older cached cards
   // downloaded before this feature won't, and obscured/private ones may not).
-  // The map (react-native-maps) needs a Google Maps key on Android, so the pin
-  // is iOS-only for now.
   //
   // And only while the player's OWN photo is on screen: the coordinates belong
   // to that observation, so beside an official photo (a mastered species shown
@@ -549,7 +546,6 @@ export default function StudyScreen({
     !!card &&
     Number.isFinite(card.lat) &&
     Number.isFinite(card.lng) &&
-    Platform.OS !== 'android' &&
     showsOwnPhoto({ photoUri, ownImage: card.image });
 
   // Shared fullscreen scaffold: photo fills the screen, top gradient holds the

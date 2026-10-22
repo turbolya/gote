@@ -11,13 +11,25 @@ still open. Run F-Droid's scanner (`pip install fdroidserver`, then
 | Was | Why it was a problem | Now |
 | --- | --- | --- |
 | `expo-location` | links `play-services-location` | Android uses `modules/gote-location` (framework `LocationManager`, coarse only) through `src/geolocation.android.js`; iOS still uses `expo-location` |
-| `react-native-maps` | links `play-services-maps`, `-base`, `-location` | Android never loads it: `NearbyMapView.android.js` and `ObservationMap.android.js` are empty stubs, and the map is iOS-only anyway |
+| `react-native-maps` | links `play-services-maps`, `-base`, `-location` | Android never loads it: `NearbyMapView.android.js` and `ObservationMap.android.js` draw the same maps with MapLibre instead (see below); iOS keeps `react-native-maps` |
 | `expo-updates` | downloads code from outside the repo | not linked on Android; unused (no `updates` config) |
 
 All three are excluded from **Android** autolinking only, by
 `expo.autolinking.android.exclude` in `package.json`; iOS links them as before.
+Conversely `@maplibre/maplibre-react-native` is excluded from **iOS** autolinking
+(`expo.autolinking.ios.exclude`), and only `*.android.js` files may import it.
 `scripts/test-android-deps.js` (part of `npm test`) fails if a file that Android
 bundles imports one of them, or if the exclusion list drifts.
+
+## The Android map
+
+MapLibre (MIT) with tiles from [OpenFreeMap](https://openfreemap.org): no account,
+no API key. The tile URL is the one constant in `src/mapstyle.js` — change it to
+use another provider or to self-host. MapLibre's Android location engine is left
+on `default`; `google` would link `play-services-location` again. The radius
+circle is a polygon from `src/geo.js` (MapLibre has no metre-radius circle). The
+Android pin is not draggable — tap the map to move it. Tile requests reveal the
+viewed area to the tile host; `PRIVACY.md` says so.
 
 ## `FDROID=1`
 

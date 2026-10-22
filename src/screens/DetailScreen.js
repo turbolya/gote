@@ -12,7 +12,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Linking,
-  Platform,
   StyleSheet,
 } from 'react-native';
 import Icon from '../components/Icon';
@@ -39,12 +38,8 @@ export default function DetailScreen({ card, locale, flags, onToggleFlag, onBack
   const [mapOpen, setMapOpen] = useState(false);
 
   // Whether this card came from an observation with coordinates (deck cards do;
-  // minimal cards built from a bare stats entry may not). The map needs a Google
-  // Maps key on Android, so the location row is iOS-only for now.
-  const hasGeo =
-    Number.isFinite(card.lat) &&
-    Number.isFinite(card.lng) &&
-    Platform.OS !== 'android';
+  // minimal cards built from a bare stats entry may not).
+  const hasGeo = Number.isFinite(card.lat) && Number.isFinite(card.lng);
 
   useEffect(() => {
     let cancelled = false;
