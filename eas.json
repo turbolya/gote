@@ -42,6 +42,10 @@
     "testflight": {
       "extends": "production",
       "channel": "testflight"
+    },
+    "play": {
+      "extends": "production",
+      "autoIncrement": false
     }
   },
   "submit": {

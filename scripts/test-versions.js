@@ -74,5 +74,27 @@ test('the F-Droid listing has an icon and at least two phone screenshots', () =>
   assert.ok(shots.length >= 2, `${shots.length} screenshots`);
 });
 
+// Google Play builds come from the EAS "play" profile. The production profile
+// auto-increments the build number, which for Android means rewriting
+// android.versionCode in app.json — breaking the formula above and the F-Droid
+// versionCode for the same version. The play profile switches that off; the
+// versionCode then moves only when the version does.
+const eas = JSON.parse(read('eas.json'));
+
+test('the EAS play profile builds an app bundle and leaves versionCode alone', () => {
+  const play = eas.build.play;
+  assert.ok(play, 'eas.json has no "play" profile');
+  assert.strictEqual(play.extends, 'production');
+  assert.strictEqual(play.autoIncrement, false, 'autoIncrement would rewrite android.versionCode');
+  assert.strictEqual(eas.build.production.android.buildType, 'app-bundle', 'Play requires an AAB');
+});
+
+test('the F-Droid flag is never set in an EAS profile', () => {
+  const flagged = Object.entries(eas.build)
+    .filter(([, p]) => p.env && 'EXPO_PUBLIC_FDROID' in p.env)
+    .map(([name]) => name);
+  assert.deepStrictEqual(flagged, [], 'EXPO_PUBLIC_FDROID turns sync off; only the F-Droid recipe sets it');
+});
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);
