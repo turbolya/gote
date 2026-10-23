@@ -188,7 +188,10 @@ import { backTarget, systemBackAction } from './src/navigation';
 import { Appear } from './src/components/anim';
 
 // A build without sync has no sync row, so its tour must not point at one.
-setSyncAvailable(SYNC_ENABLED);
+// The E2E build is the exception: it has sync forced off (it must stay offline)
+// but stands in for the iOS release build, which has sync, so it keeps the full
+// tour — the one the Detox suite walks.
+setSyncAvailable(SYNC_ENABLED || IS_E2E);
 
 // After this long, re-download an account's deck from scratch on load instead of
 // an incremental sync. Incremental sync only adds/updates, so observations
