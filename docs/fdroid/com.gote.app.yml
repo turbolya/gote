@@ -32,6 +32,7 @@ Builds:
     output: build/outputs/apk/release/app-release-unsigned.apk
     prebuild:
       - cd ../..
+      - echo EXPO_PUBLIC_FDROID=1 > .env
       - sdkmanager 'cmake;3.22.1'
       - npm pkg set --json 'expo.autolinking.android.buildFromSource=[".*"]'
       - find node_modules -type d -name local-maven-repo -prune -exec rm -rf {} +
@@ -71,11 +72,12 @@ MaintainerNotes: |-
   Not yet verified: the JDK 17 -> 21 sed on the build server, and a build with more
   than one ABI.
 
-  Sync across devices is deliberately off in this build: the recipe sets no
-  EXPO_PUBLIC_SUPABASE_* variables, so the app has no sync screen and talks only to
-  iNaturalist and the map tile host. It can be enabled in a later version by adding
-  those two variables (the publishable key is public by design) and putting the
-  Supabase service back under AntiFeatures.
+  Sync across devices is deliberately off in this build: the recipe writes
+  EXPO_PUBLIC_FDROID=1 into .env before the JS bundle is built, so the app has no
+  sync screen, its tour has no sync steps, the Supabase address is not in the
+  bundle at all, and it talks only to iNaturalist and the map tile host. It can be
+  enabled in a later version by dropping that line and putting the Supabase
+  service back under AntiFeatures.
 
   The app is built with FDROID=1 (app.config.js): that drops the Detox config
   plugin and disables expo-updates. Google Play Services are not linked on Android

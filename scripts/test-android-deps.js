@@ -148,14 +148,26 @@ test('FDROID=1 drops detox and disables updates, keeping the other plugins', () 
   assert.strictEqual(base.plugins.length, 3, 'the input config must not be mutated');
 });
 
-// Sync stays off in the F-Droid build (a decision for the first submission, see
-// docs/FDROID.md): the recipe must not bake in Supabase credentials, and the
-// listing must not promise a feature the build does not have.
-test('the F-Droid recipe leaves sync off', () => {
+// Sync is off in the F-Droid build and in no other (a decision for the first
+// submission, see docs/FDROID.md): the recipe switches it off with
+// EXPO_PUBLIC_FDROID=1 (written to .env, which Metro reads when it builds the
+// bundle — an env var set only on the prebuild step would be gone by then), must
+// not supply Supabase credentials, and the listing must not promise a feature
+// the build does not have.
+test('the F-Droid recipe switches sync off', () => {
   const recipe = fs.readFileSync(path.join(root, 'docs', 'fdroid', 'com.gote.app.yml'), 'utf8');
   const lines = recipe.split('\n').filter((l) => !/^\s*(#|MaintainerNotes)/.test(l));
+  const flag = lines.filter((l) => /^\s*-\s.*EXPO_PUBLIC_FDROID=1\s*>\s*\.env/.test(l));
+  assert.strictEqual(flag.length, 1, 'a prebuild step must write EXPO_PUBLIC_FDROID=1 to .env');
   const set = lines.filter((l) => /^\s*-\s.*EXPO_PUBLIC_SUPABASE/.test(l));
   assert.deepStrictEqual(set, [], 'a prebuild step sets Supabase credentials');
+});
+
+test('no other build is told to turn sync off', () => {
+  // The flag must be set by the F-Droid recipe alone — never in the profiles
+  // iOS, TestFlight and Play are built from.
+  const eas = fs.readFileSync(path.join(root, 'eas.json'), 'utf8');
+  assert.ok(!/EXPO_PUBLIC_FDROID/.test(eas), 'eas.json sets EXPO_PUBLIC_FDROID');
 });
 
 test('the F-Droid listing does not promise sync', () => {

@@ -109,9 +109,14 @@ Consequences to know about:
   Node install, `sdkmanager`).
 - The `v2.46.0` tag and the branch have to exist upstream before the recipe's
   `commit:` resolves.
-- Sync is off in the F-Droid build, by decision for the first submission: the
-  recipe sets no `EXPO_PUBLIC_SUPABASE_*` variables, so `SYNC_ENABLED` is false, the
-  Settings row is hidden and nothing but iNaturalist and the map tiles is contacted.
-  To turn it on later, add the two variables to the recipe's `prebuild`, put the
-  hosted service back under `AntiFeatures`, and restore the sync line in
-  `full_description.txt`. `scripts/test-android-deps.js` guards the off state.
+- Sync is off in the F-Droid build, by decision for the first submission, and ON in
+  every other build (iOS, TestFlight, Play, development): the recipe writes
+  `EXPO_PUBLIC_FDROID=1` into `.env` before the bundle is built, which
+  `src/sync/config.js` reads. With it set, `SYNC_ENABLED` is false, the Settings
+  row is hidden, the guided tour drops its two sync steps, the Supabase address is
+  not in the bundle at all, and nothing but iNaturalist and the map tiles is
+  contacted. (The flag has to be in `.env`: an env var set only on the prebuild
+  step is gone by the time Gradle runs Metro.) To turn sync on later, drop that
+  line from the recipe, put the hosted service back under `AntiFeatures`, and
+  restore the sync line in `full_description.txt`. `scripts/test-android-deps.js`
+  guards the off state, and `scripts/test-syncconfig.js` the switch itself.

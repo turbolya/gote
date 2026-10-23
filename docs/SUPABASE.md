@@ -98,7 +98,14 @@ Settings ▸ API gives you the **Project URL** and the client key. New projects
 issue a **publishable** key (`sb_publishable_…`); older ones an **anon** JWT
 (`eyJhbGciOi…`). They are interchangeable — the app accepts either.
 
-Local development — create `.env` in the repo root (gitignored):
+**You normally need none of this.** The app carries this project's public URL and
+publishable key as defaults (`src/sync/config.js`), so sync is on in every build
+— iOS, TestFlight, Play, development, a fresh clone — except the F-Droid one,
+which switches it off with `EXPO_PUBLIC_FDROID=1` (see `docs/FDROID.md`). The
+variables below are only for pointing a build at a different project.
+
+Local development against another project — create `.env` in the repo root
+(gitignored):
 
 ```
 EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
