@@ -5,6 +5,7 @@ AntiFeatures:
 Categories:
   - Science & Education
 License: AGPL-3.0-only
+AuthorName: turbolya
 WebSite: https://goteapp.com
 SourceCode: https://github.com/turbolya/gote
 IssueTracker: https://github.com/turbolya/gote/issues
@@ -18,7 +19,7 @@ Repo: https://github.com/turbolya/gote.git
 Builds:
   - versionName: 2.46.0
     versionCode: 24600
-    commit: v2.46.0
+    commit: 6c2a15a1ef1f4918ca786cfc463c8f7014373676
     sudo:
       - apt-get update
       - curl -Lo node.tar.gz https://nodejs.org/dist/v22.14.0/node-v22.14.0-linux-x64.tar.gz
@@ -37,10 +38,11 @@ Builds:
       - sed -i -e '/Dependencies for Google Location Engine/,/^    }$/d' node_modules/@maplibre/maplibre-react-native/android/build.gradle
       - FDROID=1 npx expo prebuild --platform android --no-install --clean
       - sed -i -e '/signingConfig /d' android/app/build.gradle
-      - find node_modules android -type f \( -name '*.gradle' -o -name '*.gradle.kts' -o
-        -name '*.kt' \) -exec sed -i -e 's/JavaVersion.VERSION_17/JavaVersion.VERSION_21/g'
+      - find node_modules android -type f \( -name '*.gradle' -o -name '*.gradle.kts'
+        -o -name '*.kt' \) -exec sed -i -e 's/JavaVersion.VERSION_17/JavaVersion.VERSION_21/g'
         -e 's/jvmToolchain(17)/jvmToolchain(21)/g' -e 's/JVM_17/JVM_21/g' -e 's/fromTarget("17")/fromTarget("21")/g'
-        -e 's/jvmTarget = "17"/jvmTarget = "21"/g' -e "s/jvmTarget = '17'/jvmTarget = '21'/g" {} +
+        -e 's/jvmTarget = "17"/jvmTarget = "21"/g' -e "s/jvmTarget = '17'/jvmTarget
+        = '21'/g" {} +
     scanignore:
       - node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
       - node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
