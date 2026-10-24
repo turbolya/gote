@@ -35,7 +35,8 @@ Builds:
       - sed -i -e '/Dependencies for Google Location Engine/,/^    }$/d' node_modules/@maplibre/maplibre-react-native/android/build.gradle
       - FDROID=1 npx expo prebuild --platform android --no-install --clean
       - printf '\nandroid.enableMinifyInReleaseBuilds=true\n' >> android/gradle.properties
-      - sed -i -e 's/MaxMetaspaceSize=512m/MaxMetaspaceSize=1g/' -e 's/-Xmx2048m/-Xmx3g/' android/gradle.properties
+      - sed -i -e 's/MaxMetaspaceSize=512m/MaxMetaspaceSize=1g/' -e 's/-Xmx2048m/-Xmx3g/'
+        android/gradle.properties
       - sed -i -e '/signingConfig /d' android/app/build.gradle
       - find node_modules android -type f \( -name '*.gradle' -o -name '*.gradle.kts'
         -o -name '*.kt' \) -exec sed -i -e 's/JavaVersion.VERSION_17/JavaVersion.VERSION_21/g'
