@@ -123,7 +123,7 @@ could not, all fixed in the recipe:
   React Native wants >= 20.19.4 and carries on), R8 is switched on
   (`android.enableMinifyInReleaseBuilds=true`, appended to the generated
   `gradle.properties` in the recipe, and set in `app.json` through
-  `expo-build-properties` for later releases and for Play), and the long
+  the local plugin `plugins/withAndroidMinify.js` for later releases and for Play), and the long
   `MaintainerNotes` were moved out of the recipe into an MR comment. Two traps found
   on the way: append to `gradle.properties` with a leading newline (the file has no
   trailing one, and a glued line broke expo autolinking), and give Gradle more memory

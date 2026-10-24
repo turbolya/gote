@@ -178,5 +178,30 @@ test('the F-Droid listing does not promise sync', () => {
   }
 });
 
+// R8 is switched on for Android release builds by a local config plugin, not by
+// expo-build-properties: that package brings a second copy next to the one
+// @config-plugins/detox nests, and CI's expo-doctor fails on duplicate native deps.
+test('R8 is enabled by plugins/withAndroidMinify, without expo-build-properties', () => {
+  const app = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')).expo;
+  const names = app.plugins.map((p) => (Array.isArray(p) ? p[0] : p));
+  assert.ok(names.includes('./plugins/withAndroidMinify'), 'app.json does not list the minify plugin');
+  assert.ok(!names.includes('expo-build-properties'), 'expo-build-properties would duplicate Detox\'s copy');
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  assert.ok(!(pkg.dependencies || {})['expo-build-properties'], 'expo-build-properties is a direct dependency');
+});
+
+test('the minify plugin sets the flag once and keeps other properties', () => {
+  const { setMinify, KEY } = require('../plugins/withAndroidMinify');
+  const input = [
+    { type: 'property', key: 'org.gradle.jvmargs', value: '-Xmx2048m' },
+    { type: 'property', key: KEY, value: 'false' },
+    { type: 'comment', value: 'x' },
+  ];
+  const out = setMinify(input);
+  assert.deepStrictEqual(out.filter((i) => i.key === KEY), [{ type: 'property', key: KEY, value: 'true' }]);
+  assert.ok(out.some((i) => i.key === 'org.gradle.jvmargs'));
+  assert.ok(out.some((i) => i.type === 'comment'));
+});
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

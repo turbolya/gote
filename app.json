@@ -36,14 +36,6 @@
     },
     "plugins": [
       [
-        "expo-build-properties",
-        {
-          "android": {
-            "enableMinifyInReleaseBuilds": true
-          }
-        }
-      ],
-      [
         "expo-splash-screen",
         {
           "image": "./assets/gote.png",
@@ -66,7 +58,8 @@
         }
       ],
       "./plugins/withXcode26Build",
-      "./plugins/withUIScene"
+      "./plugins/withUIScene",
+      "./plugins/withAndroidMinify"
     ],
     "extra": {
       "eas": {
