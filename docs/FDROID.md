@@ -118,6 +118,23 @@ could not, all fixed in the recipe:
 - The JDK 17 to 21 patch also has to cover the Kotlin targets (`JvmTarget`,
   `jvmTarget`), and the generated `android/` folder, or Java and Kotlin disagree.
 - `--max-workers=2`: with 12 workers the Gradle daemon was killed (out of memory).
+- Reviewer feedback on the fdroiddata MR (2026-10-24): Node now comes from Debian
+  (`apt-get install nodejs npm`, 20.19.x, not the nodejs.org tarball; npm warns that
+  React Native wants >= 20.19.4 and carries on), R8 is switched on
+  (`android.enableMinifyInReleaseBuilds=true`, appended to the generated
+  `gradle.properties` in the recipe, and set in `app.json` through
+  `expo-build-properties` for later releases and for Play), and the long
+  `MaintainerNotes` were moved out of the recipe into an MR comment. Two traps found
+  on the way: append to `gradle.properties` with a leading newline (the file has no
+  trailing one, and a glued line broke expo autolinking), and give Gradle more memory
+  (`-Xmx3g`, `MaxMetaspaceSize=1g`; the generated 2 GB / 512 MB ran out of Metaspace
+  in a lint task once R8 was on, and the build then hung instead of failing). A full
+  `fdroid build -l` takes about an hour here.
+- Why reproducible builds are not enabled (the reason given in the MR): the APK has to
+  come out byte-identical on F-Droid's server and on ours before F-Droid can use our
+  signature, React Native builds rarely do without extra work, and there is no
+  release keystore yet (the generated template signs release builds with the public
+  debug key). F-Droid therefore signs with its own key.
 
 To repeat it locally: clone `fdroidserver` and `fdroiddata`, copy the recipe to
 `fdroiddata/metadata/`, and run in the image `registry.gitlab.com/fdroid/fdroidserver:buildserver`

@@ -36,6 +36,14 @@
     },
     "plugins": [
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true
+          }
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/gote.png",
