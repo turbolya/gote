@@ -8,9 +8,27 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.46.0';
+export const APP_VERSION = '2.46.1';
 
 export const CHANGELOG = [
+  {
+    version: '2.46.1',
+    date: '2026-11-20',
+    changes: [
+      'Ending a round right after answering a card now counts that card, '
+        + 'and “I don’t know” counts as a miss, as it always said it would.',
+      'A photo that cannot load says so and offers Retry, instead of '
+        + 'spinning for ever.',
+      'Nearby species remembers your place, radius and groups when you '
+        + 'cancel a load or come back after a round.',
+      'Choosing no groups and then all of them no longer resets the number '
+        + 'of cards to 1.',
+      'On Android, the navigation bar now follows the app’s light or dark '
+        + 'theme.',
+      '“1 card” and “1 miss” instead of “1 cards” and “1 misses”, and the '
+        + 'name on the menu is easier to read over the accuracy line.',
+    ],
+  },
   {
     version: '2.46.0',
     date: '2026-10-22',

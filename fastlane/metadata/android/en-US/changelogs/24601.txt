@@ -1,0 +1,1 @@
+Fixes: ending a round right after answering now counts that card, and "I don't know" counts as a miss. Photos that cannot load offer Retry instead of spinning. Nearby remembers your place after a cancelled load. The card count no longer resets to 1 after None then All. The navigation bar follows the app's dark theme. "1 card" instead of "1 cards".
