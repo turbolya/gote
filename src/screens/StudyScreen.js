@@ -111,6 +111,9 @@ export default function StudyScreen({
   onToggleFlag,
   onGrade,
   onQuit,
+  // App's ref for the verdict on screen but not yet sent with Next. Ending the
+  // round (End, or Android back) records it, so an answered card still counts.
+  pendingGradeRef = null,
   onConfusionCount, // (correctKey, chosenKey) => prior count, for the callout
   onCompare, // open the side-by-side comparison for a pair
   onNemesisPartners, // (key) => [partnerKey] — former mix-ups, to re-seed as distractors
@@ -595,6 +598,29 @@ export default function StudyScreen({
     verifyPair && onVerifyStreak ? (onVerifyStreak(verifyPair.pairKey) || 0) + 1 : 0;
   const showVerify = !!verifyPair && verifyStreakNow >= VERIFY_STREAK_MIN;
 
+  // The onGrade arguments for an answered choice or typed card — exactly what
+  // its Next button sends. Null before an answer, and always null for a flash
+  // card: until the player grades it themselves there is no verdict to record.
+  const pendingGrade =
+    answered && (choiceMode || typedMode)
+      ? [
+          gotIt,
+          choiceMode && !gotIt ? choices.byName[picked] : null,
+          verifyPair ? verifyPair.pairKey : null,
+          // Timed at the option tap, not here — see commitAnswer.
+          answerMsRef.current,
+        ]
+      : null;
+  if (pendingGradeRef) pendingGradeRef.current = pendingGrade;
+  // Leaving this screen (Smart play moving on to a photo question, the round
+  // ending) must not leave a verdict behind for the next quit to record.
+  useEffect(
+    () => () => {
+      if (pendingGradeRef) pendingGradeRef.current = null;
+    },
+    [pendingGradeRef]
+  );
+
   return (
     // collapsable={false} for the same reason as PickImageScreen's root: the
     // e2e suite waits on this view to know the screen is up, and a flattened
@@ -916,15 +942,7 @@ export default function StudyScreen({
                     <Pressable
                       testID="study-next"
                       style={styles.nextBtn}
-                      onPress={() =>
-                        onGrade(
-                          gotIt,
-                          gotIt ? null : choices.byName[picked],
-                          verifyPair ? verifyPair.pairKey : null,
-                          // Timed at the option tap, not here — see commitAnswer.
-                          answerMsRef.current
-                        )
-                      }
+                      onPress={() => onGrade(...pendingGrade)}
                     >
                       <Text style={styles.nextText}>Next card</Text>
                       <Icon name="arrow-right" size={18} color={colors.onPrimary} />
@@ -1047,7 +1065,7 @@ export default function StudyScreen({
                     <Pressable
                       testID="study-next"
                       style={styles.nextBtn}
-                      onPress={() => onGrade(gotIt, null, null, answerMsRef.current)}
+                      onPress={() => onGrade(...pendingGrade)}
                     >
                       <Text style={styles.nextText}>Next card</Text>
                       <Icon name="arrow-right" size={18} color={colors.onPrimary} />

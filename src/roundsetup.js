@@ -103,3 +103,14 @@ export function packSetup({
     flaggedOnly: !!flaggedOnly,
   };
 }
+
+// One press of the picker's − / + stepper. Steps from the number on SCREEN —
+// the request capped by what the selected groups hold — not from the request
+// itself: the request deliberately stays above a narrowed selection (so
+// widening it again brings the old number back), and stepping from that hidden
+// value would make − look dead until it had walked down past the cap.
+export function stepCount(count, available, delta) {
+  const cap = Math.max(1, Math.floor(Number(available) || 0));
+  const shown = Math.min(Math.floor(Number(count) || 1), cap);
+  return Math.max(1, Math.min(shown + delta, cap));
+}

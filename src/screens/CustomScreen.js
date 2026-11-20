@@ -1,13 +1,13 @@
 // Custom game setup: choose how many cards to study and which taxon groups to
 // include. Groups and their counts are derived from the loaded deck.
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 import Icon from '../components/Icon';
 import GroupIcon from '../components/GroupIcon';
 import ScreenHeader from '../components/ScreenHeader';
 import { useColors, useThemedStyles, groupKey, groupLabel, groupIcon } from '../theme';
-import { restoreGroups, restoreTypes, restoreCount, packSetup } from '../roundsetup';
+import { restoreGroups, restoreTypes, restoreCount, packSetup, stepCount } from '../roundsetup';
 
 const STEP = 4;
 const PRESETS = [8, 16, 32];
@@ -127,10 +127,11 @@ export default function CustomScreen({
   // of TODAY's deck rather than the number of cards there were last time.
   const [count, setCount] = useState(() => restoreCount(initial, available));
 
-  // Keep the requested count within what the current selection can offer.
-  useEffect(() => {
-    setCount((c) => Math.max(1, Math.min(c, available || 1)));
-  }, [available]);
+  // `count` is the player's REQUEST and is not cut down to fit the selection:
+  // everything that shows or uses it caps it at `available` on the way out.
+  // Writing the capped value back (as this once did) lost the request for
+  // good — None took it to 0 and on to 1, so All reopened at "1 card" instead
+  // of the 16 that were asked for.
 
   const toggleGroup = (key) => {
     setSelected((prev) => {
@@ -141,8 +142,8 @@ export default function CustomScreen({
     });
   };
 
-  const clamp = (n) => Math.max(1, Math.min(n, available));
   const canStart = available > 0;
+  const shown = Math.min(count, available);
 
   return (
     <View style={styles.flex}>
@@ -321,19 +322,19 @@ export default function CustomScreen({
         <View style={styles.stepper}>
           <Pressable
             style={styles.stepBtn}
-            onPress={() => setCount((c) => clamp(c - STEP))}
+            onPress={() => setCount((c) => stepCount(c, available, -STEP))}
           >
             <Icon name="minus" size={24} color={colors.primaryDark} />
           </Pressable>
           <View style={styles.countBox}>
             <Text testID="custom-count-value" style={styles.countNum}>
-              {Math.min(count, available)}
+              {shown}
             </Text>
             <Text style={styles.countOf}>of {available} available</Text>
           </View>
           <Pressable
             style={styles.stepBtn}
-            onPress={() => setCount((c) => clamp(c + STEP))}
+            onPress={() => setCount((c) => stepCount(c, available, STEP))}
           >
             <Icon name="plus" size={24} color={colors.primaryDark} />
           </Pressable>
@@ -368,7 +369,7 @@ export default function CustomScreen({
           onPress={() =>
             onStart(
               [...selected],
-              Math.min(count, available),
+              shown,
               flaggedOnly,
               activeTypes,
               // What to reopen on next time. Emitted here, on Start, and
@@ -389,7 +390,7 @@ export default function CustomScreen({
           {canStart && <Icon name="play" size={18} color={colors.onPrimary} />}
           <Text style={styles.startText}>
             {canStart
-              ? `Start • ${Math.min(count, available)} cards`
+              ? `Start • ${shown} card${shown === 1 ? '' : 's'}`
               : 'Select a group'}
           </Text>
         </Pressable>

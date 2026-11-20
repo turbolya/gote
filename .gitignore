@@ -68,5 +68,5 @@ testiny-cases.csv
 *.apk
 *.aab
 
-# Gradle output of the local Expo module
-modules/gote-location/android/build/
+# Gradle output of the local Expo modules
+modules/*/android/build/

@@ -1311,7 +1311,10 @@ in-app swipe-back used to compete with it.
     one card, then press back on a card. Repeat on a photo (four-tile) question.
   - *Priority:* High
   - *Expected:* The round ends and Results shows the cards already answered,
-    exactly as if End had been tapped. Back on Results goes to the menu.
+    exactly as if End had been tapped. Back on Results goes to the menu. A card
+    answered but not yet moved on from (its Next button still showing) counts
+    too, with End or back alike — including **I don't know** on a typing card,
+    which counts as a miss. A flash card revealed but not yet graded does not.
 - [ ] **TC-21.4 Back closes an overlay before anything else.** Mid-round, open a
     compare or duel from the "you keep mixing these up" callout; from Statistics
     open a species detail. Press back.

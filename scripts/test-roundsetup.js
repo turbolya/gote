@@ -17,6 +17,7 @@ const {
   restoreTypes,
   restoreCount,
   packSetup,
+  stepCount,
 } = m.exports;
 
 let pass = 0;
@@ -172,6 +173,20 @@ t('packSetup → restore round-trips the By name round', () => {
   assert.deepEqual(restoreGroups(saved, ALL_GROUPS), ALL_GROUPS);
   assert.deepEqual(restoreTypes(saved, ALL_TYPES), ['name']);
   assert.equal(restoreCount(saved, 190), 190); // deck grew; still the whole deck
+});
+
+t('stepCount: steps from the number on screen, not the hidden request', () => {
+  // Asked for 16, the selection holds 4: the screen says 4, so − goes to 1
+  // and + stays at 4 — neither may look dead.
+  assert.equal(stepCount(16, 4, -4), 1);
+  assert.equal(stepCount(16, 4, 4), 4);
+});
+
+t('stepCount: never below 1 or above what is available', () => {
+  assert.equal(stepCount(2, 40, -4), 1);
+  assert.equal(stepCount(38, 40, 4), 40);
+  assert.equal(stepCount(16, 40, 4), 20);
+  assert.equal(stepCount(16, 0, -4), 1); // nothing selected: still a sane 1
 });
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

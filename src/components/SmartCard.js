@@ -195,7 +195,7 @@ export default function SmartCard({
       >
         {!disabled && <Icon name="play" size={17} color={colors.onPrimary} />}
         <Text style={styles.startText}>
-          {disabled ? disabledNote || 'Not available' : `Start • ${cards} cards`}
+          {disabled ? disabledNote || 'Not available' : `Start • ${cards} card${cards === 1 ? '' : 's'}`}
         </Text>
       </Pressable>
     </View>

@@ -43,6 +43,7 @@ import Icon from './Icon';
 import { Spinner } from './LoadingImage';
 import { Appear } from './anim';
 import { photoCredit, toSmallPhoto } from '../api';
+import { retryUri, SLOW_PHOTO_MS } from '../photoretry';
 
 const DOUBLE_TAP_MS = 280;
 const MAX_ZOOM = 5;
@@ -62,9 +63,23 @@ function ZoomablePage({ uri, screenW, screenH, onZoomChange }) {
   // JS-side mirror of "is this page zoomed", to enable the pan gesture and to
   // notify the parent (which toggles the FlatList's horizontal paging).
   const [zoomed, setZoomed] = useState(false);
-  // Spinner until the full-size photo arrives (a failed load clears it too, so
-  // a broken photo doesn't spin forever).
-  const [loaded, setLoaded] = useState(false);
+  // 'loading' → 'loaded', or 'failed' when the load errors. A load that just
+  // never finishes (see src/photoretry.js) stays 'loading' but turns `slow`,
+  // which offers Retry next to the spinner. Each retry bumps `attempt`, which
+  // remounts the image under a fresh cache key.
+  const [status, setStatus] = useState('loading');
+  const [attempt, setAttempt] = useState(0);
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    setSlow(false);
+    if (status !== 'loading') return undefined;
+    const t = setTimeout(() => setSlow(true), SLOW_PHOTO_MS);
+    return () => clearTimeout(t);
+  }, [status, attempt]);
+  const retry = () => {
+    setStatus('loading');
+    setAttempt((a) => a + 1);
+  };
   const notify = (z) => {
     setZoomed(z);
     if (onZoomChange) onZoomChange(z);
@@ -162,17 +177,39 @@ function ZoomablePage({ uri, screenW, screenH, onZoomChange }) {
     <GestureDetector gesture={gesture}>
       <Animated.View style={[styles.page, { width: screenW, height: screenH }]}>
         <Animated.Image
-          source={{ uri }}
+          key={attempt}
+          source={{ uri: retryUri(uri, attempt) }}
           style={[{ width: screenW, height: screenH }, imgStyle]}
           resizeMode="contain"
-          onLoad={() => setLoaded(true)}
-          onError={() => setLoaded(true)}
+          onLoad={() => setStatus('loaded')}
+          onError={() => setStatus('failed')}
         />
         {/* Sibling overlay rather than a wrapper: the image carries the pinch/
-            pan transform, so nesting it would fight the gesture handling. */}
-        {!loaded && (
-          <View style={styles.pageSpinner} pointerEvents="none">
-            <Spinner size={56} />
+            pan transform, so nesting it would fight the gesture handling.
+            box-none: only the Retry control takes touches, so swiping to the
+            next photo still works over a stuck one. */}
+        {status !== 'loaded' && (
+          <View style={styles.pageSpinner} pointerEvents="box-none">
+            {status === 'failed' ? (
+              <>
+                <Icon name="image" size={44} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.pageNote}>Couldn’t load this photo</Text>
+              </>
+            ) : (
+              <Spinner size={56} />
+            )}
+            {(status === 'failed' || slow) && (
+              <Pressable
+                testID="photo-retry"
+                onPress={retry}
+                hitSlop={10}
+                accessibilityRole="button"
+                style={styles.retry}
+              >
+                <Icon name="refresh-cw" size={16} color="#fff" />
+                <Text style={styles.retryText}>Retry</Text>
+              </Pressable>
+            )}
           </View>
         )}
       </Animated.View>
@@ -183,6 +220,9 @@ function ZoomablePage({ uri, screenW, screenH, onZoomChange }) {
 // One thumbnail in the grid. Its own component so a re-render of the grid (a
 // photo loading, the credit changing) doesn't reset every cell's image.
 function GridCell({ uri, size, onPress, index }) {
+  // A thumbnail that fails says so instead of sitting there as an empty dark
+  // square; tapping it opens the full-size photo, which can retry.
+  const [failed, setFailed] = useState(false);
   return (
     <Pressable
       testID={`photo-cell-${index}`}
@@ -195,7 +235,17 @@ function GridCell({ uri, size, onPress, index }) {
         pressed && styles.cellPressed,
       ]}
     >
-      <Image source={{ uri: toSmallPhoto(uri) }} style={styles.cellImage} resizeMode="cover" />
+      <Image
+        source={{ uri: toSmallPhoto(uri) }}
+        style={styles.cellImage}
+        resizeMode="cover"
+        onError={() => setFailed(true)}
+      />
+      {failed && (
+        <View style={styles.cellFailed} pointerEvents="none">
+          <Icon name="image" size={24} color="rgba(255,255,255,0.45)" />
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -423,6 +473,23 @@ const styles = StyleSheet.create({
   cell: { margin: GRID_GAP / 2, borderRadius: 6, overflow: 'hidden', backgroundColor: '#111' },
   cellPressed: { opacity: 0.6 },
   cellImage: { width: '100%', height: '100%' },
+  cellFailed: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageNote: { color: 'rgba(255,255,255,0.75)', fontSize: 15, marginTop: 10 },
+  retry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+  },
+  retryText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   creditBar: {
     position: 'absolute',
     left: 0,

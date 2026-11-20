@@ -121,6 +121,24 @@ test('the local location module is Android-only', () => {
   assert.deepStrictEqual(config.platforms, ['android']);
 });
 
+test('the navigation-bar module is Android-only and has no library behind it', () => {
+  const config = JSON.parse(
+    fs.readFileSync(path.join(root, 'modules', 'gote-navbar', 'expo-module.config.json'), 'utf8')
+  );
+  assert.deepStrictEqual(config.platforms, ['android']);
+  // androidx's WindowInsetsControllerCompat could never clear a light bar again
+  // on Android 12 (see GoteNavBarModule.kt), and expo-navigation-bar is built
+  // on it — so the app must not drift back to either.
+  const kt = fs.readFileSync(
+    path.join(root, 'modules', 'gote-navbar', 'android', 'src', 'main', 'java',
+      'expo', 'modules', 'gotenavbar', 'GoteNavBarModule.kt'),
+    'utf8'
+  );
+  assert.ok(!/WindowInsetsControllerCompat\(/.test(kt), 'GoteNavBar must not construct the androidx compat controller');
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  assert.ok(!pkg.dependencies['expo-navigation-bar'], 'expo-navigation-bar is replaced by modules/gote-navbar');
+});
+
 test('app.config.js leaves normal builds exactly as app.json', () => {
   delete require.cache[require.resolve('../app.config.js')];
   const saved = process.env.FDROID;

@@ -88,7 +88,8 @@ export default function ResultsScreen({
               <>
                 <AnimatedNumber value={correct} style={styles.pct} />
                 <Text style={styles.scoreDetail}>
-                  cards before {missed.length} misses
+                  {correct === 1 ? 'card' : 'cards'} before {missed.length}{' '}
+                  {missed.length === 1 ? 'miss' : 'misses'}
                 </Text>
               </>
             ) : (

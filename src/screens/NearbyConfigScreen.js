@@ -71,19 +71,23 @@ const regionFor = (lat, lng, radiusKm) => {
 // Until a location is chosen, show a wide world view.
 const DEFAULT_REGION = { latitude: 25, longitude: 0, latitudeDelta: 100, longitudeDelta: 100 };
 
-export default function NearbyConfigScreen({ onBack, onStart }) {
+// `initial`: the setup of the last Nearby round this session ({ place, radius,
+// iconicTaxa }), so cancelling a load — or coming back after a round — reopens
+// on the same place instead of an empty world map. App keeps it in memory only:
+// the privacy policy promises a location is never stored.
+export default function NearbyConfigScreen({ onBack, onStart, initial = null }) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   // Selected location: { lat, lng, name } | null.
-  const [place, setPlace] = useState(null);
+  const [place, setPlace] = useState(initial ? initial.place : null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [gpsBusy, setGpsBusy] = useState(false);
-  const [radius, setRadius] = useState(50);
+  const [radius, setRadius] = useState(initial ? initial.radius : 50);
   // The preset the thumb is currently snapped to (so the haptic fires once on
   // entry, not on every drag event); null when between presets.
-  const lastSnap = useRef(50);
+  const lastSnap = useRef(initial ? initial.radius : 50);
   // Measured slider width, so tick labels can be positioned along the track.
   const [trackW, setTrackW] = useState(0);
   const mapRef = useRef(null);
@@ -132,7 +136,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
   };
   // Selected groups (default: birds + mammals + plants — the broad favourites).
   const [selected, setSelected] = useState(
-    () => new Set(['Aves', 'Mammalia', 'Plantae'])
+    () => new Set(initial ? initial.iconicTaxa : ['Aves', 'Mammalia', 'Plantae'])
   );
   const [error, setError] = useState(null);
   const searchTimer = useRef(null);
@@ -381,6 +385,7 @@ export default function NearbyConfigScreen({ onBack, onStart }) {
               lng: place.lng,
               radius,
               iconicTaxa: [...selected],
+              place,
             })
           }
         >

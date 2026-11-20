@@ -150,8 +150,10 @@ function AccuracyBars({ data = [], counts = [], lifetime = null }) {
           <AnimatedPath
             d={linePath}
             fill="none"
-            stroke="#FFFFFF"
-            strokeWidth={2.5}
+            // Translucent: it is background data, and at full white it fought
+            // the username row for attention wherever the two crossed.
+            stroke="rgba(255,255,255,0.6)"
+            strokeWidth={2}
             strokeLinejoin="round"
             strokeLinecap="round"
             strokeDasharray={lineLen}
@@ -457,7 +459,7 @@ export default function MenuScreen({
             <View style={styles.flex}>
               <Text testID="menu-wordmark" style={styles.heroTitle}>gote</Text>
               <Animated.Text style={[styles.heroSub, { opacity: bigOpacity }]} numberOfLines={1}>
-                {username} · {deckCount} cards
+                {username} · {deckCount} card{deckCount === 1 ? '' : 's'}
               </Animated.Text>
             </View>
             {/* Daily streak: filled flame once you've played today, outline when
@@ -532,7 +534,18 @@ const makeStyles = (colors) => StyleSheet.create({
   // Brand wordmark: the rounded Fredoka logotype, lowercase, per the design
   // system. The face is SemiBold (600) baked into the file, so no fontWeight.
   heroTitle: { fontSize: 38, fontFamily: 'Fredoka', color: '#FFFFFF', letterSpacing: 0.5 },
-  heroSub: { fontSize: 15, color: 'rgba(255,255,255,0.85)', marginTop: 2, fontWeight: '600' },
+  heroSub: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
+    fontWeight: '600',
+    // The trend line runs through this row at the high accuracies most players
+    // have (around 85–90%), white on white, so it read as a strikethrough. The
+    // same shadow the accuracy pill uses lifts the text off it.
+    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
   // The logo is white on transparent, so it sits directly on the green hero
   // (no backdrop tile needed).
   heroLogo: { width: 44, height: 44 },

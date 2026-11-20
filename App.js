@@ -150,6 +150,7 @@ import {
   isImageDownloaded,
 } from './src/prefetch';
 import { groupKey, ThemeProvider, themeFor, resolveScheme } from './src/theme';
+import GoteNavBar from './modules/gote-navbar';
 import { IS_E2E, IS_SHOTS } from './src/e2e/testMode';
 import { TutorialProvider, TutorialOverlay } from './src/components/Tutorial';
 import { Spinner } from './src/components/LoadingImage';
@@ -271,6 +272,16 @@ export default function App() {
   const colors = theme.colors;
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const statusBarStyle = theme.scheme === 'dark' ? 'light' : 'dark';
+
+  // Android's button navigation draws a contrast scrim behind its buttons, and
+  // the native window picks that scrim from the SYSTEM theme. The in-app theme
+  // never reached it, so a dark app on a light phone kept a light grey bar
+  // across the bottom of every screen. Follow the theme the app actually shows
+  // (see modules/gote-navbar for why this is not expo-navigation-bar). Null
+  // off Android.
+  useEffect(() => {
+    if (GoteNavBar) GoteNavBar.setLight(statusBarStyle === 'dark');
+  }, [statusBarStyle]);
 
   // Change + persist the theme mode (applies immediately, app-wide).
   const onThemeModeChange = useCallback(
@@ -604,6 +615,9 @@ export default function App() {
   // AbortController for the in-progress full download / nearby fetch, so the
   // loading screen's Cancel button can stop it. Set when a download starts.
   const abortRef = useRef(null);
+  // The last Nearby setup this session (see startNearby). Never persisted.
+  const [nearbySetup, setNearbySetup] = useState(null);
+
   const cancelLoad = useCallback(() => {
     if (abortRef.current) abortRef.current.abort();
   }, []);
@@ -1111,6 +1125,10 @@ export default function App() {
   // chosen location/groups and plays them as a self-grade round.
   const startNearby = useCallback(
     async (config) => {
+      // Remembered before the load, so Cancel (or back) during it returns to
+      // the same place rather than an empty map. In memory only — see
+      // NearbyConfigScreen's `initial`.
+      setNearbySetup({ place: config.place, radius: config.radius, iconicTaxa: config.iconicTaxa });
       setError(null);
       setProgress({ loaded: 0, total: 0 });
       setLoadingNearby(true);
@@ -1747,15 +1765,30 @@ export default function App() {
     });
   }, [adoptStored]);
 
-  const handleGrade = useCallback(
-    (correct, chosen, verifyPairKey, ms = 0) => {
-      const card = deck[index];
+  // Everything one graded card writes: its tally, a mix-up on a wrong pick, a
+  // recovery win. Shared by Next (handleGrade) and by ending the round on an
+  // answered card (quitRound), so the two can never record it differently.
+  const noteGrade = useCallback(
+    (card, correct, chosen, verifyPairKey, ms = 0) => {
       recordResult(card, correct, { ms, format: formatForCard() });
       // A wrong multiple-choice pick is a confusion signal (correct card vs. the
       // option they chose). `chosen` is absent for self-graded Flash cards.
       if (!correct && chosen) recordConfusion(card, chosen);
       // A correct answer over a re-seeded old look-alike extends the recovery run.
       if (correct && verifyPairKey) recordVerifyWinFor(verifyPairKey);
+    },
+    [recordResult, recordConfusion, recordVerifyWinFor, formatForCard]
+  );
+
+  // The study screen's answered-but-not-yet-advanced verdict (see its
+  // pendingGradeRef prop). Null whenever there is nothing waiting.
+  const pendingGradeRef = useRef(null);
+
+  const handleGrade = useCallback(
+    (correct, chosen, verifyPairKey, ms = 0) => {
+      pendingGradeRef.current = null;
+      const card = deck[index];
+      noteGrade(card, correct, chosen, verifyPairKey, ms);
       const nextCorrect = correct ? correctCount + 1 : correctCount;
       const nextMissed = correct ? missed : [...missed, card];
       setCorrectCount(nextCorrect);
@@ -1790,8 +1823,27 @@ export default function App() {
         if (mode === 'smart') routeSmart(index + 1);
       }
     },
-    [deck, index, correctCount, missed, mode, lives, finishRound, recordResult, recordConfusion, recordVerifyWinFor, routeSmart, formatForCard]
+    [deck, index, correctCount, missed, mode, lives, finishRound, noteGrade, routeSmart]
   );
+
+  // End a round early — End, or Android back. A card that is already answered
+  // counts, exactly as if Next had been tapped first: Results would otherwise
+  // leave out a card the player saw graded, and "I don't know" would not cost
+  // the miss it promises.
+  const quitRound = useCallback(() => {
+    const pending = pendingGradeRef.current;
+    pendingGradeRef.current = null;
+    const card = deck[index];
+    if (!pending || !card) {
+      finishRound(correctCount, missed, correctCount + missed.length);
+      return;
+    }
+    const [correct, chosen, verifyPairKey, ms] = pending;
+    noteGrade(card, correct, chosen, verifyPairKey, ms);
+    const nextCorrect = correct ? correctCount + 1 : correctCount;
+    const nextMissed = correct ? missed : [...missed, card];
+    finishRound(nextCorrect, nextMissed, nextCorrect + nextMissed.length);
+  }, [deck, index, correctCount, missed, finishRound, noteGrade]);
 
   // Grade a tap in "Pick the right one" (tally only; advancing waits for Next).
   const handlePickGrade = useCallback(
@@ -1913,7 +1965,7 @@ export default function App() {
     hasDetail: !!detailCard,
     canLeaveSettings: fullDeck.length > 0,
     navBack,
-    endRound: () => finishRound(correctCount, missed, correctCount + missed.length),
+    endRound: quitRound,
   };
   useEffect(() => {
     if (Platform.OS !== 'android') return undefined;
@@ -1992,6 +2044,7 @@ export default function App() {
             flags={flags}
             onToggleFlag={toggleFlag}
             onGrade={handleGrade}
+            pendingGradeRef={pendingGradeRef}
             onConfusionCount={confusionCount}
             onNemesisPartners={nemesisPartnersFor}
             onVerifyStreak={verifyStreakFor}
@@ -2000,9 +2053,7 @@ export default function App() {
             showLatin={showLatin}
             onIsMastered={isSpeciesMastered}
             offline={offline}
-            onQuit={() =>
-              finishRound(correctCount, missed, correctCount + missed.length)
-            }
+            onQuit={quitRound}
           />
         </Appear>
         {comparePair && renderCompareOverlay()}
@@ -2286,6 +2337,7 @@ export default function App() {
 
         {screen === 'nearby' && (
           <NearbyConfigScreen
+            initial={nearbySetup}
             onStart={startNearby}
             onBack={navBack}
           />
