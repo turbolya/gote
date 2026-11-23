@@ -139,6 +139,7 @@ src/
   e2e/                       # fixtures + the build-time flags that select them
 scripts/                     # node test runners (npm test)
 e2e/                         # Detox specs (npm run e2e:build && npm run e2e:test)
+e2e/device/                  # XCUITest runner for real iPhones/iPads (TestFlight builds too)
 screenshots-local/           # App Store screenshot capture (writes outside the repo)
 assets/                      # app icon, splash, watch glyphs
 ```
