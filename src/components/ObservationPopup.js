@@ -37,7 +37,15 @@ export default function ObservationPopup({ card, onClose, onMoreInfo }) {
       onRequestClose={onClose}
       testID="recent-popup"
     >
-      <Pressable style={styles.backdrop} onPress={onClose} testID="recent-popup-backdrop">
+      {/* Not an accessibility element: on iOS an accessible Pressable folds
+          everything inside it into one, which hid the ✕ and ⓘ from VoiceOver.
+          Screen-reader users close it with the ✕. */}
+      <Pressable
+        style={styles.backdrop}
+        onPress={onClose}
+        accessible={false}
+        testID="recent-popup-backdrop"
+      >
         {/* Claims the touch so a press inside the card never reaches the
             backdrop's dismiss. A View, not a Pressable: there is nothing to
             press here, only something not to fall through. */}

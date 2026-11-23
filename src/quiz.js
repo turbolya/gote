@@ -19,25 +19,33 @@ export function sharedAncestorDepth(a = [], b = []) {
  * @param {Array}  pool        all candidate cards (the full deck)
  * @param {number} count       how many distractors to return
  * @param {() => number} rng   optional RNG (defaults to Math.random) for tests
- * @returns {Array} up to `count` distractor cards (never includes the answer's
- *   taxon)
+ * @returns {Array} up to `count` distractor cards (never the answer's taxon,
+ *   nor one of its ancestors or descendants)
  */
 export function pickSimilarDistractors(answerCard, pool, count, rng = Math.random) {
   if (!answerCard || count <= 0) return [];
 
-  // Candidates: one per taxon, excluding the answer's own taxon.
+  // Candidates: one per taxon, excluding the answer's own taxon and anything
+  // nested with it. A deck that keeps genus-level cards can hold both the genus
+  // and a species in it; offering "Prenesta scyllalis" when the answer is
+  // "Prenesta" (or the reverse) makes a "wrong" option that is also right. Such
+  // a taxon shares the answer's whole lineage, so ranking alone would put it
+  // first rather than leave it out.
+  const answerAncestry = answerCard.ancestry || [];
+  const answerLineage = new Set(answerAncestry);
   const seen = new Set([answerCard.taxonId]);
   const candidates = [];
   for (const c of pool) {
     if (seen.has(c.taxonId)) continue;
     seen.add(c.taxonId);
+    if (answerLineage.has(c.taxonId)) continue; // an ancestor of the answer
+    if ((c.ancestry || []).includes(answerCard.taxonId)) continue; // a descendant
     candidates.push(c);
   }
 
   // Rank each candidate by how closely it's related to the answer, then take
   // the closest `count`. Ties (same closeness) are shuffled so repeated rounds
   // vary. We sort by depth desc, with a random tiebreak.
-  const answerAncestry = answerCard.ancestry || [];
   const ranked = candidates
     .map((c) => ({
       card: c,

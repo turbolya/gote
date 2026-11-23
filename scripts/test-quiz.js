@@ -106,6 +106,19 @@ t('deterministic ordering with seeded rng for ties', () => {
   assert.equal(out.length, 2);
 });
 
+t('never offers a descendant or ancestor of the answer', () => {
+  // iNat's ancestor_ids end with the taxon itself: genus 30 contains rose1/rose2.
+  const genus = { taxonId: 30, scientific: 'Rosa', ancestry: [1, 10, 20, 30] };
+  const sub = { taxonId: 1011, scientific: 'Rosa one minor', ancestry: [1, 10, 20, 30, 101, 1011] };
+  const roseA = { ...rose1, ancestry: [1, 10, 20, 30, 101] };
+  // Answer is the genus: its species rank deepest, so they used to come first.
+  const fromGenus = pickSimilarDistractors(genus, [roseA, rose2, appleTree, oak], 4);
+  assert.deepEqual(fromGenus.map((c) => c.taxonId).sort(), [201, 301]);
+  // Answer is a species: its genus and its subspecies are both out.
+  const fromSpecies = pickSimilarDistractors(roseA, [genus, sub, rose2, oak], 4);
+  assert.deepEqual(fromSpecies.map((c) => c.taxonId), [102, 301]);
+});
+
 // --- buildPickRound ---
 // Each similar species carries its OWN curated photo set (`photos`), mirroring
 // fetchTaxonPhotosByIds output — distractors must use official photos too.
