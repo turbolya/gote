@@ -5,6 +5,7 @@ import XCTest
 // xcodebuild). Steps are separated by "|", each "cmd" or "cmd:arg":
 //   launch | relaunch | terminate | home
 //   tap:<identifier>  taplabel:<label>  tapcontains:<text>  tapxy:<x>,<y> (0..1)
+//   drag:<x1>,<y1>,<x2>,<y2>  tapfirst:<identifier prefix>  scrollto:<identifier>  typeinto:<identifier>=<text>
 //   waitid:<identifier>  waitlabel:<text>  wait:<seconds>
 //   type:<text>  swipe:<up|down|left|right>
 //   shot:<name>  tree:<name>
@@ -37,10 +38,42 @@ final class GoteUITests: XCTestCase {
         case "tap": tap(query(NSPredicate(format: "identifier == %@", arg)), arg)
         case "taplabel": tap(query(NSPredicate(format: "label == %@", arg)), arg)
         case "tapcontains": tap(query(NSPredicate(format: "label CONTAINS[c] %@", arg)), arg)
+        case "tapfirst": tap(query(NSPredicate(format: "identifier BEGINSWITH %@", arg)), arg)
+        case "scrollto":
+            let el = query(NSPredicate(format: "identifier == %@", arg))
+            var tries = 0
+            // Finger-speed drags: XCUITest's swipeUp() flick doesn't scroll
+            // gote's menu on a real device.
+            while !(el.exists && el.isHittable) && tries < 10 {
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+                    .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)),
+                           withVelocity: .default, thenHoldForDuration: 0.05)
+                tries += 1
+            }
+            print("GOTE \(el.exists && el.isHittable ? "found" : "MISSING"): \(arg)")
+        case "typeinto":
+            let kv = arg.split(separator: "=", maxSplits: 1).map(String.init)
+            let el = query(NSPredicate(format: "identifier == %@", kv[0]))
+            if wait(el, kv[0]) {
+                el.tap()
+                // One key at a time: React Native's controlled inputs drop
+                // keystrokes that arrive faster than they re-render.
+                if kv.count > 1 {
+                    for ch in kv[1] { el.typeText(String(ch)); Thread.sleep(forTimeInterval: 0.12) }
+                }
+            }
         case "tapxy":
             let xy = arg.split(separator: ",").compactMap { Double($0) }
             if xy.count == 2 {
                 app.coordinate(withNormalizedOffset: CGVector(dx: xy[0], dy: xy[1])).tap()
+            }
+        case "drag":
+            // drag:x1,y1,x2,y2 in 0..1 fractions of the screen, at finger speed.
+            let v = arg.split(separator: ",").compactMap { Double($0) }
+            if v.count == 4 {
+                let a = app.coordinate(withNormalizedOffset: CGVector(dx: v[0], dy: v[1]))
+                let b = app.coordinate(withNormalizedOffset: CGVector(dx: v[2], dy: v[3]))
+                a.press(forDuration: 0.05, thenDragTo: b, withVelocity: .default, thenHoldForDuration: 0.05)
             }
         case "waitid": wait(query(NSPredicate(format: "identifier == %@", arg)), arg)
         case "waitlabel": wait(query(NSPredicate(format: "label CONTAINS[c] %@", arg)), arg)

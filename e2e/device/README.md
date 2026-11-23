@@ -42,7 +42,11 @@ Steps are separated by `|`:
 | `launch` / `relaunch` / `terminate` / `home` | bring the app up (keeping its state) / restart it / quit it / go to the Home Screen |
 | `tap:<id>` | tap the element with that accessibility identifier (`testID`) |
 | `taplabel:<label>` / `tapcontains:<text>` | tap by exact label / label substring |
+| `tapfirst:<prefix>` | tap the first element whose id starts with the prefix (e.g. `study-choice-`) |
+| `scrollto:<id>` | swipe up until the element is on screen and tappable |
+| `typeinto:<id>=<text>` | tap a field and type into it |
 | `tapxy:<x>,<y>` | tap at a point given as 0–1 fractions of the screen |
+| `drag:<x1>,<y1>,<x2>,<y2>` | drag between two such points at finger speed |
 | `waitid:<id>` / `waitlabel:<text>` | wait up to 20 s for an element |
 | `wait:<seconds>` | sleep |
 | `type:<text>` / `swipe:<up\|down\|left\|right>` | keyboard input / swipe |
