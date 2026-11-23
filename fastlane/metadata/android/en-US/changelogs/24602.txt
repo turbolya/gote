@@ -1,0 +1,1 @@
+Fixes: a wrong option in name quizzes is never the answer's own genus or one of its species. The close and info buttons on a recent photo's card can be reached with a screen reader.

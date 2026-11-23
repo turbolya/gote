@@ -8,9 +8,19 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.46.1';
+export const APP_VERSION = '2.46.2';
 
 export const CHANGELOG = [
+  {
+    version: '2.46.2',
+    date: '2026-11-23',
+    changes: [
+      'In name quizzes, a wrong option is never the answer’s own genus or '
+        + 'one of its species, so no “wrong” option is also right.',
+      'With VoiceOver, the close and info buttons on a recent photo’s card '
+        + 'can now be reached.',
+    ],
+  },
   {
     version: '2.46.1',
     date: '2026-11-20',
