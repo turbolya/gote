@@ -1,0 +1,23 @@
+# "Use my location". The first run asks for the location permission and the
+# alert steps grant it (iOS and Android word the button differently; the other
+# platform's step finds nothing and moves on). To test a refusal instead, use
+# "Don't Allow" / "Don’t allow": nearby-error must show instead of a place.
+relaunch
+tapif:support-close
+waitid:mode-smart
+wait:2
+# A tour left running by an earlier, interrupted run is ended first.
+tapif:tutorial-exit
+alert:Exit
+tap:mode-nearby
+waitid:nearby-start
+tapif:nearby-place-clear
+waitid:nearby-gps
+tap:nearby-gps
+alert:Allow While Using App
+alert:While using the app
+waitid:nearby-place=30
+assertlabel:nearby-place=My location
+shot:my-location
+tap:screen-back
+waitid:mode-smart

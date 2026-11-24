@@ -1,0 +1,25 @@
+# "Drill this pair" from the first species you mix up. Needs at least one
+# mix-up in Statistics. Opens the duel and leaves it unanswered.
+relaunch
+tapif:support-close
+waitid:mode-smart
+wait:2
+# A tour left running by an earlier, interrupted run is ended first.
+tapif:tutorial-exit
+alert:Exit
+tap:menu-stats
+waitid:stats-scroll
+scrollto:stats-confusion-0
+tap:stats-confusion-0
+scrollto:compare-drill
+tap:compare-drill
+waitid:duel-screen=30
+waitid:duel-choice-a=30
+waitid:duel-choice-b
+shot:duel
+tree:duel
+# Leaving the duel goes back to Statistics.
+tap:screen-back
+waitid:stats-scroll
+tap:screen-back
+waitid:mode-smart

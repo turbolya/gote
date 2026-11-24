@@ -83,6 +83,20 @@ npm run e2e:test:debug
   confirmation, and resuming after a relaunch. The tour does NOT auto-start
   under `EXPO_PUBLIC_E2E=1` (an overlay on the menu would break every other
   spec), so these start it explicitly.
+- `e2e/settings.test.js` — theme, study filters, and both surviving a relaunch.
+- `e2e/offline.test.js` — the offline banner and what it blocks, via the
+  E2E-only offline toggle.
+- `e2e/accessibility.test.js` — what VoiceOver reads: Speedrun's lives and
+  score, icon buttons named by their words, the photo popup's buttons, and an
+  empty round's Results.
+- `e2e/language-location.test.js` — the species-name language (and that it
+  survives a relaunch), and "Use my location" with the permission granted and
+  refused, on the simulator's own location service.
+
+Real-device checks (VoiceOver labels, gestures, the full tour, language,
+location, offline, sync) run through the XCUITest/adb runner in
+[`e2e/device/`](device/README.md). The phone → Apple Watch → watch-face data
+contract is a unit test, `scripts/test-watch-contract.js`.
 
 ## Notes
 

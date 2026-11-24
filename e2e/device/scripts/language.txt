@@ -1,0 +1,41 @@
+# Species-name language: switch to Hungarian, see the field and the filter
+# follow, check a relaunch keeps it, and switch back to English. Each switch
+# reloads the deck's names from iNaturalist.
+relaunch
+tapif:support-close
+waitid:mode-smart
+wait:2
+# A tour left running by an earlier, interrupted run is ended first.
+tapif:tutorial-exit
+alert:Exit
+scrollto:open-settings
+tap:open-settings
+waitid:settings-scroll
+scrollto:language-field
+tap:language-field
+typeinto:language-search=hung
+tap:language-option-hu
+wait:2
+assertlabel:language-field=Hungarian, Magyar
+shot:hungarian
+# Leaving Settings is what saves the change (and reloads the names).
+tap:settings-back
+waitid:mode-smart=60
+wait:3
+relaunch
+tapif:support-close
+waitid:mode-smart=60
+wait:3
+shot:menu-hungarian
+scrollto:open-settings
+tap:open-settings
+waitid:settings-scroll
+scrollto:language-field
+assertlabel:language-field=Hungarian, Magyar
+tap:language-field
+typeinto:language-search=engl
+tap:language-option-en
+wait:2
+assertlabel:language-field=English
+tap:settings-back
+waitid:mode-smart=60

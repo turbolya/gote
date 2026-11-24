@@ -51,9 +51,11 @@ private func liveStreak(_ count: Int, _ day: String?) -> Int {
   return Date() < lapse ? count : 0
 }
 
-private func loadEntry() -> GoteEntry {
-  let defaults = UserDefaults(suiteName: appGroup)
-  if let data = defaults?.data(forKey: snapshotKey),
+// The snapshot the watch app saved (its Snapshot, JSON-encoded) as an entry.
+// Pure, so the watch → widget contract can be tested off the watch
+// (scripts/test-watch-contract.js); nil data is "nothing saved yet".
+private func entry(from data: Data?) -> GoteEntry {
+  if let data,
      let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
     let day = obj["streakDay"] as? String
     return GoteEntry(
@@ -68,6 +70,10 @@ private func loadEntry() -> GoteEntry {
   return GoteEntry(
     date: .now, accuracy: nil, answered: 0, streak: 0, streakBest: 0, streakDay: nil
   )
+}
+
+private func loadEntry() -> GoteEntry {
+  entry(from: UserDefaults(suiteName: appGroup)?.data(forKey: snapshotKey))
 }
 
 struct GoteProvider: TimelineProvider {

@@ -77,6 +77,36 @@ struct Snapshot: Codable, Equatable {
   var liveStreak: Int { goteLiveStreak(streak, streakDay) }
 }
 
+extension Snapshot {
+  // Map the phone's loose application context (src/watch.js
+  // pushWatchSnapshot) into a typed snapshot. Pure, so the phone → watch
+  // contract can be tested off the watch (scripts/test-watch-contract.js).
+  //
+  // Background complication pushes (transferCurrentComplicationUserInfo) carry
+  // only the stats to stay small, with no "deck" key — `current`'s deck is kept
+  // in that case so a stats refresh never wipes the quiz pool.
+  static func from(context: [String: Any], keeping current: Snapshot) -> Snapshot {
+    let hasDeck = context["deck"] != nil
+    let deckRaw = context["deck"] as? [[String: Any]] ?? []
+    let parsedDeck: [WatchCard] = deckRaw.compactMap { d in
+      guard let id = d["id"] as? Int,
+            let name = d["name"] as? String,
+            let image = d["image"] as? String
+      else { return nil }
+      return WatchCard(id: id, name: name, sci: d["sci"] as? String ?? "", image: image)
+    }
+    return Snapshot(
+      accuracy: context["accuracy"] as? Int,
+      correct: context["correct"] as? Int ?? 0,
+      answered: context["answered"] as? Int ?? 0,
+      streak: context["streak"] as? Int ?? 0,
+      streakBest: context["streakBest"] as? Int ?? 0,
+      streakDay: context["streakDay"] as? String,
+      deck: hasDeck ? parsedDeck : current.deck
+    )
+  }
+}
+
 final class WatchStore: NSObject, ObservableObject {
   static let shared = WatchStore()
   static let appGroup = "group.com.gote.app"
@@ -110,28 +140,8 @@ final class WatchStore: NSObject, ObservableObject {
   // poke the complication so the watch face updates.
   fileprivate func apply(context: [String: Any]) {
     if isShot { return } // don't let live syncs overwrite the demo snapshot
-    // Background complication pushes (transferCurrentComplicationUserInfo) carry
-    // only the stats to stay small, with no "deck" key — keep the current deck
-    // in that case so a stats refresh never wipes the quiz pool.
-    let hasDeck = context["deck"] != nil
-    let deckRaw = context["deck"] as? [[String: Any]] ?? []
-    let parsedDeck: [WatchCard] = deckRaw.compactMap { d in
-      guard let id = d["id"] as? Int,
-            let name = d["name"] as? String,
-            let image = d["image"] as? String
-      else { return nil }
-      return WatchCard(id: id, name: name, sci: d["sci"] as? String ?? "", image: image)
-    }
     DispatchQueue.main.async {
-      let snap = Snapshot(
-        accuracy: context["accuracy"] as? Int,
-        correct: context["correct"] as? Int ?? 0,
-        answered: context["answered"] as? Int ?? 0,
-        streak: context["streak"] as? Int ?? 0,
-        streakBest: context["streakBest"] as? Int ?? 0,
-        streakDay: context["streakDay"] as? String,
-        deck: hasDeck ? parsedDeck : self.snapshot.deck
-      )
+      let snap = Snapshot.from(context: context, keeping: self.snapshot)
       guard snap != self.snapshot else { return }
       self.snapshot = snap
       if let data = try? JSONEncoder().encode(snap) {

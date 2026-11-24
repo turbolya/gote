@@ -47,14 +47,64 @@ Steps are separated by `|`:
 | `typeinto:<id>=<text>` | tap a field and type into it |
 | `tapxy:<x>,<y>` | tap at a point given as 0–1 fractions of the screen |
 | `drag:<x1>,<y1>,<x2>,<y2>` | drag between two such points at finger speed |
-| `waitid:<id>` / `waitlabel:<text>` | wait up to 20 s for an element |
+| `waitid:<id>[=<seconds>]` / `waitlabel:<text>` | wait for an element (20 s unless given) |
+| `tapif:<id>` | tap it if it appears within 3 s; not a miss if it doesn't |
+| `tapifon:<id>` / `tapifoff:<id>` | tap a switch only when it is on / off |
+| `doubletap:<id>` / `pinch:<id>=<scale>` | double-tap / pinch (above 1 zooms in) |
+| `alert:<button>` | tap a button in a system alert, e.g. a permission prompt (none showing is not a miss) |
+| `assertlabel:<id>=<label>` | check an element's accessibility label (what VoiceOver reads) |
+| `assertgone:<id>` | check an element disappears within 10 s |
 | `wait:<seconds>` | sleep |
 | `type:<text>` / `swipe:<up\|down\|left\|right>` | keyboard input / swipe |
 | `shot:<name>` | screenshot |
 | `tree:<name>` | compact accessibility tree: type, id, label, frame |
 
 If a `tap` or `wait` doesn't find its element, the runner prints
-`GOTE MISSING: …` and saves a screenshot and tree at that point.
+`GOTE MISSING: …` and saves a screenshot and tree at that point; a failed
+assertion prints `GOTE FAIL: …` and does the same. The run ends with
+`GOTE summary: <n> missing, <n> failed`.
+
+## Scripts
+
+Steps can also come from a file, one per line, with `#` comments:
+
+```bash
+e2e/device/run.sh <udid> e2e/device/scripts/zoom.txt
+```
+
+`scripts/` holds the checks for what the Detox suite cannot reach on a
+simulator or that need real hardware:
+
+| Script | Checks | Touches |
+| --- | --- | --- |
+| `a11y.txt` | VoiceOver/TalkBack labels: Speedrun lives and score, the photo popup's buttons, group chips; an empty round's Results | nothing |
+| `zoom.txt` | double-tap, pinch, zoomed drag holds the photo, swipe pages | nothing (a flash-card round ended unplayed) |
+| `duel.txt` | "Drill this pair" opens from a mix-up | nothing; needs a mix-up in Statistics |
+| `tutorial.txt` | all 13 tour steps, including tapping the Sync row | switches photo questions off for the tour and back on |
+| `language.txt` | species-name language follows, survives a relaunch | switches to Hungarian and back to English |
+| `location.txt` | "Use my location" sets the place | **grants the app location permission** |
+| `offline-ios.txt` | offline banner, Nearby and Update blocked | needs a person to toggle Airplane Mode |
+| `sync.txt` | sync turns on and off | **uploads history to the sync server**; only where sync is off |
+
+`a11y`, `language` and `location` use test IDs added in 2.46.3, so they need
+that build or later.
+
+## Android
+
+`android.py` runs the same steps and scripts over adb on an Android phone
+(USB debugging on, `adb devices` lists it):
+
+```bash
+python3 e2e/device/android.py <serial> e2e/device/scripts/zoom.txt
+```
+
+It finds elements by testID (the node's resource-id), label (content-desc) or
+text, through `uiautomator dump`. `back` presses the system back button.
+`pinch` is skipped, because adb's input has no multi-touch, and `typeinto` is
+ASCII only. `alert:` matches dialog buttons in any case (Android writes
+"EXIT"); a permission prompt has its own Android wording (`alert:While using
+the app`), which is why `location.txt` lists both platforms' buttons. Output goes to `e2e/device/out/android/` unless a third argument says
+otherwise.
 
 **Driving TestFlight:** set `GOTE_BUNDLE=com.apple.TestFlight` to work in
 TestFlight instead of gote, for example to update to the newest build:

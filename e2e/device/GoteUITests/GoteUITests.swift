@@ -8,10 +8,19 @@ import XCTest
 //   drag:<x1>,<y1>,<x2>,<y2>  tapfirst:<identifier prefix>  scrollto:<identifier>  typeinto:<identifier>=<text>
 //   waitid:<identifier>  waitlabel:<text>  wait:<seconds>
 //   type:<text>  swipe:<up|down|left|right>
+//   doubletap:<identifier>  pinch:<identifier>=<scale>  alert:<button label>
+//   assertlabel:<identifier>=<label>  assertgone:<identifier>
+//   tapif:<identifier> (tap if it appears within 3 s; no miss if not)
+//   tapifon:<identifier> / tapifoff:<identifier> (tap a switch only in that state)
 //   shot:<name>  tree:<name>
+// waitid takes an optional timeout: waitid:<identifier>=<seconds>.
+// Every check prints "GOTE found|MISSING|ok|FAIL: …"; the run ends with a
+// "GOTE summary" line counting the misses and failures.
 final class GoteUITests: XCTestCase {
     var app: XCUIApplication!
     var counter = 0
+    var misses = 0
+    var fails = 0
 
     func testRun() throws {
         continueAfterFailure = true
@@ -27,6 +36,7 @@ final class GoteUITests: XCTestCase {
             print("GOTE step: \(step)")
             run(cmd, arg)
         }
+        print("GOTE summary: \(misses) missing, \(fails) failed")
     }
 
     func run(_ cmd: String, _ arg: String) {
@@ -50,7 +60,9 @@ final class GoteUITests: XCTestCase {
                            withVelocity: .default, thenHoldForDuration: 0.05)
                 tries += 1
             }
-            print("GOTE \(el.exists && el.isHittable ? "found" : "MISSING"): \(arg)")
+            let ok = el.exists && el.isHittable
+            if !ok { misses += 1 }
+            print("GOTE \(ok ? "found" : "MISSING"): \(arg)")
         case "typeinto":
             let kv = arg.split(separator: "=", maxSplits: 1).map(String.init)
             let el = query(NSPredicate(format: "identifier == %@", kv[0]))
@@ -75,7 +87,57 @@ final class GoteUITests: XCTestCase {
                 let b = app.coordinate(withNormalizedOffset: CGVector(dx: v[2], dy: v[3]))
                 a.press(forDuration: 0.05, thenDragTo: b, withVelocity: .default, thenHoldForDuration: 0.05)
             }
-        case "waitid": wait(query(NSPredicate(format: "identifier == %@", arg)), arg)
+        case "waitid":
+            let kv = arg.split(separator: "=", maxSplits: 1).map(String.init)
+            let t = kv.count > 1 ? Double(kv[1]) ?? 20 : 20
+            wait(query(NSPredicate(format: "identifier == %@", kv[0])), kv[0], timeout: t)
+        case "tapif":
+            let el = query(NSPredicate(format: "identifier == %@", arg))
+            if el.waitForExistence(timeout: 3) { el.tap(); print("GOTE found: \(arg)") }
+            else { print("GOTE absent: \(arg)") }
+        case "tapifon", "tapifoff":
+            let el = query(NSPredicate(format: "identifier == %@", arg))
+            if wait(el, arg) {
+                let on = (el.value as? String) == "1"
+                if on == (cmd == "tapifon") { el.tap(); print("GOTE toggled: \(arg)") }
+                else { print("GOTE left: \(arg)") }
+            }
+        case "doubletap":
+            let el = query(NSPredicate(format: "identifier == %@", arg))
+            if wait(el, arg) { el.doubleTap() }
+        case "pinch":
+            // pinch:<id>=<scale>: above 1 zooms in, below 1 out.
+            let kv = arg.split(separator: "=", maxSplits: 1).map(String.init)
+            let el = query(NSPredicate(format: "identifier == %@", kv[0]))
+            let scale = kv.count > 1 ? Double(kv[1]) ?? 2 : 2
+            if wait(el, kv[0]) { el.pinch(withScale: scale, velocity: scale > 1 ? 1 : -1) }
+        case "alert":
+            // The app's own alerts, or a system one (a permission prompt),
+            // which belongs to SpringBoard. Not a miss when absent: a prompt
+            // shows only until it is answered.
+            let sb = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+            let own = app.alerts.buttons[arg], sys = sb.buttons[arg]
+            let end = Date().addingTimeInterval(8)
+            while !own.exists && !sys.exists && Date() < end { Thread.sleep(forTimeInterval: 0.3) }
+            if own.exists { own.tap(); print("GOTE found: alert \(arg)") }
+            else if sys.exists { sys.tap(); print("GOTE found: alert \(arg)") }
+            else { print("GOTE absent: alert \(arg)") }
+        case "assertlabel":
+            let kv = arg.split(separator: "=", maxSplits: 1).map(String.init)
+            let el = query(NSPredicate(format: "identifier == %@", kv[0]))
+            let want = kv.count > 1 ? kv[1] : ""
+            if wait(el, kv[0]) {
+                // Labels can lag a re-render; give it a few seconds to match.
+                let end = Date().addingTimeInterval(5)
+                while el.label != want && Date() < end { Thread.sleep(forTimeInterval: 0.3) }
+                if el.label == want { print("GOTE ok: \(kv[0]) = \(want)") }
+                else { fail("\(kv[0]) is \"\(el.label)\", want \"\(want)\"") }
+            }
+        case "assertgone":
+            let el = query(NSPredicate(format: "identifier == %@", arg))
+            let end = Date().addingTimeInterval(10)
+            while el.exists && Date() < end { Thread.sleep(forTimeInterval: 0.3) }
+            if el.exists { fail("\(arg) is still there") } else { print("GOTE ok: \(arg) gone") }
         case "waitlabel": wait(query(NSPredicate(format: "label CONTAINS[c] %@", arg)), arg)
         case "wait": Thread.sleep(forTimeInterval: Double(arg) ?? 1)
         case "type": app.typeText(arg)
@@ -100,8 +162,14 @@ final class GoteUITests: XCTestCase {
     func wait(_ el: XCUIElement, _ what: String, timeout: Double = 20) -> Bool {
         let ok = el.waitForExistence(timeout: timeout)
         print("GOTE \(ok ? "found" : "MISSING"): \(what)")
-        if !ok { shot("missing-\(what)"); tree("missing-\(what)") }
+        if !ok { misses += 1; shot("missing-\(what)"); tree("missing-\(what)") }
         return ok
+    }
+
+    func fail(_ why: String) {
+        fails += 1
+        print("GOTE FAIL: \(why)")
+        shot("fail"); tree("fail")
     }
 
     func tap(_ el: XCUIElement, _ what: String) {

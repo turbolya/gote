@@ -1,0 +1,24 @@
+# Offline on an iPhone/iPad. A UI test cannot switch the radio, so this waits
+# for a person: turn on Airplane Mode when "GOTE step: waitid:offline-banner"
+# prints, and turn it off again when the second wait prints.
+relaunch
+tapif:support-close
+waitid:mode-smart
+wait:2
+# A tour left running by an earlier, interrupted run is ended first.
+tapif:tutorial-exit
+alert:Exit
+waitid:offline-banner=90
+shot:offline-menu
+tree:offline-menu
+tap:mode-nearby
+waitid:nearby-start
+shot:offline-nearby
+tap:screen-back
+scrollto:open-settings
+tap:open-settings
+waitid:settings-scroll
+shot:offline-settings
+tap:settings-back
+waitid:mode-smart
+assertgone:offline-banner

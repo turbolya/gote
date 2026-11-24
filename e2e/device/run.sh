@@ -1,5 +1,5 @@
 #!/bin/zsh
-# run.sh <udid> "<steps>" [outdir] — run a step script on a device (after
+# run.sh <udid> "<steps>"|<stepsfile> [outdir] — run a step script on a device (after
 # build.sh) and export its screenshots and accessibility trees into outdir
 # (default: out/latest). Set GOTE_BUNDLE to drive another app, e.g.
 # GOTE_BUNDLE=com.apple.TestFlight to update gote from TestFlight.
@@ -8,6 +8,10 @@
 set -u
 D=${0:A:h}; UDID=${1:?usage: run.sh <udid> "<steps>" [outdir]}; STEPS=${2:?missing steps}
 OUT=${3:-$D/out/latest}
+# A file of steps, one per line ("#" comments allowed), instead of a string.
+if [[ -f "$STEPS" ]]; then
+  STEPS=$(grep -v '^[[:space:]]*#' "$STEPS" | grep -v '^[[:space:]]*$' | paste -sd'|' -)
+fi
 rm -rf "$OUT" "$OUT.xcresult"; mkdir -p "$OUT"
 cd "$D"
 TEST_RUNNER_GOTE_STEPS="$STEPS" TEST_RUNNER_GOTE_BUNDLE="${GOTE_BUNDLE:-com.gote.app}" \

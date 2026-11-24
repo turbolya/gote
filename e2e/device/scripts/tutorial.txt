@@ -1,0 +1,99 @@
+# The whole 13-step guided tour on a device.
+#
+# The tour's round has to land on the study screen (step 7 points at its
+# more-photos button), which a photo question does not. So photo questions are
+# switched off first and a round is started and ended unplayed: the menu card
+# reopens on the setup the last round was STARTED with, and step 4's Save goes
+# back to the menu. They are switched back on the same way at the end.
+# Step 4's Save reloads the deck for the username already in the field.
+relaunch
+tapif:support-close
+waitid:mode-smart
+wait:2
+# A tour left running by an earlier, interrupted run is ended first.
+tapif:tutorial-exit
+alert:Exit
+tapifon:menu-type-picture
+tap:smart-start
+wait:4
+tapif:study-end
+tapif:pick-end
+waitid:results-menu
+tap:results-menu
+waitid:mode-smart
+wait:1
+scrollto:open-settings
+tap:open-settings
+waitid:settings-scroll
+scrollto:settings-tutorial
+tap:settings-tutorial
+waitid:tutorial-bubble
+assertlabel:tutorial-progress=1 OF 13
+tap:tutorial-next
+assertlabel:tutorial-progress=2 OF 13
+tap:open-settings
+assertlabel:tutorial-progress=3 OF 13
+tap:tutorial-next
+assertlabel:tutorial-progress=4 OF 13
+tap:settings-load
+waitid:mode-smart=90
+wait:2
+assertlabel:tutorial-progress=5 OF 13
+tap:tutorial-next
+assertlabel:tutorial-progress=6 OF 13
+tap:smart-start
+waitid:study-photos
+assertlabel:tutorial-progress=7 OF 13
+shot:step7
+tap:tutorial-next
+tap:study-end
+waitid:results-menu
+tap:results-menu
+waitid:mode-smart
+assertlabel:tutorial-progress=8 OF 13
+tap:menu-stats
+waitid:stats-scroll
+assertlabel:tutorial-progress=9 OF 13
+tap:tutorial-next
+waitid:tutorial-waiting
+tap:screen-back
+waitid:mode-smart
+assertlabel:tutorial-progress=10 OF 13
+tap:mode-nearby
+waitid:nearby-start
+tap:screen-back
+waitid:mode-smart
+assertlabel:tutorial-progress=11 OF 13
+scrollto:open-settings
+tap:open-settings
+waitid:settings-scroll
+assertlabel:tutorial-progress=12 OF 13
+shot:step12
+# Step 12 spotlights the Sync row; tapping it is the step. Step 13 lives on
+# Settings, so on the Sync page the tour waits ("open Settings to continue").
+tap:settings-sync
+waitid:tutorial-waiting
+shot:sync-waiting
+tap:screen-back
+waitid:settings-scroll
+assertlabel:tutorial-progress=13 OF 13
+shot:step13
+tap:tutorial-next
+assertgone:tutorial-bubble
+# Leaving Settings saves and reloads the deck.
+tap:settings-back
+waitid:mode-smart=90
+wait:2
+# Photo questions back on, saved the same way.
+tapifoff:menu-type-picture
+tap:smart-start
+wait:4
+tapif:study-end
+tapif:pick-end
+waitid:results-menu
+tap:results-menu
+waitid:mode-smart
+relaunch
+tapif:support-close
+waitid:mode-smart
+assertgone:tutorial-bubble

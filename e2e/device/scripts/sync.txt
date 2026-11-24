@@ -1,0 +1,28 @@
+# Turning sync on and off. ONLY on a device where sync is off: turning it on
+# uploads this device's history to the sync server, and turning it off at the
+# end would otherwise switch off sync someone relies on.
+relaunch
+tapif:support-close
+waitid:mode-smart
+wait:2
+# A tour left running by an earlier, interrupted run is ended first.
+tapif:tutorial-exit
+alert:Exit
+scrollto:open-settings
+tap:open-settings
+waitid:settings-scroll
+scrollto:settings-sync
+tap:settings-sync
+waitid:sync-enable
+shot:sync-off
+tap:sync-enable
+waitid:sync-turnoff=30
+shot:sync-on
+tree:sync-on
+tap:sync-turnoff
+waitid:sync-enable=30
+shot:sync-off-again
+tap:screen-back
+waitid:settings-scroll
+tap:settings-back
+waitid:mode-smart

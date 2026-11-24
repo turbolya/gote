@@ -1,0 +1,38 @@
+# What a screen reader hears, for the 2.46.2 fixes. No answers are given, so
+# statistics are untouched.
+relaunch
+tapif:support-close
+waitid:mode-smart
+wait:2
+# A tour left running by an earlier, interrupted run is ended first.
+tapif:tutorial-exit
+alert:Exit
+# Speedrun names its lives and score; an empty round is not graded.
+tap:mode-speedrun
+waitid:study-lives
+assertlabel:study-lives=3 of 3 lives left
+assertlabel:study-speedrun-score=Score: 0
+tap:study-end
+waitid:results-empty
+shot:empty-results
+tap:results-menu
+waitid:mode-smart
+wait:1
+# The recent-photo popup's buttons are separate and named.
+tapfirst:recent-photo-
+waitid:recent-popup-close
+assertlabel:recent-popup-close=Close
+assertlabel:recent-popup-info=More about this species
+shot:popup
+tree:popup
+tap:recent-popup-close
+assertgone:recent-popup-close
+# Group chips are named by their words, not an icon glyph.
+tap:mode-nearby
+waitid:nearby-start
+scrollto:nearby-group-Aves
+assertlabel:nearby-group-Aves=Birds
+assertlabel:nearby-group-Plantae=Plants
+tree:nearby
+tap:screen-back
+waitid:mode-smart

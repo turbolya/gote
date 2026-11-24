@@ -1,0 +1,45 @@
+# Photo viewer gestures: double-tap opens a photo full-screen, pinch zooms, a
+# double-tap zooms back out, and a swipe then pages. Compare the two trees'
+# photo-credit labels: "zoomed" must match "opened", "paged" must not.
+# Android skips the pinch (adb input has no multi-touch).
+relaunch
+tapif:support-close
+waitid:mode-smart
+wait:2
+# A tour left running by an earlier, interrupted run is ended first.
+tapif:tutorial-exit
+alert:Exit
+scrollto:mode-flash
+tap:mode-flash
+waitid:custom-start
+tap:custom-start
+waitid:study-photo
+# Slow devices (an older iPad) take a while to show the photo, and the
+# double-tap only opens one that has loaded.
+wait:8
+doubletap:study-photo
+waitid:photo-pager
+waitid:photo-credit
+wait:2
+tree:opened
+pinch:photo-pager=2.5
+wait:1
+swipe:left
+wait:1.5
+shot:zoomed
+tree:zoomed
+doubletap:photo-pager
+wait:1.5
+swipe:left
+wait:2
+shot:paged
+tree:paged
+tap:photo-back
+waitid:photo-grid
+shot:grid
+tap:photo-close
+waitid:study-end
+tap:study-end
+waitid:results-menu
+tap:results-menu
+waitid:mode-smart
