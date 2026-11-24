@@ -15,8 +15,6 @@ export const CHANGELOG = [
     version: '2.46.3',
     date: '2026-11-24',
     changes: [
-      'Double-tapping the photo opens it full screen reliably, also on '
-        + 'older iPads, where it often did nothing.',
       'Screen readers no longer read a stray symbol before buttons with an '
         + 'icon, and the group chips, photos and Speedrun lives and score '
         + 'are named.',

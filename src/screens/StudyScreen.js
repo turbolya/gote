@@ -482,14 +482,9 @@ export default function StudyScreen({
   // Tapping the photo never reveals/flips the card — that's only done by the
   // "Reveal answer" button. (Tapping/flipping here was being triggered by
   // swipes, toggling the name on and off.) A double-tap still zooms.
-  // The gap is measured between the touches themselves (the native timestamp),
-  // not between the JS handlers: each tap re-renders this screen twice (peek in
-  // and out), and on a slow device (an iPad Pro 2018) that pushed the second
-  // handler past the window even for a quick double-tap, so it never zoomed.
-  const onPhotoTap = (e) => {
-    const now = e?.nativeEvent?.timestamp ?? Date.now();
-    const gap = now - lastTapRef.current;
-    if (gap >= 0 && gap < DOUBLE_TAP_MS) {
+  const onPhotoTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < DOUBLE_TAP_MS) {
       lastTapRef.current = 0;
       openZoom();
     } else {

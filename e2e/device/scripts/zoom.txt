@@ -1,6 +1,9 @@
-# Photo viewer gestures: double-tap opens a photo full-screen, pinch zooms, a
-# double-tap zooms back out, and a swipe then pages. Compare the two trees'
-# photo-credit labels: "zoomed" must match "opened", "paged" must not.
+# Photo viewer gestures: a photo opened from the grid, pinch zooms, a
+# double-tap zooms back out, and a swipe then pages. The study photo's own
+# double-tap is left to Detox (games.test.js): XCUITest's doubleTap delivers
+# only one of its two touches to the app's JS, so it never opens there.
+# Compare the trees' photo-credit labels: "zoomed" must match "opened",
+# "paged" must not.
 # Android skips the pinch (adb input has no multi-touch).
 relaunch
 tapif:support-close
@@ -14,10 +17,9 @@ tap:mode-flash
 waitid:custom-start
 tap:custom-start
 waitid:study-photo
-# Slow devices (an older iPad) take a while to show the photo, and the
-# double-tap only opens one that has loaded.
-wait:8
-doubletap:study-photo
+tap:study-photos
+waitid:photo-grid=30
+tap:photo-cell-0
 waitid:photo-pager
 waitid:photo-credit
 wait:2

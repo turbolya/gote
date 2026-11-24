@@ -78,10 +78,10 @@ simulator or that need real hardware:
 | Script | Checks | Touches |
 | --- | --- | --- |
 | `a11y.txt` | VoiceOver/TalkBack labels: Speedrun lives and score, the photo popup's buttons, group chips; an empty round's Results | nothing |
-| `zoom.txt` | double-tap, pinch, zoomed drag holds the photo, swipe pages | nothing (a flash-card round ended unplayed) |
+| `zoom.txt` | a photo from the grid, pinch, zoomed drag holds the photo, double-tap zooms out, swipe pages | nothing (a flash-card round ended unplayed) |
 | `duel.txt` | "Drill this pair" opens from a mix-up | nothing; needs a mix-up in Statistics |
 | `tutorial.txt` | all 13 tour steps, including tapping the Sync row | switches photo questions off for the tour and back on |
-| `language.txt` | species-name language follows, survives a relaunch | switches to Hungarian and back to English |
+| `language.txt` | species-name language follows, survives a relaunch | switches to Hungarian and back to **English**, whatever it was before; check first |
 | `location.txt` | "Use my location" sets the place | **grants the app location permission** |
 | `offline-ios.txt` | offline banner, Nearby and Update blocked | needs a person to toggle Airplane Mode |
 | `sync.txt` | sync turns on and off | **uploads history to the sync server**; only where sync is off |

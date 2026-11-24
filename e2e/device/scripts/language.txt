@@ -1,6 +1,11 @@
 # Species-name language: switch to Hungarian, see the field and the filter
 # follow, check a relaunch keeps it, and switch back to English. Each switch
 # reloads the deck's names from iNaturalist.
+#
+# It ENDS ON ENGLISH whatever the device started on. Check the device's
+# language first (Settings → Species names); on one set to another language,
+# switch to English by hand first, or edit the last search and option below
+# (e.g. hung / language-option-hu) so the player's choice is put back.
 relaunch
 tapif:support-close
 waitid:mode-smart
