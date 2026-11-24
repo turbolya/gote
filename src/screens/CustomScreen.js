@@ -231,6 +231,11 @@ export default function CustomScreen({
                 key={g.key}
                 testID={`custom-group-${g.key}`}
                 onPress={() => toggleGroup(g.key)}
+                // Named explicitly, as on Nearby: otherwise the label starts
+                // with the icon font's glyph.
+                accessibilityRole="button"
+                accessibilityLabel={`${g.label}, ${g.count}`}
+                accessibilityState={{ selected: on }}
                 style={[styles.chip, on && styles.chipOn]}
               >
                 <GroupIcon

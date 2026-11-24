@@ -482,9 +482,14 @@ export default function StudyScreen({
   // Tapping the photo never reveals/flips the card — that's only done by the
   // "Reveal answer" button. (Tapping/flipping here was being triggered by
   // swipes, toggling the name on and off.) A double-tap still zooms.
-  const onPhotoTap = () => {
-    const now = Date.now();
-    if (now - lastTapRef.current < DOUBLE_TAP_MS) {
+  // The gap is measured between the touches themselves (the native timestamp),
+  // not between the JS handlers: each tap re-renders this screen twice (peek in
+  // and out), and on a slow device (an iPad Pro 2018) that pushed the second
+  // handler past the window even for a quick double-tap, so it never zoomed.
+  const onPhotoTap = (e) => {
+    const now = e?.nativeEvent?.timestamp ?? Date.now();
+    const gap = now - lastTapRef.current;
+    if (gap >= 0 && gap < DOUBLE_TAP_MS) {
       lastTapRef.current = 0;
       openZoom();
     } else {
@@ -643,6 +648,8 @@ export default function StudyScreen({
         testID="study-photo"
         style={StyleSheet.absoluteFill}
         onPress={onPhotoPress}
+        accessibilityRole="imagebutton"
+        accessibilityLabel="Photo to identify"
         // Press-and-hold any bare part of the photo to peek: the answer overlay
         // slides away while held (see centerArea), then returns on release.
         onPressIn={() => setPeek(true)}
@@ -738,7 +745,12 @@ export default function StudyScreen({
           </View>
 
           {speedrun ? (
-            <View style={styles.centerStat}>
+            <View
+              style={styles.centerStat}
+              accessible
+              accessibilityLabel={`Score: ${correctCount}`}
+              testID="study-speedrun-score"
+            >
               <Icon name="zap" size={15} color={on} />
               <Text style={[styles.counter, { color: on }]}>{correctCount}</Text>
             </View>
@@ -766,19 +778,33 @@ export default function StudyScreen({
               </Pressable>
             )}
             {speedrun ? (
-              <Pop trigger={lives} scale={1.35} style={styles.lives}>
-                {Array.from({ length: SPEEDRUN_LIVES }).map((_, i) => (
-                  <Icon
-                    key={i}
-                    name="heart"
-                    size={16}
-                    color={i < lives ? on : onDim}
-                    style={styles.heart}
-                  />
-                ))}
-              </Pop>
+              // One element for the screen reader: "2 of 3 lives left", not
+              // three unlabelled glyphs. A lost life is an outline, not just a
+              // dimmer heart: dimmed alone, it was hard to tell from a full one.
+              <View
+                accessible
+                accessibilityLabel={`${lives} of ${SPEEDRUN_LIVES} ${SPEEDRUN_LIVES === 1 ? 'life' : 'lives'} left`}
+                testID="study-lives"
+              >
+                <Pop trigger={lives} scale={1.35} style={styles.lives}>
+                  {Array.from({ length: SPEEDRUN_LIVES }).map((_, i) => (
+                    <Icon
+                      key={i}
+                      name={i < lives ? 'heart' : 'heart-outline'}
+                      size={16}
+                      color={i < lives ? on : onDim}
+                      style={styles.heart}
+                    />
+                  ))}
+                </Pop>
+              </View>
             ) : (
-              <View style={styles.centerStat}>
+              <View
+                style={styles.centerStat}
+                accessible
+                accessibilityLabel={`${correctCount} correct`}
+                testID="study-score"
+              >
                 <Icon name="star" size={15} color={on} />
                 <Text style={[styles.score, { color: on }]}>{correctCount}</Text>
               </View>

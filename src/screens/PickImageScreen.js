@@ -247,7 +247,7 @@ export default function PickImageScreen({
       ) : (
         <>
           <View style={styles.grid}>
-            {options.map((opt) => {
+            {options.map((opt, i) => {
               const isPicked = opt.taxonId === picked;
               const reveal = answered && (opt.correct || isPicked);
               return (
@@ -257,6 +257,9 @@ export default function PickImageScreen({
                     style={styles.tile}
                     disabled={answered}
                     onPress={() => pick(opt)}
+                    // Numbered, never named: the name is the answer.
+                    accessibilityRole="imagebutton"
+                    accessibilityLabel={`Photo ${i + 1}`}
                   >
                     {/* Keyed by the photo, so a shuffle remounts the tile:
                         the old picture goes at once and the newt shows until

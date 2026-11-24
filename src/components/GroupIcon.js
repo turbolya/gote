@@ -24,11 +24,21 @@ export default function GroupIcon({ name, size = 22, color, style }) {
         color={tint}
         style={style}
         solid={!!desc.solid}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
       />
     );
   }
 
   return (
-    <MaterialCommunityIcons name={desc.name} size={size} color={tint} style={style} />
+    <MaterialCommunityIcons
+      name={desc.name}
+      size={size}
+      color={tint}
+      style={style}
+      // Decorative, like Icon: the glyph would otherwise lead the chip's label.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    />
   );
 }

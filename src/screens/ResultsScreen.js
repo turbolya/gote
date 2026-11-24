@@ -47,7 +47,13 @@ export default function ResultsScreen({
   const styles = useThemedStyles(makeStyles);
   const speedrun = mode === 'speedrun';
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
-  const { icon, msg } = speedrun ? streakGrade(correct) : grade(pct);
+  // A round ended before a single answer has nothing to grade. "0% · Keep
+  // practicing!" read as a verdict on a round that never happened; stats and
+  // the streak already leave such a round out (App.js finishRound).
+  const empty = total === 0;
+  const { icon, msg } = empty
+    ? { icon: 'leaf-outline', msg: 'Round ended' }
+    : speedrun ? streakGrade(correct) : grade(pct);
   const lifetimePct =
     lifetime && lifetime.answered > 0
       ? Math.round((lifetime.correct / lifetime.answered) * 100)
@@ -84,7 +90,11 @@ export default function ResultsScreen({
 
         <Appear delay={160} offset={10} style={styles.scoreCardWrap}>
           <View style={styles.scoreCard}>
-            {speedrun ? (
+            {empty ? (
+              <Text style={styles.scoreDetail} testID="results-empty">
+                No cards answered, so nothing was scored.
+              </Text>
+            ) : speedrun ? (
               <>
                 <AnimatedNumber value={correct} style={styles.pct} />
                 <Text style={styles.scoreDetail}>

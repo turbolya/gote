@@ -54,7 +54,15 @@ export default function SupportModal({ visible, onClose }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       {/* Tapping the dim closes it — the first thing anyone tries on a popup. */}
-      <Pressable style={styles.backdrop} onPress={onClose} testID="support-backdrop">
+      {/* Not an accessibility element, as in ObservationPopup: an accessible
+          Pressable folds everything inside it into one element on iOS, which
+          hid Close and both links from VoiceOver. */}
+      <Pressable
+        style={styles.backdrop}
+        onPress={onClose}
+        accessible={false}
+        testID="support-backdrop"
+      >
         {/* Claims the touch so a press inside the card never reaches the
             backdrop's dismiss. A View rather than a Pressable: there is nothing
             to press here, only something not to fall through. */}

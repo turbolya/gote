@@ -67,12 +67,17 @@ export default function LanguageDropdown({ value, onChange }) {
         onRequestClose={close}
       >
         <View style={styles.backdrop}>
-          <Pressable style={styles.backdropTop} onPress={close} />
+          <Pressable
+            style={styles.backdropTop}
+            onPress={close}
+            accessibilityRole="button"
+            accessibilityLabel="Close language list"
+          />
           <View style={styles.sheet}>
             <View style={styles.handle} />
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Species name language</Text>
-              <Pressable onPress={close} hitSlop={12}>
+              <Pressable onPress={close} hitSlop={12} testID="language-done">
                 <Text style={styles.done}>Done</Text>
               </Pressable>
             </View>
@@ -85,6 +90,7 @@ export default function LanguageDropdown({ value, onChange }) {
               placeholderTextColor={colors.muted}
               autoCorrect={false}
               autoCapitalize="none"
+              testID="language-search"
             />
 
             <FlatList
@@ -98,6 +104,8 @@ export default function LanguageDropdown({ value, onChange }) {
                   <Pressable
                     style={[styles.row, on && styles.rowOn]}
                     onPress={() => choose(item.code)}
+                    testID={`language-option-${item.code}`}
+                    accessibilityState={{ selected: on }}
                   >
                     <View style={styles.flex}>
                       <Text style={[styles.rowName, on && styles.rowNameOn]}>

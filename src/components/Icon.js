@@ -61,5 +61,17 @@ export default function Icon({ name, size = 22, color, style }) {
   const colors = useColors();
   // Allow passing an Ionicons name straight through (anything not in the map).
   const ion = MAP[name] || name;
-  return <Ionicons name={ion} size={size} color={color ?? colors.text} style={style} />;
+  // Decorative to assistive tech: the glyph is a private-use character, so
+  // left visible it was read out as noise, and folded into every button's
+  // label ("\uf24a, End"). Buttons carry their own words or label.
+  return (
+    <Ionicons
+      name={ion}
+      size={size}
+      color={color ?? colors.text}
+      style={style}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    />
+  );
 }

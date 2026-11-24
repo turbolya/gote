@@ -227,10 +227,16 @@ export default function NearbyConfigScreen({ onBack, onStart, initial = null }) 
         {place ? (
           <View style={styles.chosenPlace}>
             <Icon name="map-pin" size={18} color={colors.primary} />
-            <Text style={styles.chosenText} numberOfLines={2}>
+            <Text style={styles.chosenText} numberOfLines={2} testID="nearby-place">
               {place.name}
             </Text>
-            <Pressable onPress={() => setPlace(null)} hitSlop={10}>
+            <Pressable
+              onPress={() => setPlace(null)}
+              hitSlop={10}
+              testID="nearby-place-clear"
+              accessibilityRole="button"
+              accessibilityLabel="Clear location"
+            >
               <Icon name="x" size={18} color={colors.muted} />
             </Pressable>
           </View>
@@ -240,6 +246,7 @@ export default function NearbyConfigScreen({ onBack, onStart, initial = null }) 
               style={styles.gpsButton}
               onPress={useGps}
               disabled={gpsBusy}
+              testID="nearby-gps"
             >
               {gpsBusy ? (
                 <ActivityIndicator size="small" color={colors.primaryDark} />
@@ -356,6 +363,12 @@ export default function NearbyConfigScreen({ onBack, onStart, initial = null }) 
                 key={key}
                 testID={`nearby-group-${key}`}
                 onPress={() => toggleGroup(key)}
+                // Named explicitly: left to itself the chip's label starts with
+                // the icon font's private-use glyph, which a screen reader
+                // reads out as noise before the group's name.
+                accessibilityRole="button"
+                accessibilityLabel={groupLabel(key)}
+                accessibilityState={{ selected: on }}
                 style={[styles.groupChip, on && styles.groupChipOn]}
               >
                 <GroupIcon
@@ -371,7 +384,7 @@ export default function NearbyConfigScreen({ onBack, onStart, initial = null }) 
           })}
         </View>
 
-        {!!error && <Text style={styles.error}>{error}</Text>}
+        {!!error && <Text style={styles.error} testID="nearby-error">{error}</Text>}
       </ScrollView>
 
       <View style={styles.footer}>
