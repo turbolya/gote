@@ -8,9 +8,24 @@
 //   • patch (1.0.X) — bug fixes and small tweaks
 // Newest entry first.
 
-export const APP_VERSION = '2.46.2';
+export const APP_VERSION = '2.46.3';
 
 export const CHANGELOG = [
+  {
+    version: '2.46.3',
+    date: '2026-11-24',
+    changes: [
+      'Double-tapping the photo opens it full screen reliably, also on '
+        + 'older iPads, where it often did nothing.',
+      'Screen readers no longer read a stray symbol before buttons with an '
+        + 'icon, and the group chips, photos and Speedrun lives and score '
+        + 'are named.',
+      'The “Enjoying gote?” card’s close button and links can be reached '
+        + 'with VoiceOver.',
+      'Ending a round before answering anything says so, instead of '
+        + 'scoring it 0%. A lost Speedrun life shows as an empty heart.',
+    ],
+  },
   {
     version: '2.46.2',
     date: '2026-11-23',

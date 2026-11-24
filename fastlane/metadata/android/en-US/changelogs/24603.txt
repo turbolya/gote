@@ -1,0 +1,1 @@
+Fixes: double-tapping the photo opens it full screen reliably, also on older tablets. Screen readers no longer read a stray symbol before icon buttons, and group chips, photos and Speedrun lives are named. Ending a round before answering anything no longer scores it 0%.
